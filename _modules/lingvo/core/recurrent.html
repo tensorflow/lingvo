@@ -311,42 +311,6 @@
   <span class="k">return</span> <span class="p">[</span><span class="n">padding_begin</span><span class="p">,</span> <span class="n">padding_end</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="Flatten"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent.Flatten">[docs]</a><span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Flattens every `.NestedMap` in nmap_list and concatenate them.&quot;&quot;&quot;</span>
-  <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
-    <span class="n">ret</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="k">return</span> <span class="n">ret</span></div>
-
-
-<div class="viewcode-block" id="Pack"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent.Pack">[docs]</a><span class="k">def</span> <span class="nf">Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="n">nmap_list</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Packs the list of tensors according to `.NestedMap` in `nmap_list`.</span>
-
-<span class="sd">  `Pack` is loosely the inverse of `Flatten`.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    flatten: A list of tensors.</span>
-<span class="sd">    nmap_list: A list of `.NestedMap`.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    A list of `.NestedMap`, say ret is the returned list. We have</span>
-
-<span class="sd">      1. len(ret) == len(nmap_list);</span>
-<span class="sd">      2. recursively, ret[i] has the same keys as nmap_list[i];</span>
-<span class="sd">      3. Flatten(ret) == flatten;</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flatten</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-    <span class="n">flatten</span> <span class="o">=</span> <span class="p">[</span><span class="n">flatten</span><span class="p">]</span>
-  <span class="n">ret</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
-    <span class="c1"># x needs num values from the head of flatten.</span>
-    <span class="n">num</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-    <span class="n">ret</span> <span class="o">+=</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flatten</span><span class="p">[:</span><span class="n">num</span><span class="p">])]</span>
-    <span class="n">flatten</span> <span class="o">=</span> <span class="n">flatten</span><span class="p">[</span><span class="n">num</span><span class="p">:]</span>
-  <span class="k">assert</span> <span class="ow">not</span> <span class="n">flatten</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;flatten does not match nmap_list.&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">ret</span></div>
-
-
 <div class="viewcode-block" id="_SetShapes"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._SetShapes">[docs]</a><span class="k">def</span> <span class="nf">_SetShapes</span><span class="p">(</span><span class="n">dst_nmap</span><span class="p">,</span> <span class="n">src_nmap</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Set shapes in dst_nmap using those in src_nmap.&quot;&quot;&quot;</span>
   <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">src_nmap</span><span class="p">,</span> <span class="n">dst_nmap</span><span class="p">)</span>
@@ -414,23 +378,12 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A `.NestedMap` of tensors. ret.key = nmap_x.key + nmap_y.key for every key.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">)</span>
-  <span class="n">x_lst</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="n">y_lst</span> <span class="o">=</span> <span class="n">nmap_y</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="n">z</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_lst</span><span class="p">,</span> <span class="n">y_lst</span><span class="p">):</span>
-    <span class="n">z</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)]</span>
-  <span class="k">return</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">z</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">,</span> <span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Dtypes"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent.Dtypes">[docs]</a><span class="k">def</span> <span class="nf">Dtypes</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns all tensors&#39; data types in a list.&quot;&quot;&quot;</span>
-  <span class="n">flatten</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">nmap_list</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
-      <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;dtype&#39;</span><span class="p">),</span> <span class="s1">&#39;Non-tensor entry: </span><span class="si">%s</span><span class="s1">=</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-    <span class="n">flatten</span> <span class="o">+=</span> <span class="n">x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">flatten</span><span class="p">]</span></div>
+  <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">)]</span></div>
 
 
 <div class="viewcode-block" id="_ConvertNoneGradientToZeros"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._ConvertNoneGradientToZeros">[docs]</a><span class="k">def</span> <span class="nf">_ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">dxs</span><span class="p">):</span>
@@ -443,18 +396,8 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A `.NestedMap` same as dxs with None replaced by a zero tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">xs_lst</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
-  <span class="n">dxs_lst</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
-
-  <span class="c1"># If x does not get any backprop-ed gradient, propagate zeros.</span>
-  <span class="n">rets</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dx</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs_lst</span><span class="p">,</span> <span class="n">dxs_lst</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">dx</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">rets</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dx</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">,</span> <span class="n">dxs</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+      <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">dx</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">if</span> <span class="n">dx</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">dx</span><span class="p">,</span> <span class="n">xs</span><span class="p">,</span> <span class="n">dxs</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_TransformDType"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._TransformDType">[docs]</a><span class="k">def</span> <span class="nf">_TransformDType</span><span class="p">(</span><span class="n">nmap</span><span class="p">):</span>
@@ -539,12 +482,12 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">_SetShapes</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
       <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
       <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">)</span>
       <span class="n">_AssertIsCompatible</span><span class="p">(</span><span class="n">extras</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
 
     <span class="c1"># Wraps cell_fn in a TF Function as a for-loop&#39;s body.</span>
     <span class="c1">#</span>
@@ -565,7 +508,7 @@
       <span class="sd">&quot;&quot;&quot;The condition of forward loop.&quot;&quot;&quot;</span>
       <span class="n">should_continue</span> <span class="o">=</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">limit</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span><span class="p">:</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwdloop_sig</span><span class="p">)</span>
+        <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
         <span class="n">should_continue</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
             <span class="n">should_continue</span><span class="p">,</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">))))</span>
@@ -574,16 +517,18 @@
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">t_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">ForwardLoopBody</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;The body of forward loop.&quot;&quot;&quot;</span>
-      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwdloop_sig</span><span class="p">)</span>
+      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="n">fwdloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>  <span class="c1"># external input at time step t.</span>
-      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>
-          <span class="n">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">])),</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span>
+          <span class="n">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">])))</span>
       <span class="c1"># Saves state1 and extras in their accumulators.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="n">acc_state</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
       <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
-      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">(</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
           <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -660,8 +605,7 @@
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">dy</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">dy</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
-      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">unused_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">],</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
           <span class="p">[</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
@@ -669,19 +613,20 @@
               <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
               <span class="c1"># Implicit captured tensors always come last</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span>
-          <span class="p">])</span>
+          <span class="p">],</span>
+          <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">])</span>
       <span class="c1"># acc_state and acc_extras are computed by the Forward pass and</span>
       <span class="c1"># needed by the Backward pass.</span>
-      <span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">([</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]],</span>
-                                      <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]])</span>
 
       <span class="c1"># Forward computes acc_state, the final state and</span>
       <span class="c1"># acc_extras. tf.gradients gives us their gradients w.r.t. the</span>
       <span class="c1"># final loss. Because acc_extras are not exposed by Compute(),</span>
       <span class="c1"># it has no gradients w.r.t. the final loss (i.e., by</span>
       <span class="c1"># construction, it must be zeros).</span>
-      <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span>
-                                      <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># XLA While op requires the same shape for the init and carry on values.</span>
@@ -690,7 +635,7 @@
 
       <span class="k">return</span> <span class="n">Backward</span><span class="p">(</span>
           <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-          <span class="o">*</span><span class="n">Flatten</span><span class="p">([</span>
+          <span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
               <span class="n">theta</span><span class="p">,</span>
               <span class="n">state0</span><span class="p">,</span>
               <span class="n">inputs</span><span class="p">,</span>
@@ -712,7 +657,7 @@
         <span class="n">_reference</span><span class="o">=</span><span class="n">constants</span><span class="o">.</span><span class="n">REFERENCE_ANNOTATION</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Forward pass of the recurrent net.&quot;&quot;&quot;</span>
-      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">forward_sig</span><span class="p">)</span>
+      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">forward_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
       <span class="c1"># The sequence length.</span>
       <span class="n">pad_begin</span><span class="p">,</span> <span class="n">pad_end</span> <span class="o">=</span> <span class="n">_SeqPaddingLength</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
@@ -736,15 +681,15 @@
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
         <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
             <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span>
-            <span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
             <span class="n">cond</span><span class="o">=</span><span class="n">ForwardLoopCond</span><span class="p">,</span>
             <span class="n">body</span><span class="o">=</span><span class="n">ForwardLoopBody</span><span class="p">)</span>
       <span class="n">t</span> <span class="o">=</span> <span class="n">run</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>
-          <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span>
-          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])</span>
+      <span class="n">_</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span>
+          <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
-      <span class="k">return</span> <span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
 
     <span class="c1"># The per-step backward computes:</span>
     <span class="c1">#    d_theta, d_state0, d_inputs = cell_grad(</span>
@@ -763,7 +708,7 @@
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">bak_sig</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Backward step.&quot;&quot;&quot;</span>
-      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">bak_sig</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bak_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">_SetShapes</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">bak_sig</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
       <span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span>
        <span class="n">dcaptures</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cell_grad</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">)</span>
@@ -782,8 +727,8 @@
       <span class="c1"># to cell_grad() which adds to the captured list.</span>
       <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-      <span class="p">(</span><span class="n">captured</span><span class="p">,)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">(),</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">])</span>
-      <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span>
+      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
           <span class="n">_ConvertNoneGradientToZeros</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span>
                                       <span class="p">[</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span><span class="p">]))</span>
 
@@ -793,13 +738,13 @@
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">ReturnOrigState0</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns original state0 from inputs.&quot;&quot;&quot;</span>
-      <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">state_if_sig</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">orig_state0</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">))</span>
     <span class="k">def</span> <span class="nf">ReturnAccState</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns acc_state[t-1] from inputs.&quot;&quot;&quot;</span>
-      <span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">state_if_sig</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state_if_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">acc_state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
     <span class="c1"># Wraps cell_grad gradient function in a TF Function as a</span>
@@ -855,7 +800,7 @@
           <span class="n">d_state1</span><span class="p">,</span>
           <span class="n">d_inputs</span><span class="p">,</span>
           <span class="n">d_acc_state</span><span class="p">,</span>
-          <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">bakloop_sig</span><span class="p">)</span>
+          <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
       <span class="c1"># The input recurrent state for time step t is previous time step&#39;s</span>
       <span class="c1"># output, or the original state0 when on time step 0.</span>
@@ -863,7 +808,7 @@
                               <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
       <span class="n">state0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
-          <span class="n">Flatten</span><span class="p">([</span><span class="n">state_from_acc</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">]),</span> <span class="n">ReturnOrigState0</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">state_from_acc</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">]),</span> <span class="n">ReturnOrigState0</span><span class="p">,</span>
           <span class="n">ReturnAccState</span><span class="p">)</span>
       <span class="n">state0</span> <span class="o">=</span> <span class="n">orig_state0</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
 
@@ -873,9 +818,9 @@
       <span class="n">extras_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
       <span class="n">d_state1</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">_Index</span><span class="p">(</span><span class="n">d_acc_state</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="n">d_state1</span><span class="p">)</span>
-      <span class="p">(</span><span class="n">d_theta_t</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>
-          <span class="n">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">,</span> <span class="n">extras_t</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">])),</span>
-          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">])</span>
+      <span class="p">(</span><span class="n">d_theta_t</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">],</span>
+          <span class="n">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">,</span> <span class="n">extras_t</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">])))</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># XLA IF op requires the same shape for if and else branches.</span>
@@ -889,7 +834,7 @@
       <span class="c1"># to Bak() which adds to the captured list.</span>
       <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span>
+      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
           <span class="n">theta</span><span class="p">,</span>
           <span class="n">orig_state0</span><span class="p">,</span>
           <span class="n">inputs</span><span class="p">,</span>
@@ -925,7 +870,7 @@
       <span class="c1"># d_acc_state is the gradient for acc_state.</span>
       <span class="c1"># d_state1 is the gradient for the final state computed by Forward.</span>
       <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span>
-       <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">backward_sig</span><span class="p">)</span>
+       <span class="n">d_state1</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">backward_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
 
       <span class="c1"># Accumulators for gradients.</span>
       <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
@@ -942,7 +887,7 @@
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
         <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">Flatten</span><span class="p">([</span>
+            <span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
                 <span class="n">theta</span><span class="p">,</span>
                 <span class="n">state0</span><span class="p">,</span>
                 <span class="n">inputs</span><span class="p">,</span>
@@ -958,7 +903,7 @@
             <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">)</span>
 
       <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span>
-       <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">bakloop_sig</span><span class="p">)</span>
+       <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
@@ -968,16 +913,17 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># Match the shape of gradient of the init_state.</span>
         <span class="n">d_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
 
 <div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run the computation.&quot;&quot;&quot;</span>
-    <span class="n">run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span>
-        <span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">]))</span>
-    <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span>  <span class="c1"># pylint: disable=unbalanced-tuple-unpacking</span>
-        <span class="n">run</span><span class="p">[</span><span class="mi">1</span><span class="p">:],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">])[:</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">]))</span>
+    <span class="n">acc_state</span><span class="p">,</span> <span class="n">final_state</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span> <span class="n">run</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accumulator_layer</span><span class="p">:</span>
       <span class="c1"># Restore the accumulators from the final recurrent state.</span>
@@ -1026,10 +972,10 @@
 
   <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
   <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">)</span>
+    <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
     <span class="n">_SetShapes</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">])</span>
 
   <span class="c1"># Asserts about the function.</span>
   <span class="k">if</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">:</span>
@@ -1045,14 +991,15 @@
           <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;cell_fn depends on stateful random ops: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
               <span class="n">stateful_random_ops</span><span class="p">))</span>
 
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
   <span class="n">captured_inputs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Fwd</span><span class="o">.</span><span class="n">captured_inputs</span><span class="p">)</span>
-
-  <span class="k">assert</span> <span class="p">(</span><span class="ow">not</span> <span class="n">captured_inputs</span> <span class="ow">or</span> <span class="n">allow_implicit_capture</span><span class="p">),</span> <span class="p">(</span>
-      <span class="p">(</span><span class="s1">&#39;Recurrent cell_fn implicitly captures tensors but &#39;</span>
-       <span class="s1">&#39;implicit capture is disabled or a custom cell_grad fn &#39;</span>
-       <span class="s1">&#39;is in use. Captured tensors: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">captured_inputs</span><span class="p">)</span>
-
-  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">captured</span><span class="o">=</span><span class="n">captured_inputs</span><span class="p">)</span></div>
+  <span class="k">if</span> <span class="n">captured_inputs</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">allow_implicit_capture</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Recurrent cell_fn implicitly captures tensors but &#39;</span>
+                       <span class="s1">&#39;implicit capture is disabled or a custom cell_grad fn &#39;</span>
+                       <span class="s1">&#39;is in use. Captured tensors: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">captured_inputs</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">captured</span> <span class="o">=</span> <span class="n">captured_inputs</span>
+  <span class="k">return</span> <span class="n">ret</span></div>
 
 
 <div class="viewcode-block" id="_GetCellGrad"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._GetCellGrad">[docs]</a><span class="k">def</span> <span class="nf">_GetCellGrad</span><span class="p">(</span><span class="n">cell_fn</span><span class="p">,</span>
@@ -1110,14 +1057,14 @@
 
       <span class="c1"># Extract the internal captured tensor placeholders within the Defun</span>
       <span class="c1"># we are running in.</span>
-      <span class="p">(</span><span class="n">captured</span><span class="p">,)</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">(),</span> <span class="p">[</span><span class="n">implicit_captures</span><span class="p">])</span>
-      <span class="n">ys</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">state1</span><span class="p">])</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">])</span>
-      <span class="n">grad_ys</span> <span class="o">=</span> <span class="n">Flatten</span><span class="p">([</span><span class="n">dstate1</span><span class="p">])</span>
+      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
+      <span class="n">ys</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">state1</span><span class="p">)</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">])</span>
+      <span class="n">grad_ys</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">dstate1</span><span class="p">)</span>
       <span class="n">grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gradients</span><span class="p">(</span><span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">grad_ys</span><span class="o">=</span><span class="n">grad_ys</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">_ConvertNoneGradientToZeros</span><span class="p">(</span>
           <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span>
-          <span class="n">Pack</span><span class="p">(</span><span class="n">grads</span><span class="p">,</span> <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">]))</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span> <span class="n">grads</span><span class="p">))</span>
 
     <span class="n">cell_grad</span> <span class="o">=</span> <span class="n">CellGrad</span>
 
@@ -1452,13 +1399,11 @@
 
 <div class="viewcode-block" id="_CreateLinks"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._CreateLinks">[docs]</a><span class="k">def</span> <span class="nf">_CreateLinks</span><span class="p">(</span><span class="n">nmap</span><span class="p">,</span> <span class="n">dpair</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Creates links between the send/recv devices for every tensor in nmap.&quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Pack</span><span class="p">([</span><span class="n">_Link</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dpair</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span></div>
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">_Link</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">dpair</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="_Join"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Join">[docs]</a><span class="k">def</span> <span class="nf">_Join</span><span class="p">(</span><span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
-  <span class="n">xs</span> <span class="o">=</span> <span class="n">nmap_x</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="n">ys</span> <span class="o">=</span> <span class="n">nmap_y</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
-  <span class="k">return</span> <span class="p">[</span><span class="n">fn</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">)]</span></div>
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">nmap_x</span><span class="p">,</span> <span class="n">nmap_y</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="_Input"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Input">[docs]</a><span class="k">class</span> <span class="nc">_Input</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -1706,14 +1651,14 @@
   <span class="c1">#   first: x, list -&gt; x</span>
   <span class="c1">#</span>
   <span class="c1"># If we have nil &amp; first, we can write</span>
-  <span class="c1">#   zero = nil(Flatten(ys))</span>
+  <span class="c1">#   zero = nil(py_utils.Flatten(ys))</span>
   <span class="c1">#   return [x.Transform(lambda t: first(t, zero)) for x in xs]</span>
   <span class="k">def</span> <span class="nf">MakeZero</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
     <span class="n">s</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">s</span> <span class="o">-</span> <span class="n">s</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="nf">SumToZero</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">([</span><span class="n">MakeZero</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">)])</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">([</span><span class="n">MakeZero</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">)])</span>
 
   <span class="n">ys_zero</span> <span class="o">=</span> <span class="n">SumToZero</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
   <span class="k">return</span> <span class="p">[</span><span class="n">x</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">t</span><span class="p">:</span> <span class="n">t</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ys_zero</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">xs</span><span class="p">]</span></div>
@@ -1955,7 +1900,7 @@
       <span class="c1"># the Backward loop for each layer.</span>
       <span class="c1">#</span>
       <span class="c1"># TODO(zhifengc): We can write, if we have nil &amp; first ops:</span>
-      <span class="c1">#   anchor += [nil(Flatten(acc_states))]</span>
+      <span class="c1">#   anchor += [nil(py_utils.Flatten(acc_states))]</span>
       <span class="c1"># And finally,</span>
       <span class="c1">#   return acc_states.Transform(lambda x: first(x, anchor))</span>
       <span class="k">def</span> <span class="nf">ComputeAnchor</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>

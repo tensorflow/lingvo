@@ -484,9 +484,9 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.Transform">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Transform</code><span class="sig-paren">(</span><em class="sig-param">v</em>, <em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Replaces every nested value x in ‘v’ with fn(x) and returns the result.</p>
+<dt id="lingvo.core.py_utils.Flatten">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flattens ‘x’ by extracting tensors from nested structures to a list.</p>
 </dd></dl>
 
 <dl class="function">
@@ -496,9 +496,9 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.py_utils.Flatten">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Flatten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flattens ‘x’ by extracting tensors from nested structures to a list.</p>
+<dt id="lingvo.core.py_utils.Transform">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Transform</code><span class="sig-paren">(</span><em class="sig-param">fn</em>, <em class="sig-param">*v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Replaces every nested value x in ‘v’ with fn(x) and returns the result.</p>
 </dd></dl>
 
 <dl class="function">
@@ -536,6 +536,11 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <code class="sig-name descname">_RESERVED_KEYS</code><em class="property"> = {'__class__', '__contains__', '__delattr__', '__delitem__', '__dir__', '__doc__', '__eq__', '__format__', '__ge__', '__getattribute__', '__getitem__', '__gt__', '__hash__', '__init__', '__init_subclass__', '__iter__', '__le__', '__len__', '__lt__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__setitem__', '__sizeof__', '__str__', '__subclasshook__', 'clear', 'copy', 'fromkeys', 'get', 'items', 'keys', 'pop', 'popitem', 'setdefault', 'update', 'values'}</em><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._RESERVED_KEYS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="attribute">
+<dt id="lingvo.core.py_utils.NestedMap._DELETE">
+<code class="sig-name descname">_DELETE</code><em class="property"> = &lt;object object&gt;</em><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._DELETE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.copy">
 <code class="sig-name descname">copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span> &#x2192; a shallow copy of D<a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.copy" title="Permalink to this definition">¶</a></dt>
@@ -557,24 +562,6 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <dt id="lingvo.core.py_utils.NestedMap.CheckKey">
 <em class="property">static </em><code class="sig-name descname">CheckKey</code><span class="sig-paren">(</span><em class="sig-param">key</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.CheckKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.CheckKey" title="Permalink to this definition">¶</a></dt>
 <dd><p>Asserts that key is valid NestedMap key.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.py_utils.NestedMap.Flatten">
-<code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Flatten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns values in a list.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.py_utils.NestedMap.FlattenItems">
-<code class="sig-name descname">FlattenItems</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FlattenItems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FlattenItems" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
-<dd class="field-odd"><p>A list of &lt;key, value&gt; pairs, where keys for nested entries will be
-represented in the form of <code class="xref py py-obj docutils literal notranslate"><span class="pre">foo.bar[10].baz</span></code>.</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="method">
@@ -638,29 +625,39 @@ considered as one key.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.py_utils.NestedMap.Transform">
-<code class="sig-name descname">Transform</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Transform" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each value.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.py_utils.NestedMap.Filter">
-<code class="sig-name descname">Filter</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Filter" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with entries that fn(entry) is True.</p>
-</dd></dl>
-
-<dl class="method">
-<dt id="lingvo.core.py_utils.NestedMap.FilterKeyVal">
-<code class="sig-name descname">FilterKeyVal</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FilterKeyVal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FilterKeyVal" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with filtered by fn.</p>
-<p>If fn(key, entry) is True, the entry is copied into the returned NestedMap.
-Otherwise, it is not copied.</p>
+<dt id="lingvo.core.py_utils.NestedMap._RecursiveMap">
+<code class="sig-name descname">_RecursiveMap</code><span class="sig-paren">(</span><em class="sig-param">fn</em>, <em class="sig-param">flatten=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap._RecursiveMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._RecursiveMap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse recursively into lists and NestedMaps applying <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>fn</strong> – a callable of (string, entry)-&gt;boolean.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fn</strong> – The function to apply to each item (leaf node).</p></li>
+<li><p><strong>flatten</strong> – If true, the result should be a single flat list. Otherwise the
+result will have the same structure as this NestedMap.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> contains copied entries from this <code class="xref py py-obj docutils literal notranslate"><span class="pre">'.NestedMap</span></code>.</p>
+<dd class="field-even"><p>The result of applying fn.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.Flatten">
+<code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Flatten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list containing the flattened values in the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+<p>Unlike py_utils.Flatten(), this will only descend into lists and NestedMaps
+and not dicts, tuples, or namedtuples.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.FlattenItems">
+<code class="sig-name descname">FlattenItems</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FlattenItems"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FlattenItems" title="Permalink to this definition">¶</a></dt>
+<dd><p>Flatten the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> and returns &lt;key, value&gt; pairs in a list.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A list of &lt;key, value&gt; pairs, where keys for nested entries will be
+represented in the form of <code class="xref py py-obj docutils literal notranslate"><span class="pre">foo.bar[10].baz</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -672,13 +669,42 @@ Otherwise, it is not copied.</p>
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.Transform">
+<code class="sig-name descname">Transform</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Transform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Transform" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with fn applied on each value.</p>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.core.py_utils.NestedMap.IsCompatible">
 <code class="sig-name descname">IsCompatible</code><span class="sig-paren">(</span><em class="sig-param">other</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.IsCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.IsCompatible" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if self and other are compatible.</p>
+<p>If x and y are two compatible <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">x.Pack(y.Flatten())</span></code> produces y
+and vice versa.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>other</strong> – Another <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.  If x and y are two compatible <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>,
-<code class="xref py py-obj docutils literal notranslate"><span class="pre">x.Pack(y.Flatten())</span></code> produces y and <code class="xref py py-obj docutils literal notranslate"><span class="pre">y.Pack(x.Flatten())</span></code> produces x.</p>
+<dd class="field-odd"><p><strong>other</strong> – Another <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.Filter">
+<code class="sig-name descname">Filter</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Filter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Filter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a copy with entries where fn(entry) is True.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.py_utils.NestedMap.FilterKeyVal">
+<code class="sig-name descname">FilterKeyVal</code><span class="sig-paren">(</span><em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.FilterKeyVal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.FilterKeyVal" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a copy of this <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> filtered by fn.</p>
+<p>If fn(key, entry) is True, the entry is copied into the returned NestedMap.
+Otherwise, it is not copied.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>fn</strong> – a callable of (string, entry)-&gt;boolean.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> contains copied entries from this <code class="xref py py-obj docutils literal notranslate"><span class="pre">'.NestedMap</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>

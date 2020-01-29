@@ -332,38 +332,6 @@ tensor’s 0-th dim has the same size.</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="lingvo.core.recurrent.Flatten">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><em class="sig-param">nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Flatten" title="Permalink to this definition">¶</a></dt>
-<dd><p>Flattens every <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> in nmap_list and concatenate them.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.recurrent.Pack">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Pack</code><span class="sig-paren">(</span><em class="sig-param">flatten</em>, <em class="sig-param">nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Pack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Pack" title="Permalink to this definition">¶</a></dt>
-<dd><p>Packs the list of tensors according to <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> in <code class="xref py py-obj docutils literal notranslate"><span class="pre">nmap_list</span></code>.</p>
-<p><a class="reference internal" href="#lingvo.core.recurrent.Pack" title="lingvo.core.recurrent.Pack"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Pack</span></code></a> is loosely the inverse of <a class="reference internal" href="#lingvo.core.recurrent.Flatten" title="lingvo.core.recurrent.Flatten"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Flatten</span></code></a>.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>flatten</strong> – A list of tensors.</p></li>
-<li><p><strong>nmap_list</strong> – A list of <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><p>A list of <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>, say ret is the returned list. We have</p>
-<blockquote>
-<div><ol class="arabic simple">
-<li><p>len(ret) == len(nmap_list);</p></li>
-<li><p>recursively, ret[i] has the same keys as nmap_list[i];</p></li>
-<li><p>Flatten(ret) == flatten;</p></li>
-</ol>
-</div></blockquote>
-</p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="function">
 <dt id="lingvo.core.recurrent._SetShapes">
 <code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SetShapes</code><span class="sig-paren">(</span><em class="sig-param">dst_nmap</em>, <em class="sig-param">src_nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SetShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SetShapes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set shapes in dst_nmap using those in src_nmap.</p>

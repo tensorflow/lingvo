@@ -173,7 +173,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
@@ -3411,12 +3410,12 @@
           <span class="s1">&#39;shapes. Original shapes: </span><span class="si">{}</span><span class="s1">. Transformed shapes: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
               <span class="n">shapes</span><span class="p">,</span> <span class="n">shapes_transformed</span><span class="p">))</span>
 
-    <span class="n">shapes_zipped</span> <span class="o">=</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes_transformed</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())))</span>
-    <span class="n">shapes_compatible</span> <span class="o">=</span> <span class="n">shapes_zipped</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
-        <span class="k">lambda</span> <span class="n">xs</span><span class="p">:</span> <span class="n">xs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">is_compatible_with</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="k">def</span> <span class="nf">IsCompatibleWith</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">a</span><span class="o">.</span><span class="n">is_compatible_with</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">shapes_compatible</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">IsCompatibleWith</span><span class="p">,</span> <span class="n">shapes</span><span class="p">,</span> <span class="n">shapes_transformed</span><span class="p">))):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;Shapes after transformation - </span><span class="si">{}</span><span class="s1"> are different from original &#39;</span>
           <span class="s1">&#39;shapes - </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shapes_transformed</span><span class="p">,</span> <span class="n">shapes</span><span class="p">))</span>
