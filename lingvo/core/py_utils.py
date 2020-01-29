@@ -552,67 +552,28 @@ def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
   return session_config
 
 
-def Transform(v, fn):
-  """Replaces every nested value x in 'v' with fn(x) and returns the result."""
-  if isinstance(v, list):
-    lst = [Transform(x, fn) for x in v]
-    return type(v)(lst)
-  elif isinstance(v, dict):
-    keys = sorted(v.keys())
-    values = [Transform(v[k], fn) for k in keys]
-    return type(v)(zip(keys, values))
-  else:
-    return fn(v)
+def Flatten(x):
+  """Flattens 'x' by extracting tensors from nested structures to a list."""
+  return tf.nest.flatten(x)
 
 
 def Pack(tmpl, values):
   """Packs 'values' according to 'tmpl'."""
-  values = list(values)
-  flat_tmpl = Flatten(tmpl)
-  assert len(flat_tmpl) == len(values), (len(flat_tmpl), len(values))
-  v_iter = iter(values)
-  # Replace tensors in 'tmpl' with 'values'.
-  return Transform(tmpl, lambda _: next(v_iter))
+  return tf.nest.pack_sequence_as(tmpl, values)
 
 
-def Flatten(x):
-  """Flattens 'x' by extracting tensors from nested structures to a list."""
-  if isinstance(x, list):
-    flat_x = []
-    for v in x:
-      flat_x += Flatten(v)
-    return flat_x
-  elif isinstance(x, dict):
-    keys = sorted(x.keys())
-    return Flatten([x[k] for k in keys])
-  else:
-    return [x]
+def Transform(fn, *v):
+  """Replaces every nested value x in 'v' with fn(x) and returns the result."""
+  return tf.nest.map_structure(fn, *v)
 
 
 def IsCompatible(lhs, rhs):
   """Returns true if lhs and rhs are compatible."""
-
-  def DoCompare(x, y):
-    """Compares x and y."""
-    if isinstance(x, NestedMap) or isinstance(y, NestedMap):
-      if not isinstance(x, NestedMap) or not isinstance(y, NestedMap):
-        return False
-      if sorted(x.keys()) != sorted(y.keys()):
-        return False
-      for (k, v) in six.iteritems(x):
-        if not DoCompare(v, y[k]):
-          return False
-    elif isinstance(x, list) or isinstance(y, list):
-      if not isinstance(x, list) or not isinstance(y, list):
-        return False
-      if len(x) != len(y):
-        return False
-      for (u, v) in zip(x, y):
-        if not DoCompare(u, v):
-          return False
+  try:
+    tf.nest.assert_same_structure(lhs, rhs)
     return True
-
-  return DoCompare(lhs, rhs)
+  except (ValueError, TypeError):
+    return False
 
 
 _NAME_PATTERN = re.compile('[A-Za-z_][A-Za-z0-9_]*')
@@ -637,6 +598,8 @@ class NestedMap(dict):
   _HAS_DYNAMIC_ATTRIBUTES = True
   # keys in this list are not allowed in a NestedMap.
   _RESERVED_KEYS = set(dir(dict))
+  # sentinel value for deleting keys used in Filter.
+  _DELETE = object()
 
   def __init__(self, *args, **kwargs):
     super(NestedMap, self).__init__(*args, **kwargs)
@@ -683,8 +646,7 @@ class NestedMap(dict):
 
   def DeepCopy(self):
     """Deep-copies the structure but not the leaf objects."""
-    flat_v = self.Flatten()
-    return self.Pack(flat_v)
+    return self.Pack(self.Flatten())
 
   @staticmethod
   def FromNestedDict(a_dict):
@@ -701,35 +663,6 @@ class NestedMap(dict):
   def CheckKey(key):
     """Asserts that key is valid NestedMap key."""
     assert isinstance(key, six.string_types) and _NAME_PATTERN.match(key), key
-
-  def Flatten(self):
-    """Flatten the `.NestedMap` and returns values in a list."""
-    return Flatten(self)
-
-  def FlattenItems(self):
-    """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
-
-    Returns:
-      A list of <key, value> pairs, where keys for nested entries will be
-      represented in the form of `foo.bar[10].baz`.
-    """
-
-    def Expand(key, v):
-      if isinstance(v, NestedMap):
-        ret = []
-        for k in sorted(v.keys()):
-          global_key = key + '.' + k if key else k
-          ret += Expand(global_key, v[k])
-        return ret
-      elif isinstance(v, list):
-        ret = []
-        for i, x in enumerate(v):
-          ret += Expand('%s[%d]' % (key, i), x)
-        return ret
-      else:
-        return [(key, v)]
-
-    return Expand(None, self)
 
   def GetItem(self, key):
     """Gets the value for the nested `key`.
@@ -807,16 +740,107 @@ class NestedMap(dict):
                            ''.format(key, k, type(current[k])))
         current = current[k]
 
+  def _RecursiveMap(self, fn, flatten=False):
+    """Traverse recursively into lists and NestedMaps applying `fn`.
+
+    Args:
+      fn: The function to apply to each item (leaf node).
+      flatten: If true, the result should be a single flat list. Otherwise the
+        result will have the same structure as this NestedMap.
+
+    Returns:
+      The result of applying fn.
+    """
+
+    def Recurse(v, key=''):
+      """Helper function for _RecursiveMap."""
+      if isinstance(v, NestedMap):
+        ret = [] if flatten else NestedMap()
+        deleted = False
+        for k in sorted(v.keys()):
+          res = Recurse(v[k], key + '.' + k if key else k)
+          if res is self._DELETE:
+            deleted = True
+            continue
+          elif flatten:
+            ret += res
+          else:
+            ret[k] = res
+        if not ret and deleted:
+          return self._DELETE
+        return ret
+      elif isinstance(v, list):
+        ret = []
+        deleted = False
+        for i, x in enumerate(v):
+          res = Recurse(x, '%s[%d]' % (key, i))
+          if res is self._DELETE:
+            deleted = True
+            continue
+          elif flatten:
+            ret += res
+          else:
+            ret.append(res)
+        if not ret and deleted:
+          return self._DELETE
+        return ret
+      else:
+        ret = fn(key, v)
+        if flatten:
+          ret = [ret]
+        return ret
+
+    res = Recurse(self)
+    if res is self._DELETE:
+      return [] if flatten else NestedMap()
+    return res
+
+  def Flatten(self):
+    """Returns a list containing the flattened values in the `.NestedMap`.
+
+    Unlike py_utils.Flatten(), this will only descend into lists and NestedMaps
+    and not dicts, tuples, or namedtuples.
+    """
+    return self._RecursiveMap(lambda _, v: v, flatten=True)
+
+  def FlattenItems(self):
+    """Flatten the `.NestedMap` and returns <key, value> pairs in a list.
+
+    Returns:
+      A list of <key, value> pairs, where keys for nested entries will be
+      represented in the form of `foo.bar[10].baz`.
+    """
+    return self._RecursiveMap(lambda k, v: (k, v), flatten=True)
+
+  def Pack(self, lst):
+    """Returns a copy of this with each value replaced by a value in lst."""
+    assert len(self.FlattenItems()) == len(lst)
+    v_iter = iter(lst)
+    return self._RecursiveMap(lambda unused_k, unused_v: next(v_iter))
+
   def Transform(self, fn):
     """Returns a copy of this `.NestedMap` with fn applied on each value."""
-    return Transform(self, fn)
+    return self._RecursiveMap(lambda _, v: fn(v))
+
+  def IsCompatible(self, other):
+    """Returns true if self and other are compatible.
+
+    If x and y are two compatible `.NestedMap`, `x.Pack(y.Flatten())` produces y
+    and vice versa.
+
+    Args:
+      other: Another `.NestedMap`.
+    """
+    items = self._RecursiveMap(lambda k, _: k, flatten=True)
+    other_items = other._RecursiveMap(lambda k, _: k, flatten=True)  # pylint: disable=protected-access
+    return items == other_items
 
   def Filter(self, fn):
-    """Returns a copy of this `.NestedMap` with entries that fn(entry) is True."""
+    """Returns a copy with entries where fn(entry) is True."""
     return self.FilterKeyVal(lambda _, v: fn(v))
 
   def FilterKeyVal(self, fn):
-    """Returns a copy of this `.NestedMap` with filtered by fn.
+    """Returns a copy of this `.NestedMap` filtered by fn.
 
     If fn(key, entry) is True, the entry is copied into the returned NestedMap.
     Otherwise, it is not copied.
@@ -827,69 +851,11 @@ class NestedMap(dict):
     Returns:
       A `.NestedMap` contains copied entries from this `'.NestedMap`.
     """
-
-    def DoFilter(prefix, value):
-      """Recursively copy value with the filter fn applied."""
-      if isinstance(value, NestedMap):
-        ret = NestedMap()
-        for k in sorted(value.keys()):
-          v = value[k]
-          if prefix:
-            key = '%s.%s' % (prefix, k)
-          else:
-            key = k
-          filtered = DoFilter(key, v)
-          if filtered is not None:
-            ret[k] = filtered
-        return ret if len(ret) else None
-      elif isinstance(value, list):
-        lst = []
-        for i, x in enumerate(value):
-          filtered = DoFilter('%s[%d]' % (prefix, i), x)
-          if filtered is not None:
-            lst += [filtered]
-        return lst if lst else None
-      elif fn(prefix, value):
-        return value
-      else:
-        return None
-
-    return DoFilter('', self)
-
-  def Pack(self, lst):
-    """Returns a copy of this with each value replaced by a value in lst."""
-    return Pack(self, lst)
-
-  def IsCompatible(self, other):
-    """Returns true if self and other are compatible.
-
-    Args:
-      other: Another `.NestedMap`.  If x and y are two compatible `.NestedMap`,
-        `x.Pack(y.Flatten())` produces y and `y.Pack(x.Flatten())` produces x.
-    """
-    return IsCompatible(self, other)
+    return self._RecursiveMap(lambda k, v: v if fn(k, v) else self._DELETE)
 
   def _ToStrings(self):
     """Returns debug strings in a list for this `.NestedMap`."""
-
-    def Print(prefix, value):
-      """Recursively walk value."""
-      ret = []
-      if isinstance(value, NestedMap):
-        for k, v in six.iteritems(value):
-          if prefix:
-            key = '%s.%s' % (prefix, k)
-          else:
-            key = k
-          ret += Print(key, v)
-      elif isinstance(value, list):
-        for i, x in enumerate(value):
-          ret += Print('%s[%d]' % (prefix, i), x)
-      else:
-        ret += [(prefix, value)]
-      return ret
-
-    kv = Print('', self)
+    kv = self.FlattenItems()
     maxlen = max([len(k) for k, _ in kv]) if kv else 0
     return sorted([k + ' ' * (4 + maxlen - len(k)) + str(v) for k, v in kv])
 
@@ -1224,7 +1190,7 @@ def FindNeeded(endpoints):
   """List names of tensors and operations required to compute endpoints."""
   names_seen = set()
   queue = []
-  for e in tf.nest.flatten(endpoints):
+  for e in Flatten(endpoints):
     if isinstance(e, tf.Operation):
       queue.append(e)
     else:
@@ -2231,7 +2197,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
   filtered_var_grads = [
       var_grad for var_grad in Flatten(var_grads) if ShouldAdjust(var_grad.var)
   ]
-  filtered_vars = Transform(filtered_var_grads, GetVar)
+  filtered_vars = Transform(GetVar, filtered_var_grads)
   for v in filtered_vars:
     tf.logging.info('AdjustGradientsWithLpLoss: %s', v)
 
@@ -2287,7 +2253,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
         grad += delta
     return VarGrad(var, grad)
 
-  return lp_loss, Transform(var_grads, LpGrad)
+  return lp_loss, Transform(LpGrad, var_grads)
 
 
 def SplitRecursively(x, num_splits, axis=-1):
@@ -3866,33 +3832,32 @@ def _DefineDefun(fwd, bak, args):
 
   # fwd signature (tf.Tensor dtypes).
   get_dtype = lambda x: x.dtype
-  sigs = NestedMap(args=tf.nest.map_structure(get_dtype, args))
+  sigs = NestedMap(args=Transform(get_dtype, args))
 
   get_shape = lambda x: x.shape
-  arg_shapes = tf.nest.map_structure(get_shape, args)
+  arg_shapes = Transform(get_shape, args)
 
   compiled = use_xla()
   noinline = not compiled
 
   def Backward(op, *args):
     assert bak is not None
-    xs = tf.nest.pack_sequence_as(sigs.args, op.inputs)
+    xs = Pack(sigs.args, op.inputs)
     # Note: sigs.rets will be set during the Forward call.
-    ys = tf.nest.pack_sequence_as(sigs.rets, op.outputs)
-    dys = tf.nest.pack_sequence_as(sigs.rets, args)
+    ys = Pack(sigs.rets, op.outputs)
+    dys = Pack(sigs.rets, args)
     with RemoveAssertContext(remove=noinline):
       dxs = bak(xs, ys, dys)
-    return tf.nest.flatten(dxs)
+    return Flatten(dxs)
 
-  @tf.Defun(
-      *tf.nest.flatten(sigs.args), python_grad_func=Backward, noinline=noinline)
+  @tf.Defun(*Flatten(sigs.args), python_grad_func=Backward, noinline=noinline)
   def Forward(*args):
-    for arg, shape in zip(args, tf.nest.flatten(arg_shapes)):
+    for arg, shape in zip(args, Flatten(arg_shapes)):
       arg.set_shape(shape)
     with RemoveAssertContext(remove=noinline):
-      rets = fwd(tf.nest.pack_sequence_as(sigs.args, args))
-    sigs.rets = tf.nest.map_structure(get_dtype, rets)
-    return tf.nest.flatten(rets)
+      rets = fwd(Pack(sigs.args, args))
+    sigs.rets = Transform(get_dtype, rets)
+    return Flatten(rets)
 
   sigs.defun = Forward
   return sigs
@@ -3911,10 +3876,10 @@ def CallDefun(fwd, bak, args):
     A Nested Structure equivalent to what fwd(args) computes.
   """
   sigs = _DefineDefun(fwd, bak, args)
-  flat_rets = sigs.defun(*tf.nest.flatten(args))
+  flat_rets = sigs.defun(*Flatten(args))
   if not isinstance(flat_rets, (tuple, list)):
     flat_rets = [flat_rets]
-  return tf.nest.pack_sequence_as(sigs.rets, flat_rets)
+  return Pack(sigs.rets, flat_rets)
 
 
 def _Itype():

@@ -28,7 +28,6 @@ from lingvo.tasks.car import geometry
 from lingvo.tasks.car import ops
 import numpy as np
 from six.moves import range
-from six.moves import zip
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
@@ -3266,12 +3265,12 @@ class RandomApplyPreprocessor(Preprocessor):
           'shapes. Original shapes: {}. Transformed shapes: {}'.format(
               shapes, shapes_transformed))
 
-    shapes_zipped = shapes.Pack(
-        list(zip(shapes.Flatten(), shapes_transformed.Flatten())))
-    shapes_compatible = shapes_zipped.Transform(
-        lambda xs: xs[0].is_compatible_with(xs[1]))
+    def IsCompatibleWith(a, b):
+      return a.is_compatible_with(b)
 
-    if not all(shapes_compatible.Flatten()):
+    if not all(
+        py_utils.Flatten(
+            py_utils.Transform(IsCompatibleWith, shapes, shapes_transformed))):
       raise ValueError(
           'Shapes after transformation - {} are different from original '
           'shapes - {}.'.format(shapes_transformed, shapes))

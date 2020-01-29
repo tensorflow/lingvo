@@ -293,14 +293,10 @@ class Learner(base_layer.BaseLayer):
     # may be nan, which may cause grad_scale to be nan.
     for name, vg in var_grads.FlattenItems():
       summary_utils.AddNormSummary(
-          py_utils.SanitizeScopeKey(name) + '/' + p.name,
-          py_utils.NestedMap(s=vg))
-    all_grad_norm = tf.sqrt(
-        py_utils.SumSquared(
-            [g for (_, g) in py_utils.NestedMap(child=var_grads).Flatten()]))
-    all_var_norm = tf.sqrt(
-        py_utils.SumSquared(
-            [v for (v, _) in py_utils.NestedMap(child=var_grads).Flatten()]))
+          py_utils.SanitizeScopeKey(name) + '/' + p.name, vg)
+    flatten = py_utils.Flatten(var_grads)
+    all_grad_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))
+    all_var_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
     grad_norm_is_nan_or_inf = tf.logical_or(
         tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
 

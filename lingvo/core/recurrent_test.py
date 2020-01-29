@@ -94,6 +94,60 @@ class _SampleAccumulatorLayer(base_layer.BaseLayer):
     self.RegisterAccumulator(self.accumulator_name, _IncrementAccumulator())
 
 
+def Elman(theta, state0, inputs):
+  h0, w, b, x = state0.h, theta.w, theta.b, inputs.x
+  xw = py_utils.Matmul(tf.concat([x, h0], axis=1), w)  # 1st part
+  # 2nd part
+  padding = inputs.get('padding', None)
+  h1 = _ApplyPadding(padding, v_no_pad=tf.sigmoid(xw + b), v_pad=state0.h)
+
+  state1 = py_utils.NestedMap(h=h1)
+  if padding is not None:
+    state1.padding = inputs.padding
+
+  return (state1, py_utils.NestedMap(h=h1))
+
+
+def ElmanGrad(theta, state0, inputs, extras, dstate1):
+
+  @tf.Defun()
+  def Grad(h0, w, b, x, padding, h1, dh1):
+    del b
+    dh1_orig = dh1
+    dh1 = _ApplyPadding(padding, dh1, tf.zeros_like(dh1, dtype=dh1.dtype))
+
+    # We hand-roll the gradient for the 2nd half of the cell as a demo.
+    # h1 = tf.sigmoid(xw + b)
+    # 𝛔'(x) = ((1 - 𝛔(x)) * 𝛔(x))
+    dxwb = (dh1 * (1 - h1) * h1)
+    dxw, db = dxwb, tf.reduce_sum(dxwb, axis=0)
+
+    # Uses tf.gradient for the 1nd half of the cell as a demo.
+    xw = py_utils.Matmul(tf.concat([x, h0], axis=1), w)
+    dh0, dx, dw = tf.gradients(ys=[xw], xs=[h0, x, w], grad_ys=[dxw])
+
+    dh0 = _ApplyPadding(padding, dh0, dh1_orig)
+
+    return dh0, dx, dw, db
+
+  dh0, dx, dw, db = Grad(state0.h, theta.w, theta.b, inputs.x,
+                         inputs.get('padding', 0), extras.h, dstate1.h)
+  dstate0 = py_utils.NestedMap(h=dh0)
+  dinputs = py_utils.NestedMap(x=dx)
+  if 'padding' in dstate1:
+    dstate0.padding = dstate1.padding
+    dinputs.padding = dstate1.padding
+  return (py_utils.NestedMap(w=dw, b=db), dstate0, dinputs, None)
+
+
+def ElmanOut(state1):
+  return py_utils.NestedMap(x=state1.h, padding=state1.padding)
+
+
+def ElmanOutGrad(dout):
+  return py_utils.NestedMap(h=dout.x, padding=dout.padding)
+
+
 class RecurrentTest(test_utils.TestCase):
 
   def testBasic(self):
@@ -408,8 +462,7 @@ class RecurrentTest(test_utils.TestCase):
         return next_state, py_utils.NestedMap()
 
       # Run real fprop implementation.
-      with self.assertRaisesRegex(AssertionError,
-                                  'implicit capture is disabled'):
+      with self.assertRaisesRegex(ValueError, 'implicit capture is disabled'):
         unused_real_acc, unused_real_staten = recurrent.Recurrent(
             theta, state0, inputs, CellFn, allow_implicit_capture=False)
 
@@ -547,60 +600,6 @@ class RecurrentTest(test_utils.TestCase):
   def Rand(shape):
     return tf.random_uniform(shape, minval=-0.2, maxval=0.2, dtype=tf.float64)
 
-  @staticmethod
-  def Elman(theta, state0, inputs):
-    h0, w, b, x = state0.h, theta.w, theta.b, inputs.x
-    xw = py_utils.Matmul(tf.concat([x, h0], axis=1), w)  # 1st part
-    # 2nd part
-    padding = inputs.get('padding', None)
-    h1 = _ApplyPadding(padding, v_no_pad=tf.sigmoid(xw + b), v_pad=state0.h)
-
-    state1 = py_utils.NestedMap(h=h1)
-    if padding is not None:
-      state1.padding = inputs.padding
-
-    return (state1, py_utils.NestedMap(h=h1))
-
-  @staticmethod
-  def ElmanGrad(theta, state0, inputs, extras, dstate1):
-
-    @tf.Defun()
-    def Grad(h0, w, b, x, padding, h1, dh1):
-      del b
-      dh1_orig = dh1
-      dh1 = _ApplyPadding(padding, dh1, tf.zeros_like(dh1, dtype=dh1.dtype))
-
-      # We hand-roll the gradient for the 2nd half of the cell as a demo.
-      # h1 = tf.sigmoid(xw + b)
-      # 𝛔'(x) = ((1 - 𝛔(x)) * 𝛔(x))
-      dxwb = (dh1 * (1 - h1) * h1)
-      dxw, db = dxwb, tf.reduce_sum(dxwb, axis=0)
-
-      # Uses tf.gradient for the 1nd half of the cell as a demo.
-      xw = py_utils.Matmul(tf.concat([x, h0], axis=1), w)
-      dh0, dx, dw = tf.gradients(ys=[xw], xs=[h0, x, w], grad_ys=[dxw])
-
-      dh0 = _ApplyPadding(padding, dh0, dh1_orig)
-
-      return dh0, dx, dw, db
-
-    dh0, dx, dw, db = Grad(state0.h, theta.w, theta.b, inputs.x,
-                           inputs.get('padding', 0), extras.h, dstate1.h)
-    dstate0 = py_utils.NestedMap(h=dh0)
-    dinputs = py_utils.NestedMap(x=dx)
-    if 'padding' in dstate1:
-      dstate0.padding = dstate1.padding
-      dinputs.padding = dstate1.padding
-    return (py_utils.NestedMap(w=dw, b=db), dstate0, dinputs, None)
-
-  @staticmethod
-  def ElmanOut(state1):
-    return py_utils.NestedMap(x=state1.h, padding=state1.padding)
-
-  @staticmethod
-  def ElmanOutGrad(dout):
-    return py_utils.NestedMap(h=dout.x, padding=dout.padding)
-
   def _testElmanHelper(self, seqlen, use_grad, stop_fn=None):
     with self.session() as sess:
       tf.set_random_seed(342462)
@@ -621,7 +620,7 @@ class RecurrentTest(test_utils.TestCase):
       for i in range(seqlen):
         inp = py_utils.NestedMap()
         inp.x = inputs.x[i, :]
-        s, _ = self.Elman(theta, s, inp)
+        s, _ = Elman(theta, s, inp)
         out += [s.h]
         if stop_fn and stop_fn(i + 1, theta, s):
           out += [tf.zeros_like(out[-1]) for _ in range(seqlen - i - 1)]
@@ -636,8 +635,8 @@ class RecurrentTest(test_utils.TestCase):
           theta=theta,
           state0=state0,
           inputs=inputs,
-          cell_fn=self.Elman,
-          cell_grad=self.ElmanGrad if use_grad else None,
+          cell_fn=Elman,
+          cell_grad=ElmanGrad if use_grad else None,
           stop_fn=stop_fn)
       acc1, final1 = acc1.h, final1.h
       loss1 = tf.reduce_sum(acc1) + tf.reduce_sum(final1)
@@ -687,7 +686,7 @@ class RecurrentTest(test_utils.TestCase):
     self.assertAllClose([5, 8], py_utils.GetShape(dst.b.b2, 2))
 
 
-class StackedRecurrentTest(RecurrentTest):
+class StackedRecurrentTest(test_utils.TestCase):
 
   @staticmethod
   def Poly(theta, state0, inputs):
@@ -760,10 +759,10 @@ class StackedRecurrentTest(RecurrentTest):
           padding=tf.constant([[0]] * batch, dtype=dtype))
 
     devices = ['/cpu:0'] * layers
-    cell_fns = [self.Elman] * layers
-    cell_grads = [self.ElmanGrad] * layers
-    cell_outs = [self.ElmanOut] * layers
-    cell_out_grads = [self.ElmanOutGrad] * layers
+    cell_fns = [Elman] * layers
+    cell_grads = [ElmanGrad] * layers
+    cell_outs = [ElmanOut] * layers
+    cell_out_grads = [ElmanOutGrad] * layers
     thetas = [CreateTheta() for _ in range(layers)]
     init_states = [CreateState0() for _ in range(layers)]
     padding = np.zeros((seqlen, batch, 1))
@@ -787,13 +786,13 @@ class StackedRecurrentTest(RecurrentTest):
       o *= (1 - inputs.padding)
     loss = tf.reduce_sum(tf.square(o))
 
-    xs = recurrent.Flatten(thetas + [py_utils.NestedMap(x=inputs.x)])
+    xs = py_utils.Flatten(thetas + [py_utils.NestedMap(x=inputs.x)])
     dxs = tf.gradients(ys=loss, xs=xs)
 
     # Reference implementation using Recurrent().
     ref = inputs
     for i in range(layers):
-      ref = self.ElmanOut(
+      ref = ElmanOut(
           recurrent.Recurrent(
               cell_fn=cell_fns[i],
               cell_grad=cell_grads[i],

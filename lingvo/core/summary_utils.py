@@ -221,7 +221,7 @@ def AddNormSummary(name, vs_gs):
   Returns:
     norm of variables, and norm of gradients.
   """
-  flatten = py_utils.NestedMap(child=vs_gs).Flatten()
+  flatten = py_utils.Flatten(vs_gs)
   v_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
   scalar('var_norm/%s' % name, v_norm)
   g_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))

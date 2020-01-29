@@ -1242,7 +1242,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
 
 
 def _AddOne(x):
-  return x + type(x)(1)
+  return None if x is None else x + type(x)(1)
 
 
 class NestedMapTest(test_utils.TestCase):
@@ -1298,7 +1298,7 @@ foo[2][0]     32"""
     self.assertEqual(z, "z    Tuple(x=5, y='xyz')")
 
   def testTransformBasic(self):
-    n = py_utils.Transform(py_utils.NestedMap(), _AddOne)
+    n = py_utils.Transform(_AddOne, py_utils.NestedMap())
     self.assertEqual(n.DebugString(), '')
     n = py_utils.NestedMap().Transform(_AddOne)
     self.assertEqual(n.DebugString(), '')
@@ -1310,7 +1310,7 @@ foo[0]        2
 foo[1]        21
 foo[2][0]     33"""
     m = self._get_basic_test_inputs()
-    n = py_utils.Transform(m, _AddOne)
+    n = py_utils.Transform(_AddOne, m)
     self.assertEqual(n.DebugString(), expected)
     n = m.Transform(_AddOne)
     self.assertEqual(n.DebugString(), expected)
@@ -1327,8 +1327,20 @@ foo[2][0]     32"""
   def testTransformAdvanced(self):
     m = self._get_advanced_test_inputs()
 
-    with self.assertRaises(TypeError):
-      n = py_utils.Transform(m, _AddOne)
+    expected = [
+        ('w', None),
+        ('x', {
+            'bar': 'def1',
+            'foo': 2
+        }),
+        ('y', (201, {
+            'z': 'abc1'
+        })),
+        ('z', self._TUPLE(x=6, y='xyz1')),
+    ]
+    n = py_utils.Transform(_AddOne, m)
+    self.assertEqual(n.zz, [])
+    self.assertEqual(n.FlattenItems(), expected)
 
     with self.assertRaises(TypeError):
       m.Transform(_AddOne)
@@ -1342,26 +1354,6 @@ foo[2][0]     32"""
     expected = [
         ('w', None),
         ('x', {
-            'bar': 'def1',
-            'foo': 2
-        }),
-        ('y', (200, {
-            'z': 'abc'
-        })),
-        ('z', self._TUPLE(x=5, y='xyz')),
-    ]
-    n = py_utils.Transform(m, _AddOneIgnoreError)
-    self.assertEqual(n.zz, [])
-    self.assertEqual(n.FlattenItems(), expected)
-
-    n = m.Transform(_AddOneIgnoreError)
-    self.assertEqual(n.zz, [])
-    self.assertEqual(n.FlattenItems(), expected)
-
-    # Original has not been modified.
-    expected = [
-        ('w', None),
-        ('x', {
             'bar': 'def',
             'foo': 1
         }),
@@ -1370,6 +1362,11 @@ foo[2][0]     32"""
         })),
         ('z', self._TUPLE(x=5, y='xyz')),
     ]
+    n = m.Transform(_AddOneIgnoreError)
+    self.assertEqual(n.zz, [])
+    self.assertEqual(n.FlattenItems(), expected)
+
+    # Original has not been modified.
     self.assertEqual(m.FlattenItems(), expected)
 
   def testFlattenBasic(self):
@@ -1390,8 +1387,20 @@ foo[2][0]     32"""
   def testFlattenAdvanced(self):
     m = self._get_advanced_test_inputs()
 
-    expected = [None, 'def', 1, (200, {'z': 'abc'}), self._TUPLE(x=5, y='xyz')]
+    expected = [None, 'def', 1, 200, 'abc', 5, 'xyz']
     self.assertEqual(py_utils.Flatten(m), expected)
+
+    expected = [
+        None,
+        {
+            'bar': 'def',
+            'foo': 1
+        },
+        (200, {
+            'z': 'abc'
+        }),
+        self._TUPLE(x=5, y='xyz'),
+    ]
     self.assertEqual(m.Flatten(), expected)
 
     expected = [
@@ -1443,14 +1452,17 @@ foo[2][0]     32"""
             'bar': 1,
             'foo': 2
         }),
-        ('y', 3),
-        ('z', None),
+        ('y', (3, {
+            'z': 4
+        })),
+        ('z', self._TUPLE(x=5, y=None)),
     ]
-    n = py_utils.Pack(m, list(range(4)) + [None])
+    n = py_utils.Pack(m, list(range(6)) + [None])
     self.assertEqual(n.zz, [])
     self.assertEqual(n.FlattenItems(), expected)
 
-    n = m.Pack(list(range(4)) + [None])
+    expected = [('w', 0), ('x', 1), ('y', 2), ('z', None)]
+    n = m.Pack(list(range(3)) + [None])
     self.assertEqual(n.zz, [])
     self.assertEqual(n.FlattenItems(), expected)
 
@@ -1472,9 +1484,9 @@ foo[2][0]     32"""
     empty = py_utils.NestedMap()
     self.assertTrue(empty.IsCompatible(empty))
     self.assertTrue(py_utils.IsCompatible(empty, empty))
-    self.assertFalse(empty.IsCompatible(py_utils.NestedMap(x=[])))
+    self.assertTrue(empty.IsCompatible(py_utils.NestedMap(x=[])))
     self.assertFalse(py_utils.IsCompatible(empty, py_utils.NestedMap(x=[])))
-    self.assertFalse(empty.IsCompatible(py_utils.NestedMap(x=empty)))
+    self.assertTrue(empty.IsCompatible(py_utils.NestedMap(x=empty)))
     self.assertFalse(py_utils.IsCompatible(empty, py_utils.NestedMap(x=empty)))
     self.assertFalse(empty.IsCompatible(py_utils.NestedMap(x={})))
     self.assertFalse(py_utils.IsCompatible(empty, py_utils.NestedMap(x={})))
@@ -1497,6 +1509,10 @@ foo[2][0]     32"""
     y = x.Filter(lambda v: v > 150)
     self.assertEqual(y.FlattenItems(), [('b', 200), ('c', 300), ('d.bar', 192),
                                         ('d.ok[0]', 200), ('d.ok[1]', 300)])
+    self.assertNotIn('ko', y.d)
+
+    y = x.Filter(lambda v: v > 500)
+    self.assertLen(y.FlattenItems(), 0)
 
   def testFilterKeyVal(self):
     x = py_utils.NestedMap(
