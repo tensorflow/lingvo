@@ -88,7 +88,9 @@ class ModelBuilderBase(object):
     bn_params = layers.BatchNormLayer.Params().Set(
         name=name,
         dim=dims,
-        decay=0.99)
+        decay=0.99,
+        # TODO(b/148537111): consider setting this to True.
+        add_stats_to_moving_average_variables=False)
     if self.bn_params_init:
       bn_params = bn_params.Set(params_init=self.bn_params_init)
     return bn_params
