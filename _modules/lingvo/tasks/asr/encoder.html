@@ -285,6 +285,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">after_conv_lstm_cnn_tpl</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussian</span><span class="p">(</span><span class="mf">0.1</span><span class="p">))</span>
     <span class="n">p</span><span class="o">.</span><span class="n">after_conv_lstm_cnn_tpl</span><span class="o">.</span><span class="n">filter_stride</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+
+    <span class="c1"># See https://arxiv.org/pdf/1610.03022.pdf, section 2.2.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;RELU&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
