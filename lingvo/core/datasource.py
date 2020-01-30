@@ -22,23 +22,19 @@ from __future__ import print_function
 import os
 
 import lingvo.compat as tf
-from lingvo.core import hyperparams
+from lingvo.core import base_layer
 from lingvo.core import py_utils
 
 import six
 from six.moves import range
 
 
-class DataSource(object):
+class DataSource(base_layer.BaseLayer):
   """A base class for file based Data Sources."""
 
   @classmethod
   def Params(cls):
-    p = hyperparams.InstantiableParams(cls)
-    return p
-
-  def __init__(self, params):
-    self.params = params.Copy()
+    return super(DataSource, cls).Params().Set(name='datasource')
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
     """Builds a data source.
@@ -287,7 +283,8 @@ class CrossBatchMixingDataSource(DataSource):
     else:
       bprop_variable_filters = p.bprop_variable_filters
 
-    data_source, selected_bprop = py_utils.MixByWeight(inputs, weights)
+    data_source, selected_bprop = py_utils.MixByWeight(
+        inputs, weights, seed=p.random_seed)
     # TODO(neerajgaur): Remove _bprop_onehot and change code that uses it to
     # use source_selected from input_batch.
     batch_size = py_utils.GetShape(tf.nest.flatten(data_source)[0])[0]

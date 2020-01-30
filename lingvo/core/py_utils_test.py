@@ -2130,7 +2130,8 @@ class MixByWeightTest(test_utils.TestCase):
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
 
-      op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3])
+      op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3],
+                                   seed=12345)
       for _ in range(100):
         sess.run(op)
       a, b = sess.run([var_a, var_b])

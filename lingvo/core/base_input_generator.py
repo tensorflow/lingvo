@@ -464,6 +464,8 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       else:
         raise ValueError('Cannot parse p.file_pattern into a datasource.')
 
+    self.CreateChild('datasource', p.file_datasource)
+
   def CommonInputOpArgs(self):
     """Common input params."""
     p = self.params
@@ -543,8 +545,7 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
       ret = py_utils.NestedMap()
       ret.data = self._DataSourceFromFilePattern(p.file_pattern)
     else:
-      data_source = p.file_datasource.Instantiate()
-      ret = data_source.BuildDataSource(self._DataSourceFromFilePattern)
+      ret = self.datasource.BuildDataSource(self._DataSourceFromFilePattern)
     if 'selected_bprop' in ret:
       self._bprop_onehot = ret.selected_bprop
     if 'bprop_variable_filters' in ret:

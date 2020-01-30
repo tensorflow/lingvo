@@ -380,7 +380,7 @@ py_library(
     srcs = ["datasource.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":hyperparams",
+        ":base_layer",
         ":py_utils",
         "//lingvo:compat",
         # Implicit six dependency.
@@ -853,6 +853,7 @@ py_test(
     ],
     deps = [
         ":base_layer",
+        ":builder_layers",
         ":cluster_factory",
         ":py_utils",
         ":recurrent",

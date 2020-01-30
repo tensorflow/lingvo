@@ -3238,7 +3238,7 @@ def StackTensorsRecursively(values):
   return ret
 
 
-def MixByWeight(inputs, weights):
+def MixByWeight(inputs, weights, seed=None):
   """Returns a weighted random choice and bprop type from the give inputs.
 
   Args:
@@ -3249,6 +3249,7 @@ def MixByWeight(inputs, weights):
       represents an input record stream, a record will be drawn only from a
       selected stream while the other streams will remain unchanged.
     weights: a 1D tensor of float > 0 of the same length as inputs.
+    seed: random seed.
 
   Returns:
     A probablistic sample from the inputs proportional to the weights. The
@@ -3264,7 +3265,7 @@ def MixByWeight(inputs, weights):
 
   lower = tf.cumsum(weights, exclusive=True)
   upper = tf.cumsum(weights, exclusive=False)
-  r = tf.random_uniform(shape=[], maxval=upper[-1])
+  r = tf.random_uniform(shape=[], maxval=upper[-1], seed=seed)
   return_input = tf.case(
       [(tf.logical_and(lower[i] <= r, r < upper[i]), inputs[i])
        for i in range(len(inputs))],
