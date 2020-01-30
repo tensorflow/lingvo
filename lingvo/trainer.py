@@ -653,12 +653,11 @@ class TrainerTpu(base_runner.BaseRunner):
         self._tpu_train_ops = (
             _ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
 
+        if FLAGS.checkpoint_in_trainer_tpu:
+          self.checkpointer = checkpointer.Checkpointer(self._train_dir,
+                                                        self._model)
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
-
-      if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                      self._model)
 
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
@@ -1166,11 +1165,12 @@ class Decoder(base_runner.BaseRunner):
 
         self._dec_output = self._model_task.Decode(input_batch)
         self._summary_op = tf.summary.merge_all()
+        self.checkpointer = self._CreateCheckpointer(self._train_dir,
+                                                     self._model)
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for decoder models.
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      self.checkpointer = self._CreateCheckpointer(self._train_dir, self._model)
       assert not self.enqueue_ops
 
     # Saves the graph def.
