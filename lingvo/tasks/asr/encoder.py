@@ -140,6 +140,10 @@ class AsrEncoder(base_layer.BaseLayer):
     p.after_conv_lstm_cnn_tpl.params_init = (
         py_utils.WeightInit.TruncatedGaussian(0.1))
     p.after_conv_lstm_cnn_tpl.filter_stride = [1, 1]
+
+    # See https://arxiv.org/pdf/1610.03022.pdf, section 2.2.
+    p.proj_tpl.batch_norm = True
+    p.proj_tpl.activation = 'RELU'
     return p
 
   @base_layer.initializer
