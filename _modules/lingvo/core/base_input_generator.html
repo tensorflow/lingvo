@@ -609,6 +609,8 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot parse p.file_pattern into a datasource.&#39;</span><span class="p">)</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;datasource&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="p">)</span>
+
 <div class="viewcode-block" id="BaseInputGeneratorFromFiles.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGeneratorFromFiles.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -688,8 +690,7 @@
       <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">data_source</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-      <span class="n">ret</span> <span class="o">=</span> <span class="n">data_source</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">)</span>
+      <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;selected_bprop&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span>
     <span class="k">if</span> <span class="s1">&#39;bprop_variable_filters&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>

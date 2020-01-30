@@ -3383,7 +3383,7 @@
   <span class="k">return</span> <span class="n">ret</span></div>
 
 
-<div class="viewcode-block" id="MixByWeight"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MixByWeight">[docs]</a><span class="k">def</span> <span class="nf">MixByWeight</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+<div class="viewcode-block" id="MixByWeight"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MixByWeight">[docs]</a><span class="k">def</span> <span class="nf">MixByWeight</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a weighted random choice and bprop type from the give inputs.</span>
 
 <span class="sd">  Args:</span>
@@ -3394,6 +3394,7 @@
 <span class="sd">      represents an input record stream, a record will be drawn only from a</span>
 <span class="sd">      selected stream while the other streams will remain unchanged.</span>
 <span class="sd">    weights: a 1D tensor of float &gt; 0 of the same length as inputs.</span>
+<span class="sd">    seed: random seed.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A probablistic sample from the inputs proportional to the weights. The</span>
@@ -3409,7 +3410,7 @@
 
   <span class="n">lower</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="n">upper</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
   <span class="n">return_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
       <span class="p">[(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">))],</span>
