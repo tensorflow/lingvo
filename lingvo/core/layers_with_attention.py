@@ -403,7 +403,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
              layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
              'Feed forward layer default params')
     p.Define(
-        'res_proj_tpl', layers.ProjectionLayer.Params(),
+        'res_proj_tpl',
+        layers.ProjectionLayer.Params().Set(batch_norm=True),
         'Residual projection default params, used when input_dim != '
         'output_dim.')
     p.Define(
