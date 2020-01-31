@@ -84,8 +84,6 @@ train = importlib.import_module("tensorflow.compat.v2.train")
 # pylint: disable=undefined-variable
 add_to_collection = tf1.add_to_collection
 all_variables = tf1.global_variables
-arg_max = tf1.arg_max
-arg_min = tf1.arg_min
 assert_integer = tf1.assert_integer
 assert_positive = tf1.assert_positive
 assert_type = tf1.assert_type
@@ -96,19 +94,14 @@ assign_sub = tf1.assign_sub
 AUTO_REUSE = tf1.AUTO_REUSE
 batch_gather = tf1.batch_gather
 colocate_with = tf1.colocate_with
-cond = tf1.cond
 ConfigProto = tf1.ConfigProto
 constant = tf1.constant
 constant_initializer = tf1.constant_initializer
 container = tf1.container
-convert_to_tensor = tf1.convert_to_tensor
-count_nonzero = tf1.count_nonzero
 data.make_initializable_iterator = tf1.data.make_initializable_iterator
 data.make_one_shot_iterator = tf1.data.make_one_shot_iterator
 data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
-decode_raw = tf1.decode_raw
-decode_csv = tf1.decode_csv
 device = tf1.device
 Dimension = tf1.Dimension
 div = tf1.div
@@ -269,11 +262,11 @@ where = tf1.where
 while_loop = tf1.while_loop
 wrap_function = tf1.wrap_function
 
-# tf.compat.v2 symbols. Will remove the 'tf.compat.v2' prefix when the migration
-# is done.
+# tf.compat.v2 symbols.
 assert_greater_equal = debugging.assert_greater_equal
 assert_less_equal = debugging.assert_less_equal
 ceil = math.ceil
+count_nonzero = math.count_nonzero
 extract_image_patches = image.extract_patches
 check_numerics = debugging.check_numerics
 cross = linalg.cross

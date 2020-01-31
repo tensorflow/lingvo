@@ -666,7 +666,7 @@ class GreedySearchHelper(base_layer.BaseLayer):
 
     bs_results, new_other_states = pre_beam_search_step_callback(
         theta, encoder_outputs, step_ids, other_states, 1)  # num_hyps_per_beam
-    new_step_ids = tf.arg_max(bs_results.log_probs, 1)
+    new_step_ids = tf.math.argmax(bs_results.log_probs, 1)
     new_step_ids = tf.cast(new_step_ids, tf.int32)
     new_step_ids = tf.reshape(new_step_ids, tf.shape(step_ids))
     final_other_states = post_beam_search_step_callback(theta, encoder_outputs,
