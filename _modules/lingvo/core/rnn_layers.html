@@ -877,6 +877,11 @@
         <span class="s1">&#39;If True, output previous attention context for each position.&#39;</span>
         <span class="s1">&#39;Otherwise, output current attention context.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;input_prev_atten_ctx&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;If True, concat previous attention context and user input as input.&#39;</span>
+        <span class="s1">&#39;Otherwise, this layer will still produce attention context but will &#39;</span>
+        <span class="s1">&#39;not use previous context as input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_zero_atten_state&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;To use zero attention state instead of computing attention with &#39;</span>
         <span class="s1">&#39;zero query vector.&#39;</span><span class="p">)</span>
@@ -1072,10 +1077,13 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">state0_mod</span> <span class="o">=</span> <span class="n">state0</span>
       <span class="n">state1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">rcell</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="n">act</span> <span class="o">=</span> <span class="p">[</span><span class="n">_ConcatLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">state0_mod</span><span class="o">.</span><span class="n">atten</span><span class="p">)]</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_prev_atten_ctx</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">rcell</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+          <span class="n">act</span> <span class="o">=</span> <span class="p">[</span><span class="n">_ConcatLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">state0_mod</span><span class="o">.</span><span class="n">atten</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">act</span> <span class="o">=</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">state0_mod</span><span class="o">.</span><span class="n">atten</span><span class="p">]</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">act</span> <span class="o">=</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">,</span> <span class="n">state0_mod</span><span class="o">.</span><span class="n">atten</span><span class="p">]</span>
+        <span class="n">act</span> <span class="o">=</span> <span class="p">[</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">]</span>
       <span class="n">state1</span><span class="o">.</span><span class="n">rnn</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">rcell</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">rnn</span><span class="p">,</span> <span class="n">state0_mod</span><span class="o">.</span><span class="n">rnn</span><span class="p">,</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
