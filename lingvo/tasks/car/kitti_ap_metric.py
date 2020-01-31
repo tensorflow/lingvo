@@ -133,11 +133,18 @@ class KITTIAPMetrics(ap_metric.APMetrics):
     """
     if feed_data is None:
       dummy_scalar = tf.constant(np.nan)
+      dummy_calibration = tf.constant(np.nan)
       dummy_curve = tf.zeros([self.metadata.NumberOfPrecisionRecallPoints(), 2],
                              tf.float32)
       scalar_metrics = {'ap': dummy_scalar}
       curve_metrics = {'pr': dummy_curve}
-      return scalar_metrics, curve_metrics, {}
+      calibration_metrics = {'calibrations': dummy_calibration}
+
+      return py_utils.NestedMap(
+          feed_dict={},
+          scalar_metrics=scalar_metrics,
+          curve_metrics=curve_metrics,
+          calibration_metrics=calibration_metrics)
 
     feed_dict = {}
 
@@ -167,7 +174,7 @@ class KITTIAPMetrics(ap_metric.APMetrics):
 
     # TODO(shlens): The third returned argument contain statistics for measuring
     # the calibration error. Use it.
-    ap, pr, _ = ops.average_precision3d(
+    ap, pr, calibration = ops.average_precision3d(
         iou_threshold=f_iou,
         groundtruth_bbox=f_gt_bbox,
         groundtruth_imageid=f_gt_imgid,
@@ -180,4 +187,73 @@ class KITTIAPMetrics(ap_metric.APMetrics):
 
     scalar_metrics = {'ap': ap}
     curve_metrics = {'pr': pr}
-    return scalar_metrics, curve_metrics, feed_dict
+    calibration_metrics = {'calibrations': calibration}
+    return py_utils.NestedMap(
+        feed_dict=feed_dict,
+        scalar_metrics=scalar_metrics,
+        curve_metrics=curve_metrics,
+        calibration_metrics=calibration_metrics)
+
+  def _ComputeFinalMetrics(self,
+                           classids=None,
+                           difficulty=None,
+                           distance=None,
+                           num_points=None,
+                           rotation=None):
+    """Compute precision-recall curves as well as average precision.
+
+    Args:
+      classids: A list of N int32.
+      difficulty: String in [easy, moderate, hard]. If None specified, all
+        difficulty levels are permitted.
+      distance: int32 specifying a binned Euclidean distance of the ground truth
+        bounding box. If None is specified, all distances are selected.
+      num_points: int32 specifying a binned number of laser points within the
+        ground truth bounding box. If None is specified, all boxes are selected.
+      rotation: int32 specifying a binned rotation within the ground truth
+        bounding box. If None is specified, all boxes are selected.
+
+    Returns:
+      dict. Each entry in the dict is a list of C (number of classes) dicts
+      containing mapping from metric names to individual results. Individual
+      entries may be the following items.
+      - scalars: A list of C (number of classes) dicts mapping metric
+      names to scalar values.
+      - curves: A list of C dicts mapping metrics names to np.float32
+      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
+      dimension, 0 indexes precision and 1 indexes recall.
+      - calibrations: A list of C dicts mapping metrics names to np.float32
+      arrays of shape [number of predictions, 2]. The first column is the
+      predicted probabilty and the second column is 0 or 1 indicating that the
+      prediction matched a ground truth item.
+    """
+    tf.logging.info('Computing final KITTI metrics.')
+    assert classids is not None, 'classids must be supplied.'
+    feed_dict = {}
+    g = tf.Graph()
+    scalar_fetches = []
+    curve_fetches = []
+    calibration_fetches = []
+    with g.as_default():
+      for classid in classids:
+        data = self._GetData(
+            classid,
+            difficulty=difficulty,
+            distance=distance,
+            num_points=num_points,
+            rotation=rotation)
+        metrics = self._BuildMetric(data, classid)
+        scalar_fetches += [metrics.scalar_metrics]
+        curve_fetches += [metrics.curve_metrics]
+        calibration_fetches += [metrics.calibration_metrics]
+        feed_dict.update(metrics.feed_dict)
+
+    with tf.Session(graph=g) as sess:
+      results = sess.run([scalar_fetches, curve_fetches, calibration_fetches],
+                         feed_dict=feed_dict)
+    tf.logging.info('Finished computing final KITTI metrics.')
+    return {
+        'scalars': results[0],
+        'curves': results[1],
+        'calibrations': results[2]
+    }

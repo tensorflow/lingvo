@@ -127,12 +127,27 @@ py_library(
 )
 
 py_library(
+    name = "calibration_processing",
+    srcs = [
+        "calibration_processing.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core:plot",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "breakdown_metric",
     srcs = [
         "breakdown_metric.py",
     ],
     srcs_version = "PY2AND3",
     deps = [
+        ":calibration_processing",
         "//lingvo:compat",
         "//lingvo/core:hyperparams",
         "//lingvo/core:plot",

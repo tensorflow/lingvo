@@ -345,36 +345,20 @@ class APMetrics(BaseMetric):
         bounding box. If None is specified, all boxes are selected.
 
     Returns:
-      (dict, dict):
-
-      - scalar_metrics: A list of C (number of clases) dicts mapping metric
-        names to scalar values.
-      - curve_metrics: A list of C dicts mapping metrics names to np.float32
-        arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
-        dimension, 0 indexes precision and 1 indexes recall.
+      dict. Each entry in the dict is a list of C (number of classes) dicts
+      containing mapping from metric names to individual results. Individual
+      entries may be the following items.
+      - scalars: A list of C (number of classes) dicts mapping metric
+      names to scalar values.
+      - curves: A list of C dicts mapping metrics names to np.float32
+      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
+      dimension, 0 indexes precision and 1 indexes recall.
+      - calibrations: A list of C dicts mapping metrics names to np.float32
+      arrays of shape [number of predictions, 2]. The first column is the
+      predicted probabilty and the second column is 0 or 1 indicating that the
+      prediction matched a ground truth item.
     """
-    assert classids is not None, 'classids must be supplied.'
-    feed_dict = {}
-    g = tf.Graph()
-    scalar_fetches = []
-    curve_fetches = []
-    with g.as_default():
-      for classid in classids:
-        data = self._GetData(
-            classid,
-            difficulty=difficulty,
-            distance=distance,
-            num_points=num_points,
-            rotation=rotation)
-        scalars, curves, class_feed_dict = self._BuildMetric(data, classid)
-        scalar_fetches += [scalars]
-        curve_fetches += [curves]
-        feed_dict.update(class_feed_dict)
-
-    with tf.Session(graph=g) as sess:
-      results = sess.run([scalar_fetches, curve_fetches], feed_dict=feed_dict)
-
-    return results[0], results[1]
+    raise NotImplementedError('_ComputeFinalMetric must be implemented')
 
   def Update(self, str_id, result):
     """Update this metric with a newly evaluated image.

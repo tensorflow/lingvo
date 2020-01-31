@@ -27,6 +27,7 @@ from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import plot
+from lingvo.tasks.car import calibration_processing as calibration
 import numpy as np
 from six.moves import range
 
@@ -56,6 +57,13 @@ class BreakdownMetric(object):
       self._cumulative_distribution[l] = []
     self._average_precisions = {}
     self._precision_recall = {}
+    self._calibration = {}
+    self._classnames = p.metadata.ClassNames()
+    self._classids = p.metadata.EvalClassIndices()
+
+    for difficulty in p.metadata.DifficultyLevels():
+      self._calibration[difficulty] = calibration.CalibrationCalculator(
+          p.metadata)
 
   def NumBinsOfHistogram(self):
     """Returns int32 of number of bins in histogram."""
@@ -220,7 +228,8 @@ class ByDistance(BreakdownMetric):
       value_at_histogram = (
           d * p.metadata.DistanceBinWidth() +
           p.metadata.DistanceBinWidth() / 2.0)
-      scalars, _ = compute_metrics_fn(distance=d)
+      metrics = compute_metrics_fn(distance=d)
+      scalars = metrics['scalars']
       self._average_precisions[d] = [s['ap'] for s in scalars]
       self._values[d] = value_at_histogram
     assert len(self._values) == len(list(self._average_precisions.keys()))
@@ -326,7 +335,8 @@ class ByNumPoints(BreakdownMetric):
     # then the number of bins.
     self._values = self._LogSpacedBinEdgesofPoints()[:-1]
     for n, _ in enumerate(self._values):
-      _, curves = compute_metrics_fn(num_points=n)
+      metrics = compute_metrics_fn(num_points=n)
+      curves = metrics['curves']
       self._precision_recall[n] = np.array([c['pr'] for c in curves])
     assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating max recall by number of points: finished')
@@ -526,7 +536,8 @@ class ByRotation(BreakdownMetric):
     for r in range(self.NumBinsOfHistogram()):
       # Calculate the center of the histogram bin.
       value_at_histogram = r * bin_width + bin_width / 2.0
-      scalars, _ = compute_metrics_fn(rotation=r)
+      metrics = compute_metrics_fn(rotation=r)
+      scalars = metrics['scalars']
       self._average_precisions[r] = [s['ap'] for s in scalars]
       self._values[r] = value_at_histogram
     assert len(self._values) == len(list(self._average_precisions.keys()))
@@ -619,15 +630,27 @@ class ByDifficulty(BreakdownMetric):
     p = self.params
     tf.logging.info('Calculating AP by difficulty: start')
     for difficulty in self.params.metadata.DifficultyLevels():
-      scalars, curves = compute_metrics_fn(difficulty=difficulty)
+      metrics = compute_metrics_fn(difficulty=difficulty)
+      scalars = metrics['scalars']
+      curves = metrics['curves']
       self._average_precisions[difficulty] = [s[p.ap_key] for s in scalars]
       self._precision_recall[difficulty] = np.array(
           [c[p.pr_key] for c in curves])
 
+      # Only KITTI metrics contains calibration data.
+      self._calibration[difficulty].Calculate(metrics)
+
     tf.logging.info('Calculating AP by difficulty: finished')
 
   def GenerateSummaries(self, name):
-    """Generate an image summary for precision recall by difficulty."""
+    """Generate an image summary for PR by difficulty and for calibration.
+
+    Args:
+      name: str, name of summary.
+
+    Returns:
+      list of summaries
+    """
 
     legend = {}
     p = self.params
@@ -640,7 +663,7 @@ class ByDifficulty(BreakdownMetric):
     image_summaries = []
     for i, j in enumerate(p.metadata.EvalClassIndices()):
 
-      def _Setter(fig, axes):
+      def _PRSetter(fig, axes):
         """Configure the plot for precision recall."""
         ticks = np.arange(0, 1.05, 0.1)
         axes.grid(b=False)
@@ -652,6 +675,7 @@ class ByDifficulty(BreakdownMetric):
         fig.tight_layout()
 
       classname = p.metadata.ClassNames()[j]
+      # Generate Precision-Recall curves.
       rs = []
       ps = []
       for difficulty in p.metadata.DifficultyLevels():
@@ -663,12 +687,17 @@ class ByDifficulty(BreakdownMetric):
           figsize=(10, 8),
           xs=rs[0],
           ys=np.array(ps).T,
-          setter=_Setter,
+          setter=_PRSetter,
           marker='.',
           markersize=14,
           linestyle='-',
           linewidth=2,
           alpha=0.5)
       image_summaries.append(image_summary)
+
+      for difficulty, c in self._calibration.items():
+        image_summary = c.Summary(difficulty)
+        # TODO(shlens, rofls): Restore me when the above function is finished.
+        # image_summaries.append(image_summary)
 
     return image_summaries

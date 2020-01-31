@@ -37,10 +37,15 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
   def Params(cls):
     p = super(WaymoOpenDatasetDecoder, cls).Params()
     p.Define(
-        'draw_visualizations', True, 'Boolean for whether to draw '
+        'draw_visualizations', False, 'Boolean for whether to draw '
         'visualizations. This is independent of laser_sampling_rate.')
     p.ap_metric = waymo_ap_metric.WaymoAPMetrics.Params(
         waymo_metadata.WaymoMetadata())
+    p.Define(
+        'extra_ap_metrics', {},
+        'Dictionary of extra AP metrics to run in the decoder. The key'
+        'is the name of the metric and the value is a sub-class of '
+        'APMetric')
     return p
 
   def CreateDecoderMetrics(self):
@@ -50,6 +55,9 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
     waymo_metric_p = p.ap_metric.Copy().Set(cls=waymo_ap_metric.WaymoAPMetrics)
     waymo_metrics = waymo_metric_p.Instantiate()
     class_names = waymo_metrics.metadata.ClassNames()
+
+    for k, v in p.extra_ap_metrics.items():
+      p.extra_ap_metrics[k] = v.Instantiate()
 
     waymo_metric_bev_p = waymo_metric_p.Copy()
     waymo_metric_bev_p.box_type = '2d'
@@ -76,6 +84,10 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'waymo_metrics': waymo_metrics,
         'waymo_metrics_bev': waymo_metrics_bev,
     })
+    self._update_metrics_class_keys = ['waymo_metrics_bev', 'waymo_metrics']
+    for k, v in p.extra_ap_metrics.items():
+      decoder_metrics[k] = v
+      self._update_metrics_class_keys.append(k)
 
     decoder_metrics.mesh = detection_3d_metrics.WorldViewer()
     return decoder_metrics
@@ -209,11 +221,12 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       gt_bboxes = dec_out_dict.bboxes_3d[batch_idx][gt_mask]
       gt_difficulties = dec_out_dict.difficulties[batch_idx][gt_mask]
       gt_num_points = dec_out_dict.num_points_in_bboxes[batch_idx][gt_mask]
+      # Note that this is not used in the KITTI evaluation.
       gt_speed = dec_out_dict.speed[batch_idx][gt_mask]
 
-      for metric_cls in [
-          dec_metrics_dict.waymo_metrics, dec_metrics_dict.waymo_metrics_bev
-      ]:
+      # TODO(shlens): Update me
+      for metric_key in self._update_metrics_class_keys:
+        metric_cls = dec_metrics_dict[metric_key]
         metric_cls.Update(
             dec_out_dict.source_ids[batch_idx],
             py_utils.NestedMap(

@@ -80,7 +80,10 @@ class KITTIMetadata(evaluation_metadata.EvaluationMetadata):
     """Number of linear spaced rotations to bin."""
     return 10
 
+  def NumberOfCalibrationBins(self):
+    """Number of linear spaced calibration bins."""
+    return 15
+
   def MinHeight2D(self):
     """Minimum height of detections to be evaluated."""
     return {'hard': 25, 'moderate': 25, 'easy': 40}
-

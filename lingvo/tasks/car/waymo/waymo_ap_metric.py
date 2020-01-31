@@ -173,7 +173,11 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         scalar_metrics['ap_ha_weighted_%s' % metric] = dummy_scalar
         curve_metrics['pr_%s' % metric] = dummy_curve
         curve_metrics['pr_ha_weighted_%s' % metric] = dummy_curve
-      return scalar_metrics, curve_metrics, {}
+
+      return py_utils.NestedMap(
+          feed_dict={},
+          scalar_metrics=scalar_metrics,
+          curve_metrics=curve_metrics)
 
     feed_dict = {}
 
@@ -224,7 +228,63 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       scalar_metrics['ap_ha_weighted_%s' % metric] = ap_ha[i]
       curve_metrics['pr_%s' % metric] = pr[i]
       curve_metrics['pr_ha_weighted_%s' % metric] = pr_ha[i]
-    return scalar_metrics, curve_metrics, feed_dict
+    return py_utils.NestedMap(
+        feed_dict=feed_dict,
+        scalar_metrics=scalar_metrics,
+        curve_metrics=curve_metrics)
+
+  def _ComputeFinalMetrics(self,
+                           classids=None,
+                           difficulty=None,
+                           distance=None,
+                           num_points=None,
+                           rotation=None):
+    """Compute precision-recall curves as well as average precision.
+
+    Args:
+      classids: A list of N int32.
+      difficulty: String in [easy, moderate, hard]. If None specified, all
+        difficulty levels are permitted.
+      distance: int32 specifying a binned Euclidean distance of the ground truth
+        bounding box. If None is specified, all distances are selected.
+      num_points: int32 specifying a binned number of laser points within the
+        ground truth bounding box. If None is specified, all boxes are selected.
+      rotation: int32 specifying a binned rotation within the ground truth
+        bounding box. If None is specified, all boxes are selected.
+
+    Returns:
+      dict. Each entry in the dict is a list of C (number of classes) dicts
+      containing mapping from metric names to individual results. Individual
+      entries may be the following items.
+      - scalars: A list of C (number of classes) dicts mapping metric
+      names to scalar values.
+      - curves: A list of C dicts mapping metrics names to np.float32
+      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
+      dimension, 0 indexes precision and 1 indexes recall.
+    """
+    tf.logging.info('Computing final Waymo metrics.')
+    assert classids is not None, 'classids must be supplied.'
+    feed_dict = {}
+    g = tf.Graph()
+    scalar_fetches = []
+    curve_fetches = []
+    with g.as_default():
+      for classid in classids:
+        data = self._GetData(
+            classid,
+            difficulty=difficulty,
+            distance=distance,
+            num_points=num_points,
+            rotation=rotation)
+        metrics = self._BuildMetric(data, classid)
+        scalar_fetches += [metrics.scalar_metrics]
+        curve_fetches += [metrics.curve_metrics]
+        feed_dict.update(metrics.feed_dict)
+
+    with tf.Session(graph=g) as sess:
+      results = sess.run([scalar_fetches, curve_fetches], feed_dict=feed_dict)
+    tf.logging.info('Finished computing final Waymo metrics.')
+    return {'scalars': results[0], 'curves': results[1]}
 
   @property
   def value(self):
@@ -309,7 +369,9 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
   def ComputeMetrics(self, compute_metrics_fn):
     p = self.params
     tf.logging.info('Calculating waymo AP breakdowns: start')
-    scalars, curves = compute_metrics_fn()
+    metrics = compute_metrics_fn()
+    scalars = metrics['scalars']
+    curves = metrics['curves']
 
     for breakdown_str in p.breakdown_list:
       self._average_precisions[breakdown_str] = [
