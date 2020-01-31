@@ -182,10 +182,15 @@
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoOpenDatasetDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;draw_visualizations&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Boolean for whether to draw &#39;</span>
+        <span class="s1">&#39;draw_visualizations&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Boolean for whether to draw &#39;</span>
         <span class="s1">&#39;visualizations. This is independent of laser_sampling_rate.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span> <span class="o">=</span> <span class="n">waymo_ap_metric</span><span class="o">.</span><span class="n">WaymoAPMetrics</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
         <span class="n">waymo_metadata</span><span class="o">.</span><span class="n">WaymoMetadata</span><span class="p">())</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;extra_ap_metrics&#39;</span><span class="p">,</span> <span class="p">{},</span>
+        <span class="s1">&#39;Dictionary of extra AP metrics to run in the decoder. The key&#39;</span>
+        <span class="s1">&#39;is the name of the metric and the value is a sub-class of &#39;</span>
+        <span class="s1">&#39;APMetric&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WaymoOpenDatasetDecoder.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -195,6 +200,9 @@
     <span class="n">waymo_metric_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ap_metric</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="bp">cls</span><span class="o">=</span><span class="n">waymo_ap_metric</span><span class="o">.</span><span class="n">WaymoAPMetrics</span><span class="p">)</span>
     <span class="n">waymo_metrics</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="n">class_names</span> <span class="o">=</span> <span class="n">waymo_metrics</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
     <span class="n">waymo_metric_bev_p</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">waymo_metric_bev_p</span><span class="o">.</span><span class="n">box_type</span> <span class="o">=</span> <span class="s1">&#39;2d&#39;</span>
@@ -221,6 +229,10 @@
         <span class="s1">&#39;waymo_metrics&#39;</span><span class="p">:</span> <span class="n">waymo_metrics</span><span class="p">,</span>
         <span class="s1">&#39;waymo_metrics_bev&#39;</span><span class="p">:</span> <span class="n">waymo_metrics_bev</span><span class="p">,</span>
     <span class="p">})</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_update_metrics_class_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;waymo_metrics_bev&#39;</span><span class="p">,</span> <span class="s1">&#39;waymo_metrics&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">decoder_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_update_metrics_class_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
     <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">mesh</span> <span class="o">=</span> <span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">WorldViewer</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">decoder_metrics</span></div>
@@ -354,11 +366,12 @@
       <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_difficulties</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_num_points</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">num_points_in_bboxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
+      <span class="c1"># Note that this is not used in the KITTI evaluation.</span>
       <span class="n">gt_speed</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">speed</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
 
-      <span class="k">for</span> <span class="n">metric_cls</span> <span class="ow">in</span> <span class="p">[</span>
-          <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics</span><span class="p">,</span> <span class="n">dec_metrics_dict</span><span class="o">.</span><span class="n">waymo_metrics_bev</span>
-      <span class="p">]:</span>
+      <span class="c1"># TODO(shlens): Update me</span>
+      <span class="k">for</span> <span class="n">metric_key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_metrics_class_keys</span><span class="p">:</span>
+        <span class="n">metric_cls</span> <span class="o">=</span> <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="n">metric_key</span><span class="p">]</span>
         <span class="n">metric_cls</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
             <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>

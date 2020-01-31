@@ -490,36 +490,20 @@
 <span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (dict, dict):</span>
-
-<span class="sd">      - scalar_metrics: A list of C (number of clases) dicts mapping metric</span>
-<span class="sd">        names to scalar values.</span>
-<span class="sd">      - curve_metrics: A list of C dicts mapping metrics names to np.float32</span>
-<span class="sd">        arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last</span>
-<span class="sd">        dimension, 0 indexes precision and 1 indexes recall.</span>
+<span class="sd">      dict. Each entry in the dict is a list of C (number of classes) dicts</span>
+<span class="sd">      containing mapping from metric names to individual results. Individual</span>
+<span class="sd">      entries may be the following items.</span>
+<span class="sd">      - scalars: A list of C (number of classes) dicts mapping metric</span>
+<span class="sd">      names to scalar values.</span>
+<span class="sd">      - curves: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last</span>
+<span class="sd">      dimension, 0 indexes precision and 1 indexes recall.</span>
+<span class="sd">      - calibrations: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">      arrays of shape [number of predictions, 2]. The first column is the</span>
+<span class="sd">      predicted probabilty and the second column is 0 or 1 indicating that the</span>
+<span class="sd">      prediction matched a ground truth item.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="n">classids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;classids must be supplied.&#39;</span>
-    <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
-    <span class="n">scalar_fetches</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">curve_fetches</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
-      <span class="k">for</span> <span class="n">classid</span> <span class="ow">in</span> <span class="n">classids</span><span class="p">:</span>
-        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetData</span><span class="p">(</span>
-            <span class="n">classid</span><span class="p">,</span>
-            <span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">,</span>
-            <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
-            <span class="n">num_points</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
-            <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
-        <span class="n">scalars</span><span class="p">,</span> <span class="n">curves</span><span class="p">,</span> <span class="n">class_feed_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildMetric</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">classid</span><span class="p">)</span>
-        <span class="n">scalar_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">scalars</span><span class="p">]</span>
-        <span class="n">curve_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">curves</span><span class="p">]</span>
-        <span class="n">feed_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">class_feed_dict</span><span class="p">)</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
-      <span class="n">results</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">scalar_fetches</span><span class="p">,</span> <span class="n">curve_fetches</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="n">feed_dict</span><span class="p">)</span>
-
-    <span class="k">return</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span></div>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;_ComputeFinalMetric must be implemented&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="APMetrics.Update"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.APMetrics.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">str_id</span><span class="p">,</span> <span class="n">result</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update this metric with a newly evaluated image.</span>

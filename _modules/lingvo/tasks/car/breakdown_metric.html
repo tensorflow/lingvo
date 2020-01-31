@@ -172,6 +172,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
+<span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">calibration_processing</span> <span class="k">as</span> <span class="n">calibration</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
@@ -201,6 +202,13 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_cumulative_distribution</span><span class="p">[</span><span class="n">l</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_classnames</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_classids</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">.</span><span class="n">CalibrationCalculator</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BreakdownMetric.NumBinsOfHistogram"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.BreakdownMetric.NumBinsOfHistogram">[docs]</a>  <span class="k">def</span> <span class="nf">NumBinsOfHistogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns int32 of number of bins in histogram.&quot;&quot;&quot;</span>
@@ -365,7 +373,8 @@
       <span class="n">value_at_histogram</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">d</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">()</span> <span class="o">+</span>
           <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">()</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
-      <span class="n">scalars</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">distance</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">distance</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+      <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ap&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_at_histogram</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
@@ -471,7 +480,8 @@
     <span class="c1"># then the number of bins.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogSpacedBinEdgesofPoints</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">):</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">curves</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">num_points</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">num_points</span><span class="o">=</span><span class="n">n</span><span class="p">)</span>
+      <span class="n">curves</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;curves&#39;</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;pr&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating max recall by number of points: finished&#39;</span><span class="p">)</span></div>
@@ -671,7 +681,8 @@
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NumBinsOfHistogram</span><span class="p">()):</span>
       <span class="c1"># Calculate the center of the histogram bin.</span>
       <span class="n">value_at_histogram</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">bin_width</span> <span class="o">+</span> <span class="n">bin_width</span> <span class="o">/</span> <span class="mf">2.0</span>
-      <span class="n">scalars</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+      <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ap&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_at_histogram</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
@@ -764,15 +775,27 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by difficulty: start&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
-      <span class="n">scalars</span><span class="p">,</span> <span class="n">curves</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">)</span>
+      <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
+      <span class="n">curves</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;curves&#39;</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">ap_key</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
           <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">pr_key</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
 
+      <span class="c1"># Only KITTI metrics contains calibration data.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span><span class="o">.</span><span class="n">Calculate</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by difficulty: finished&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByDifficulty.GenerateSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByDifficulty.GenerateSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">GenerateSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate an image summary for precision recall by difficulty.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Generate an image summary for PR by difficulty and for calibration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: str, name of summary.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      list of summaries</span>
+<span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">legend</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -785,7 +808,7 @@
     <span class="n">image_summaries</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
 
-      <span class="k">def</span> <span class="nf">_Setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
+      <span class="k">def</span> <span class="nf">_PRSetter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Configure the plot for precision recall.&quot;&quot;&quot;</span>
         <span class="n">ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
         <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
@@ -797,6 +820,7 @@
         <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
       <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
+      <span class="c1"># Generate Precision-Recall curves.</span>
       <span class="n">rs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">ps</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
@@ -808,13 +832,18 @@
           <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
           <span class="n">xs</span><span class="o">=</span><span class="n">rs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
           <span class="n">ys</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ps</span><span class="p">)</span><span class="o">.</span><span class="n">T</span><span class="p">,</span>
-          <span class="n">setter</span><span class="o">=</span><span class="n">_Setter</span><span class="p">,</span>
+          <span class="n">setter</span><span class="o">=</span><span class="n">_PRSetter</span><span class="p">,</span>
           <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
           <span class="n">markersize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
           <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
           <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
           <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
       <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">image_summary</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">difficulty</span><span class="p">)</span>
+        <span class="c1"># TODO(shlens, rofls): Restore me when the above function is finished.</span>
+        <span class="c1"># image_summaries.append(image_summary)</span>
 
     <span class="k">return</span> <span class="n">image_summaries</span></div></div>
 </pre></div>

@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.tasks.car.car_layers module &mdash; Lingvo  documentation</title>
+  <title>lingvo.tasks.car.calibration_processing module &mdash; Lingvo  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.tasks.car.car_lib module" href="lingvo.tasks.car.car_lib.html" />
-    <link rel="prev" title="lingvo.tasks.car.calibration_processing module" href="lingvo.tasks.car.calibration_processing.html" /> 
+    <link rel="next" title="lingvo.tasks.car.car_layers module" href="lingvo.tasks.car.car_layers.html" />
+    <link rel="prev" title="lingvo.tasks.car.builder_lib module" href="lingvo.tasks.car.builder_lib.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -145,13 +145,13 @@
         
           <li><a href="lingvo.tasks.car.html">lingvo.tasks.car package</a> &raquo;</li>
         
-      <li>lingvo.tasks.car.car_layers module</li>
+      <li>lingvo.tasks.car.calibration_processing module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.tasks.car.car_layers.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.tasks.car.calibration_processing.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -164,46 +164,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.tasks.car.car_layers">
-<span id="lingvo-tasks-car-car-layers-module"></span><h1>lingvo.tasks.car.car_layers module<a class="headerlink" href="#module-lingvo.tasks.car.car_layers" title="Permalink to this headline">¶</a></h1>
-<p>Common layers for car models.</p>
-<p>These are usually sub-classes of base_layer.BaseLayer used by builder_lib.</p>
+  <div class="section" id="module-lingvo.tasks.car.calibration_processing">
+<span id="lingvo-tasks-car-calibration-processing-module"></span><h1>lingvo.tasks.car.calibration_processing module<a class="headerlink" href="#module-lingvo.tasks.car.calibration_processing" title="Permalink to this headline">¶</a></h1>
+<p>Library for calculating calibration on a prediction.</p>
 <dl class="class">
-<dt id="lingvo.tasks.car.car_layers.SamplingAndGroupingLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.car_layers.</code><code class="sig-name descname">SamplingAndGroupingLayer</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_layers.html#SamplingAndGroupingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_layers.SamplingAndGroupingLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Sampling and Grouping layer (based on PointNet++).</p>
+<dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.calibration_processing.</code><code class="sig-name descname">CalibrationCalculator</code><span class="sig-paren">(</span><em class="sig-param">metadata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Base class for calculating calibration on a prediction.</p>
 <dl class="method">
-<dt id="lingvo.tasks.car.car_layers.SamplingAndGroupingLayer.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_layers.html#SamplingAndGroupingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_layers.SamplingAndGroupingLayer.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
+<dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator.Calculate">
+<code class="sig-name descname">Calculate</code><span class="sig-paren">(</span><em class="sig-param">metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator.Calculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Calculate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate metrics for calibration.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.tasks.car.car_layers.SamplingAndGroupingLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_layers.html#SamplingAndGroupingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_layers.SamplingAndGroupingLayer.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Apply projection to inputs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
-children layers.</p></li>
-<li><p><strong>input_data</strong> – A NestedMap object containing ‘points’, ‘features’, ‘padding’
-Tensors, all of type tf.float32.
-‘points’: Shape [N, P1, 3]
-‘features’: Shape [N, P1, F]
-‘padding’: Shape [N, P1] where 0 indicates real, 1 indicates padded.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p><dl class="simple">
-<dt>A NestedMap consisting of the following two NestedMaps,</dt><dd><p>grouped_points: consists of the grouped points, features and padding.
-query_points: consists of the sampled points and padding.</p>
-</dd>
-</dl>
-</p>
-</dd>
-</dl>
+<dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary">
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an image summary for the calibration curve.</p>
 </dd></dl>
 
 </dd></dl>
@@ -218,10 +196,10 @@ query_points: consists of the sampled points and padding.</p>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.tasks.car.car_lib.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.car_lib module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.tasks.car.car_layers.html" class="btn btn-neutral float-right" title="lingvo.tasks.car.car_layers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.tasks.car.calibration_processing.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.calibration_processing module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.tasks.car.builder_lib.html" class="btn btn-neutral float-left" title="lingvo.tasks.car.builder_lib module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

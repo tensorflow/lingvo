@@ -278,11 +278,18 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">feed_data</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">dummy_scalar</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
+      <span class="n">dummy_calibration</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span>
       <span class="n">dummy_curve</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumberOfPrecisionRecallPoints</span><span class="p">(),</span> <span class="mi">2</span><span class="p">],</span>
                              <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
       <span class="n">scalar_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ap&#39;</span><span class="p">:</span> <span class="n">dummy_scalar</span><span class="p">}</span>
       <span class="n">curve_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span> <span class="n">dummy_curve</span><span class="p">}</span>
-      <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="p">{}</span>
+      <span class="n">calibration_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;calibrations&#39;</span><span class="p">:</span> <span class="n">dummy_calibration</span><span class="p">}</span>
+
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">feed_dict</span><span class="o">=</span><span class="p">{},</span>
+          <span class="n">scalar_metrics</span><span class="o">=</span><span class="n">scalar_metrics</span><span class="p">,</span>
+          <span class="n">curve_metrics</span><span class="o">=</span><span class="n">curve_metrics</span><span class="p">,</span>
+          <span class="n">calibration_metrics</span><span class="o">=</span><span class="n">calibration_metrics</span><span class="p">)</span>
 
     <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
 
@@ -312,7 +319,7 @@
 
     <span class="c1"># TODO(shlens): The third returned argument contain statistics for measuring</span>
     <span class="c1"># the calibration error. Use it.</span>
-    <span class="n">ap</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">average_precision3d</span><span class="p">(</span>
+    <span class="n">ap</span><span class="p">,</span> <span class="n">pr</span><span class="p">,</span> <span class="n">calibration</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">average_precision3d</span><span class="p">(</span>
         <span class="n">iou_threshold</span><span class="o">=</span><span class="n">f_iou</span><span class="p">,</span>
         <span class="n">groundtruth_bbox</span><span class="o">=</span><span class="n">f_gt_bbox</span><span class="p">,</span>
         <span class="n">groundtruth_imageid</span><span class="o">=</span><span class="n">f_gt_imgid</span><span class="p">,</span>
@@ -325,7 +332,76 @@
 
     <span class="n">scalar_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;ap&#39;</span><span class="p">:</span> <span class="n">ap</span><span class="p">}</span>
     <span class="n">curve_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;pr&#39;</span><span class="p">:</span> <span class="n">pr</span><span class="p">}</span>
-    <span class="k">return</span> <span class="n">scalar_metrics</span><span class="p">,</span> <span class="n">curve_metrics</span><span class="p">,</span> <span class="n">feed_dict</span></div></div>
+    <span class="n">calibration_metrics</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;calibrations&#39;</span><span class="p">:</span> <span class="n">calibration</span><span class="p">}</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">feed_dict</span><span class="o">=</span><span class="n">feed_dict</span><span class="p">,</span>
+        <span class="n">scalar_metrics</span><span class="o">=</span><span class="n">scalar_metrics</span><span class="p">,</span>
+        <span class="n">curve_metrics</span><span class="o">=</span><span class="n">curve_metrics</span><span class="p">,</span>
+        <span class="n">calibration_metrics</span><span class="o">=</span><span class="n">calibration_metrics</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KITTIAPMetrics._ComputeFinalMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_ap_metric.html#lingvo.tasks.car.kitti_ap_metric.KITTIAPMetrics._ComputeFinalMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeFinalMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                           <span class="n">classids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">difficulty</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">distance</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                           <span class="n">rotation</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute precision-recall curves as well as average precision.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      classids: A list of N int32.</span>
+<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
+<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all distances are selected.</span>
+<span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
+<span class="sd">        ground truth bounding box. If None is specified, all boxes are selected.</span>
+<span class="sd">      rotation: int32 specifying a binned rotation within the ground truth</span>
+<span class="sd">        bounding box. If None is specified, all boxes are selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      dict. Each entry in the dict is a list of C (number of classes) dicts</span>
+<span class="sd">      containing mapping from metric names to individual results. Individual</span>
+<span class="sd">      entries may be the following items.</span>
+<span class="sd">      - scalars: A list of C (number of classes) dicts mapping metric</span>
+<span class="sd">      names to scalar values.</span>
+<span class="sd">      - curves: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last</span>
+<span class="sd">      dimension, 0 indexes precision and 1 indexes recall.</span>
+<span class="sd">      - calibrations: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">      arrays of shape [number of predictions, 2]. The first column is the</span>
+<span class="sd">      predicted probabilty and the second column is 0 or 1 indicating that the</span>
+<span class="sd">      prediction matched a ground truth item.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Computing final KITTI metrics.&#39;</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">classids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;classids must be supplied.&#39;</span>
+    <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="n">scalar_fetches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">curve_fetches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">calibration_fetches</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="k">for</span> <span class="n">classid</span> <span class="ow">in</span> <span class="n">classids</span><span class="p">:</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetData</span><span class="p">(</span>
+            <span class="n">classid</span><span class="p">,</span>
+            <span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">,</span>
+            <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
+            <span class="n">num_points</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
+            <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
+        <span class="n">metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildMetric</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">classid</span><span class="p">)</span>
+        <span class="n">scalar_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">metrics</span><span class="o">.</span><span class="n">scalar_metrics</span><span class="p">]</span>
+        <span class="n">curve_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">metrics</span><span class="o">.</span><span class="n">curve_metrics</span><span class="p">]</span>
+        <span class="n">calibration_fetches</span> <span class="o">+=</span> <span class="p">[</span><span class="n">metrics</span><span class="o">.</span><span class="n">calibration_metrics</span><span class="p">]</span>
+        <span class="n">feed_dict</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">feed_dict</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+      <span class="n">results</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span><span class="n">scalar_fetches</span><span class="p">,</span> <span class="n">curve_fetches</span><span class="p">,</span> <span class="n">calibration_fetches</span><span class="p">],</span>
+                         <span class="n">feed_dict</span><span class="o">=</span><span class="n">feed_dict</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished computing final KITTI metrics.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;scalars&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="s1">&#39;curves&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+        <span class="s1">&#39;calibrations&#39;</span><span class="p">:</span> <span class="n">results</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="p">}</span></div></div>
 </pre></div>
 
            </div>
