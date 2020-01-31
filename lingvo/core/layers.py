@@ -858,7 +858,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'activation', 'RELU',
         'Activation function to use. Options are RELU, RELU6, SIGMOID, '
         'TANH, NONE.')
-    p.Define('batch_norm', True, 'Whether or not to apply batch norm.')
+    p.Define('batch_norm', None, 'Whether or not to apply batch norm.')
     p.Define('has_bias', False,
              'Whether or not to introduce the bias params to the layer.')
     p.Define('bias_init', 0.0, 'Initial value for the bias')
@@ -893,6 +893,9 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.output_dim) > 0
     assert p.activation == 'NONE' or p.activation in _ACTIVATIONS
+    if p.batch_norm is None:
+      raise RuntimeError(
+          'ProjectionLayer.batch_norm not set explicitly for %s' % self.path)
     if p.batch_norm and p.has_bias:
       tf.logging.warning(
           'Projection layer enables both batch_norm and has_bias. '

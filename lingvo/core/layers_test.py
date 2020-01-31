@@ -1444,6 +1444,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.name = 'proj'
       params.input_dim = 2
       params.output_dim = 3
+      params.batch_norm = True
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       layers.ProjectionLayer(params)
       proj_vars = tf.get_collection('ProjectionLayer_vars')
@@ -1665,6 +1666,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.dtype = tf.float64
       params.input_dim = 3
       params.output_dim = 2
+      params.batch_norm = True
       params.params_init = py_utils.WeightInit.Gaussian(0.01)
 
       proj_layer = layers.ProjectionLayer(params)
