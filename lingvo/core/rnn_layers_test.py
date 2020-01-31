@@ -19,6 +19,7 @@ from __future__ import division
 from __future__ import print_function
 
 import types
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
@@ -189,7 +190,7 @@ class LayersTestBase(test_utils.TestCase):
         self.assertAllClose(sym, num)
 
 
-class LayersTest(LayersTestBase):
+class LayersTest(LayersTestBase, parameterized.TestCase):
 
   def testIdentitySeqLayer(self):
     with self.session(use_gpu=False) as sess:
@@ -1342,8 +1343,15 @@ class LayersTest(LayersTestBase):
       for i, (sym, num) in enumerate(zip(sym_grads, num_grads)):
         Compare(parameters[i].name, sym, num)
 
-  def _CreateFRNNWithAttentionParams(self, dtype, dims, slen, sbatch, tlen,
-                                     tbatch):
+  def _CreateFRNNWithAttentionParams(self,
+                                     dtype,
+                                     dims,
+                                     slen,
+                                     sbatch,
+                                     tlen,
+                                     tbatch,
+                                     input_prev_atten_ctx=True,
+                                     output_prev_atten_ctx=False):
     # Create RNN Layer.
     p = rnn_cell.LSTMCellSimple.Params()
     p.name = 'lstm'
@@ -1352,7 +1360,7 @@ class LayersTest(LayersTestBase):
     p.params_init = py_utils.WeightInit.Uniform(0.02, 429891685)
     p.vn.global_vn = False
     p.vn.per_step_vn = False
-    p.num_input_nodes = dims * 2
+    p.num_input_nodes = dims * 2 if input_prev_atten_ctx else dims
     p.num_output_nodes = dims
     lstm_params = p
 
@@ -1373,10 +1381,14 @@ class LayersTest(LayersTestBase):
     p.dtype = dtype
     p.cell = lstm_params
     p.attention = atten
-    p.output_prev_atten_ctx = False
+    p.input_prev_atten_ctx = input_prev_atten_ctx
+    p.output_prev_atten_ctx = output_prev_atten_ctx
     return p
 
-  def testFRNNWithAttentionSeparateSourceContextIdenticalToSourceEnc(self):
+  @parameterized.parameters((False, False), (False, True), (True, False),
+                            (True, True))
+  def testFRNNWithAttentionSeparateSourceContextIdenticalToSourceEnc(
+      self, input_prev_atten_ctx, output_prev_atten_ctx):
     dtype = tf.float32
     dims = 4
     slen = 10
@@ -1393,7 +1405,9 @@ class LayersTest(LayersTestBase):
           slen=slen,
           sbatch=sbatch,
           tlen=tlen,
-          tbatch=tbatch)
+          tbatch=tbatch,
+          input_prev_atten_ctx=input_prev_atten_ctx,
+          output_prev_atten_ctx=output_prev_atten_ctx)
 
       frnn = p.Instantiate()
 
@@ -1428,7 +1442,10 @@ class LayersTest(LayersTestBase):
 
       self.assertAllClose(frnn_out_v, frnn_out_src_ctx_v)
 
-  def testFRNNWithAttentionSeparateSourceContextDifferentFromSourceEnc(self):
+  @parameterized.parameters((False, False), (False, True), (True, False),
+                            (True, True))
+  def testFRNNWithAttentionSeparateSourceContextDifferentFromSourceEnc(
+      self, input_prev_atten_ctx, output_prev_atten_ctx):
     dtype = tf.float32
     dims = 4
     slen = 10
@@ -1445,7 +1462,9 @@ class LayersTest(LayersTestBase):
           slen=slen,
           sbatch=sbatch,
           tlen=tlen,
-          tbatch=tbatch)
+          tbatch=tbatch,
+          input_prev_atten_ctx=input_prev_atten_ctx,
+          output_prev_atten_ctx=output_prev_atten_ctx)
 
       frnn = p.Instantiate()
 

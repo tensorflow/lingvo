@@ -1336,6 +1336,7 @@ py_library(
         ":rnn_cell",
         ":rnn_layers",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
