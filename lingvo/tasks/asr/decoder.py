@@ -531,7 +531,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     def PlotAttention(fig, axes, transcript, atten_probs, title):
       plot.AddImage(fig, axes, atten_probs, title=title)
       axes.set_ylabel(
-          plot.ToUnicode(transcript + '\nOutput token'),
+          plot.ToUnicode(transcript) + '\nOutput token',
           size='x-small',
           wrap=True,
           fontproperties=self._font_properties)
