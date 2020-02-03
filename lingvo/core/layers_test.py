@@ -306,10 +306,10 @@ class ConvLayerTest(test_utils.TestCase):
                              'conv2/gamma/var:0']
       expected_conv1_modules = ['bbf_BatchNormLayer_conv1']
       expected_conv2_modules = ['bbf_BatchNormLayer_conv2']
-      self.assertEqual(expected_conv1_vars, conv1_variables)
-      self.assertEqual(expected_conv2_vars, conv2_variables)
-      self.assertEqual(expected_conv1_modules, conv1_submodules)
-      self.assertEqual(expected_conv2_modules, conv2_submodules)
+      self.assertCountEqual(expected_conv1_vars, conv1_variables)
+      self.assertCountEqual(expected_conv2_vars, conv2_variables)
+      self.assertCountEqual(expected_conv1_modules, conv1_submodules)
+      self.assertCountEqual(expected_conv2_modules, conv2_submodules)
 
   def testSeparableConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
