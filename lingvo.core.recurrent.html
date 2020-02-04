@@ -172,7 +172,7 @@ This expects the caller to describe the recurrent neural net by specifying:</p>
 <div><ul>
 <li><p>theta: the “weights” each RNN uses.</p></li>
 <li><p>state0: the initial state of each RNN.</p></li>
-<li><p>cell_fn: A python function describing RNN cell. It must has the following
+<li><p>cell_fn: A python function describing RNN cell. It must have the following
 signature:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_fn</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="p">(</span><span class="n">state1</span><span class="p">,</span> <span class="n">extras</span><span class="p">)</span>
 </pre></div>
@@ -180,8 +180,8 @@ signature:</p>
 <p>state1 is the next RNN state, extras are computed by cell_fn
 and the library forwards extras to cell_fn’s gradient function.</p>
 </li>
-<li><p>cell_grad: A python function describing the backprop gradient function
-for the RNN cell. It must has the following signature:</p>
+<li><p>cell_grad: An optional python function describing the backprop gradient
+function for the RNN cell. It must have the following signature:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cell_grad</span><span class="p">:</span> <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">dstate1</span><span class="p">)</span> <span class="o">-&gt;</span>
     <span class="p">(</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">)</span>
 </pre></div>
@@ -193,6 +193,42 @@ gradients of state1 w.r.t. the final loss.</p>
 </div></blockquote>
 <p>All of <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">state0</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">extras</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">dstate1</span></code> are
 <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> so that they can carry a bunch of tensors around.</p>
+<p>Recurrent computes, roughly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">state0</span>
+<span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">inputs</span><span class="s1">&#39; sequence length:</span>
+  <span class="n">state</span> <span class="o">=</span> <span class="n">cell_fn</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">inputs</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="n">accumulate_state</span><span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">state</span>
+<span class="k">return</span> <span class="n">accumulate_state</span><span class="p">,</span> <span class="n">state</span>
+</pre></div>
+</div>
+<p>The main advantage to using Recurrent instead of tf.while_loop is in
+memory savings. In order to compute the gradient for cell_fn, a tf.while_loop
+implementation will try to save all of the intermediate tensor values in the
+forward pass. For long input sequences this can add up to a very large amount
+of memory space.</p>
+<p>Recurrent saves only the state output from cell_fn, not any of the intermediate
+tensors generated within cell_fn. This saves lots of memory in the forward
+pass, but there is a cost: we have to recompute those intermediate tensors
+in the backward pass in order to compute the gradient. This recomputation
+is why we require that cell_fn be stateless: Recurrent calls cell_fn both
+in the forward pass and in the backward pass, and both of those invocations
+need to be the same in order for training to work properly.</p>
+<p>When using Recurrent, then, we need to store state for the whole training
+sequence (in accumulate_state), as well as all of the intermediate tensors
+for a single step of cell_fn. Without Recurrent, we would store all of the
+intermediate tensors for all of the steps.</p>
+<p>We prefer that all of the inputs to cell_fn be passed in using theta, state0,
+or inputs. But sometimes you may have code with other inputs; for instance, this
+cell_fn references tensor my_tensor, even though it was never passed in as an
+input:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">cell_fn</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">inputs</span><span class="o">.</span><span class="n">input</span> <span class="o">*</span> <span class="n">my_tensor</span>
+</pre></div>
+</div>
+<p>We say that my_tensor was implicitly captured by cell_fn. By default,
+Recurrent doesn’t allow this, but you can change that behavior by setting the
+allow_implicit_captures flag.</p>
 <dl class="class">
 <dt id="lingvo.core.recurrent.DevicePair">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">DevicePair</code><span class="sig-paren">(</span><em class="sig-param">send</em>, <em class="sig-param">recv</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair" title="Permalink to this definition">¶</a></dt>

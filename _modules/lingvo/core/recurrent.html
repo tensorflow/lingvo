@@ -165,15 +165,15 @@
 
 <span class="sd">  - theta: the &quot;weights&quot; each RNN uses.</span>
 <span class="sd">  - state0: the initial state of each RNN.</span>
-<span class="sd">  - cell_fn: A python function describing RNN cell. It must has the following</span>
+<span class="sd">  - cell_fn: A python function describing RNN cell. It must have the following</span>
 <span class="sd">    signature::</span>
 
 <span class="sd">        cell_fn: (theta, state0, inputs) -&gt; (state1, extras)</span>
 
 <span class="sd">    state1 is the next RNN state, extras are computed by cell_fn</span>
 <span class="sd">    and the library forwards extras to cell_fn&#39;s gradient function.</span>
-<span class="sd">  - cell_grad: A python function describing the backprop gradient function</span>
-<span class="sd">    for the RNN cell. It must has the following signature::</span>
+<span class="sd">  - cell_grad: An optional python function describing the backprop gradient</span>
+<span class="sd">    function for the RNN cell. It must have the following signature::</span>
 
 <span class="sd">        cell_grad: (theta, state0, inputs, extras, dstate1) -&gt;</span>
 <span class="sd">            (dtheta, dstate0, dinputs)</span>
@@ -183,6 +183,46 @@
 
 <span class="sd">All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are</span>
 <span class="sd">`.NestedMap` so that they can carry a bunch of tensors around.</span>
+
+<span class="sd">Recurrent computes, roughly::</span>
+
+<span class="sd">    state = state0</span>
+<span class="sd">    for t in inputs&#39; sequence length:</span>
+<span class="sd">      state = cell_fn(theta, state, inputs[t, :])</span>
+<span class="sd">      accumulate_state[t, :] = state</span>
+<span class="sd">    return accumulate_state, state</span>
+
+<span class="sd">The main advantage to using Recurrent instead of tf.while_loop is in</span>
+<span class="sd">memory savings. In order to compute the gradient for cell_fn, a tf.while_loop</span>
+<span class="sd">implementation will try to save all of the intermediate tensor values in the</span>
+<span class="sd">forward pass. For long input sequences this can add up to a very large amount</span>
+<span class="sd">of memory space.</span>
+
+<span class="sd">Recurrent saves only the state output from cell_fn, not any of the intermediate</span>
+<span class="sd">tensors generated within cell_fn. This saves lots of memory in the forward</span>
+<span class="sd">pass, but there is a cost: we have to recompute those intermediate tensors</span>
+<span class="sd">in the backward pass in order to compute the gradient. This recomputation</span>
+<span class="sd">is why we require that cell_fn be stateless: Recurrent calls cell_fn both</span>
+<span class="sd">in the forward pass and in the backward pass, and both of those invocations</span>
+<span class="sd">need to be the same in order for training to work properly.</span>
+
+<span class="sd">When using Recurrent, then, we need to store state for the whole training</span>
+<span class="sd">sequence (in accumulate_state), as well as all of the intermediate tensors</span>
+<span class="sd">for a single step of cell_fn. Without Recurrent, we would store all of the</span>
+<span class="sd">intermediate tensors for all of the steps.</span>
+
+<span class="sd">We prefer that all of the inputs to cell_fn be passed in using theta, state0,</span>
+<span class="sd">or inputs. But sometimes you may have code with other inputs; for instance, this</span>
+<span class="sd">cell_fn references tensor my_tensor, even though it was never passed in as an</span>
+<span class="sd">input::</span>
+
+<span class="sd">    my_tensor = tf.constant(5)</span>
+<span class="sd">    def cell_fn(inputs):</span>
+<span class="sd">      return inputs.input * my_tensor</span>
+
+<span class="sd">We say that my_tensor was implicitly captured by cell_fn. By default,</span>
+<span class="sd">Recurrent doesn&#39;t allow this, but you can change that behavior by setting the</span>
+<span class="sd">allow_implicit_captures flag.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
