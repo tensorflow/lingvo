@@ -20,15 +20,15 @@ This expects the caller to describe the recurrent neural net by specifying:
 
   - theta: the "weights" each RNN uses.
   - state0: the initial state of each RNN.
-  - cell_fn: A python function describing RNN cell. It must has the following
+  - cell_fn: A python function describing RNN cell. It must have the following
     signature::
 
         cell_fn: (theta, state0, inputs) -> (state1, extras)
 
     state1 is the next RNN state, extras are computed by cell_fn
     and the library forwards extras to cell_fn's gradient function.
-  - cell_grad: A python function describing the backprop gradient function
-    for the RNN cell. It must has the following signature::
+  - cell_grad: An optional python function describing the backprop gradient
+    function for the RNN cell. It must have the following signature::
 
         cell_grad: (theta, state0, inputs, extras, dstate1) ->
             (dtheta, dstate0, dinputs)
@@ -38,6 +38,46 @@ This expects the caller to describe the recurrent neural net by specifying:
 
 All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are
 `.NestedMap` so that they can carry a bunch of tensors around.
+
+Recurrent computes, roughly::
+
+    state = state0
+    for t in inputs' sequence length:
+      state = cell_fn(theta, state, inputs[t, :])
+      accumulate_state[t, :] = state
+    return accumulate_state, state
+
+The main advantage to using Recurrent instead of tf.while_loop is in
+memory savings. In order to compute the gradient for cell_fn, a tf.while_loop
+implementation will try to save all of the intermediate tensor values in the
+forward pass. For long input sequences this can add up to a very large amount
+of memory space.
+
+Recurrent saves only the state output from cell_fn, not any of the intermediate
+tensors generated within cell_fn. This saves lots of memory in the forward
+pass, but there is a cost: we have to recompute those intermediate tensors
+in the backward pass in order to compute the gradient. This recomputation
+is why we require that cell_fn be stateless: Recurrent calls cell_fn both
+in the forward pass and in the backward pass, and both of those invocations
+need to be the same in order for training to work properly.
+
+When using Recurrent, then, we need to store state for the whole training
+sequence (in accumulate_state), as well as all of the intermediate tensors
+for a single step of cell_fn. Without Recurrent, we would store all of the
+intermediate tensors for all of the steps.
+
+We prefer that all of the inputs to cell_fn be passed in using theta, state0,
+or inputs. But sometimes you may have code with other inputs; for instance, this
+cell_fn references tensor my_tensor, even though it was never passed in as an
+input::
+
+    my_tensor = tf.constant(5)
+    def cell_fn(inputs):
+      return inputs.input * my_tensor
+
+We say that my_tensor was implicitly captured by cell_fn. By default,
+Recurrent doesn't allow this, but you can change that behavior by setting the
+allow_implicit_captures flag.
 """
 
 from __future__ import absolute_import
