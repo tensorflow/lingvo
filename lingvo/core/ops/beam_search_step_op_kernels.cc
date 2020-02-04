@@ -841,8 +841,9 @@ class UnpackHypOp : public OpKernel {
     std::vector<Hypothesis> hyps(batch_size);
     for (int i = 0; i < batch_size; ++i) {
       // TODO(yonghui): parallelize this loop.
+      const tstring& t_in_hyps_i = t_in_hyps(i);
       if (!t_in_hyps(i).empty()) {
-        hyps[i].ParseFromString(t_in_hyps(i));
+        hyps[i].ParseFromArray(t_in_hyps_i.data(), t_in_hyps_i.size());
       }
     }
     int max_seq_length = max_seq_length_;
