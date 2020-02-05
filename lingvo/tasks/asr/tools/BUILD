@@ -26,3 +26,22 @@ py_test(
         "//lingvo/core:test_utils",
     ],
 )
+
+py_library(
+    name = "simple_wer_v2",
+    srcs = ["simple_wer_v2.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "simple_wer_v2_test",
+    srcs = ["simple_wer_v2_test.py"],
+    deps = [
+        ":simple_wer_v2",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
+    ],
+)

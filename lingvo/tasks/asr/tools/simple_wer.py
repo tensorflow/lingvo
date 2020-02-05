@@ -15,6 +15,8 @@
 # ==============================================================================
 """Stand-alone script to evalute the word error rate (WER) for ASR tasks.
 
+THIS SCRIPT IS NO LONGER SUPPORTED. PLEASE USE simple_wer_v2.py INSTEAD.
+
 Tensorflow and Lingvo are not required to run this script.
 
 Example of Usage::
@@ -321,6 +323,9 @@ def main(argv):
 
 
 if __name__ == '__main__':
+  print('THIS SCRIPT IS NO LONGER SUPPORTED.'
+        'PLEASE USE simple_wer_v2.py INSTEAD.')
+
   if len(sys.argv) < 3 or len(sys.argv) > 4:
     print("""
 Example of Usage:
