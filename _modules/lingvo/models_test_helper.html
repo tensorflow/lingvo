@@ -167,6 +167,7 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">bn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">test_utils</span>
 
@@ -215,12 +216,50 @@
   <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span> <span class="o">=</span> <span class="n">_CreateVariableStub</span></div>
 
 
+<div class="viewcode-block" id="TraverseLayer"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.TraverseLayer">[docs]</a><span class="k">def</span> <span class="nf">TraverseLayer</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Traverses the layer tree and invokes fn(node) on each node.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    layer: a BaseLayer.</span>
+<span class="sd">    fn: a function of (layer, layer_theta) -&gt; None.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">layer_i</span> <span class="ow">in</span> <span class="n">layer</span><span class="p">:</span>
+      <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">layer_i</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+    <span class="k">return</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+    <span class="n">fn</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+    <span class="c1"># Traverse all children in alphabetical order.</span>
+    <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">child</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+      <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="BaseModelsTest"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest">[docs]</a><span class="k">class</span> <span class="nc">BaseModelsTest</span><span class="p">(</span><span class="n">test_utils</span><span class="o">.</span><span class="n">TestCase</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base model test class which does not define any test methods of its own.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseModelsTest.setUp"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_variable_cache</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="n">_StubOutCreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_cache</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseModelsTest._ValidateEMA"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest._ValidateEMA">[docs]</a>  <span class="k">def</span> <span class="nf">_ValidateEMA</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">mdl</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">mdl</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
+      <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+      <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># ema_decay_moving_vars is set explicitly.</span>
+        <span class="k">continue</span>
+      <span class="c1"># Otherwise the model should not contain any BatchNormLayer.</span>
+      <span class="n">all_layers</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">all_layers</span><span class="o">.</span><span class="n">append</span><span class="p">)</span>
+      <span class="n">batch_norm_layers</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">layer</span><span class="o">.</span><span class="n">path</span>
+          <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="n">all_layers</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">bn_layers</span><span class="o">.</span><span class="n">BatchNormLayer</span><span class="p">)</span>
+      <span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">assertEqual</span><span class="p">([],</span> <span class="n">batch_norm_layers</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseModelsTest._testOneModelParams"><a class="viewcode-back" href="../../lingvo.models_test_helper.html#lingvo.models_test_helper.BaseModelsTest._testOneModelParams">[docs]</a>  <span class="k">def</span> <span class="nf">_testOneModelParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">registry</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
@@ -233,7 +272,9 @@
       <span class="k">with</span> <span class="n">p</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">():</span>
         <span class="c1"># Instantiate the params class, to help catch errors in layer</span>
         <span class="c1"># constructors due to misconfigurations.</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">mdl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ValidateEMA</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">mdl</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">params</span>
 
       <span class="k">for</span> <span class="n">dataset</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Train&#39;</span><span class="p">,</span> <span class="s1">&#39;Dev&#39;</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">):</span>
         <span class="n">input_p</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">input</span>

@@ -250,6 +250,9 @@
         <span class="s1">&#39;with the give decay. &#39;</span>
         <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If True, include variables from collection &quot;moving_vars&quot; in ema.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;init_from_checkpoint_rules&#39;</span><span class="p">,</span> <span class="p">{},</span>
         <span class="s1">&#39;If not None, a dictionary with keys corresponding to a checkpoint &#39;</span>
         <span class="s1">&#39;path and values corresponding to variable loading rules is expected. &#39;</span>
@@ -774,12 +777,16 @@
 
 <div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(rpang): raise an exception if this is called in the eval mode.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># We need to apply EMA to trainable and moving average variable of this</span>
     <span class="c1"># Task, not just bprop vars, so that we create a shadow</span>
     <span class="c1"># &#39;/ExponentialMovingAverage&#39; variable for every trainable and moving</span>
     <span class="c1"># average variable.</span>
     <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
+      <span class="n">all_vars</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
     <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -1138,7 +1145,12 @@
         <span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
         <span class="s1">&#39;If &gt; 0, enable ExponentialMovingAverage during training &#39;</span>
         <span class="s1">&#39;with the give decay. &#39;</span>
-        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;Must be &lt; 1. Disabled if &lt;= 0. &#39;</span>
+        <span class="s1">&#39;Must be set consistent across all tasks.&#39;</span><span class="p">)</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If True, include variables from collection &quot;moving_vars&quot; in ema. &#39;</span>
+        <span class="s1">&#39;Must be set consistent across all tasks.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_from_checkpoint_rules&#39;</span><span class="p">,</span> <span class="p">{},</span>
               <span class="s1">&#39;See BaseTask documentation for details.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;early_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -1181,6 +1193,18 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ema</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">variables_for_ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">all_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">trainable_variables</span><span class="p">())</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">moving_average_variables</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">:</span>
+      <span class="n">all_vars</span> <span class="o">|=</span> <span class="nb">set</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">))</span>
+    <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;variables_for_ema: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">all_vars</span>
 
 <div class="viewcode-block" id="BaseModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
@@ -1243,7 +1267,6 @@
       <span class="n">tp</span><span class="o">.</span><span class="n">start_up_delay_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">start_up_delay_steps</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span>
-      <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span>
       <span class="c1"># init_from_checkpoint_rules does not need to be copied.</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">early_stop</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">early_stop</span>
       <span class="n">tp</span><span class="o">.</span><span class="n">enqueue_max_steps</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">enqueue_max_steps</span>
@@ -1267,6 +1290,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span>
       <span class="n">p</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">input</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span>
 
     <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
@@ -1353,6 +1378,11 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span> <span class="o">=</span> <span class="n">task_scheduler</span><span class="o">.</span><span class="n">ConstantScheduler</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()))</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+        <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">k</span>
+        <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">,</span> <span class="n">k</span>
 
     <span class="c1"># CreateChild copies over global configs in p to individual task params,</span>
     <span class="c1"># which then gets propagated down to all sub-layers during</span>
