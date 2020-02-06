@@ -74,7 +74,8 @@ class Checkpointer(object):
     do_eval = cluster_factory.Current().do_eval
     if not self._save_only and self._model.ema and do_eval:
       tf.logging.info('Using EMA for evaluation.')
-      return tf.train.Saver(self._model.ema.variables_to_restore())
+      return tf.train.Saver(
+          self._model.ema.variables_to_restore(self._model.variables_for_ema))
     return tf.train.Saver(
         sharded=True,
         max_to_keep=self._train_params.save_max_to_keep,

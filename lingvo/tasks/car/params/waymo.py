@@ -336,6 +336,8 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
 
     # Adapted from V1 tuning.
     tp.ema_decay = 0.99
+    # TODO(b/148537111): consider setting this to True.
+    tp.ema_decay_moving_vars = False
     tp.learning_rate = 0.001
     lr_util.SetExponentialLR(
         train_p=tp,

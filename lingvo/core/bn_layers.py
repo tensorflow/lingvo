@@ -67,6 +67,8 @@ class BatchNormLayer(base_layer.BaseLayer):
         'If True, use global moving avg (mean, variance) during training'
         ' to avoid mismatch between train and eval, which then'
         ' essentially acts as an adaptive normalization step.')
+    # TODO(rpang): remove this hparam, as it is replaced
+    # by p.train.ema_decay_moving_vars.
     p.Define(
         'add_stats_to_moving_average_variables', None,
         'If True, adds (mean, variance) to the MOVING_AVERAGE_VARIABLES '

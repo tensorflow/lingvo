@@ -1529,3 +1529,19 @@ py_test(
         "//lingvo:compat",
     ],
 )
+
+py_test(
+    name = "ema_test",
+    srcs = ["ema_test.py"],
+    deps = [
+        ":base_decoder",
+        ":base_input_generator",
+        ":base_layer",
+        ":base_model",
+        ":checkpointer_lib",
+        ":layers",
+        ":py_utils",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)

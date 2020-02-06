@@ -105,6 +105,9 @@ class BaseTask(base_layer.BaseLayer):
         'with the give decay. '
         'Must be < 1. Disabled if <= 0.')
     tp.Define(
+        'ema_decay_moving_vars', None,
+        'If True, include variables from collection "moving_vars" in ema.')
+    tp.Define(
         'init_from_checkpoint_rules', {},
         'If not None, a dictionary with keys corresponding to a checkpoint '
         'path and values corresponding to variable loading rules is expected. '
@@ -629,12 +632,16 @@ class BaseTask(base_layer.BaseLayer):
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
+    # TODO(rpang): raise an exception if this is called in the eval mode.
+    p = self.params
     # We need to apply EMA to trainable and moving average variable of this
     # Task, not just bprop vars, so that we create a shadow
     # '/ExponentialMovingAverage' variable for every trainable and moving
     # average variable.
     all_vars = set(tf.trainable_variables()) | set(
         tf.moving_average_variables())
+    if p.train.ema_decay_moving_vars:
+      all_vars |= set(tf.get_collection('moving_vars'))
     all_vars &= set(self.vars.Flatten())
     for var in all_vars:
       tf.logging.debug('ApplyExponentialMovingAverage: %s', var.name)
@@ -993,7 +1000,12 @@ class BaseModel(base_layer.BaseLayer):
         'ema_decay', 0.0,
         'If > 0, enable ExponentialMovingAverage during training '
         'with the give decay. '
-        'Must be < 1. Disabled if <= 0.')
+        'Must be < 1. Disabled if <= 0. '
+        'Must be set consistent across all tasks.')
+    tp.Define(
+        'ema_decay_moving_vars', None,
+        'If True, include variables from collection "moving_vars" in ema. '
+        'Must be set consistent across all tasks.')
     tp.Define('init_from_checkpoint_rules', {},
               'See BaseTask documentation for details.')
     tp.Define('early_stop', None,
@@ -1036,6 +1048,18 @@ class BaseModel(base_layer.BaseLayer):
   @property
   def ema(self):
     return self._ema
+
+  @property
+  def variables_for_ema(self):
+    p = self.params
+    all_vars = set(tf.trainable_variables()) | set(
+        tf.moving_average_variables())
+    if p.train.ema_decay_moving_vars:
+      all_vars |= set(tf.get_collection('moving_vars'))
+    all_vars &= set(self.vars.Flatten())
+    for var in all_vars:
+      tf.logging.debug('variables_for_ema: %s', var.name)
+    return all_vars
 
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
@@ -1098,7 +1122,6 @@ class SingleTaskModel(BaseModel):
       tp.start_up_delay_steps = p.task.train.start_up_delay_steps
       tp.max_steps = p.task.train.max_steps
       tp.tpu_steps_per_loop = p.task.train.tpu_steps_per_loop
-      tp.ema_decay = p.task.train.ema_decay
       # init_from_checkpoint_rules does not need to be copied.
       tp.early_stop = p.task.train.early_stop
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
@@ -1122,6 +1145,8 @@ class SingleTaskModel(BaseModel):
     else:
       assert p.task.input
       p.input = p.task.input
+    p.train.ema_decay = p.task.train.ema_decay
+    p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
     super(SingleTaskModel, self).__init__(p)
 
@@ -1208,6 +1233,11 @@ class MultiTaskModel(BaseModel):
     if p.task_schedule is None:
       p.task_schedule = task_scheduler.ConstantScheduler.Params()
       p.task_schedule.task_probs = sorted(list(p.task_probs.IterParams()))
+
+    if p.train.ema_decay > 0:
+      for k, v in p.task_params.IterParams():
+        assert v.train.ema_decay == p.train.ema_decay, k
+        assert v.train.ema_decay_moving_vars == p.train.ema_decay_moving_vars, k
 
     # CreateChild copies over global configs in p to individual task params,
     # which then gets propagated down to all sub-layers during

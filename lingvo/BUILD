@@ -103,6 +103,7 @@ py_library(
         ":compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_model",
+        "//lingvo/core:bn_layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
     ],

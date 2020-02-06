@@ -22,6 +22,7 @@ from __future__ import print_function
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
+from lingvo.core import bn_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 
@@ -70,12 +71,50 @@ def _StubOutCreateVariable(variable_cache):
   py_utils.CreateVariable = _CreateVariableStub
 
 
+def TraverseLayer(layer, fn):
+  """Traverses the layer tree and invokes fn(node) on each node.
+
+  Args:
+    layer: a BaseLayer.
+    fn: a function of (layer, layer_theta) -> None.
+  """
+  if isinstance(layer, (list, tuple)):
+    for layer_i in layer:
+      TraverseLayer(layer_i, fn)
+    return
+
+  with tf.name_scope(layer.params.name):
+    fn(layer)
+    # Traverse all children in alphabetical order.
+    for _, child in sorted(layer.children.items()):
+      TraverseLayer(child, fn)
+
+
 class BaseModelsTest(test_utils.TestCase):
   """Base model test class which does not define any test methods of its own."""
 
   def setUp(self):
     self._variable_cache = {}
     _StubOutCreateVariable(self._variable_cache)
+
+  def _ValidateEMA(self, name, mdl):
+    if not mdl.ema:
+      return
+    self.assertIsInstance(mdl, base_model.SingleTaskModel)
+    for task in mdl.tasks:
+      tp = task.params.train
+      if tp.ema_decay_moving_vars is not None:
+        # ema_decay_moving_vars is set explicitly.
+        continue
+      # Otherwise the model should not contain any BatchNormLayer.
+      all_layers = []
+      TraverseLayer(task, all_layers.append)
+      batch_norm_layers = [
+          layer.path
+          for layer in all_layers
+          if isinstance(layer, bn_layers.BatchNormLayer)
+      ]
+      self.assertEqual([], batch_norm_layers)
 
   def _testOneModelParams(self, registry, name):
     with tf.Graph().as_default():
@@ -88,7 +127,9 @@ class BaseModelsTest(test_utils.TestCase):
       with p.cluster.Instantiate():
         # Instantiate the params class, to help catch errors in layer
         # constructors due to misconfigurations.
-        p = p.Instantiate().params
+        mdl = p.Instantiate()
+        self._ValidateEMA(name, mdl)
+        p = mdl.params
 
       for dataset in ('Train', 'Dev', 'Test'):
         input_p = registry.GetParams(name, dataset).input

@@ -313,17 +313,35 @@ class SingleTaskModelTest(test_utils.TestCase):
     p = base_model.SingleTaskModel.Params()
     p.task = BaseTaskTest.TestParams()
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    p.train.ema_decay = 0.9
+    p.task.train.ema_decay = 0.9
+    p.task.train.ema_decay_moving_vars = False
     model = p.Instantiate()
-    model._task.CreateChild('a',
-                            layers.BatchNormLayer.Params().Set(name='a', dim=1))
-    model._task._train_op = tf.no_op()
-    model._task.ApplyExponentialMovingAverage(model.ema)
+    task = model._task
+    task.CreateChild('a', layers.BatchNormLayer.Params().Set(name='a', dim=1))
+    task._train_op = tf.no_op()
+    task.ApplyExponentialMovingAverage(model.ema)
     with tf.variable_scope('', reuse=True):
       beta = tf.get_variable('a/beta/var')
       mean = tf.get_variable('a/moving_mean/var')
       self.assertIsNotNone(model.ema.average(beta))
       self.assertIsNone(model.ema.average(mean))
+
+  def testExponentialMovingAverageIncludingMovingVars(self):
+    p = base_model.SingleTaskModel.Params()
+    p.task = BaseTaskTest.TestParams()
+    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.ema_decay = 0.9
+    p.task.train.ema_decay_moving_vars = True
+    model = p.Instantiate()
+    task = model._task
+    task.CreateChild('a', layers.BatchNormLayer.Params().Set(name='a', dim=1))
+    task._train_op = tf.no_op()
+    task.ApplyExponentialMovingAverage(model.ema)
+    with tf.variable_scope('', reuse=True):
+      beta = tf.get_variable('a/beta/var')
+      mean = tf.get_variable('a/moving_mean/var')
+      self.assertIsNotNone(model.ema.average(beta))
+      self.assertIsNotNone(model.ema.average(mean))
 
 
 class MultiTaskModelTest(test_utils.TestCase):
