@@ -834,7 +834,10 @@ class GraphLayer(base_layer.BaseLayer):
 
     graph_tensors = self._fprop = GraphTensors()
     with tf.name_scope(p.name):
-      assert len(p.input_endpoints) == len(args)
+      if len(p.input_endpoints) != len(args):
+        raise ValueError(
+            'Wrong number of inputs for {}: required={}, provided={}'.format(
+                p.name, len(p.input_endpoints), len(args)))
       for n, t in zip(p.input_endpoints, args):
         if isinstance(t, py_utils.NestedMap):
           assert all(isinstance(x, tf.Tensor) for x in t.Flatten()), t
