@@ -111,16 +111,14 @@ class BatchNormLayer(base_layer.BaseLayer):
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=moving_collections)
-      _, self._moving_mean = py_utils.CreateVariable(
-          'moving_mean', mva, trainable=False)
+      self.CreateVariable('moving_mean', mva, trainable=False)
 
       mvv = py_utils.WeightParams(
           shape=[p.dim],
           init=py_utils.WeightInit.Constant(1.0),
           dtype=p.dtype,
           collections=moving_collections)
-      _, self._moving_variance = py_utils.CreateVariable(
-          'moving_variance', mvv, trainable=False)
+      self.CreateVariable('moving_variance', mvv, trainable=False)
     self._epsilon = 0.001
     self._decay = p.decay
 
@@ -177,9 +175,10 @@ class BatchNormLayer(base_layer.BaseLayer):
     """
     p = self.params
     if p.use_moving_avg_in_training:
-      return self._moving_mean, self._moving_variance, 0.0, 1.0
+      return self.vars.moving_mean, self.vars.moving_variance, 0.0, 1.0
     else:
-      return self._moving_mean, self._moving_variance, theta.beta, theta.gamma
+      return (self.vars.moving_mean, self.vars.moving_variance, theta.beta,
+              theta.gamma)
 
   def ComputeAndUpdateMoments(self, theta, inputs, paddings=None):
     """Computes moments and updates state.
@@ -203,34 +202,36 @@ class BatchNormLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       if self.do_eval:
         # The mean and variance used for normalization.
-        norm_mean, norm_variance = self._moving_mean, self._moving_variance
+        norm_mean, norm_variance = (self.vars.moving_mean,
+                                    self.vars.moving_variance)
       else:
         mean, variance = self._Moments(inputs, 1.0 - paddings,
                                        p.enable_cross_replica_sum_on_tpu)
 
-        py_utils.UpdateBatchNormVars(self._moving_mean, mean, self._decay)
-        py_utils.UpdateBatchNormVars(self._moving_variance, variance,
+        py_utils.UpdateBatchNormVars(self.vars.moving_mean, mean, self._decay)
+        py_utils.UpdateBatchNormVars(self.vars.moving_variance, variance,
                                      self._decay)
         # Add some summaries for visualization.
         summary_utils.histogram('%s_mean' % p.name, tf.cast(mean, tf.float32))
         summary_utils.histogram('%s_variance' % p.name,
                                 tf.cast(variance, tf.float32))
         summary_utils.histogram('%s_moving_mean' % p.name,
-                                tf.cast(self._moving_mean, tf.float32))
+                                tf.cast(self.vars.moving_mean, tf.float32))
         summary_utils.histogram('%s_moving_variance' % p.name,
-                                tf.cast(self._moving_variance, tf.float32))
-        summary_utils.histogram('%s_mean_diff' % p.name,
-                                tf.cast(mean - self._moving_mean, tf.float32))
+                                tf.cast(self.vars.moving_variance, tf.float32))
+        summary_utils.histogram(
+            '%s_mean_diff' % p.name,
+            tf.cast(mean - self.vars.moving_mean, tf.float32))
         summary_utils.histogram(
             '%s_variance_diff' % p.name,
-            tf.cast(variance - self._moving_variance, tf.float32))
+            tf.cast(variance - self.vars.moving_variance, tf.float32))
         if p.use_moving_avg_in_training:
           # Use the global statistics for normalization.
           # Control dependencies on mean and variance make sure
           # moving_mean and variance will be updated for every training step.
-          norm_mean = py_utils.with_dependencies([mean], self._moving_mean)
+          norm_mean = py_utils.with_dependencies([mean], self.vars.moving_mean)
           norm_variance = py_utils.with_dependencies([variance],
-                                                     self._moving_variance)
+                                                     self.vars.moving_variance)
         else:
           # Use the batch statistics for normalization.
           norm_mean = mean
