@@ -648,15 +648,17 @@ class NestedMap(dict):
     return self.Pack(self.Flatten())
 
   @staticmethod
-  def FromNestedDict(a_dict):
-    """Convert a nested dict to a NestedMap."""
-    res = NestedMap()
-    for k, v in six.iteritems(a_dict):
-      if isinstance(v, dict):
+  def FromNestedDict(x):
+    """Converts every dict in nested structure 'x' to a NestedMap."""
+    if isinstance(x, dict):
+      res = NestedMap()
+      for k, v in six.iteritems(x):
         res[k] = NestedMap.FromNestedDict(v)
-      else:
-        res[k] = v
-    return res
+      return res
+    elif isinstance(x, (list, tuple)):
+      return type(x)(NestedMap.FromNestedDict(v) for v in x)
+    else:
+      return x
 
   @staticmethod
   def CheckKey(key):
