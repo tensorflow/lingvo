@@ -157,14 +157,15 @@ class BaseModelsTest(test_utils.TestCase):
   def CreateTestMethodsForAllRegisteredModels(cls,
                                               registry,
                                               task_prefix_filter='',
-                                              exclude_prefix=''):
+                                              exclude_prefixes=None):
     """Programmatically defines test methods for each registered model."""
     model_names = list(registry.GetAllRegisteredClasses().keys())
     for model_name in sorted(model_names):
       if task_prefix_filter and not model_name.startswith(task_prefix_filter):
         tf.logging.info('Skipping tests for registered model: %s', model_name)
         continue
-      if exclude_prefix and model_name.startswith(exclude_prefix):
+      if exclude_prefixes and any(
+          [model_name.startswith(prefix) for prefix in exclude_prefixes]):
         tf.logging.info('Explicitly excluding tests for registered model: %s',
                         model_name)
         continue
