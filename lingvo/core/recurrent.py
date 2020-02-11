@@ -34,7 +34,7 @@ This expects the caller to describe the recurrent neural net by specifying:
             (dtheta, dstate0, dinputs)
 
     dstate1 is what the backprop algorithm provides representing
-    gradients of state1 w.r.t. the final loss.
+    gradients of the final loss w.r.t. state1.
 
 All of `theta`, `state0`, `inputs`, `extras` and `dstate1` are
 `.NestedMap` so that they can carry a bunch of tensors around.
