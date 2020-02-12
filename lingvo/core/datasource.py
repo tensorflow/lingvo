@@ -155,7 +155,7 @@ class ChainingDataSource(DataSource):
 
 
 class WithinBatchMixingDataSource(DataSource):
-  """A data source that reads each file_pattern in sequence."""
+  """Mixes records from different sources into the same batch."""
 
   @classmethod
   def Params(cls):
@@ -214,7 +214,7 @@ class WithinBatchMixingDataSource(DataSource):
 
 
 class CrossBatchMixingDataSource(DataSource):
-  """A data source that reads each file_pattern in sequence."""
+  """Mixes batches from different sources, each batch from only one source."""
 
   @classmethod
   def Params(cls):
