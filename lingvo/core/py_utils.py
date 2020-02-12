@@ -1301,7 +1301,7 @@ def GetVariableName(name):
       match = re.match(regexp, name)
       if match:
         if matched:
-          tf.logging.warn('Multiple matches for: %s', name)
+          tf.logging.warning('Multiple matches for: %s', name)
         matched = True
         new_name = name_format % match.groups()
   if new_name != name:
@@ -1439,7 +1439,7 @@ def CreateVariable(name,
     if len(shape) > 2:
       # This is probably not the right method to use when len(shape) > 2,
       # e.g. dim0 will be 3 with a 3x3 conv2d kernel.
-      tf.logging.warn(
+      tf.logging.warning(
           'Initializing %s of shape %s with method %s: dim0=%s. '
           'Make sure that it is intended.', name, shape, method, dim0)
     scale *= 1.0 / math.sqrt(dim0)

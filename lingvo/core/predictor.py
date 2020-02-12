@@ -144,8 +144,9 @@ class Predictor(object):
         init_op = self._graph.get_operation_by_name("init_all_variables")
         sess.run(init_op)
       except KeyError:
-        tf.logging.warn("No checkpoint provided and the graph has no default "
-                        "variable_init op.")
+        tf.logging.warning(
+            "No checkpoint provided and the graph has no default "
+            "variable_init op.")
     tf.logging.info("Created new predictor session.")
     self._sess = sess
 

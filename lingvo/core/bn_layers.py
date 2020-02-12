@@ -101,7 +101,7 @@ class BatchNormLayer(base_layer.BaseLayer):
         moving_collections += [tf.GraphKeys.MOVING_AVERAGE_VARIABLES]
       elif p.add_stats_to_moving_average_variables is None:
         # TODO(rpang): force all models to set this param explicitly.
-        tf.logging.warn(
+        tf.logging.warning(
             'BatchNormLayer.add_stats_to_moving_average_variables should be '
             'set to True for new models, and to False explicitly for '
             'checkpoint compatibility.')

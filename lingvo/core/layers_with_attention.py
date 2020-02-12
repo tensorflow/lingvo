@@ -549,7 +549,7 @@ class TransformerLayer(base_layer.BaseLayer):
     assert p.source_dim
 
     if p.is_decoder:
-      tf.logging.warn('TransformerLayer.is_decoder is deprecated.')
+      tf.logging.warning('TransformerLayer.is_decoder is deprecated.')
       p.has_aux_atten = True
       p.mask_self_atten = True
 

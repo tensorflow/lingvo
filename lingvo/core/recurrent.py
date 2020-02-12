@@ -877,7 +877,7 @@ def _ReflectOnCellFn(cell_fn,
     if check_stateful_ops:
       raise ValueError('cell_fn contains stateful ops: %s' % Fwd.stateful_ops)
     else:
-      tf.logging.warn('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
+      tf.logging.warning('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
 
   if cluster_factory.Current().job in {'trainer', 'trainer_client'}:
     stateful_random_ops = py_utils.StatefulRandomOpsInDefun(Fwd)
