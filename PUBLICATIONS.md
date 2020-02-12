@@ -126,7 +126,7 @@ J.&nbsp;Kuczmarski and M.&nbsp;Johnson, &ldquo;Gender-aware natural language tra
 </td>
 <td class="bibtexitem">
 R.&nbsp;Aharoni, M.&nbsp;Johnson, and O.&nbsp;Firat, &ldquo;Massively multilingual neural machine
-  translation,&rdquo; <em>arXiv preprint arXiv:1903.00089</em>, 2019.
+  translation,&rdquo; 2019.
 [&nbsp;<a href="https://arxiv.org/pdf/1903.00089.pdf">pdf</a>&nbsp;]
 
 </td>
@@ -138,9 +138,41 @@ R.&nbsp;Aharoni, M.&nbsp;Johnson, and O.&nbsp;Firat, &ldquo;Massively multilingu
 [<a name="freitag2019text">9</a>]
 </td>
 <td class="bibtexitem">
-M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Text Repair Model for Neural
-  Machine Translation,&rdquo; <em>arXiv e-prints</em>, 2019.
-[&nbsp;<a href="https://arxiv.org/abs/1904.04790">pdf</a>&nbsp;]
+M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Ape at scale and its implications on mt
+  evaluation biases,&rdquo; 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1904.04790">pdf</a>&nbsp;| 
+<a href="https://www.aclweb.org/anthology/W19-5204">http</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="arivazhagan2019">10</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;Arivazhagan, A.&nbsp;Bapna, O.&nbsp;Firat, D.&nbsp;Lepikhin, M.&nbsp;Johnson, M.&nbsp;Krikun, M.&nbsp;X.
+  Chen, Y.&nbsp;Cao, G.&nbsp;Foster, C.&nbsp;Cherry, W.&nbsp;Macherey, Z.&nbsp;Chen, and Y.&nbsp;Wu,
+  &ldquo;Massively multilingual neural machine translation in the wild: Findings and
+  challenges,&rdquo; 2019.
+[&nbsp;<a href="http://arxiv.org/abs/1907.05019">arXiv</a>&nbsp;| 
+<a href="http://arxiv.org/abs/1907.05019">http</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="huang2019gpipe">11</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Huang, Y.&nbsp;Cheng, A.&nbsp;Bapna, O.&nbsp;Firat, M.&nbsp;X. Chen, D.&nbsp;Chen, H.&nbsp;Lee, J.&nbsp;Ngiam,
+  Q.&nbsp;V. Le, Y.&nbsp;Wu, and Z.&nbsp;Chen, &ldquo;Gpipe: Efficient training of giant neural
+  networks using pipeline parallelism,&rdquo; in <em>Advances in Neural Information
+  Processing Systems</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1811.06965">http</a>&nbsp;]
 
 </td>
 </tr>
@@ -599,6 +631,23 @@ P.&nbsp;Haghani, A.&nbsp;Narayanan, M.&nbsp;Bacchiani, G.&nbsp;Chuang, N.&nbsp;G
   to End-to-End Spoken Language Understanding,&rdquo; in <em>Proc. IEEE Spoken
   Language Technology Workshop (SLT)</em>, 2018.
 [&nbsp;<a href="https://arxiv.org/abs/1809.09190">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="chen2019smartcompose">4</a>]
+</td>
+<td class="bibtexitem">
+M.&nbsp;X. Chen, B.&nbsp;N. Lee, G.&nbsp;Bansal, Y.&nbsp;Cao, S.&nbsp;Zhang, J.&nbsp;Lu, J.&nbsp;Tsay, Y.&nbsp;Wang,
+  A.&nbsp;M. Dai, Z.&nbsp;Chen, T.&nbsp;Sohn, and Y.&nbsp;Wu, &ldquo;Gmail smart compose: Real-time
+  assisted writing,&rdquo; in <em>Proceedings of the 25th ACM SIGKDD International
+  Conference on Knowledge Discovery & Data Mining</em>, Association for Computing
+  Machinery, 2019.
+[&nbsp;<a href="https://arxiv.org/abs/1906.00080">pdf</a>&nbsp;| 
+<a href="https://dl.acm.org/doi/10.1145/3292500.3330723">http</a>&nbsp;]
 
 </td>
 </tr>
