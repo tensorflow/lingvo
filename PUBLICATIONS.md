@@ -135,7 +135,20 @@ R.&nbsp;Aharoni, M.&nbsp;Johnson, and O.&nbsp;Firat, &ldquo;Massively multilingu
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="freitag2019text">9</a>]
+[<a name="luo2019neural">9</a>]
+</td>
+<td class="bibtexitem">
+J.&nbsp;Luo, Y.&nbsp;Cao, and R.&nbsp;Barzilay, &ldquo;Neural decipherment via minimum-cost flow:
+  From ugaritic to linear b,&rdquo; 2019.
+[&nbsp;<a href="https://www.aclweb.org/anthology/P19-1303/">http</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="freitag2019text">10</a>]
 </td>
 <td class="bibtexitem">
 M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Ape at scale and its implications on mt
@@ -149,7 +162,7 @@ M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Ape at scale and its i
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="arivazhagan2019">10</a>]
+[<a name="arivazhagan2019">11</a>]
 </td>
 <td class="bibtexitem">
 N.&nbsp;Arivazhagan, A.&nbsp;Bapna, O.&nbsp;Firat, D.&nbsp;Lepikhin, M.&nbsp;Johnson, M.&nbsp;Krikun, M.&nbsp;X.
@@ -165,7 +178,7 @@ N.&nbsp;Arivazhagan, A.&nbsp;Bapna, O.&nbsp;Firat, D.&nbsp;Lepikhin, M.&nbsp;Joh
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="huang2019gpipe">11</a>]
+[<a name="huang2019gpipe">12</a>]
 </td>
 <td class="bibtexitem">
 Y.&nbsp;Huang, Y.&nbsp;Cheng, A.&nbsp;Bapna, O.&nbsp;Firat, M.&nbsp;X. Chen, D.&nbsp;Chen, H.&nbsp;Lee, J.&nbsp;Ngiam,
