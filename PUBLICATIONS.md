@@ -148,7 +148,22 @@ J.&nbsp;Luo, Y.&nbsp;Cao, and R.&nbsp;Barzilay, &ldquo;Neural decipherment via m
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="freitag2019text">10</a>]
+[<a name="milk">10</a>]
+</td>
+<td class="bibtexitem">
+N.&nbsp;Arivazhagan, C.&nbsp;Cherry, W.&nbsp;Macherey, C.-C. Chiu, S.&nbsp;Yavuz, R.&nbsp;Pang, W.&nbsp;Li,
+  and C.&nbsp;Raffel, &ldquo;Monotonic infinite lookback attention for simultaneous
+  machine translation,&rdquo; in <em>Proc. Annual Meeting of the Association for
+  Computational Linguistics (ACL)</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1906.05218">http</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="freitag2019text">11</a>]
 </td>
 <td class="bibtexitem">
 M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Ape at scale and its implications on mt
@@ -162,7 +177,7 @@ M.&nbsp;Freitag, I.&nbsp;Caswell, and S.&nbsp;Roy, &ldquo;Ape at scale and its i
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="arivazhagan2019">11</a>]
+[<a name="arivazhagan2019">12</a>]
 </td>
 <td class="bibtexitem">
 N.&nbsp;Arivazhagan, A.&nbsp;Bapna, O.&nbsp;Firat, D.&nbsp;Lepikhin, M.&nbsp;Johnson, M.&nbsp;Krikun, M.&nbsp;X.
@@ -178,7 +193,7 @@ N.&nbsp;Arivazhagan, A.&nbsp;Bapna, O.&nbsp;Firat, D.&nbsp;Lepikhin, M.&nbsp;Joh
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
-[<a name="huang2019gpipe">12</a>]
+[<a name="huang2019gpipe">13</a>]
 </td>
 <td class="bibtexitem">
 Y.&nbsp;Huang, Y.&nbsp;Cheng, A.&nbsp;Bapna, O.&nbsp;Firat, M.&nbsp;X. Chen, D.&nbsp;Chen, H.&nbsp;Lee, J.&nbsp;Ngiam,
@@ -590,6 +605,107 @@ D.&nbsp;Zhao, T.&nbsp;N. Sainath, D.&nbsp;Rybach, D.&nbsp;Bhatia, B.&nbsp;Li, an
   &ldquo;Shallow-fusion end-to-end contextual biasing,&rdquo; in <em>Proc. Interspeech</em>,
   2019.
 [&nbsp;<a href="https://www.isca-speech.org/archive/Interspeech_2019/pdfs/1209.pdf">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="TaraRuoming19">28</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;N. Sainath, R.&nbsp;Pang, D.&nbsp;Rybach, Y.&nbsp;He, R.&nbsp;Prabhavalkar, W.&nbsp;Li, M.&nbsp;Visontai,
+  Q.&nbsp;Liang, T.&nbsp;Strohman, Y.&nbsp;Wu, I.&nbsp;McGraw, and C.-C. Chiu, &ldquo;Two-pass
+  end-to-end speech recognition,&rdquo; in <em>Proc. Interspeech</em>, 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1908.10992">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="Chiu19longform">29</a>]
+</td>
+<td class="bibtexitem">
+C.-C. Chiu, W.&nbsp;Han, Y.&nbsp;Zhang, R.&nbsp;Pang, S.&nbsp;Kishchenko, P.&nbsp;Nguyen, A.&nbsp;Narayanan,
+  H.&nbsp;Liao, S.&nbsp;Zhang, A.&nbsp;Kannan, R.&nbsp;Prabhavalkar, Z.&nbsp;Chen, T.&nbsp;Sainath, and
+  Y.&nbsp;Wu, &ldquo;A comparison of end-to-end models for long-form speech
+  recognition,&rdquo; 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1911.02242">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="narayanan2019longform">30</a>]
+</td>
+<td class="bibtexitem">
+A.&nbsp;Narayanan, R.&nbsp;Prabhavalkar, C.&nbsp;Chiu, D.&nbsp;Rybach, T.&nbsp;Sainath, and T.&nbsp;Strohman,
+  &ldquo;Recognizing long-form speech using streaming end-to-end models,&rdquo; 2019.
+[&nbsp;<a href="https://arxiv.org/pdf/1910.11455">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sainath2020">31</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;N. Sainath, R.&nbsp;Pang, R.&nbsp;Weiss, Y.&nbsp;He, C.-C. Chiu, and T.&nbsp;Strohman, &ldquo;An
+  attention-based joint acoustic and text on-device end-to-end model,&rdquo; in <em>
+  Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2020.
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="lu2020">32</a>]
+</td>
+<td class="bibtexitem">
+Z.&nbsp;Lu, L.&nbsp;Cao, Y.&nbsp;Zhang, C.-C. Chiu, and J.&nbsp;Fan, &ldquo;Speech sentiment analysis
+  via pre-trained features from end-to-end asr models,&rdquo; in <em>Proc. IEEE
+  International Conference on Acoustics, Speech, and Signal Processing
+  (ICASSP)</em>, 2020.
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="park2020">33</a>]
+</td>
+<td class="bibtexitem">
+D.&nbsp;Park, Y.&nbsp;Zhang, C.-C. Chiu, Y.&nbsp;Chen, B.&nbsp;Li, W.&nbsp;Chan, Q.&nbsp;Le, and Y.&nbsp;Wu,
+  &ldquo;Specaugment on large scale datas,&rdquo; in <em>Proc. IEEE International
+  Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2020.
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="e2e2020">34</a>]
+</td>
+<td class="bibtexitem">
+T.&nbsp;Sainath, Y.&nbsp;He, B.&nbsp;Li, A.&nbsp;Narayanan, R.&nbsp;Pang, A.&nbsp;Bruguier, S.&nbsp;yiin Chang,
+  W.&nbsp;Li, R.&nbsp;Alvarez, Z.&nbsp;Chen, C.&nbsp;cheng Chiu, D.&nbsp;Garcia, A.&nbsp;Gruenstein, K.&nbsp;Hu,
+  M.&nbsp;Jin, A.&nbsp;Kannan, Q.&nbsp;Liang, I.&nbsp;McGraw, C.&nbsp;Peyser, R.&nbsp;Prabhavalkar,
+  G.&nbsp;Pundak, D.&nbsp;Rybach, Y.&nbsp;Shangguan, Y.&nbsp;Sheth, T.&nbsp;Strohman, M.&nbsp;Visontai,
+  Y.&nbsp;Wu, Y.&nbsp;Zhang, and D.&nbsp;Zhao, &ldquo;A streaming on-device end-to-end model
+  surpassing server-side conventional model quality and latency,&rdquo; in <em>
+  Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2020.
 
 </td>
 </tr>
