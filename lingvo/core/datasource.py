@@ -104,6 +104,7 @@ class SimpleDataSource(DataSource):
 
     ret = py_utils.NestedMap()
     ret.data = data_source_from_file_pattern_fn(file_pattern)
+    ret.bprop_variable_filters = ['']
     return ret
 
 
@@ -369,8 +370,10 @@ class CurriculumDataSource(DataSource):
     def GetDatasourceFn(idx):
 
       def DatasourceFn():
-        return datasources[idx].BuildDataSource(
+        datasource = datasources[idx].BuildDataSource(
             data_source_from_file_pattern_fn)
+        datasource.pop('bprop_variable_filters', None)
+        return datasource
 
       return DatasourceFn
 

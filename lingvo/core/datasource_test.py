@@ -53,7 +53,8 @@ class DatasourceTest(tf.test.TestCase):
     with tf.Session() as sess:
       ret.data = sess.run([ret.data])
 
-    self.assertCountEqual(sorted(ret.keys()), ['data'])
+    self.assertCountEqual(
+        sorted(ret.keys()), ['bprop_variable_filters', 'data'])
     self.assertAllEqual(ret.data, [[b'path_to_file']])
 
   def testSimpleDataSourceSucceedsWithFileType(self):
