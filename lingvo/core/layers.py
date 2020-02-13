@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import copy
 import math
 import numbers
 import lingvo.compat as tf
@@ -1577,6 +1578,98 @@ class PoolingLayer(quant_utils.QuantizableLayer):
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)
       return out, out_padding
+
+
+class BlurPoolLayer(base_layer.BaseLayer):
+  """BlurPool from https://arxiv.org/pdf/1904.11486.pdf.
+
+  This layer blurs the input with a fixed filter and performs subsampling
+  afterwards. Only supports 2x1 or 2x2 spatial reduction.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(BlurPoolLayer, cls).Params()
+    p.Define('blur_filter', 'B5', 'One of [R2, T3, B5]; the fixed blur filter.')
+    p.Define('subsample_type', '1D', 'Choose between [1D, 2D] subsampling.')
+    p.Define('input_channels', None, 'Number of input channels.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(BlurPoolLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.blur_filter in ['R2', 'T3', 'B5']
+    assert p.subsample_type in ['1D', '2D']
+    assert p.input_channels
+
+    filter_dict = {
+        'B5': np.array([1, 4, 6, 4, 1], dtype=np.float32),
+        'T3': np.array([1, 2, 1], dtype=np.float32),
+        'R2': np.array([1, 1], dtype=np.float32)
+    }
+    base_filter = filter_dict[p.blur_filter]
+
+    if p.subsample_type == '2D':
+      base_filter = base_filter[:, np.newaxis] * base_filter[np.newaxis, :]
+    else:
+      base_filter = base_filter[:, np.newaxis]
+    base_filter /= base_filter.sum()
+
+    self._blur_filter = np.tile(base_filter[..., np.newaxis, np.newaxis],
+                                (1, 1, p.input_channels, 1))
+    conv_params = DepthwiseConv2DLayer.Params().Set(
+        activation='NONE',
+        batch_norm=False,
+        filter_stride=(1, 1),
+        filter_shape=self._blur_filter.shape)
+
+    self.CreateChild('blur_conv', conv_params)
+
+  def FProp(self, theta, inputs, paddings=None):
+    """Apply blur pooling.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        frequency, channel]. The time dimension corresponds to the height
+        dimension as in images and the frequency dimension corresponds to the
+        width dimension as in images.
+      paddings: The paddings tensor. It is expected to be of shape [batch,
+        time]. Defaults to None, which means there no paddings.
+
+    Returns:
+      outputs, out_paddings pair.
+    """
+    p = self.params
+    if paddings is not None:
+      inputs = py_utils.with_dependencies([
+          py_utils.assert_shape_match(tf.shape(paddings), [-1, -1]),
+          py_utils.assert_shape_match(tf.shape(inputs)[:2], tf.shape(paddings))
+      ], inputs)
+    # blur
+    theta_cp = copy.copy(theta.blur_conv)
+    theta_cp.w = tf.convert_to_tensor(self._blur_filter, dtype=p.dtype)
+    out, out_padding = self.blur_conv.FProp(theta_cp, inputs, paddings)
+
+    # b/142399320
+    # Use stride in blur conv for subsampling once non-square stride gets
+    # supported.
+    if p.subsample_type == '2D':
+      out = out[:, ::2, ::2, :]
+    else:
+      out = out[:, ::2, :, :]
+
+    if out_padding is not None:
+      out_padding = _ComputeConvOutputPadding(
+          out_padding, window=2, stride=2, padding_algorithm='SAME')
+      out *= (1.0 - out_padding)[..., tf.newaxis, tf.newaxis]
+    else:
+      out_padding = None
+
+    return out, out_padding
 
 
 class SingleShardEmbeddingLayer(base_layer.BaseLayer):
