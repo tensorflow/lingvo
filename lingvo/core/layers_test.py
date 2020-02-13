@@ -2528,6 +2528,27 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_output / np.sqrt(p.embedding_dim),
                           actual_position_embs)
 
+  def testRelativePositionalEmbeddingLayer(self):
+    with self.session(use_gpu=False) as sess:
+      radius = 3
+      p = layers.RelativePositionalEmbeddingLayer.Params().Set(
+          name='rel_position_emb', radius=radius, dim=4)
+      layer = p.Instantiate()
+      indices = np.array([-5, -2, 0, 1, 4], dtype=np.int32)
+      pos_emb = layer.FPropDefaultTheta(tf.convert_to_tensor(indices))
+
+      tf.global_variables_initializer().run()
+      actual_pos_emb, full_emb = sess.run([pos_emb, layer.vars.w])
+
+      clipped_indices = np.vectorize(lambda x: max(-radius, min(radius, x)))(
+          indices) + radius
+      expected_output = np.take_along_axis(full_emb,
+                                           np.expand_dims(clipped_indices, -1),
+                                           0)
+      print('expected_position_embs:', expected_output)
+      print('actual_position_embs:', actual_pos_emb)
+      self.assertAllClose(actual_pos_emb, expected_output)
+
   def testOneHotEmbeddingLayer(self):
     with self.session(use_gpu=True):
       params = layers.OneHotEmbeddingLayer.Params()

@@ -2541,6 +2541,58 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     return self._PosEmbeddingsFromPositions(theta, position)
 
 
+class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
+  """Relative positional embedding.
+
+  Section 3.2 of https://arxiv.org/pdf/1803.02155.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(RelativePositionalEmbeddingLayer, cls).Params()
+    p.Define(
+        'radius', None,
+        'Radius of the relative window size. Full window size is '
+        'radius * 2 + 1.')
+    p.Define('dim', None, 'Dimension of embedding.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(RelativePositionalEmbeddingLayer, self).__init__(params)
+    params = self.params
+    if not isinstance(params.radius, numbers.Integral) or params.radius <= 0:
+      raise ValueError('params.radius must be a positive int, but is %s' %
+                       params.radius)
+    if not isinstance(params.dim, numbers.Integral) or params.dim <= 0:
+      raise ValueError('params.dim must be a positive int, but is %s' %
+                       params.radius)
+    pc = py_utils.WeightParams(
+        shape=[2 * params.radius + 1, params.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    with tf.variable_scope(params.name):
+      self.CreateVariable('w', pc)
+
+  def FProp(self, theta, relative_distance):
+    """Computes relative positional embedding.
+
+    Args:
+      theta: A NestedMap of Tensors of layer weights.
+      relative_distance: A Tensor.
+
+    Returns:
+      A Tensor of shape relative_distance.shape + [params.dim]
+    """
+    params = self.params
+    clipped_indices = tf.clip_by_value(relative_distance, -params.radius,
+                                       params.radius)
+    # Right-shift indices to make them all non-negative.
+    calibrated_indices = clipped_indices + params.radius
+    return tf.gather_nd(theta.w, tf.expand_dims(calibrated_indices, -1))
+
+
 class SoftmaxLayer(quant_utils.QuantizableLayer):
   """Base class for softmax layers."""
 
