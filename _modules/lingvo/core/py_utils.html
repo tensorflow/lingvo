@@ -1446,7 +1446,7 @@
       <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regexp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">matched</span><span class="p">:</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span><span class="s1">&#39;Multiple matches for: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Multiple matches for: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
         <span class="n">matched</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">new_name</span> <span class="o">=</span> <span class="n">name_format</span> <span class="o">%</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">new_name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
@@ -1584,7 +1584,7 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
       <span class="c1"># This is probably not the right method to use when len(shape) &gt; 2,</span>
       <span class="c1"># e.g. dim0 will be 3 with a 3x3 conv2d kernel.</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
           <span class="s1">&#39;Initializing </span><span class="si">%s</span><span class="s1"> of shape </span><span class="si">%s</span><span class="s1"> with method </span><span class="si">%s</span><span class="s1">: dim0=</span><span class="si">%s</span><span class="s1">. &#39;</span>
           <span class="s1">&#39;Make sure that it is intended.&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">dim0</span><span class="p">)</span>
     <span class="n">scale</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">dim0</span><span class="p">)</span>

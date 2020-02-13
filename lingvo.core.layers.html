@@ -988,6 +988,44 @@ time]. Defaults to None, which means there no paddings.</p></li>
 </dd></dl>
 
 <dl class="class">
+<dt id="lingvo.core.layers.BlurPoolLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">BlurPoolLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BlurPoolLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BlurPoolLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>BlurPool from <a class="reference external" href="https://arxiv.org/pdf/1904.11486.pdf">https://arxiv.org/pdf/1904.11486.pdf</a>.</p>
+<p>This layer blurs the input with a fixed filter and performs subsampling
+afterwards. Only supports 2x1 or 2x2 spatial reduction.</p>
+<dl class="method">
+<dt id="lingvo.core.layers.BlurPoolLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BlurPoolLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BlurPoolLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.BlurPoolLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BlurPoolLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BlurPoolLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply blur pooling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
+frequency, channel]. The time dimension corresponds to the height
+dimension as in images and the frequency dimension corresponds to the
+width dimension as in images.</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch,
+time]. Defaults to None, which means there no paddings.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>outputs, out_paddings pair.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
 <dt id="lingvo.core.layers.SingleShardEmbeddingLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SingleShardEmbeddingLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -1401,6 +1439,37 @@ positional embeddings.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>a Tensor of shape [bs, seq_length, embedding_dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="lingvo.core.layers.RelativePositionalEmbeddingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">RelativePositionalEmbeddingLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Relative positional embedding.</p>
+<p>Section 3.2 of <a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a></p>
+<dl class="method">
+<dt id="lingvo.core.layers.RelativePositionalEmbeddingLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.layers.RelativePositionalEmbeddingLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">relative_distance</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes relative positional embedding.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap of Tensors of layer weights.</p></li>
+<li><p><strong>relative_distance</strong> – A Tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of shape relative_distance.shape + [params.dim]</p>
 </dd>
 </dl>
 </dd></dl>

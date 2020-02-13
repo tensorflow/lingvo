@@ -249,6 +249,7 @@
 
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
 
@@ -300,7 +301,7 @@
 
 
 <div class="viewcode-block" id="WithinBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.WithinBatchMixingDataSource">[docs]</a><span class="k">class</span> <span class="nc">WithinBatchMixingDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A data source that reads each file_pattern in sequence.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Mixes records from different sources into the same batch.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WithinBatchMixingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.WithinBatchMixingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -359,7 +360,7 @@
 
 
 <div class="viewcode-block" id="CrossBatchMixingDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource">[docs]</a><span class="k">class</span> <span class="nc">CrossBatchMixingDataSource</span><span class="p">(</span><span class="n">DataSource</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;A data source that reads each file_pattern in sequence.&quot;&quot;&quot;</span>
+  <span class="sd">&quot;&quot;&quot;Mixes batches from different sources, each batch from only one source.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="CrossBatchMixingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -514,8 +515,10 @@
     <span class="k">def</span> <span class="nf">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
 
       <span class="k">def</span> <span class="nf">DatasourceFn</span><span class="p">():</span>
-        <span class="k">return</span> <span class="n">datasources</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span>
+        <span class="n">datasource</span> <span class="o">=</span> <span class="n">datasources</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span>
             <span class="n">data_source_from_file_pattern_fn</span><span class="p">)</span>
+        <span class="n">datasource</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;bprop_variable_filters&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">datasource</span>
 
       <span class="k">return</span> <span class="n">DatasourceFn</span>
 
