@@ -917,6 +917,39 @@ Y.&nbsp;Zhang, R.&nbsp;J. Weiss, H.&nbsp;Zen, Y.&nbsp;Wu, Z.&nbsp;Chen, R.&nbsp;
 
 </td>
 </tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sun2020finegrained">9</a>]
+</td>
+<td class="bibtexitem">
+G.&nbsp;Sun, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;Cao, H.&nbsp;Zen, and Y.&nbsp;Wu, &ldquo;Fully-hierarchical
+  fine-grained prosody modeling for interpretable speech synthesis,&rdquo; in <em>
+  Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2020.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/hierarchical_prosody">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2002.03785">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
+[<a name="sun2020prosodyprior">10</a>]
+</td>
+<td class="bibtexitem">
+G.&nbsp;Sun, Y.&nbsp;Zhang, R.&nbsp;J. Weiss, Y.&nbsp;Cao, H.&nbsp;Zen, A.&nbsp;Rosenberg, B.&nbsp;Ramabhadran,
+  and Y.&nbsp;Wu, &ldquo;Generating diverse and natural text-to-speech samples using a
+  quantized fine-grained VAE and auto-regressive prosody prior,&rdquo; in <em>
+  Proc. IEEE International Conference on Acoustics, Speech, and Signal
+  Processing (ICASSP)</em>, 2020.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/prosody_prior">sound examples</a>&nbsp;| 
+<a href="https://arxiv.org/abs/2002.03788">pdf</a>&nbsp;]
+
+</td>
+</tr>
 </table>
 
 ## Speech translation
