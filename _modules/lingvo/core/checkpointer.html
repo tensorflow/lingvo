@@ -286,12 +286,19 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Uninitialized var list: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
 
     <span class="c1"># There should only be uninitialized variables if all variables are</span>
-    <span class="c1"># uninitialized.</span>
+    <span class="c1"># uninitialized - with the exception of global_step due to</span>
+    <span class="c1"># RestoreGlobalStepIfNeeded in the _LoopEnqueue of TrainerTpu.</span>
     <span class="n">all_var_names</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">six</span><span class="o">.</span><span class="n">ensure_binary</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">()</span>
     <span class="p">]</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">uninitialized_var_names</span><span class="p">)</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_var_names</span><span class="p">)</span>
-           <span class="p">),</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">all_var_names</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">uninitialized_var_names</span><span class="p">))</span>
+
+    <span class="n">already_initialized_vars</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">all_var_names</span><span class="p">)</span> <span class="o">-</span> <span class="nb">set</span><span class="p">(</span><span class="n">uninitialized_var_names</span><span class="p">)</span>
+
+    <span class="c1"># Disregard if global_step is initialized for the aforementioned reason.</span>
+    <span class="n">already_initialized_vars</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="sa">b</span><span class="s1">&#39;global_step&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">already_initialized_vars</span><span class="p">,</span> <span class="s1">&#39;Already initialized vars: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="n">already_initialized_vars</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">):</span>
       <span class="c1"># Successfully restored from checkpoint.</span>
