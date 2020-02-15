@@ -278,7 +278,7 @@
     <span class="c1"># threshold.</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">=</span> <span class="mf">0.2</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">schedule</span><span class="o">.</span><span class="n">PiecewiseConstantSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">boundaries</span><span class="o">=</span><span class="p">[],</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">]))</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">l2_regularizer_weight</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># No regularization.</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">optimizer</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Adagrad</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -403,7 +403,7 @@
         <span class="n">optimizer</span><span class="o">=</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">ParamsA</span><span class="p">(),</span>
         <span class="n">clip_gradient_norm_to_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">grad_norm_to_clip_to_zero</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
-        <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">TransformerLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">lr_schedule</span><span class="o">=</span><span class="n">schedule</span><span class="o">.</span><span class="n">TransformerSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">warmup_steps</span><span class="o">=</span><span class="mi">40000</span><span class="p">,</span> <span class="n">worker_replicas</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
             <span class="n">model_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">EMBEDDING_DIM</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span></div></div>

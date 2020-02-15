@@ -167,19 +167,19 @@
 <span id="lingvo-core-schedule-module"></span><h1>lingvo.core.schedule module<a class="headerlink" href="#module-lingvo.core.schedule" title="Permalink to this headline">¶</a></h1>
 <p>Learning rate schedule.</p>
 <dl class="class">
-<dt id="lingvo.core.schedule.BaseLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">BaseLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.BaseSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">BaseSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseSchedule" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for learning rate decay algorithms.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.BaseLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.BaseSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.BaseLearningRateSchedule.Value">
-<code class="sig-name descname">Value</code><span class="sig-paren">(</span><em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseLearningRateSchedule.Value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseLearningRateSchedule.Value" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.BaseSchedule.Value">
+<code class="sig-name descname">Value</code><span class="sig-paren">(</span><em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#BaseSchedule.Value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.BaseSchedule.Value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current learning rate schedule value.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -199,7 +199,7 @@ effective learning rate.</p>
 <dl class="class">
 <dt id="lingvo.core.schedule.Constant">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">Constant</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#Constant"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.Constant" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>A schedule that always returns a constant value.</p>
 <dl class="method">
 <dt id="lingvo.core.schedule.Constant.Params">
@@ -250,27 +250,27 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.PiecewiseConstantLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">PiecewiseConstantLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.PiecewiseConstantSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">PiecewiseConstantSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Piecewise constants rate decay.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.PiecewiseConstantSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.PiecewiseConstantSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseConstantSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseConstantSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp" title="lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+calls <a class="reference internal" href="#lingvo.core.schedule.PiecewiseConstantSchedule.FProp" title="lingvo.core.schedule.PiecewiseConstantSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp" title="lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.PiecewiseConstantSchedule.FProp" title="lingvo.core.schedule.PiecewiseConstantSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
 the theta and the inputs. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -296,48 +296,48 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.ContinuousLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">ContinuousLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.ContinuousSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">ContinuousSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Continuous learning rate decay.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.ContinuousLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.ContinuousSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.ContinuousLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.ContinuousSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ContinuousSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ContinuousSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current learning rate decay.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.PolynomialLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">PolynomialLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.PolynomialSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">PolynomialSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Polynomial learning rates.</p>
 <p>If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,
 interpolate with a polynomial between (x0, y0) and (x1, y1).</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.PolynomialLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.PolynomialSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.PolynomialLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.PolynomialSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PolynomialSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PolynomialSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.schedule.PolynomialLearningRateSchedule.FProp" title="lingvo.core.schedule.PolynomialLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+calls <a class="reference internal" href="#lingvo.core.schedule.PolynomialSchedule.FProp" title="lingvo.core.schedule.PolynomialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.PolynomialLearningRateSchedule.FProp" title="lingvo.core.schedule.PolynomialLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.PolynomialSchedule.FProp" title="lingvo.core.schedule.PolynomialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
 the theta and the inputs. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -363,44 +363,44 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.LinearLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.PolynomialLearningRateSchedule" title="lingvo.core.schedule.PolynomialLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.PolynomialLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.LinearSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.PolynomialSchedule" title="lingvo.core.schedule.PolynomialSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.PolynomialSchedule</span></code></a></p>
 <p>Linear learning rate schedule.</p>
 <p>If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,
 interpolate linearly between (x0, y0) and (x1, y1).</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.LinearLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.LinearSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.ExponentialLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">ExponentialLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.ExponentialSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">ExponentialSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Linear learning rate schedule.</p>
 <p>If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,
 interpolate exponentially between (x0, y0) and (x1, y1).</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.ExponentialLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.ExponentialSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.ExponentialLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.ExponentialSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#ExponentialSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.ExponentialSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.schedule.ExponentialLearningRateSchedule.FProp" title="lingvo.core.schedule.ExponentialLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+calls <a class="reference internal" href="#lingvo.core.schedule.ExponentialSchedule.FProp" title="lingvo.core.schedule.ExponentialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.ExponentialLearningRateSchedule.FProp" title="lingvo.core.schedule.ExponentialLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.ExponentialSchedule.FProp" title="lingvo.core.schedule.ExponentialSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
 the theta and the inputs. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -428,7 +428,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.StepwiseExponentialSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">StepwiseExponentialSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#StepwiseExponentialSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.StepwiseExponentialSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Exponential decay every N steps.</p>
 <dl class="method">
 <dt id="lingvo.core.schedule.StepwiseExponentialSchedule.Params">
@@ -472,27 +472,27 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.CombinedMinimumLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">CombinedMinimumLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.CombinedMinimumSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">CombinedMinimumSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Combine a few learning rate decay schedules and takes the min.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.CombinedMinimumLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.CombinedMinimumSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.CombinedMinimumSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CombinedMinimumSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CombinedMinimumSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
-calls <a class="reference internal" href="#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp" title="lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
+calls <a class="reference internal" href="#lingvo.core.schedule.CombinedMinimumSchedule.FProp" title="lingvo.core.schedule.CombinedMinimumSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">foo</span> <span class="o">=</span> <span class="n">InstanceOfASubClassOfFoo</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 <span class="n">y</span> <span class="o">=</span> <span class="n">foo</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">foo</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp" title="lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
+<p>The implementation of <a class="reference internal" href="#lingvo.core.schedule.CombinedMinimumSchedule.FProp" title="lingvo.core.schedule.CombinedMinimumSchedule.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp()</span></code></a> computes a function given
 the theta and the inputs. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">subs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span>
 <span class="n">inputs</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
@@ -518,42 +518,42 @@ layer and its children layers.</p></li>
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.TransformerLearningRateSchedule">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">TransformerLearningRateSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.TransformerSchedule">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">TransformerSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerSchedule" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Inverse-decay learning rate until warmup_steps, then decay.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.TransformerLearningRateSchedule.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateSchedule.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.TransformerSchedule.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerSchedule.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerSchedule.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.TransformerLearningRateSchedule.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateSchedule.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.TransformerSchedule.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerSchedule.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerSchedule.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current learning rate decay.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="class">
-<dt id="lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">TransformerLearningRateScheduleNoWarmUp</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateScheduleNoWarmUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dt id="lingvo.core.schedule.TransformerScheduleNoWarmUp">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">TransformerScheduleNoWarmUp</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerScheduleNoWarmUp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerScheduleNoWarmUp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Fixed learning rate until decay_start, then decay.</p>
-<p>This learning rate schedule is identical to TransformerLearningRateSchedule
+<p>This learning rate schedule is identical to TransformerSchedule
 except in the warm-up phase, where this learning rate schedule uses a fixed
-learning rate (peak-learning rate of TransformerLearningRateSchedule) for the
+learning rate (peak-learning rate of TransformerSchedule) for the
 original warm-up phase.</p>
 <dl class="method">
-<dt id="lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateScheduleNoWarmUp.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.Params" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.TransformerScheduleNoWarmUp.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerScheduleNoWarmUp.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerScheduleNoWarmUp.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerLearningRateScheduleNoWarmUp.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.FProp" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.schedule.TransformerScheduleNoWarmUp.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">current_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#TransformerScheduleNoWarmUp.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.TransformerScheduleNoWarmUp.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the current learning rate decay.</p>
 </dd></dl>
 
@@ -562,7 +562,7 @@ original warm-up phase.</p>
 <dl class="class">
 <dt id="lingvo.core.schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearRampupExponentialDecayScaledByNumSplitSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupExponentialDecayScaledByNumSplitSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>A learning rate schedule that does the following.</p>
 <ol class="arabic simple">
 <li><p>The peak learning rate multiplier is scaled by num splits,
@@ -634,7 +634,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearRampupSqrtDecayByBatchSizeAndReplicas</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupSqrtDecayByBatchSizeAndReplicas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Linearly increase learning rate until warmup_examples, then sqrt decay.</p>
 <p>Same as the Transformer learning schedule, except that learning rate
 multiplier and time scales are adjusted according to the aggregate batch size
@@ -661,7 +661,7 @@ multiplier and time scales are adjusted according to the aggregate batch size
 <dl class="class">
 <dt id="lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearRampupPiecewiseConstantSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupPiecewiseConstantSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>A learning rate schedule that does the following.</p>
 <ol class="arabic simple">
 <li><p>The learning rate is scaled by #split * lrs[i]
@@ -716,7 +716,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.LinearRampupCosineSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">LinearRampupCosineSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#LinearRampupCosineSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.LinearRampupCosineSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>A cosine decaying learning rate schedule with a linear rampup phase.</p>
 <dl class="method">
 <dt id="lingvo.core.schedule.LinearRampupCosineSchedule.Params">
@@ -762,7 +762,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.DevBasedSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">DevBasedSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#DevBasedSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.DevBasedSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Decay triggered by lack of improvement on the dev set.</p>
 <p>This reads a file containing a history of values of a selected metric versus
 global step (file is recorded by the evaler loop in the trainer). Decay
@@ -826,7 +826,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.CosineSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">CosineSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#CosineSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.CosineSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Cosine learning rate decay.</p>
 <p>First proposed in <a class="reference external" href="https://arxiv.org/pdf/1608.03983.pdf">https://arxiv.org/pdf/1608.03983.pdf</a>, which only uses
 multiple cycles with angle from 0 to pi/2. Later people use only one cycle
@@ -882,7 +882,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.PiecewiseSchedule">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">PiecewiseSchedule</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#PiecewiseSchedule"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.PiecewiseSchedule" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Piecewise schedule composed of sub-schedules.</p>
 <dl class="method">
 <dt id="lingvo.core.schedule.PiecewiseSchedule.Params">
@@ -928,7 +928,7 @@ layer and its children layers.</p></li>
 <dl class="class">
 <dt id="lingvo.core.schedule.SqrtDecay">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.schedule.</code><code class="sig-name descname">SqrtDecay</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/schedule.html#SqrtDecay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.schedule.SqrtDecay" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseLearningRateSchedule" title="lingvo.core.schedule.BaseLearningRateSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseLearningRateSchedule</span></code></a></p>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.schedule.BaseSchedule" title="lingvo.core.schedule.BaseSchedule"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.schedule.BaseSchedule</span></code></a></p>
 <p>Sqrt decay schedule.</p>
 <dl class="method">
 <dt id="lingvo.core.schedule.SqrtDecay.Params">

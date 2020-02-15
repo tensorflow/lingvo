@@ -181,9 +181,8 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">task_scheduler</span>
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-
-<span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">decoder_lib</span>
+<span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
 
 
 <div class="viewcode-block" id="DecodeFinalizeArgs"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DecodeFinalizeArgs">[docs]</a><span class="k">class</span> <span class="nc">DecodeFinalizeArgs</span><span class="p">(</span>
@@ -327,7 +326,7 @@
               <span class="s1">&#39;Clip gradient to 0 if its norm exceeds this value.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for GradNormTracker.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">Adam</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Params for the optimizer.&#39;</span><span class="p">)</span>
-    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ContinuousLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">schedule</span><span class="o">.</span><span class="n">ContinuousSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
               <span class="s1">&#39;Learning rate decay schedule.&#39;</span><span class="p">)</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;bprop_variable_filter&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>

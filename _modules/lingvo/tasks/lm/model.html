@@ -191,8 +191,7 @@
         <span class="s1">&#39;Sum the logP across predicted tokens in batch when set to True; &#39;</span>
         <span class="s1">&#39;average across predicted tokens in batch o/w (default).&#39;</span><span class="p">)</span>
 
-    <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
-    <span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">tp</span><span class="o">.</span><span class="n">lr_schedule</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">PiecewiseConstantSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">boundaries</span><span class="o">=</span><span class="p">[</span><span class="mi">350000</span><span class="p">,</span> <span class="mi">500000</span><span class="p">,</span> <span class="mi">600000</span><span class="p">],</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">1.0</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">,</span> <span class="mf">0.001</span><span class="p">])</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">vn_start_step</span> <span class="o">=</span> <span class="mi">20000</span>
     <span class="n">tp</span><span class="o">.</span><span class="n">vn_std</span> <span class="o">=</span> <span class="mf">0.0</span>

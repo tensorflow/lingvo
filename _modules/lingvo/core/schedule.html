@@ -173,20 +173,20 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
-<div class="viewcode-block" id="BaseLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">BaseLearningRateSchedule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule">[docs]</a><span class="k">class</span> <span class="nc">BaseSchedule</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for learning rate decay algorithms.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="BaseLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="BaseSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LRSched&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BaseLearningRateSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseLearningRateSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate schedule value.</span>
 
 <span class="sd">    Args:</span>
@@ -201,7 +201,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="Constant"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant">[docs]</a><span class="k">class</span> <span class="nc">Constant</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="Constant"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant">[docs]</a><span class="k">class</span> <span class="nc">Constant</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A schedule that always returns a constant value.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Constant.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -220,32 +220,32 @@
   <span class="k">pass</span></div>
 
 
-<div class="viewcode-block" id="PiecewiseConstantLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseConstantLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="PiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Piecewise constants rate decay.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="PiecewiseConstantLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="PiecewiseConstantSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PiecewiseConstantSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;boundaries&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Boundaries at which learning rate drops.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;values&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Values in each interval.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">PiecewiseConstantLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PiecewiseConstantSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="PiecewiseConstantLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="PiecewiseConstantSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseConstantSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">values</span><span class="p">,</span>
                                       <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="ContinuousLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">ContinuousLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="ContinuousSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousSchedule">[docs]</a><span class="k">class</span> <span class="nc">ContinuousSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Continuous learning rate decay.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ContinuousLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ContinuousSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ContinuousLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ContinuousSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_value&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Initial decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;start_step&#39;</span><span class="p">,</span> <span class="mi">400000</span><span class="p">,</span>
              <span class="s1">&#39;Starts to decay the learning rate from this step.&#39;</span><span class="p">)</span>
@@ -256,20 +256,20 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ContinuousLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ContinuousSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">ExponentialLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">q</span> <span class="o">=</span> <span class="n">ExponentialSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">start_step</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
         <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">start_step</span> <span class="o">+</span>
                <span class="n">p</span><span class="o">.</span><span class="n">half_life_steps</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min</span><span class="p">)</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">min</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;exp&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ContinuousLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="ContinuousSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ContinuousSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate decay.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">exp</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="PolynomialLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">PolynomialLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="PolynomialSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialSchedule">[docs]</a><span class="k">class</span> <span class="nc">PolynomialSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Polynomial learning rates.</span>
 
 <span class="sd">  If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,</span>
@@ -277,9 +277,9 @@
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="PolynomialLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="PolynomialSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PolynomialLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PolynomialSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;power&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Polynomial power.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="s1">&#39;(x0, y0)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;limit&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="s1">&#39;(x1, y1)&#39;</span><span class="p">)</span>
@@ -287,7 +287,7 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">PolynomialLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">PolynomialSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Polynomial</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
@@ -309,11 +309,11 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_polynomial</span> <span class="o">=</span> <span class="n">Polynomial</span>
 
-<div class="viewcode-block" id="PolynomialLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="PolynomialSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polynomial</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
 
 
-<div class="viewcode-block" id="LinearLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearLearningRateSchedule</span><span class="p">(</span><span class="n">PolynomialLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearSchedule</span><span class="p">(</span><span class="n">PolynomialSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Linear learning rate schedule.</span>
 
 <span class="sd">  If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,</span>
@@ -321,29 +321,29 @@
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LinearLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LinearSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LinearLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LinearSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">power</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
-<div class="viewcode-block" id="ExponentialLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">ExponentialLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="ExponentialSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialSchedule">[docs]</a><span class="k">class</span> <span class="nc">ExponentialSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Linear learning rate schedule.</span>
 
 <span class="sd">  If x &lt; x0, returns y0. If x &gt;= x1, returns y1. Otherwise,</span>
 <span class="sd">  interpolate exponentially between (x0, y0) and (x1, y1).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="ExponentialLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="ExponentialSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ExponentialLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ExponentialSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;start&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.</span><span class="p">),</span> <span class="s1">&#39;(x0, y0)&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;limit&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="s1">&#39;(x1, y1)&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ExponentialLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ExponentialSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">x0</span><span class="p">,</span> <span class="n">y0</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">start</span>
     <span class="n">x1</span><span class="p">,</span> <span class="n">y1</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">limit</span>
@@ -353,7 +353,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
         <span class="s1">&#39;linear&#39;</span><span class="p">,</span>
-        <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y0</span><span class="p">)),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y1</span><span class="p">))))</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
@@ -362,11 +362,11 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span> <span class="o">=</span> <span class="n">Exp</span>
 
-<div class="viewcode-block" id="ExponentialLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="ExponentialSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
 
 
-<div class="viewcode-block" id="StepwiseExponentialSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.StepwiseExponentialSchedule">[docs]</a><span class="k">class</span> <span class="nc">StepwiseExponentialSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="StepwiseExponentialSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.StepwiseExponentialSchedule">[docs]</a><span class="k">class</span> <span class="nc">StepwiseExponentialSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Exponential decay every N steps.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="StepwiseExponentialSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.StepwiseExponentialSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -387,19 +387,19 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">decay</span><span class="p">,</span> <span class="n">num_decays</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="CombinedMinimumLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">CombinedMinimumLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="CombinedMinimumSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumSchedule">[docs]</a><span class="k">class</span> <span class="nc">CombinedMinimumSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Combine a few learning rate decay schedules and takes the min.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="CombinedMinimumLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="CombinedMinimumSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CombinedMinimumLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()],</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CombinedMinimumSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()],</span>
              <span class="s1">&#39;A list of learning rate schedule params.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">CombinedMinimumLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CombinedMinimumSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">)</span>
 
@@ -410,16 +410,16 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_combined</span> <span class="o">=</span> <span class="n">Combined</span>
 
-<div class="viewcode-block" id="CombinedMinimumLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="CombinedMinimumSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_combined</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="TransformerLearningRateSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateSchedule">[docs]</a><span class="k">class</span> <span class="nc">TransformerLearningRateSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerSchedule">[docs]</a><span class="k">class</span> <span class="nc">TransformerSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Inverse-decay learning rate until warmup_steps, then decay.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TransformerLearningRateSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TransformerSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLearningRateSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;warmup_steps&#39;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="s1">&#39;Increase the learning rate linearly for &#39;</span>
         <span class="s1">&#39;the first warmup_steps training steps.&#39;</span><span class="p">)</span>
@@ -433,9 +433,9 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLearningRateSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TransformerLearningRateSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate decay.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">current_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -447,18 +447,18 @@
         <span class="p">(</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">warmup_steps</span><span class="o">**-</span><span class="mf">1.5</span><span class="p">,</span> <span class="p">(</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="TransformerLearningRateScheduleNoWarmUp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp">[docs]</a><span class="k">class</span> <span class="nc">TransformerLearningRateScheduleNoWarmUp</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerScheduleNoWarmUp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerScheduleNoWarmUp">[docs]</a><span class="k">class</span> <span class="nc">TransformerScheduleNoWarmUp</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Fixed learning rate until decay_start, then decay.</span>
 
-<span class="sd">  This learning rate schedule is identical to TransformerLearningRateSchedule</span>
+<span class="sd">  This learning rate schedule is identical to TransformerSchedule</span>
 <span class="sd">  except in the warm-up phase, where this learning rate schedule uses a fixed</span>
-<span class="sd">  learning rate (peak-learning rate of TransformerLearningRateSchedule) for the</span>
+<span class="sd">  learning rate (peak-learning rate of TransformerSchedule) for the</span>
 <span class="sd">  original warm-up phase.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TransformerLearningRateScheduleNoWarmUp.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="TransformerScheduleNoWarmUp.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerScheduleNoWarmUp.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLearningRateScheduleNoWarmUp</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerScheduleNoWarmUp</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay_start&#39;</span><span class="p">,</span> <span class="mi">4000</span><span class="p">,</span> <span class="s1">&#39;It is used to estimate peak-lr.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay_end&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Ends the learning rate decay at &#39;</span>
              <span class="s1">&#39;decay_end-th step.&#39;</span><span class="p">)</span>
@@ -470,12 +470,12 @@
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLearningRateScheduleNoWarmUp</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerScheduleNoWarmUp</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s1">&#39;Peak lr: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span>
         <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">decay_start</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker_replicas</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span>
 
-<div class="viewcode-block" id="TransformerLearningRateScheduleNoWarmUp.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerLearningRateScheduleNoWarmUp.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerScheduleNoWarmUp.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerScheduleNoWarmUp.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate decay.&quot;&quot;&quot;</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">warmup_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">decay_start</span> <span class="o">*</span> <span class="n">params</span><span class="o">.</span><span class="n">worker_replicas</span><span class="p">,</span>
@@ -490,8 +490,7 @@
                    <span class="p">(</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">),</span> <span class="n">peak_learning_rate</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="LinearRampupExponentialDecayScaledByNumSplitSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="p">(</span>
-    <span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearRampupExponentialDecayScaledByNumSplitSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupExponentialDecayScaledByNumSplitSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
 <span class="sd">  1. The peak learning rate multiplier is scaled by num splits,</span>
@@ -549,23 +548,21 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Peak lr: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">peak</span><span class="p">)</span>
     <span class="n">decay_end</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">decay_start</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">decay_end</span> <span class="o">/</span> <span class="n">splits</span><span class="p">)</span>
     <span class="n">schedules</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">warmup_end</span><span class="p">,</span> <span class="n">peak</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">decay_start</span><span class="p">,</span> <span class="n">peak</span><span class="p">)),</span>
-        <span class="n">ExponentialLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">ExponentialSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">decay_start</span><span class="p">,</span> <span class="n">peak</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">decay_end</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">min</span><span class="p">)),</span>
-        <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">decay_end</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max</span><span class="p">)),</span>
+        <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">decay_end</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max</span><span class="p">)),</span>
     <span class="p">]</span>
     <span class="c1"># Only include a warm up schedule if the warmup_end exceeds 0.0. Note that</span>
     <span class="c1"># linear schedules must have x1 &gt; x0 strictly.</span>
     <span class="k">if</span> <span class="n">warmup_end</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
       <span class="n">schedules</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
               <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">warmup_end</span><span class="p">,</span> <span class="n">peak</span><span class="p">))</span>
       <span class="p">]</span> <span class="o">+</span> <span class="n">schedules</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
-        <span class="s1">&#39;combine&#39;</span><span class="p">,</span>
-        <span class="n">CombinedMinimumLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;combine&#39;</span><span class="p">,</span>
+                     <span class="n">CombinedMinimumSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
 
 <div class="viewcode-block" id="LinearRampupExponentialDecayScaledByNumSplitSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupExponentialDecayScaledByNumSplitSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
@@ -593,7 +590,7 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupExponentialDecay</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearRampupSqrtDecayByBatchSizeAndReplicas"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupSqrtDecayByBatchSizeAndReplicas">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupSqrtDecayByBatchSizeAndReplicas</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Linearly increase learning rate until warmup_examples, then sqrt decay.</span>
 
 <span class="sd">  Same as the Transformer learning schedule, except that learning rate</span>
@@ -647,7 +644,7 @@
                       <span class="p">(</span><span class="n">current_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupPiecewiseConstantSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A learning rate schedule that does the following.</span>
 
 <span class="sd">  1. The learning rate is scaled by #split * lrs[i]</span>
@@ -697,20 +694,19 @@
         <span class="n">splits</span><span class="p">,</span> <span class="n">boundaries</span><span class="p">,</span> <span class="n">lrs</span><span class="p">))</span>
 
     <span class="n">schedules</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">boundaries</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">lrs</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span>
-        <span class="n">PiecewiseConstantLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">PiecewiseConstantSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">boundaries</span><span class="o">=</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="o">=</span><span class="p">[</span><span class="mf">1e8</span><span class="p">]</span> <span class="o">+</span> <span class="n">lrs</span><span class="p">)</span>
     <span class="p">]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
-        <span class="s1">&#39;combine&#39;</span><span class="p">,</span>
-        <span class="n">CombinedMinimumLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;combine&#39;</span><span class="p">,</span>
+                     <span class="n">CombinedMinimumSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
 
 <div class="viewcode-block" id="LinearRampupPiecewiseConstantSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupPiecewiseConstantSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="LinearRampupCosineSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupCosineSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupCosineSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="LinearRampupCosineSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupCosineSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearRampupCosineSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A cosine decaying learning rate schedule with a linear rampup phase.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="LinearRampupCosineSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupCosineSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -728,22 +724,21 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupCosineSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">schedules</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">LinearLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">)),</span>
         <span class="n">CosineSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span>
             <span class="n">final_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">final_value</span><span class="p">,</span>
             <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">),</span>
     <span class="p">]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span>
-        <span class="s1">&#39;combine&#39;</span><span class="p">,</span>
-        <span class="n">CombinedMinimumLearningRateSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;combine&#39;</span><span class="p">,</span>
+                     <span class="n">CombinedMinimumSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
 
 <div class="viewcode-block" id="LinearRampupCosineSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearRampupCosineSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="DevBasedSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.DevBasedSchedule">[docs]</a><span class="k">class</span> <span class="nc">DevBasedSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="DevBasedSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.DevBasedSchedule">[docs]</a><span class="k">class</span> <span class="nc">DevBasedSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Decay triggered by lack of improvement on the dev set.</span>
 
 <span class="sd">  This reads a file containing a history of values of a selected metric versus</span>
@@ -824,7 +819,7 @@
         <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cur_factor</span><span class="p">,</span> <span class="n">new_factor</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="CosineSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CosineSchedule">[docs]</a><span class="k">class</span> <span class="nc">CosineSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="CosineSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CosineSchedule">[docs]</a><span class="k">class</span> <span class="nc">CosineSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Cosine learning rate decay.</span>
 
 <span class="sd">  First proposed in https://arxiv.org/pdf/1608.03983.pdf, which only uses</span>
@@ -857,7 +852,7 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">)))</span></div></div>
 
 
-<div class="viewcode-block" id="PiecewiseSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseSchedule</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="PiecewiseSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseSchedule">[docs]</a><span class="k">class</span> <span class="nc">PiecewiseSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Piecewise schedule composed of sub-schedules.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="PiecewiseSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PiecewiseSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -902,7 +897,7 @@
                                       <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="SqrtDecay"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay">[docs]</a><span class="k">class</span> <span class="nc">SqrtDecay</span><span class="p">(</span><span class="n">BaseLearningRateSchedule</span><span class="p">):</span>
+<div class="viewcode-block" id="SqrtDecay"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay">[docs]</a><span class="k">class</span> <span class="nc">SqrtDecay</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Sqrt decay schedule.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SqrtDecay.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.SqrtDecay.Params">[docs]</a>  <span class="nd">@classmethod</span>
