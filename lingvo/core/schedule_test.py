@@ -46,7 +46,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
         self.assertAllClose(lrs.Value(x).eval(), 1.0)
 
   def testPiecewiseConstant(self):
-    cls = schedule.PiecewiseConstantLearningRateSchedule
+    cls = schedule.PiecewiseConstantSchedule
     with self.session(use_gpu=False):
       bs = [300000, 400000, 500000]
       vs = [1.0, 0.1, 0.01, 0.001]
@@ -58,7 +58,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose([1.0, 0.1, 0.01, 0.001], outs)
 
   def testContinuousLearningRateSchedule(self):
-    p = schedule.ContinuousLearningRateSchedule.Params()
+    p = schedule.ContinuousSchedule.Params()
     p.start_step = 1000
     p.half_life_steps = 100
     p.min = 0.1
@@ -84,7 +84,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             decay.Value(step + 100).eval() * 2.)
 
   def testContinuousLearningRateSchedule_CanOverrideStart(self):
-    p = schedule.ContinuousLearningRateSchedule.Params()
+    p = schedule.ContinuousSchedule.Params()
     p.initial_value = 2.0
     p.start_step = 1000
     p.half_life_steps = 100
@@ -109,7 +109,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(decay.Value(2000).eval(), 0.25)
 
   def testTransformerLearningRateSchedule(self):
-    p = schedule.TransformerLearningRateSchedule.Params()
+    p = schedule.TransformerSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
     lrs = p.Instantiate()
@@ -139,7 +139,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
 
   def testTransformerLearningRateScheduleWithDecayEnd(self):
-    p = schedule.TransformerLearningRateSchedule.Params()
+    p = schedule.TransformerSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
     p.decay_end = 5000
@@ -169,11 +169,11 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
 
   def testTransformerLearningRateScheduleNoWarmUp(self):
-    params = schedule.TransformerLearningRateScheduleNoWarmUp.Params().Set(
+    params = schedule.TransformerScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
     lrs = params.Instantiate()
 
-    base_params = schedule.TransformerLearningRateSchedule.Params().Set(
+    base_params = schedule.TransformerSchedule.Params().Set(
         warmup_steps=4000, model_dim=512)
     base_lrs = base_params.Instantiate()
 
@@ -194,7 +194,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(base_lrs.Value(5000).eval(), lrs.Value(5000).eval())
 
   def testPolynomialLRSchedule(self):
-    p = schedule.PolynomialLearningRateSchedule.Params().Set(
+    p = schedule.PolynomialSchedule.Params().Set(
         power=2, start=(0, 0.), limit=(20000, 2.))
     with self.session():
       lrs = p.Instantiate()
@@ -208,12 +208,12 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
 
   def testCombinedLRSchedule(self):
-    p = schedule.CombinedMinimumLearningRateSchedule.Params().Set(schedules=[
-        schedule.LinearLearningRateSchedule.Params().Set(
+    p = schedule.CombinedMinimumSchedule.Params().Set(schedules=[
+        schedule.LinearSchedule.Params().Set(
             start=(0., 1.), limit=(2000000, 8.)),
-        schedule.LinearLearningRateSchedule.Params().Set(
+        schedule.LinearSchedule.Params().Set(
             start=(2000000., 8.), limit=(4000000, 8.)),
-        schedule.ExponentialLearningRateSchedule.Params().Set(
+        schedule.ExponentialSchedule.Params().Set(
             start=(4000000., 8.), limit=(8000000, 0.5))
     ])
     with self.session():
@@ -516,8 +516,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testPiecewiseSchedule(self):
     # Linear ramp-up in 20000 steps, cosine decay in 40000 steps.
-    p0 = schedule.LinearLearningRateSchedule.Params().Set(
-        start=(0, 0.), limit=(20000, 2.))
+    p0 = schedule.LinearSchedule.Params().Set(start=(0, 0.), limit=(20000, 2.))
     p1 = schedule.CosineSchedule.Params().Set(
         initial_value=2.0, total_steps=40000)
     p = schedule.PiecewiseSchedule.Params().Set(

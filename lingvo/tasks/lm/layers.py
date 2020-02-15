@@ -1087,7 +1087,7 @@ class TransformerLm(TransformerLmNoEmbedding):
       num_heads: number of attention heads.
       num_layers: number of layers in the transformer LM.
       learning_rate: learning rate.
-      warmup_steps: warmup steps for TransformerLearningRateSchedule.
+      warmup_steps: warmup steps for TransformerSchedule.
       vocab_size: vocab size.
       input_dropout_prob: dropout prob to the sums of the token embeddings and
         the position embeddings.

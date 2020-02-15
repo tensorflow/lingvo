@@ -133,7 +133,7 @@ class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):
     # threshold.
     tp.learning_rate = 0.2
     tp.lr_schedule = (
-        schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
+        schedule.PiecewiseConstantSchedule.Params().Set(
             boundaries=[], values=[1.0]))
     tp.l2_regularizer_weight = None  # No regularization.
     tp.optimizer = optimizer.Adagrad.Params()
@@ -258,7 +258,7 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
         optimizer=optimizer.Adam.ParamsA(),
         clip_gradient_norm_to_value=0.0,
         grad_norm_to_clip_to_zero=0.0,
-        lr_schedule=schedule.TransformerLearningRateSchedule.Params().Set(
+        lr_schedule=schedule.TransformerSchedule.Params().Set(
             warmup_steps=40000, worker_replicas=1,
             model_dim=self.EMBEDDING_DIM))
     return p

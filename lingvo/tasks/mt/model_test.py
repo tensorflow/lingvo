@@ -277,7 +277,7 @@ class TransformerModelTest(test_utils.TestCase):
       tp.grad_norm_to_clip_to_zero = False
       tp.optimizer = optimizer.SGD.Params()
       tp.learning_rate = 1e-2
-      tp.lr_schedule = schedule.ContinuousLearningRateSchedule.Params()
+      tp.lr_schedule = schedule.ContinuousSchedule.Params()
       for l in p.ToText().split('\n'):
         print(l)
       return p

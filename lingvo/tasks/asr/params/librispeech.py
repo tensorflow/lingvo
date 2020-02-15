@@ -131,7 +131,7 @@ class Librispeech960Base(base_model_params.SingleTaskModelParams):
 
     tp = p.train
     tp.learning_rate = 2.5e-4
-    tp.lr_schedule = schedule.ContinuousLearningRateSchedule.Params().Set(
+    tp.lr_schedule = schedule.ContinuousSchedule.Params().Set(
         start_step=50000, half_life_steps=100000, min=0.01)
 
     # Setting p.eval.samples_per_summary to a large value ensures that dev,

@@ -36,9 +36,8 @@ from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
 import six
 from six.moves import range
-
-from model_pruning.python import pruning
 from lingvo.core import decoder_lib
+from model_pruning.python import pruning
 
 
 class DecodeFinalizeArgs(
@@ -182,7 +181,7 @@ class BaseTask(base_layer.BaseLayer):
               'Clip gradient to 0 if its norm exceeds this value.')
     tp.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
     tp.Define('optimizer', optimizer.Adam.Params(), 'Params for the optimizer.')
-    tp.Define('lr_schedule', schedule.ContinuousLearningRateSchedule.Params(),
+    tp.Define('lr_schedule', schedule.ContinuousSchedule.Params(),
               'Learning rate decay schedule.')
     tp.Define(
         'bprop_variable_filter', None,

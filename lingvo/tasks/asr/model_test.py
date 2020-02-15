@@ -267,7 +267,7 @@ class AsrModelTest(test_utils.TestCase):
       tf.set_random_seed(93820985)
       p = self._testParams()
       p.train.lr_schedule = (
-          schedule.ContinuousLearningRateSchedule.Params().Set(
+          schedule.ContinuousSchedule.Params().Set(
               start_step=350000, half_life_steps=45000))
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -305,7 +305,7 @@ class AsrModelTest(test_utils.TestCase):
           'NullFusion',
           'NullLm',
           'Learner',
-          'PiecewiseConstantLearningRateSchedule',
+          'PiecewiseConstantSchedule',
           'ProjectionLayer',
           'SimpleFullSoftmax',
           'SpectrumAugmenter',

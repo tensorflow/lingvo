@@ -65,7 +65,7 @@ class Learner(base_layer.BaseLayer):
              'Clip gradient to 0 if its norm exceeds this value.')
     p.Define('grad_norm_tracker', None, 'Params for GradNormTracker.')
     p.Define('optimizer', optimizer.Adam.Params(), 'Params for the optimizer.')
-    p.Define('lr_schedule', schedule.ContinuousLearningRateSchedule.Params(),
+    p.Define('lr_schedule', schedule.ContinuousSchedule.Params(),
              'Learning rate decay schedule.')
     p.Define(
         'bprop_variable_filter', None,

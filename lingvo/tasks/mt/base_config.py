@@ -162,7 +162,7 @@ def SetupTransformerParams(p,
     num_layers: number of layers in the transformer
     learning_rate: learning rate for Adam. For the base model, we use 1.0; for
          the big model, 3.0
-    warmup_steps: warmup steps for `TransformerLearningRateSchedule`. For the
+    warmup_steps: warmup steps for `TransformerSchedule`. For the
          base model, we use 4000; for the big model, 40000
     residual_dropout_prob: dropout prob to the output of each sub-layer before
          it is added to the sub-layer input
@@ -209,7 +209,7 @@ def SetupTransformerParams(p,
       optimizer=optimizer.Adam.ParamsB(),
       clip_gradient_norm_to_value=0.0,
       grad_norm_to_clip_to_zero=0.0,
-      lr_schedule=schedule.TransformerLearningRateSchedule.Params().Set(
+      lr_schedule=schedule.TransformerSchedule.Params().Set(
           warmup_steps=warmup_steps, worker_replicas=1, model_dim=model_dim))
 
   p.eval.samples_per_summary = 12000

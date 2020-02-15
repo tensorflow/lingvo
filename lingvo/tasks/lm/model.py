@@ -46,8 +46,7 @@ class LanguageModel(base_model.BaseTask):
         'Sum the logP across predicted tokens in batch when set to True; '
         'average across predicted tokens in batch o/w (default).')
 
-    tp.lr_schedule = schedule.PiecewiseConstantLearningRateSchedule.Params(
-    ).Set(
+    tp.lr_schedule = schedule.PiecewiseConstantSchedule.Params().Set(
         boundaries=[350000, 500000, 600000], values=[1.0, 0.1, 0.01, 0.001])
     tp.vn_start_step = 20000
     tp.vn_std = 0.0

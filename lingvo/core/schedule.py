@@ -28,18 +28,18 @@ from lingvo.core import py_utils
 from six.moves import zip
 
 
-class BaseLearningRateSchedule(base_layer.BaseLayer):
+class BaseSchedule(base_layer.BaseLayer):
   """Base class for learning rate decay algorithms."""
 
   @classmethod
   def Params(cls):
-    p = super(BaseLearningRateSchedule, cls).Params()
+    p = super(BaseSchedule, cls).Params()
     p.name = 'LRSched'
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(BaseLearningRateSchedule, self).__init__(params)
+    super(BaseSchedule, self).__init__(params)
 
   def Value(self, current_step):
     """Returns the current learning rate schedule value.
@@ -56,7 +56,7 @@ class BaseLearningRateSchedule(base_layer.BaseLayer):
     return self.FProp(self.theta, current_step)
 
 
-class Constant(BaseLearningRateSchedule):
+class Constant(BaseSchedule):
   """A schedule that always returns a constant value."""
 
   @classmethod
@@ -75,19 +75,19 @@ class ConstantOne(Constant):
   pass
 
 
-class PiecewiseConstantLearningRateSchedule(BaseLearningRateSchedule):
+class PiecewiseConstantSchedule(BaseSchedule):
   """Piecewise constants rate decay."""
 
   @classmethod
   def Params(cls):
-    p = super(PiecewiseConstantLearningRateSchedule, cls).Params()
+    p = super(PiecewiseConstantSchedule, cls).Params()
     p.Define('boundaries', None, 'Boundaries at which learning rate drops.')
     p.Define('values', None, 'Values in each interval.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(PiecewiseConstantLearningRateSchedule, self).__init__(params)
+    super(PiecewiseConstantSchedule, self).__init__(params)
 
   def FProp(self, theta, current_step):
     p = self.params
@@ -95,12 +95,12 @@ class PiecewiseConstantLearningRateSchedule(BaseLearningRateSchedule):
                                       p.dtype)
 
 
-class ContinuousLearningRateSchedule(BaseLearningRateSchedule):
+class ContinuousSchedule(BaseSchedule):
   """Continuous learning rate decay."""
 
   @classmethod
   def Params(cls):
-    p = super(ContinuousLearningRateSchedule, cls).Params()
+    p = super(ContinuousSchedule, cls).Params()
     p.Define('initial_value', 1.0, 'Initial decay value.')
     p.Define('start_step', 400000,
              'Starts to decay the learning rate from this step.')
@@ -111,9 +111,9 @@ class ContinuousLearningRateSchedule(BaseLearningRateSchedule):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(ContinuousLearningRateSchedule, self).__init__(params)
+    super(ContinuousSchedule, self).__init__(params)
     p = self.params
-    q = ExponentialLearningRateSchedule.Params().Set(
+    q = ExponentialSchedule.Params().Set(
         start=(p.start_step, 1.0),
         limit=(p.start_step +
                p.half_life_steps * math.log(p.min) / math.log(0.5), p.min))
@@ -124,7 +124,7 @@ class ContinuousLearningRateSchedule(BaseLearningRateSchedule):
     return self.params.initial_value * self.exp.Value(current_step)
 
 
-class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
+class PolynomialSchedule(BaseSchedule):
   """Polynomial learning rates.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise,
@@ -134,7 +134,7 @@ class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
 
   @classmethod
   def Params(cls):
-    p = super(PolynomialLearningRateSchedule, cls).Params()
+    p = super(PolynomialSchedule, cls).Params()
     p.Define('power', 1, 'Polynomial power.')
     p.Define('start', (0, 1.), '(x0, y0)')
     p.Define('limit', (1, 1.), '(x1, y1)')
@@ -142,7 +142,7 @@ class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(PolynomialLearningRateSchedule, self).__init__(params)
+    super(PolynomialSchedule, self).__init__(params)
 
     @tf.Defun()
     def Polynomial(x):
@@ -168,7 +168,7 @@ class PolynomialLearningRateSchedule(BaseLearningRateSchedule):
     return self._polynomial(tf.cast(current_step, dtype=self.params.dtype))
 
 
-class LinearLearningRateSchedule(PolynomialLearningRateSchedule):
+class LinearSchedule(PolynomialSchedule):
   """Linear learning rate schedule.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise,
@@ -178,11 +178,11 @@ class LinearLearningRateSchedule(PolynomialLearningRateSchedule):
 
   @classmethod
   def Params(cls):
-    p = super(LinearLearningRateSchedule, cls).Params().Set(power=1)
+    p = super(LinearSchedule, cls).Params().Set(power=1)
     return p
 
 
-class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
+class ExponentialSchedule(BaseSchedule):
   """Linear learning rate schedule.
 
   If x < x0, returns y0. If x >= x1, returns y1. Otherwise,
@@ -191,14 +191,14 @@ class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
 
   @classmethod
   def Params(cls):
-    p = super(ExponentialLearningRateSchedule, cls).Params()
+    p = super(ExponentialSchedule, cls).Params()
     p.Define('start', (0, 1.), '(x0, y0)')
     p.Define('limit', (1, 0.5), '(x1, y1)')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(ExponentialLearningRateSchedule, self).__init__(params)
+    super(ExponentialSchedule, self).__init__(params)
     p = self.params
     x0, y0 = p.start
     x1, y1 = p.limit
@@ -208,7 +208,7 @@ class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
 
     self.CreateChild(
         'linear',
-        LinearLearningRateSchedule.Params().Set(
+        LinearSchedule.Params().Set(
             start=(x0, math.log(y0)), limit=(x1, math.log(y1))))
 
     @tf.Defun()
@@ -221,7 +221,7 @@ class ExponentialLearningRateSchedule(BaseLearningRateSchedule):
     return self._exp(tf.cast(current_step, dtype=self.params.dtype))
 
 
-class StepwiseExponentialSchedule(BaseLearningRateSchedule):
+class StepwiseExponentialSchedule(BaseSchedule):
   """Exponential decay every N steps."""
 
   @classmethod
@@ -242,19 +242,19 @@ class StepwiseExponentialSchedule(BaseLearningRateSchedule):
     return tf.pow(p.decay, num_decays)
 
 
-class CombinedMinimumLearningRateSchedule(BaseLearningRateSchedule):
+class CombinedMinimumSchedule(BaseSchedule):
   """Combine a few learning rate decay schedules and takes the min."""
 
   @classmethod
   def Params(cls):
-    p = super(CombinedMinimumLearningRateSchedule, cls).Params()
-    p.Define('schedules', [LinearLearningRateSchedule.Params()],
+    p = super(CombinedMinimumSchedule, cls).Params()
+    p.Define('schedules', [LinearSchedule.Params()],
              'A list of learning rate schedule params.')
     return p
 
   @base_layer.initializer
   def __init__(self, params):
-    super(CombinedMinimumLearningRateSchedule, self).__init__(params)
+    super(CombinedMinimumSchedule, self).__init__(params)
     p = self.params
     self.CreateChildren('schedules', p.schedules)
 
@@ -269,12 +269,12 @@ class CombinedMinimumLearningRateSchedule(BaseLearningRateSchedule):
     return self._combined(current_step)
 
 
-class TransformerLearningRateSchedule(BaseLearningRateSchedule):
+class TransformerSchedule(BaseSchedule):
   """Inverse-decay learning rate until warmup_steps, then decay."""
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLearningRateSchedule, cls).Params()
+    p = super(TransformerSchedule, cls).Params()
     p.Define(
         'warmup_steps', 4000, 'Increase the learning rate linearly for '
         'the first warmup_steps training steps.')
@@ -288,7 +288,7 @@ class TransformerLearningRateSchedule(BaseLearningRateSchedule):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(TransformerLearningRateSchedule, self).__init__(params)
+    super(TransformerSchedule, self).__init__(params)
 
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""
@@ -302,18 +302,18 @@ class TransformerLearningRateSchedule(BaseLearningRateSchedule):
         (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
 
 
-class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
+class TransformerScheduleNoWarmUp(BaseSchedule):
   """Fixed learning rate until decay_start, then decay.
 
-  This learning rate schedule is identical to TransformerLearningRateSchedule
+  This learning rate schedule is identical to TransformerSchedule
   except in the warm-up phase, where this learning rate schedule uses a fixed
-  learning rate (peak-learning rate of TransformerLearningRateSchedule) for the
+  learning rate (peak-learning rate of TransformerSchedule) for the
   original warm-up phase.
   """
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLearningRateScheduleNoWarmUp, cls).Params()
+    p = super(TransformerScheduleNoWarmUp, cls).Params()
     p.Define('decay_start', 4000, 'It is used to estimate peak-lr.')
     p.Define('decay_end', None, 'Ends the learning rate decay at '
              'decay_end-th step.')
@@ -325,7 +325,7 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
 
   @base_layer.initializer
   def __init__(self, params):
-    super(TransformerLearningRateScheduleNoWarmUp, self).__init__(params)
+    super(TransformerScheduleNoWarmUp, self).__init__(params)
     tf.logging.info(
         'Peak lr: %f',
         (self.params.decay_start * self.params.worker_replicas)**-0.5)
@@ -345,8 +345,7 @@ class TransformerLearningRateScheduleNoWarmUp(BaseLearningRateSchedule):
                    (current_step + 1)**-0.5), peak_learning_rate)
 
 
-class LinearRampupExponentialDecayScaledByNumSplitSchedule(
-    BaseLearningRateSchedule):
+class LinearRampupExponentialDecayScaledByNumSplitSchedule(BaseSchedule):
   """A learning rate schedule that does the following.
 
   1. The peak learning rate multiplier is scaled by num splits,
@@ -404,23 +403,21 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(
     tf.logging.info('Peak lr: %f', peak)
     decay_end = max(decay_start + 1.0, p.decay_end / splits)
     schedules = [
-        LinearLearningRateSchedule.Params().Set(
+        LinearSchedule.Params().Set(
             start=(warmup_end, peak), limit=(decay_start, peak)),
-        ExponentialLearningRateSchedule.Params().Set(
+        ExponentialSchedule.Params().Set(
             start=(decay_start, peak), limit=(decay_end, p.min)),
-        LinearLearningRateSchedule.Params().Set(
-            start=(0, p.max), limit=(decay_end, p.max)),
+        LinearSchedule.Params().Set(start=(0, p.max), limit=(decay_end, p.max)),
     ]
     # Only include a warm up schedule if the warmup_end exceeds 0.0. Note that
     # linear schedules must have x1 > x0 strictly.
     if warmup_end > 0.0:
       schedules = [
-          LinearLearningRateSchedule.Params().Set(
+          LinearSchedule.Params().Set(
               start=(0., p.warmup_init), limit=(warmup_end, peak))
       ] + schedules
-    self.CreateChild(
-        'combine',
-        CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
+    self.CreateChild('combine',
+                     CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
   def FProp(self, theta, current_step):
     return self.combine.Value(current_step)
@@ -448,7 +445,7 @@ class LinearRampupExponentialDecay(
     super(LinearRampupExponentialDecay, self).__init__(params)
 
 
-class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseLearningRateSchedule):
+class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseSchedule):
   """Linearly increase learning rate until warmup_examples, then sqrt decay.
 
   Same as the Transformer learning schedule, except that learning rate
@@ -502,7 +499,7 @@ class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseLearningRateSchedule):
                       (current_step + 1)**-0.5)
 
 
-class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
+class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
   """A learning rate schedule that does the following.
 
   1. The learning rate is scaled by #split * lrs[i]
@@ -552,20 +549,19 @@ class LinearRampupPiecewiseConstantSchedule(BaseLearningRateSchedule):
         splits, boundaries, lrs))
 
     schedules = [
-        LinearLearningRateSchedule.Params().Set(
+        LinearSchedule.Params().Set(
             start=(0., 0.), limit=(boundaries[0], lrs[0])),
-        PiecewiseConstantLearningRateSchedule.Params().Set(
+        PiecewiseConstantSchedule.Params().Set(
             boundaries=boundaries, values=[1e8] + lrs)
     ]
-    self.CreateChild(
-        'combine',
-        CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
+    self.CreateChild('combine',
+                     CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
   def FProp(self, theta, current_step):
     return self.combine.Value(current_step)
 
 
-class LinearRampupCosineSchedule(BaseLearningRateSchedule):
+class LinearRampupCosineSchedule(BaseSchedule):
   """A cosine decaying learning rate schedule with a linear rampup phase."""
 
   @classmethod
@@ -583,22 +579,21 @@ class LinearRampupCosineSchedule(BaseLearningRateSchedule):
     super(LinearRampupCosineSchedule, self).__init__(params)
     p = self.params
     schedules = [
-        LinearLearningRateSchedule.Params().Set(
+        LinearSchedule.Params().Set(
             start=(0., p.warmup_init), limit=(p.warmup_steps, p.initial_value)),
         CosineSchedule.Params().Set(
             initial_value=p.initial_value,
             final_value=p.final_value,
             total_steps=p.total_steps),
     ]
-    self.CreateChild(
-        'combine',
-        CombinedMinimumLearningRateSchedule.Params().Set(schedules=schedules))
+    self.CreateChild('combine',
+                     CombinedMinimumSchedule.Params().Set(schedules=schedules))
 
   def FProp(self, theta, current_step):
     return self.combine.Value(current_step)
 
 
-class DevBasedSchedule(BaseLearningRateSchedule):
+class DevBasedSchedule(BaseSchedule):
   """Decay triggered by lack of improvement on the dev set.
 
   This reads a file containing a history of values of a selected metric versus
@@ -679,7 +674,7 @@ class DevBasedSchedule(BaseLearningRateSchedule):
         return tf.assign(self._cur_factor, new_factor)
 
 
-class CosineSchedule(BaseLearningRateSchedule):
+class CosineSchedule(BaseSchedule):
   """Cosine learning rate decay.
 
   First proposed in https://arxiv.org/pdf/1608.03983.pdf, which only uses
@@ -712,7 +707,7 @@ class CosineSchedule(BaseLearningRateSchedule):
           tf.cast(current_step, tf.float32) / p.total_steps)))
 
 
-class PiecewiseSchedule(BaseLearningRateSchedule):
+class PiecewiseSchedule(BaseSchedule):
   """Piecewise schedule composed of sub-schedules."""
 
   @classmethod
@@ -757,7 +752,7 @@ class PiecewiseSchedule(BaseLearningRateSchedule):
                                       values[0].dtype)
 
 
-class SqrtDecay(BaseLearningRateSchedule):
+class SqrtDecay(BaseSchedule):
   """Sqrt decay schedule."""
 
   @classmethod

@@ -63,7 +63,7 @@ class AsrModel(base_model.BaseTask):
 
     tp = p.train
     tp.lr_schedule = (
-        schedule.PiecewiseConstantLearningRateSchedule.Params().Set(
+        schedule.PiecewiseConstantSchedule.Params().Set(
             boundaries=[350000, 500000, 600000], values=[1.0, 0.1, 0.01,
                                                          0.001]))
     tp.vn_start_step = 20000
