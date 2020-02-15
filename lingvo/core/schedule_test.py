@@ -57,7 +57,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
         outs.append(lrs.Value(x).eval())
       self.assertAllClose([1.0, 0.1, 0.01, 0.001], outs)
 
-  def testContinuousLearningRateSchedule(self):
+  def testContinuousSchedule(self):
     p = schedule.ContinuousSchedule.Params()
     p.start_step = 1000
     p.half_life_steps = 100
@@ -83,7 +83,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             decay.Value(step).eval(),
             decay.Value(step + 100).eval() * 2.)
 
-  def testContinuousLearningRateSchedule_CanOverrideStart(self):
+  def testContinuousSchedule_CanOverrideStart(self):
     p = schedule.ContinuousSchedule.Params()
     p.initial_value = 2.0
     p.start_step = 1000
@@ -108,7 +108,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(decay.Value(1999).eval(), 0.5)
       self.assertAllClose(decay.Value(2000).eval(), 0.25)
 
-  def testTransformerLearningRateSchedule(self):
+  def testTransformerSchedule(self):
     p = schedule.TransformerSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
@@ -138,7 +138,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
             lrs.Value(step).eval() * 2.,
             lrs.Value(step + 10).eval() + lrs.Value(step - 10).eval())
 
-  def testTransformerLearningRateScheduleWithDecayEnd(self):
+  def testTransformerScheduleWithDecayEnd(self):
     p = schedule.TransformerSchedule.Params()
     p.warmup_steps = 4000
     p.model_dim = 512
@@ -168,7 +168,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
       self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(5001).eval())
       self.assertAllClose(lrs.Value(5000).eval(), lrs.Value(6000).eval())
 
-  def testTransformerLearningRateScheduleNoWarmUp(self):
+  def testTransformerScheduleNoWarmUp(self):
     params = schedule.TransformerScheduleNoWarmUp.Params().Set(
         decay_start=4000, model_dim=512)
     lrs = params.Instantiate()
