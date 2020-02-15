@@ -99,6 +99,34 @@ class CheckpointerTest(test_utils.TestCase):
       self.assertEqual(final_b, b)
       self.assertEqual(final_global_step, global_step)
 
+  def testRestoreWithGlobalStepAlreadyInitialized(self):
+    train_dir = os.path.join(self.get_temp_dir(),
+                             'testRestoreWithGlobalStepAlreadyInitialized')
+    os.mkdir(train_dir)
+    p = base_model.SingleTaskModel.Params(LinearModel.Params())
+    p.input = base_input_generator.BaseInputGenerator.Params()
+
+    with self.session(graph=tf.Graph()) as sess:
+      global_step = tf.compat.v1.train.get_or_create_global_step()
+      tf.global_variables_initializer().run()
+
+      model = p.Instantiate()
+      saver = checkpointer.Checkpointer(train_dir, model)
+
+      with self.assertRaises(tf.errors.FailedPreconditionError):
+        sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+
+      saver.RestoreIfNeeded(sess)
+      w, b, global_step = sess.run(
+          [model.GetTask().vars.w,
+           model.GetTask().vars.b, model.global_step])
+      self.assertAllClose([0.38615, 2.975221, -0.852826], w)
+      self.assertAlmostEqual(1.418741, b, places=5)
+      self.assertEqual(0, global_step)
+
+    self.assertFalse(
+        os.path.isfile(os.path.join(train_dir, 'ckpt-00000000.index')))
+
   def testRestoreWithoutCheckpointInitializesVars(self):
     train_dir = os.path.join(self.get_temp_dir(),
                              'testRestoreWithoutCheckpointInitializesVars')

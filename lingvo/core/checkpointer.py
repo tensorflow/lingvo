@@ -141,12 +141,19 @@ class Checkpointer(object):
     tf.logging.info('Uninitialized var list: %s', uninitialized_var_names)
 
     # There should only be uninitialized variables if all variables are
-    # uninitialized.
+    # uninitialized - with the exception of global_step due to
+    # RestoreGlobalStepIfNeeded in the _LoopEnqueue of TrainerTpu.
     all_var_names = [
         six.ensure_binary(v.name[:-2]) for v in tf.global_variables()
     ]
-    assert (set(uninitialized_var_names) == set(all_var_names)
-           ), sorted(set(all_var_names) - set(uninitialized_var_names))
+
+    already_initialized_vars = set(all_var_names) - set(uninitialized_var_names)
+
+    # Disregard if global_step is initialized for the aforementioned reason.
+    already_initialized_vars.discard(b'global_step')
+
+    assert not already_initialized_vars, 'Already initialized vars: %s' % sorted(
+        already_initialized_vars)
 
     if self._Restore(sess):
       # Successfully restored from checkpoint.
