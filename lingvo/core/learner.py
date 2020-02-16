@@ -86,11 +86,15 @@ class Learner(base_layer.BaseLayer):
     p.Define('colocate_gradients_with_ops', True,
              'If True, try colocating gradients with the corresponding op.')
     p.Define(
-        'skip_zero_gradients', False,
-        'If True, skips aggregating zero gradients while computing gradients.'
+        'skip_zero_gradients', None,
+        'If set, skips aggregating zero gradients while computing gradients.'
         'This helps in case where some weights may not be used in forward '
         'computation, e.g., sparsely activated networks or switchable layers '
-        'in neural architectural search.')
+        'in neural architectural search. '
+        'Possible values are: '
+        'None: do not skip zero gradients; '
+        '"variable": skip if the entire variable gradients are almost zero; '
+        '"weight": skip if the individual weight gradients are almost zero.')
     return p
 
   @base_layer.initializer

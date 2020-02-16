@@ -22,6 +22,7 @@ from __future__ import print_function
 
 import collections as py_collections
 import contextlib
+import functools
 import hashlib
 import math
 import numbers
@@ -1848,39 +1849,12 @@ def ComputeTpuEmbeddingGradients(loss, activation_dict, tpu_embedding):
   return send_gradient_op
 
 
-def _ComputeGradientsTpu(loss, all_vars, grad_aggregation_method,
-                         colocate_gradients_with_ops, gate_gradients):
-  """Computes gradients for local loss across whole TPU cluster."""
-  # Scale the loss to account for the full batch size.
-  shards = tpu_function.get_tpu_context().number_of_shards
-  assert shards
-  loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
-
-  # Computes the gradients.
-  # Sum the grads so that we can compute statistics across the whole batch.
-  all_grads = ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
-                                     colocate_gradients_with_ops,
-                                     gate_gradients)
-
-  # NOTE: We can't use tpu_optimizer.CrossShardOptimizer since
-  # we need to scale the grads *after* the cross_replica_sum to
-  # match GPU version!
-  # TODO(cwhipkey): should we do something different here? - we could do
-  # some operations on the gradients before the aggregation (see comments in
-  # tensorflow/contrib/tpu/python/tpu/tpu_optimizer.py - see compute_gradients -
-  # for some more details).
-  aggregated_grads = []
-  for g in all_grads:
-    if g is not None:
-      with tf.colocate_with(g):
-        aggregated_grads.append(tf.tpu.cross_replica_sum(g))
-    else:
-      aggregated_grads.append(None)
-  return aggregated_grads
-
-
-def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
-                            colocate_gradients_with_ops, gate_gradients):
+def _ComputeGradientsTpu(loss,
+                         all_vars,
+                         grad_aggregation_method,
+                         colocate_gradients_with_ops,
+                         gate_gradients,
+                         skip_zero_gradients=None):
   """Computes gradients for local loss across whole TPU cluster.
 
   This implementation specializes for the case where weight params maybe used
@@ -1898,10 +1872,20 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
     colocate_gradients_with_ops: boolean, whether or not to colocate gradient op
       with the original op.
     gate_gradients: boolean, flag to be passed to tf.gradients.
+    skip_zero_gradients: whether to skip zero gradients during aggregation.
 
   Returns:
-    gradients to be passed back.
+    Gradients to be passed back.
+
+  Raises:
+    ValueError: upon invalid arguments.
   """
+  if not skip_zero_gradients:
+    # Scale the loss to account for the full batch size.
+    shards = tpu_function.get_tpu_context().number_of_shards
+    assert shards
+    loss *= tf.constant(1.0 / shards, dtype=loss.dtype)
+
   # Computes the gradients.
   # Sum the grads so that we can compute statistics across the whole batch.
   all_grads = ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
@@ -1919,20 +1903,34 @@ def _ComputeGradientsTpuNas(loss, all_vars, grad_aggregation_method,
 
   aggregated_grads = []
   for g in all_grads:
-    if g is not None:
-      with tf.colocate_with(g):
+    if g is None:
+      aggregated_grads.append(None)
+      continue
+    with tf.colocate_with(g):
+      if skip_zero_gradients is None:
+        # loss is already scaled by 1/shards.
+        normalized_g = tf.tpu.cross_replica_sum(g)
+      else:
+        # Compute the cross-replica mean of 'g', skipping zero gradients.
+
         # Q(yonghui): Is there a better way to detect a non-zero gradient?
-        # Note(yonghui): gradient of a weight param can be all zero if that
-        # weight param is not used in the forward computation, e.g. as in
-        # switchable layers in neural architecture search.
-        zero_threshold = 1e-8
-        g_is_non_zero = tf.cast(
-            tf.reduce_sum(tf.math.abs(g)) > zero_threshold, g.dtype)
+        # Note(yonghui): gradient of a weight can be zero if that
+        # weight is not used in the forward computation, e.g. as in
+        # switchable layers in neural architecture search, pruned by channel
+        # mask, or sparsified.
+        if skip_zero_gradients == 'weight':
+          # Same shape as 'g'.
+          g_is_non_zero = tf.cast(tf.math.abs(g) > 1e-8, g.dtype)
+        elif skip_zero_gradients == 'variable':
+          # A variable-wide 0/1 scalar.
+          g_is_non_zero = tf.cast(
+              tf.reduce_sum(tf.math.abs(g)) > 1e-24, g.dtype)
+        else:
+          raise ValueError('Unknown skip_zero_gradients: %s' %
+                           skip_zero_gradients)
         num_updates = tf.maximum(tf.tpu.cross_replica_sum(g_is_non_zero), 1.0)
         normalized_g = tf.tpu.cross_replica_sum(g) / num_updates
-        aggregated_grads.append(normalized_g)
-    else:
-      aggregated_grads.append(None)
+      aggregated_grads.append(normalized_g)
   return aggregated_grads
 
 
@@ -1964,7 +1962,7 @@ def ComputeGradients(
     colocate_gradients_with_ops=True,
     gate_gradients=False,
     compute_gradients_fn=None,
-    skip_zero_gradients=False):
+    skip_zero_gradients=None):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -1983,7 +1981,13 @@ def ComputeGradients(
     skip_zero_gradients: Whether to skip aggregating zero gradients. This helps
       in case where some weights may not be used in forward computation, e.g.,
       sparsely activated networks or switchable layers in neural architectural
-      search.
+      search. Only applicable on TPU.
+      Possible values are:
+        * None: do not skip zero gradients;
+        * 'variable': skip if the entire variable's gradients are almost zero;
+          reduce_sum(abs(grads)) < 1e-8.
+        * 'weight': skip if the individual weight's gradients are almost zero:
+          abs(grad) < 1e-8.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -1995,6 +1999,7 @@ def ComputeGradients(
   """
   loss = HasRank(loss, 0)
   assert isinstance(vmap, NestedMap)
+  assert skip_zero_gradients in (None, 'variable', 'weight')
 
   # Uniqify and remove None.
   filtered_vmap = vmap.Filter(_Unique())
@@ -2024,10 +2029,8 @@ def ComputeGradients(
   else:
     # tpu vs non-tpu is slightly different.
     if use_tpu():
-      if skip_zero_gradients:
-        take_grad = _ComputeGradientsTpuNas
-      else:
-        take_grad = _ComputeGradientsTpu
+      take_grad = functools.partial(
+          _ComputeGradientsTpu, skip_zero_gradients=skip_zero_gradients)
     else:
       take_grad = ComputeGradientsSimple
 
