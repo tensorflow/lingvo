@@ -114,6 +114,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":decoder",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo/core:base_layer",
         "//lingvo/core:input_generator_helper",

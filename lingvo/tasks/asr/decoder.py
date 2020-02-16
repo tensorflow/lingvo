@@ -1420,6 +1420,7 @@ class AsrDecoder(AsrDecoderBase):
             atten_probs,
     })
     other_states = py_utils.NestedMap({
+        'time_step': tf.constant(0),
         'rnn_states': rnn_states,
         'all_atten_states': all_atten_states,
         'fusion_states': fusion_states,
@@ -1505,6 +1506,7 @@ class AsrDecoder(AsrDecoderBase):
         'atten_states': atten_states,
     })
     new_states = py_utils.NestedMap({
+        'time_step': states.time_step + 1,
         'rnn_states': rnn_states,
         'all_atten_states': all_atten_states,
         'fusion_states': fusion_states,

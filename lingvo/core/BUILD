@@ -51,7 +51,9 @@ py_library(
     deps = [
         ":base_layer",
         ":beam_search_helper",
+        ":py_utils",
         ":target_sequence_sampler",
+        "//lingvo:compat",
     ],
 )
 

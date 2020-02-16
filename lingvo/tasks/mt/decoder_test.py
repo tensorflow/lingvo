@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import input_generator_helper as ig_helper
@@ -188,7 +189,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
         CompareToGoldenSingleFloat(self, 2.772613, actual_loss)
 
 
-class DecoderTest(DecoderTestCaseBase):
+class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
   def testDecoderConstruction(self):
     p = self._DecoderParams()
@@ -272,6 +273,69 @@ class DecoderTest(DecoderTestCaseBase):
 
     expected_topk_lens = [1, 2, 0, 0]
     expected_topk_scores = [[-3.783162, -5.767723], [0., 0.]]
+
+    self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
+    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+
+  @parameterized.named_parameters(
+      ('Bias0ConsistentFalse', 0., False),
+      ('Bias0ConsistentTrue', 0., True),
+      ('Bias1ConsistentFalse', 1., False),
+      ('Bias1ConsistentTrue', 1., True),
+  )
+  def testBeamSearchDecodeBiased(self, bias, bias_only_if_consistent):
+    dtype = tf.float32
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.set_random_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      p.bias_only_if_consistent = bias_only_if_consistent
+      p.target_seq_len = 6
+      p.beam_search.num_hyps_per_beam = 2
+      p.rnn_cell_dim = 32
+      dec = p.Instantiate()
+      encoder_outputs, _ = self._Inputs(dtype=dtype)
+      encoder_outputs['targets'] = py_utils.NestedMap(
+          labels=tf.constant([[1, 3, 0, 0], [3, 4, 5, 2]]),
+          paddings=tf.constant([[0, 0, 1, 1], [0, 0, 0, 0]], dtype=dtype))
+      encoder_outputs['targets']['weights'] = tf.fill(
+          tf.shape(encoder_outputs.targets.labels), bias)
+      decode = dec.BeamSearchDecodeBiased(encoder_outputs)
+
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      tf.global_variables_initializer().run()
+      actual_decode = sess.run(decode)
+
+    num_hyps = src_batch * p.beam_search.num_hyps_per_beam
+    self.assertTupleEqual((p.target_seq_len, num_hyps),
+                          actual_decode.done_hyps.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_hyps.shape)
+    self.assertTupleEqual((num_hyps, p.target_seq_len),
+                          actual_decode.topk_ids.shape)
+    self.assertTupleEqual((num_hyps,), actual_decode.topk_lens.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_scores.shape)
+
+    if bias == 0:
+      expected_topk_ids = [[2, 0, 0, 0, 0, 0], [13, 2, 0, 0, 0, 0],
+                           [0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0]]
+      expected_topk_lens = [1, 2, 0, 0]
+      expected_topk_scores = [[-3.783162, -5.767723], [0., 0.]]
+    elif bias == 1 and bias_only_if_consistent:
+      expected_topk_ids = [[1, 3, 2, 0, 0, 0], [1, 3, 13, 2, 0, 0],
+                           [3, 4, 5, 2, 0, 0], [0, 0, 0, 0, 0, 0]]
+      expected_topk_lens = [3, 4, 4, 0]
+      expected_topk_scores = [[-3.073836, -5.474799], [-0.415888, 0.]]
+    elif bias == 1 and (not bias_only_if_consistent):
+      expected_topk_ids = [[1, 3, 2, 0, 0, 0], [1, 3, 13, 2, 0, 0],
+                           [3, 4, 5, 2, 0, 0], [3, 4, 0, 2, 0, 0]]
+      expected_topk_lens = [3, 4, 4, 4]
+      expected_topk_scores = [[-3.073836, -5.474799], [-0.415888, -23.295631]]
 
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
