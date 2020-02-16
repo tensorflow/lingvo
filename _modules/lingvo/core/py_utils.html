@@ -167,6 +167,7 @@
 
 <span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
+<span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
@@ -1993,39 +1994,12 @@
   <span class="k">return</span> <span class="n">send_gradient_op</span></div>
 
 
-<div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                         <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.&quot;&quot;&quot;</span>
-  <span class="c1"># Scale the loss to account for the full batch size.</span>
-  <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
-  <span class="k">assert</span> <span class="n">shards</span>
-  <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-
-  <span class="c1"># Computes the gradients.</span>
-  <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
-  <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                                     <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-                                     <span class="n">gate_gradients</span><span class="p">)</span>
-
-  <span class="c1"># NOTE: We can&#39;t use tpu_optimizer.CrossShardOptimizer since</span>
-  <span class="c1"># we need to scale the grads *after* the cross_replica_sum to</span>
-  <span class="c1"># match GPU version!</span>
-  <span class="c1"># TODO(cwhipkey): should we do something different here? - we could do</span>
-  <span class="c1"># some operations on the gradients before the aggregation (see comments in</span>
-  <span class="c1"># tensorflow/contrib/tpu/python/tpu/tpu_optimizer.py - see compute_gradients -</span>
-  <span class="c1"># for some more details).</span>
-  <span class="n">aggregated_grads</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">all_grads</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
-        <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">))</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">aggregated_grads</span></div>
-
-
-<div class="viewcode-block" id="_ComputeGradientsTpuNas"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpuNas">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpuNas</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
-                            <span class="n">colocate_gradients_with_ops</span><span class="p">,</span> <span class="n">gate_gradients</span><span class="p">):</span>
+<div class="viewcode-block" id="_ComputeGradientsTpu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ComputeGradientsTpu">[docs]</a><span class="k">def</span> <span class="nf">_ComputeGradientsTpu</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span>
+                         <span class="n">all_vars</span><span class="p">,</span>
+                         <span class="n">grad_aggregation_method</span><span class="p">,</span>
+                         <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+                         <span class="n">gate_gradients</span><span class="p">,</span>
+                         <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.</span>
 
 <span class="sd">  This implementation specializes for the case where weight params maybe used</span>
@@ -2043,10 +2017,20 @@
 <span class="sd">    colocate_gradients_with_ops: boolean, whether or not to colocate gradient op</span>
 <span class="sd">      with the original op.</span>
 <span class="sd">    gate_gradients: boolean, flag to be passed to tf.gradients.</span>
+<span class="sd">    skip_zero_gradients: whether to skip zero gradients during aggregation.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    gradients to be passed back.</span>
+<span class="sd">    Gradients to be passed back.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: upon invalid arguments.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_zero_gradients</span><span class="p">:</span>
+    <span class="c1"># Scale the loss to account for the full batch size.</span>
+    <span class="n">shards</span> <span class="o">=</span> <span class="n">tpu_function</span><span class="o">.</span><span class="n">get_tpu_context</span><span class="p">()</span><span class="o">.</span><span class="n">number_of_shards</span>
+    <span class="k">assert</span> <span class="n">shards</span>
+    <span class="n">loss</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">shards</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">loss</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
   <span class="c1"># Computes the gradients.</span>
   <span class="c1"># Sum the grads so that we can compute statistics across the whole batch.</span>
   <span class="n">all_grads</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">all_vars</span><span class="p">,</span> <span class="n">grad_aggregation_method</span><span class="p">,</span>
@@ -2064,20 +2048,34 @@
 
   <span class="n">aggregated_grads</span> <span class="o">=</span> <span class="p">[]</span>
   <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">all_grads</span><span class="p">:</span>
-    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+      <span class="k">continue</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">skip_zero_gradients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># loss is already scaled by 1/shards.</span>
+        <span class="n">normalized_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Compute the cross-replica mean of &#39;g&#39;, skipping zero gradients.</span>
+
         <span class="c1"># Q(yonghui): Is there a better way to detect a non-zero gradient?</span>
-        <span class="c1"># Note(yonghui): gradient of a weight param can be all zero if that</span>
-        <span class="c1"># weight param is not used in the forward computation, e.g. as in</span>
-        <span class="c1"># switchable layers in neural architecture search.</span>
-        <span class="n">zero_threshold</span> <span class="o">=</span> <span class="mf">1e-8</span>
-        <span class="n">g_is_non_zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">g</span><span class="p">))</span> <span class="o">&gt;</span> <span class="n">zero_threshold</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="c1"># Note(yonghui): gradient of a weight can be zero if that</span>
+        <span class="c1"># weight is not used in the forward computation, e.g. as in</span>
+        <span class="c1"># switchable layers in neural architecture search, pruned by channel</span>
+        <span class="c1"># mask, or sparsified.</span>
+        <span class="k">if</span> <span class="n">skip_zero_gradients</span> <span class="o">==</span> <span class="s1">&#39;weight&#39;</span><span class="p">:</span>
+          <span class="c1"># Same shape as &#39;g&#39;.</span>
+          <span class="n">g_is_non_zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mf">1e-8</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">skip_zero_gradients</span> <span class="o">==</span> <span class="s1">&#39;variable&#39;</span><span class="p">:</span>
+          <span class="c1"># A variable-wide 0/1 scalar.</span>
+          <span class="n">g_is_non_zero</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">g</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mf">1e-24</span><span class="p">,</span> <span class="n">g</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown skip_zero_gradients: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                           <span class="n">skip_zero_gradients</span><span class="p">)</span>
         <span class="n">num_updates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g_is_non_zero</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">)</span>
         <span class="n">normalized_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_updates</span>
-        <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normalized_g</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+      <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">normalized_g</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">aggregated_grads</span></div>
 
 
@@ -2109,7 +2107,7 @@
     <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -2128,7 +2126,13 @@
 <span class="sd">    skip_zero_gradients: Whether to skip aggregating zero gradients. This helps</span>
 <span class="sd">      in case where some weights may not be used in forward computation, e.g.,</span>
 <span class="sd">      sparsely activated networks or switchable layers in neural architectural</span>
-<span class="sd">      search.</span>
+<span class="sd">      search. Only applicable on TPU.</span>
+<span class="sd">      Possible values are:</span>
+<span class="sd">        * None: do not skip zero gradients;</span>
+<span class="sd">        * &#39;variable&#39;: skip if the entire variable&#39;s gradients are almost zero;</span>
+<span class="sd">          reduce_sum(abs(grads)) &lt; 1e-8.</span>
+<span class="sd">        * &#39;weight&#39;: skip if the individual weight&#39;s gradients are almost zero:</span>
+<span class="sd">          abs(grad) &lt; 1e-8.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
@@ -2140,6 +2144,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">loss</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
   <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vmap</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">skip_zero_gradients</span> <span class="ow">in</span> <span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;variable&#39;</span><span class="p">,</span> <span class="s1">&#39;weight&#39;</span><span class="p">)</span>
 
   <span class="c1"># Uniqify and remove None.</span>
   <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">_Unique</span><span class="p">())</span>
@@ -2169,10 +2174,8 @@
   <span class="k">else</span><span class="p">:</span>
     <span class="c1"># tpu vs non-tpu is slightly different.</span>
     <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
-      <span class="k">if</span> <span class="n">skip_zero_gradients</span><span class="p">:</span>
-        <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpuNas</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">take_grad</span> <span class="o">=</span> <span class="n">_ComputeGradientsTpu</span>
+      <span class="n">take_grad</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
+          <span class="n">_ComputeGradientsTpu</span><span class="p">,</span> <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">skip_zero_gradients</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">take_grad</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span>
 

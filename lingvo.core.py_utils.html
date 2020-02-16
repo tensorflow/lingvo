@@ -1233,13 +1233,7 @@ the loading rules.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils._ComputeGradientsTpu">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">all_vars</em>, <em class="sig-param">grad_aggregation_method</em>, <em class="sig-param">colocate_gradients_with_ops</em>, <em class="sig-param">gate_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
-<dd><p>Computes gradients for local loss across whole TPU cluster.</p>
-</dd></dl>
-
-<dl class="function">
-<dt id="lingvo.core.py_utils._ComputeGradientsTpuNas">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpuNas</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">all_vars</em>, <em class="sig-param">grad_aggregation_method</em>, <em class="sig-param">colocate_gradients_with_ops</em>, <em class="sig-param">gate_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpuNas"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpuNas" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">all_vars</em>, <em class="sig-param">grad_aggregation_method</em>, <em class="sig-param">colocate_gradients_with_ops</em>, <em class="sig-param">gate_gradients</em>, <em class="sig-param">skip_zero_gradients=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients for local loss across whole TPU cluster.</p>
 <p>This implementation specializes for the case where weight params maybe used
 for different number of times in the forward computation, so that gradients
@@ -1256,10 +1250,14 @@ tf.gradients.</p></li>
 <li><p><strong>colocate_gradients_with_ops</strong> – boolean, whether or not to colocate gradient op
 with the original op.</p></li>
 <li><p><strong>gate_gradients</strong> – boolean, flag to be passed to tf.gradients.</p></li>
+<li><p><strong>skip_zero_gradients</strong> – whether to skip zero gradients during aggregation.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>gradients to be passed back.</p>
+<dd class="field-even"><p>Gradients to be passed back.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – upon invalid arguments.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1279,7 +1277,7 @@ with the original op.</p></li>
 
 <dl class="function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">grad_aggregation_method=1</em>, <em class="sig-param">colocate_gradients_with_ops=True</em>, <em class="sig-param">gate_gradients=False</em>, <em class="sig-param">compute_gradients_fn=None</em>, <em class="sig-param">skip_zero_gradients=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">grad_aggregation_method=1</em>, <em class="sig-param">colocate_gradients_with_ops=True</em>, <em class="sig-param">gate_gradients=False</em>, <em class="sig-param">compute_gradients_fn=None</em>, <em class="sig-param">skip_zero_gradients=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1296,10 +1294,21 @@ operations. This avoids some race conditions.</p></li>
 <li><p><strong>compute_gradients_fn</strong> – Function to use to compute gradients. If None, use
 default. compute_gradients_fn should have the same signature as this
 function, but without the last argument.</p></li>
-<li><p><strong>skip_zero_gradients</strong> – Whether to skip aggregating zero gradients. This helps
+<li><p><strong>skip_zero_gradients</strong> – <p>Whether to skip aggregating zero gradients. This helps
 in case where some weights may not be used in forward computation, e.g.,
 sparsely activated networks or switchable layers in neural architectural
-search.</p></li>
+search. Only applicable on TPU.
+Possible values are:</p>
+<blockquote>
+<div><ul>
+<li><p>None: do not skip zero gradients;</p></li>
+<li><p>’variable’: skip if the entire variable’s gradients are almost zero;
+reduce_sum(abs(grads)) &lt; 1e-8.</p></li>
+<li><p>’weight’: skip if the individual weight’s gradients are almost zero:
+abs(grad) &lt; 1e-8.</p></li>
+</ul>
+</div></blockquote>
+</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

@@ -231,11 +231,15 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;colocate_gradients_with_ops&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;If True, try colocating gradients with the corresponding op.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;skip_zero_gradients&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;If True, skips aggregating zero gradients while computing gradients.&#39;</span>
+        <span class="s1">&#39;skip_zero_gradients&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If set, skips aggregating zero gradients while computing gradients.&#39;</span>
         <span class="s1">&#39;This helps in case where some weights may not be used in forward &#39;</span>
         <span class="s1">&#39;computation, e.g., sparsely activated networks or switchable layers &#39;</span>
-        <span class="s1">&#39;in neural architectural search.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;in neural architectural search. &#39;</span>
+        <span class="s1">&#39;Possible values are: &#39;</span>
+        <span class="s1">&#39;None: do not skip zero gradients; &#39;</span>
+        <span class="s1">&#39;&quot;variable&quot;: skip if the entire variable gradients are almost zero; &#39;</span>
+        <span class="s1">&#39;&quot;weight&quot;: skip if the individual weight gradients are almost zero.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
