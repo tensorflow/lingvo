@@ -1565,6 +1565,7 @@
             <span class="n">atten_probs</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">other_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="s1">&#39;rnn_states&#39;</span><span class="p">:</span> <span class="n">rnn_states</span><span class="p">,</span>
         <span class="s1">&#39;all_atten_states&#39;</span><span class="p">:</span> <span class="n">all_atten_states</span><span class="p">,</span>
         <span class="s1">&#39;fusion_states&#39;</span><span class="p">:</span> <span class="n">fusion_states</span><span class="p">,</span>
@@ -1650,6 +1651,7 @@
         <span class="s1">&#39;atten_states&#39;</span><span class="p">:</span> <span class="n">atten_states</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+        <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">states</span><span class="o">.</span><span class="n">time_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
         <span class="s1">&#39;rnn_states&#39;</span><span class="p">:</span> <span class="n">rnn_states</span><span class="p">,</span>
         <span class="s1">&#39;all_atten_states&#39;</span><span class="p">:</span> <span class="n">all_atten_states</span><span class="p">,</span>
         <span class="s1">&#39;fusion_states&#39;</span><span class="p">:</span> <span class="n">fusion_states</span><span class="p">,</span>

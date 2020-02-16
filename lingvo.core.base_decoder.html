@@ -395,6 +395,26 @@ a padded timestep.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="method">
+<dt id="lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeBiased">
+<code class="sig-name descname">BeamSearchDecodeBiased</code><span class="sig-paren">(</span><em class="sig-param">encoder_outputs</em>, <em class="sig-param">num_hyps_per_beam_override=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_decoder.html#BaseBeamSearchDecoder.BeamSearchDecodeBiased"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_decoder.BaseBeamSearchDecoder.BeamSearchDecodeBiased" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs beam-search decoding while biasing towards provided targets.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder. Must include <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code>,
+which is used to bias beam search.</p></li>
+<li><p><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
+ignored. If set to a value &gt; 0, then this value will be used to override
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>BeamSearchDecodeOutput, a namedtuple containing the decode results.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 </div>
