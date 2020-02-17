@@ -277,5 +277,60 @@ class ConvLayerTest(test_utils.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
+class GlobalPoolingLayerTest(test_utils.TestCase):
+  """Tests for GlobalPoolingLayer."""
+
+  def _testHelper(self, pooling_type, inputs, input_paddings, expected_output,
+                  expected_output_padding):
+    param = conv_layers_with_time_padding.GlobalPoolingLayer.Params().Set(
+        name='test_layer', pooling_type=pooling_type)
+    pooling_layer = param.Instantiate()
+    with self.session(use_gpu=True) as sess:
+      inputs = tf.convert_to_tensor(inputs, dtype=tf.float32)
+      input_paddings = None if input_paddings is None else tf.convert_to_tensor(
+          input_paddings, dtype=tf.float32)
+      output, output_paddings = pooling_layer.FPropDefaultTheta(
+          inputs, input_paddings)
+      tf.global_variables_initializer().run()
+      if input_paddings is None:
+        self.assertIsNone(output_paddings)
+        output_val = sess.run(output)
+      else:
+        output_val, output_paddings_val = sess.run([output, output_paddings])
+
+    self.assertAllClose(expected_output, output_val)
+    if input_paddings is not None:
+      self.assertAllEqual(expected_output_padding, output_paddings_val)
+
+  def testPooling(self):
+    inputs = np.random.random([3, 5, 2, 4]) - 0.5
+    expected_avg_output = np.mean(inputs, axis=(1, 2), keepdims=True)
+    expected_max_output = np.amax(inputs, axis=(1, 2), keepdims=True)
+    self._testHelper('AVG', inputs, None, expected_avg_output, None)
+    self._testHelper('MAX', inputs, None, expected_max_output, None)
+
+  def testPoolingWithPadding(self):
+    inputs = np.random.random([4, 3, 2, 4]) - 0.5
+    paddings = np.array([[0, 0, 0], [0, 0, 1], [0, 1, 1], [1, 1, 1]])
+    expected_paddings = np.array([[0], [0], [0], [1]])
+    expected_avg_output = np.array([
+        np.mean(inputs[0][:3], axis=(0, 1), keepdims=True),
+        np.mean(inputs[1][:2], axis=(0, 1), keepdims=True),
+        np.mean(inputs[2][:1], axis=(0, 1), keepdims=True),
+        np.zeros((1, 1, 4))
+    ])
+    expected_max_output = np.array([
+        np.amax(inputs[0][:3], axis=(0, 1), keepdims=True),
+        np.amax(inputs[1][:2], axis=(0, 1), keepdims=True),
+        np.amax(inputs[2][:1], axis=(0, 1), keepdims=True),
+        np.zeros((1, 1, 4))
+    ])
+
+    self._testHelper('AVG', inputs, paddings, expected_avg_output,
+                     expected_paddings)
+    self._testHelper('MAX', inputs, paddings, expected_max_output,
+                     expected_paddings)
+
+
 if __name__ == '__main__':
   tf.test.main()

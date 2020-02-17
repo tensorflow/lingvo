@@ -572,3 +572,58 @@ class PaddingLayer(base_layer.BaseLayer):
   def FProp(self, theta, inputs, paddings):
     paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
     return inputs * (1.0 - paddings_expanded), paddings
+
+
+class GlobalPoolingLayer(base_layer.BaseLayer):
+  """Padding aware global pooling."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GlobalPoolingLayer, cls).Params()
+    p.Define('pooling_type', 'MAX', 'Pooling type: MAX|AVG')
+    return p
+
+  def FProp(self, theta, inputs, paddings):
+    """Apply global spatial pooling to inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor. It is expected to be of shape [batch, time,
+        frequency, channel]. The time dimension corresponds to the height
+        dimension as in images and the frequency dimension corresponds to the
+        width dimension as in images.
+      paddings: The paddings tensor. It is expected to be of shape [batch,
+        time]. Defaults to None, which means there no paddings.
+
+    Returns:
+      outputs, out_paddings pair.
+       - outputs: has shape [batch, 1, 1, channel].
+       - out_paddings: None or has shape [batch, 1].
+    """
+    p = self.params
+    assert p.pooling_type in ['MAX', 'AVG'], p.pooling_type
+    b, t, f, _ = py_utils.GetShape(inputs)
+
+    if paddings is not None:
+      paddings = py_utils.HasShape(paddings, [b, t])
+
+    if paddings is not None:
+      mask = 1.0 - paddings[..., tf.newaxis, tf.newaxis]
+    else:
+      mask = tf.ones([b, t, 1, 1], p.dtype)
+    if p.pooling_type == 'AVG':
+      global_sum = tf.reduce_sum(inputs * mask, axis=[1, 2], keepdims=True)
+      count = f * tf.reduce_sum(mask, axis=[1, 2], keep_dims=True)
+      out_feature = global_sum / tf.maximum(1.0, count)
+    elif p.pooling_type == 'MAX':
+      large_negative = (
+          tf.ones_like(inputs) * p.dtype.max * tf.constant(-0.7, dtype=p.dtype))
+      padded_inputs = tf.where_v2(mask > 0.0, inputs, large_negative)
+      out_feature = tf.reduce_max(padded_inputs, axis=[1, 2], keep_dims=True)
+    if paddings is None:
+      out_paddings = None
+    else:
+      out_paddings = tf.reduce_min(paddings, axis=1, keep_dims=True)
+      out_feature *= 1.0 - out_paddings[..., tf.newaxis, tf.newaxis]
+    return out_feature, out_paddings
