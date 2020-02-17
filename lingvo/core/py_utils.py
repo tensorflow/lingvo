@@ -1983,10 +1983,11 @@ def ComputeGradients(
       sparsely activated networks or switchable layers in neural architectural
       search. Only applicable on TPU.
       Possible values are:
+
         * None: do not skip zero gradients;
-        * 'variable': skip if the entire variable's gradients are almost zero;
+        * `variable`: skip if the entire variable's gradients are almost zero;
           reduce_sum(abs(grads)) < 1e-8.
-        * 'weight': skip if the individual weight's gradients are almost zero:
+        * `weight`: skip if the individual weight's gradients are almost zero:
           abs(grad) < 1e-8.
 
   Returns:
