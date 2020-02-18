@@ -166,6 +166,7 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">distributed_shampoo</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 
@@ -428,6 +429,107 @@
 
 <div class="viewcode-block" id="Accumulator.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_opt</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="DistributedShampoo"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo">[docs]</a><span class="k">class</span> <span class="nc">DistributedShampoo</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Approximates full-matrix AdaGrad per layer.</span>
+
+<span class="sd">  Approximates full-matrix AdaGrad with kronecker-products of two statistics</span>
+<span class="sd">  matrices based on only the first-order gradients of the layer.</span>
+
+<span class="sd">  &quot;Second-order optimization made practical.&quot;, 2019</span>
+<span class="sd">  Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="DistributedShampoo.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DistributedShampoo</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;momentum&#39;</span><span class="p">,</span> <span class="mf">0.9</span><span class="p">,</span> <span class="s1">&#39;Momentum parameter.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;start_preconditioning_steps&#39;</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span>
+                  <span class="s1">&#39;When to start approximate full matrix preconditioning.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_accumulator_value&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span>
+                  <span class="s1">&#39;Initial accumulator value.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_size&#39;</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span> <span class="s1">&#39;Block size for partitioning.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_partition_threshold_size&#39;</span><span class="p">,</span> <span class="mi">1000000</span><span class="p">,</span>
+                  <span class="s1">&#39;Threshold for block partitioning.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_any_dim&#39;</span><span class="p">,</span> <span class="mi">8192</span><span class="p">,</span>
+                  <span class="s1">&#39;max dimension before skipping preconditioning altogether.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;matrix_epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span>
+                  <span class="s1">&#39;Minimum eigen value used to improve the conditioning.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;second_moment_averaging&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span>
+        <span class="s1">&#39;Averaging coefficient, with special case of (1.0) means sum &#39;</span>
+        <span class="s1">&#39;of squares while less than 1.0 is RMSProp style moving&#39;</span>
+        <span class="s1">&#39; average modification.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fallback_to_diagonal_dim&#39;</span><span class="p">,</span> <span class="mi">4096</span><span class="p">,</span>
+        <span class="s1">&#39;If any dimension is larger than this value, the optimizer falls back&#39;</span>
+        <span class="s1">&#39; to the diagonal.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;statistics_computation_frequency&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="s1">&#39;How often to compute statistics. Greater than 1 speeds up training.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="n">distributed_shampoo</span><span class="o">.</span><span class="n">DistributedShampoo</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="o">=</span><span class="n">lr</span><span class="p">,</span>
+        <span class="n">momentum</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">momentum</span><span class="p">,</span>
+        <span class="n">start_preconditioning_steps</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">start_preconditioning_steps</span><span class="p">,</span>
+        <span class="n">initial_accumulator_value</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">initial_accumulator_value</span><span class="p">,</span>
+        <span class="n">matrix_epsilon</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">matrix_epsilon</span><span class="p">,</span>
+        <span class="n">statistics_computation_frequency</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">params</span><span class="o">.</span><span class="n">statistics_computation_frequency</span><span class="p">),</span>
+        <span class="n">second_moment_averaging</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">second_moment_averaging</span><span class="p">,</span>
+        <span class="n">max_any_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">max_any_dim</span><span class="p">,</span>
+        <span class="n">block_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
+        <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      lr: A scalar. The base learning rate.</span>
+<span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The variable update op.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_Apply</span><span class="p">():</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span>
+          <span class="p">[(</span><span class="n">g</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;meta_backprop&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_resource_variables</span><span class="p">():</span>
+      <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Many optimizers, e.g., Adam, Adagrad, etc., create</span>
+      <span class="c1"># variables. We need to ensure name scope and variable scope are</span>
+      <span class="c1"># cleared. Otherwise, tpu.batch_parallel does not work.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
+          <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">var_update_op</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies any computation to run after each tpu trainining loop.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: Global step variable.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Ops to run after training loop ends.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">invoke_async_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">invoke_async_preconditioner_computation</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="n">assign_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="o">.</span><span class="n">assign_preconditioner_to_host_vars</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">invoke_async_ops</span><span class="p">,</span> <span class="n">assign_ops</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;distributed_shampoo&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

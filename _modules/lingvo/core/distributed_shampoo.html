@@ -1,0 +1,857 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.distributed_shampoo &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.distributed_shampoo</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.distributed_shampoo</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Implementation for distributed Shampoo optimizer.&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">matrix_functions</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span> <span class="k">as</span> <span class="n">x_ops</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">math_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">state_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.training</span> <span class="kn">import</span> <span class="n">optimizer</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
+
+<div class="viewcode-block" id="PartitionConfig"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionConfig">[docs]</a><span class="k">class</span> <span class="nc">PartitionConfig</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Config for tensor partitioning.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_dim_size</span><span class="p">,</span> <span class="n">partition_size</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize the `PartitionConfig`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      max_dim_size: Partitions dimensions with size greater than this value.</span>
+<span class="sd">      partition_size: Size of each partition</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_dim_size</span> <span class="o">=</span> <span class="n">max_dim_size</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">partition_size</span> <span class="o">=</span> <span class="n">partition_size</span></div>
+
+
+<div class="viewcode-block" id="PartitionMetadata"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionMetadata">[docs]</a><span class="k">class</span> <span class="nc">PartitionMetadata</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Metadata for partitioning.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split_sizes_per_dim</span><span class="p">,</span> <span class="n">num_splits_per_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initialize the `PartitionMetadata`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      split_sizes_per_dim: Split sizes per dimemsion.</span>
+<span class="sd">      num_splits_per_dim: Number of splits per dimension ( inferred from</span>
+<span class="sd">        split_sizes_per_dim).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">split_sizes_per_dim</span> <span class="o">=</span> <span class="n">split_sizes_per_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_dim</span> <span class="o">=</span> <span class="n">num_splits_per_dim</span></div>
+
+
+<div class="viewcode-block" id="TensorPartitioner"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner">[docs]</a><span class="k">class</span> <span class="nc">TensorPartitioner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shards Tensor&#39;s across its axis.</span>
+
+<span class="sd">  In cases of TPUs, these partitions are zero cost, and does not involve data</span>
+<span class="sd">  movement.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TensorPartitioner.partition_metadata"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner.partition_metadata">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">partition_metadata</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tensor</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns metadata required for partitioning and reforming tensors.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      tensor: Tensor to partition.</span>
+<span class="sd">      partition_info: Partitioning info.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      split_sizes_per_dim and num_splits_per_dim.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+    <span class="c1"># Split if dim is greater than max_dim.</span>
+    <span class="n">axis_to_shard</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span> <span class="o">&gt;</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">max_dim_size</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]</span>
+    <span class="n">split_sizes_per_dim</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Compute the number of splits, and the sizes of the splits for</span>
+    <span class="c1"># each dimension</span>
+    <span class="k">for</span> <span class="n">sharded</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">axis_to_shard</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+      <span class="n">dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+      <span class="n">split_sizes_per_dim</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">dim</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">sharded</span><span class="p">:</span>
+        <span class="n">split_sizes</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_shards</span> <span class="o">=</span> <span class="n">dim</span> <span class="o">//</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">partition_size</span>
+        <span class="k">if</span> <span class="n">num_shards</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">split_sizes</span> <span class="o">=</span> <span class="p">[</span><span class="n">partition_info</span><span class="o">.</span><span class="n">partition_size</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_shards</span>
+          <span class="n">last_shard_size</span> <span class="o">=</span> <span class="n">dim</span> <span class="o">%</span> <span class="n">partition_info</span><span class="o">.</span><span class="n">partition_size</span>
+          <span class="k">if</span> <span class="n">last_shard_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">split_sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">last_shard_size</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">split_sizes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dim</span><span class="p">)</span>
+        <span class="n">split_sizes_per_dim</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">split_sizes</span>
+    <span class="n">num_splits_per_dim</span> <span class="o">=</span> <span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">split_sizes_per_dim</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">PartitionMetadata</span><span class="p">(</span><span class="n">split_sizes_per_dim</span><span class="p">,</span> <span class="n">num_splits_per_dim</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="TensorPartitioner.partition_tensor"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner.partition_tensor">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">partition_tensor</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">tensor</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns partitioned tensors.&quot;&quot;&quot;</span>
+    <span class="n">metadata</span> <span class="o">=</span> <span class="p">(</span><span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_metadata</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">))</span>
+    <span class="c1"># Split from last to first axis.</span>
+    <span class="n">partitioned_tensors</span> <span class="o">=</span> <span class="p">[</span><span class="n">tensor</span><span class="p">]</span>
+    <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">num_splits_per_dim</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">raxis</span><span class="p">,</span> <span class="p">(</span><span class="n">num_splits</span><span class="p">,</span> <span class="n">sizes</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+        <span class="nb">zip</span><span class="p">(</span>
+            <span class="nb">reversed</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">num_splits_per_dim</span><span class="p">),</span>
+            <span class="nb">reversed</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">split_sizes_per_dim</span><span class="p">))):</span>
+      <span class="k">if</span> <span class="n">num_splits</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tmp_partitioned_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">partitioned_tensors</span><span class="p">:</span>
+          <span class="n">tmp_partitioned_tensors</span> <span class="o">+=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+              <span class="n">item</span><span class="p">,</span> <span class="n">sizes</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">rank</span> <span class="o">-</span> <span class="n">raxis</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">partitioned_tensors</span> <span class="o">=</span> <span class="n">tmp_partitioned_tensors</span>
+    <span class="k">return</span> <span class="n">partitioned_tensors</span></div>
+
+<div class="viewcode-block" id="TensorPartitioner.reform_tensor"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner.reform_tensor">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">reform_tensor</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">partitioned_tensors</span><span class="p">,</span> <span class="n">num_splits_per_dim</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a tensor concatenated from the given partitions.&quot;&quot;&quot;</span>
+    <span class="c1"># Concatenates tensors across all dimension. Assumes the `partitions` tensor</span>
+    <span class="c1"># was created by partition_tensor.</span>
+    <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">num_splits</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">num_splits_per_dim</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">num_splits</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="n">tmp_partitioned_tensors</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">num_concat</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_tensors</span><span class="p">)</span> <span class="o">//</span> <span class="n">num_splits</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_concat</span><span class="p">):</span>
+          <span class="n">tensors_to_concat</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">partitioned_tensors</span><span class="p">[</span><span class="n">i</span> <span class="o">*</span> <span class="n">num_splits</span><span class="p">:(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_splits</span><span class="p">])</span>
+          <span class="n">tmp_partitioned_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">tensors_to_concat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">))</span>
+        <span class="n">partitioned_tensors</span> <span class="o">=</span> <span class="n">tmp_partitioned_tensors</span>
+    <span class="k">return</span> <span class="n">partitioned_tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div></div>
+
+
+<div class="viewcode-block" id="DistributedShampoo"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo">[docs]</a><span class="k">class</span> <span class="nc">DistributedShampoo</span><span class="p">(</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Approximates full-matrix AdaGrad per layer.</span>
+
+<span class="sd">  Approximates full-matrix AdaGrad with kronecker-products of two statistics</span>
+<span class="sd">  matrices based on only the first-order gradients of the layer.</span>
+
+<span class="sd">  &quot;Second-order optimization made practical.&quot;, 2019</span>
+<span class="sd">  Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">learning_rate</span><span class="p">,</span>
+               <span class="n">momentum</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+               <span class="n">initial_accumulator_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+               <span class="n">start_preconditioning_steps</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span>
+               <span class="n">statistics_computation_frequency</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+               <span class="n">matrix_epsilon</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+               <span class="n">synchronous_preconditioning</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">second_moment_averaging</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+               <span class="n">fallback_to_diagonal_dim</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+               <span class="n">max_any_dim</span><span class="o">=</span><span class="mi">6656</span><span class="p">,</span>
+               <span class="n">block_size</span><span class="o">=</span><span class="mi">4096</span><span class="p">,</span>
+               <span class="n">block_partition_threshold_size</span><span class="o">=</span><span class="mi">1000000</span><span class="p">,</span>
+               <span class="n">global_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">exponent_multiplier</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+               <span class="n">name</span><span class="o">=</span><span class="s2">&quot;DistributedShampoo&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct a DistributedShampoo optimizer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      learning_rate: A `Tensor` or a floating point value.  The learning rate.</span>
+<span class="sd">      momentum: A `Tensor` or a floating point value. Momentum is not applied to</span>
+<span class="sd">        sparse updates.</span>
+<span class="sd">      initial_accumulator_value: A floating point value.</span>
+<span class="sd">      start_preconditioning_steps: A int32 value which indicates when to start</span>
+<span class="sd">        preconditioning.</span>
+<span class="sd">      statistics_computation_frequency: A int32 step value which indicates how</span>
+<span class="sd">        often to compute statistics for preconditioning.</span>
+<span class="sd">      matrix_epsilon: An epsilon regularizer to make the matrices positive</span>
+<span class="sd">        definite.</span>
+<span class="sd">      synchronous_preconditioning: Whether to run preconditioning synchronously.</span>
+<span class="sd">      second_moment_averaging: 1.0 means sum of gradients squares, while less</span>
+<span class="sd">        than 1.0 switches to RMSProp style exponential moving averages of the</span>
+<span class="sd">        second moments.</span>
+<span class="sd">      fallback_to_diagonal_dim: Fallback to diagonal version of AFMA if the any</span>
+<span class="sd">        of the dimension is larger than fallback_to_diagonal_dim.</span>
+<span class="sd">      max_any_dim: If maximum value for any dimension is greater than this value</span>
+<span class="sd">        we skip preconditioning and fall back to the diagonal.</span>
+<span class="sd">      block_size: Dimension of the partitioned tensors.</span>
+<span class="sd">      block_partition_threshold_size: Partitions diemnsions beyond this size.</span>
+<span class="sd">      global_step: Global step for training.</span>
+<span class="sd">      exponent_multiplier: A multiplier &#39;e` for the exponent for the inverse</span>
+<span class="sd">        calculation. e * -1/(2*rank). Only applies when calculating inverses</span>
+<span class="sd">        through svd.</span>
+<span class="sd">      name: Optional name prefix for the operations created when applying</span>
+<span class="sd">        gradients.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DistributedShampoo</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">=</span> <span class="n">momentum</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_initial_accumulator_value</span> <span class="o">=</span> <span class="n">initial_accumulator_value</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_start_preconditioning_steps</span> <span class="o">=</span> <span class="n">start_preconditioning_steps</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_matrix_epsilon</span> <span class="o">=</span> <span class="n">matrix_epsilon</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_synchronous_preconditioning</span> <span class="o">=</span> <span class="n">synchronous_preconditioning</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_second_moment_averaging</span> <span class="o">=</span> <span class="n">second_moment_averaging</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_dim</span> <span class="o">=</span> <span class="n">fallback_to_diagonal_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_max_any_dim</span> <span class="o">=</span> <span class="n">max_any_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_block_size</span> <span class="o">=</span> <span class="n">block_size</span>
+    <span class="c1"># NOTE: On XLA - int64 is not handled properly.</span>
+    <span class="k">if</span> <span class="n">global_step</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">get_or_create_global_step</span><span class="p">()),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_run_nondiagonal_update</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_preconditioning_steps</span><span class="p">)</span>
+    <span class="n">start_steps_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_start_preconditioning_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="n">global_step_f</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_run_nondiagonal_update_warmup</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+        <span class="mf">1.0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">((</span><span class="n">global_step_f</span> <span class="o">-</span> <span class="n">start_steps_f</span><span class="p">)</span> <span class="o">/</span> <span class="n">start_steps_f</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">))</span>
+    <span class="c1"># Computes statistics every K steps.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_computation_frequency</span> <span class="o">=</span> <span class="n">statistics_computation_frequency</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_run_statistics_computation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_computation_frequency</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># All vars that are preconditioned.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars_for_preconditioning</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_exponent_multiplier</span> <span class="o">=</span> <span class="n">exponent_multiplier</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span> <span class="o">=</span> <span class="n">PartitionConfig</span><span class="p">(</span><span class="n">block_partition_threshold_size</span><span class="p">,</span>
+                                           <span class="n">block_size</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_partitioner_metadata</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="DistributedShampoo._fallback_to_diagonal_for_shape"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._fallback_to_diagonal_for_shape">[docs]</a>  <span class="k">def</span> <span class="nf">_fallback_to_diagonal_for_shape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns whether we should fallback to the diagonal update given shape.&quot;&quot;&quot;</span>
+    <span class="c1"># We fallback to diagonal for the following usecases:</span>
+    <span class="c1">#</span>
+    <span class="c1"># (a) Rank &lt;= 1 tensors</span>
+    <span class="c1"># (b) if any dim of Tensor is &gt; max_any_dim.</span>
+    <span class="c1"># (c) if all dims are 1 or are greater than fallback_to_diagonal_dim</span>
+    <span class="c1">#</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">d</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_max_any_dim</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]):</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="nb">all</span><span class="p">([</span><span class="n">d</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]):</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._preconditioner_available_for_dims"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._preconditioner_available_for_dims">[docs]</a>  <span class="k">def</span> <span class="nf">_preconditioner_available_for_dims</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns indicator vector if preconditioner exists for each axis.&quot;&quot;&quot;</span>
+    <span class="c1"># If any of the dims &lt; fallback_to_diagonal_dim and not 1, we run a</span>
+    <span class="c1"># a preconditioner for that particular dimension.</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">d</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_dim</span> <span class="ow">and</span> <span class="n">d</span> <span class="o">!=</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._preconditioner_indices"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._preconditioner_indices">[docs]</a>  <span class="k">def</span> <span class="nf">_preconditioner_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns indices of the available preconditioner.&quot;&quot;&quot;</span>
+    <span class="n">preconditioners_available_for_dims</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">shape</span><span class="p">))</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">index</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">for</span> <span class="n">is_avail_for_dim_i</span> <span class="ow">in</span> <span class="n">preconditioners_available_for_dims</span><span class="p">:</span>
+      <span class="n">indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">is_avail_for_dim_i</span><span class="p">:</span>
+        <span class="n">index</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">indices</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._make_named_slot"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._make_named_slot">[docs]</a>  <span class="k">def</span> <span class="nf">_make_named_slot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">slot_name</span><span class="p">):</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_make_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">slot_name</span><span class="p">,</span>
+                               <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">slot_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.make_named_zeros_slot"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo.make_named_zeros_slot">[docs]</a>  <span class="k">def</span> <span class="nf">make_named_zeros_slot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">slot_name</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_zeros_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">slot_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">slot_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._generalized_inverse_pth_root"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._generalized_inverse_pth_root">[docs]</a>  <span class="k">def</span> <span class="nf">_generalized_inverse_pth_root</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_t</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+    <span class="n">input_t_f64</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">input_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">s</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">svd</span><span class="p">(</span>
+        <span class="n">input_t_f64</span> <span class="o">+</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">eye</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_t_f64</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span> <span class="o">*</span> <span class="n">epsilon</span><span class="p">,</span>
+        <span class="n">full_matrices</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">inv_s</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">pow</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">exponent</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">)),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">val</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">u</span> <span class="o">*</span> <span class="n">inv_s</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">adjoint_b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">u</span> <span class="o">-</span> <span class="n">v</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._specialized_inverse_pth_root"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._specialized_inverse_pth_root">[docs]</a>  <span class="k">def</span> <span class="nf">_specialized_inverse_pth_root</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_t</span><span class="p">,</span> <span class="n">exponent</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-12</span><span class="p">):</span>
+    <span class="n">input_t_f64</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">input_t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float64</span><span class="p">)</span>
+    <span class="n">val</span><span class="p">,</span> <span class="n">error</span> <span class="o">=</span> <span class="n">matrix_functions</span><span class="o">.</span><span class="n">inlined_matrix_inverse_pth_root</span><span class="p">(</span>
+        <span class="n">input_t_f64</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_t_f64</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">exponent</span><span class="p">,</span>
+        <span class="n">iter_count</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+        <span class="n">ridge_epsilon</span><span class="o">=</span><span class="n">epsilon</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="n">error</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._inverse_pth_root_graph"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._inverse_pth_root_graph">[docs]</a>  <span class="k">def</span> <span class="nf">_inverse_pth_root_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">):</span>
+    <span class="n">graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">with</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">exponent_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;exponent&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="p">[])</span>
+      <span class="c1"># Apply exponent multiplier.</span>
+      <span class="n">exponent_t</span> <span class="o">=</span> <span class="n">exponent_t</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exponent_multiplier</span>
+      <span class="n">input_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;input&quot;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+      <span class="c1"># For p = 2, 4 or 8, we use the iterative Newton-Schur method for</span>
+      <span class="c1"># computing the inverse-pth root.</span>
+      <span class="n">either_p_2_4_8</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">exponent_t</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">exponent_t</span><span class="p">,</span> <span class="mi">4</span><span class="p">)),</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">exponent_t</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+      <span class="c1"># 4096 is the larger dimension SVD is tractable for.</span>
+      <span class="n">greater_than_4096</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">input_t</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">4096</span><span class="p">)</span>
+      <span class="n">run_specialized_iterative_method</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">greater_than_4096</span><span class="p">,</span>
+                                                        <span class="n">either_p_2_4_8</span><span class="p">)</span>
+      <span class="n">specialized_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_specialized_inverse_pth_root</span><span class="p">,</span>
+                                         <span class="n">input_t</span><span class="p">,</span> <span class="n">exponent_t</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+      <span class="n">generalized_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_generalized_inverse_pth_root</span><span class="p">,</span>
+                                         <span class="n">input_t</span><span class="p">,</span> <span class="n">exponent_t</span><span class="p">,</span> <span class="n">epsilon</span><span class="p">)</span>
+      <span class="n">output</span><span class="p">,</span> <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">run_specialized_iterative_method</span><span class="p">,</span> <span class="n">specialized_fn</span><span class="p">,</span>
+                             <span class="n">generalized_fn</span><span class="p">)</span>
+
+      <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="s2">&quot;output&quot;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span> <span class="s2">&quot;diff&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">graph</span><span class="o">.</span><span class="n">as_graph_def</span><span class="p">()</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._create_slots"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._create_slots">[docs]</a>  <span class="k">def</span> <span class="nf">_create_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_compute_graphdef</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inverse_pth_root_graph</span><span class="p">(</span>
+        <span class="n">epsilon</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_matrix_epsilon</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_make_named_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span>
+                            <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_initial_accumulator_value</span><span class="p">,</span>
+                            <span class="s2">&quot;accumulator&quot;</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">make_named_zeros_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;momentum&quot;</span><span class="p">)</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_partitioner_metadata</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">=</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_metadata</span><span class="p">(</span>
+          <span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span><span class="p">)</span>
+      <span class="n">partitioned_v</span> <span class="o">=</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_tensor</span><span class="p">(</span>
+          <span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_for_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars_for_preconditioning</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">make_named_zeros_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;precond_grad_momentum&quot;</span><span class="p">)</span>
+        <span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">pt_v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">):</span>
+          <span class="n">pt_v_shape</span> <span class="o">=</span> <span class="n">pt_v</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+          <span class="n">preconditioner_exists_for_dim</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">pt_v_shape</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pt_v_shape</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+              <span class="n">mat_stat_init</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">d</span><span class="p">,</span> <span class="n">d</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">pt_v</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_make_named_slot</span><span class="p">(</span>
+                  <span class="n">v</span><span class="p">,</span> <span class="n">mat_stat_init</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">))</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_make_named_slot</span><span class="p">(</span>
+                  <span class="n">v</span><span class="p">,</span> <span class="n">mat_stat_init</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._prepare"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._prepare">[docs]</a>  <span class="k">def</span> <span class="nf">_prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">learning_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_if_callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">)</span>
+    <span class="n">momentum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_if_callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_momentum_tensor</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">momentum</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;momentum&quot;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.invoke_async_preconditioner_computation"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo.invoke_async_preconditioner_computation">[docs]</a>  <span class="k">def</span> <span class="nf">invoke_async_preconditioner_computation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step_int32</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Invokes SVD preconditioner and graph runs on the CPU.&quot;&quot;&quot;</span>
+    <span class="n">keys_stats_and_rank</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars_for_preconditioning</span><span class="p">:</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_for_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="n">partitioned_v</span> <span class="o">=</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_tensor</span><span class="p">(</span>
+            <span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span><span class="p">)</span>
+        <span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">pt_v</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">):</span>
+          <span class="n">pt_v_shape</span> <span class="o">=</span> <span class="n">pt_v</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+          <span class="n">preconditioner_exists_for_dim</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">pt_v_shape</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pt_v_shape</span><span class="p">)):</span>
+            <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+              <span class="n">rank</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">preconditioner_exists_for_dim</span><span class="p">)</span>
+              <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_for_var</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">)</span>
+              <span class="n">stat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span>
+                  <span class="n">var</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">))</span>
+              <span class="n">keys_stats_and_rank</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">stat</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">keys_stats_and_rank</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+    <span class="n">keys</span><span class="p">,</span> <span class="n">stats</span><span class="p">,</span> <span class="n">ranks</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">keys_stats_and_rank</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">x_ops</span><span class="o">.</span><span class="n">compute_preconditioners</span><span class="p">(</span>
+        <span class="n">stats</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.0</span> <span class="o">/</span> <span class="p">(</span><span class="mf">2.0</span> <span class="o">*</span> <span class="n">r</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ranks</span><span class="p">],</span>
+        <span class="n">global_step_int32</span><span class="p">,</span>
+        <span class="n">keys</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span>
+        <span class="n">sync</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_synchronous_preconditioning</span><span class="p">,</span>
+        <span class="n">preconditioner_compute_graphdef</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_compute_graphdef</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo.assign_preconditioner_to_host_vars"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo.assign_preconditioner_to_host_vars">[docs]</a>  <span class="k">def</span> <span class="nf">assign_preconditioner_to_host_vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Assign/Grab latest copy of preconditioners.&quot;&quot;&quot;</span>
+    <span class="n">keys_shapes_and_preconditioner_vars</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">assign_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_all_vars_for_preconditioning</span><span class="p">:</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_for_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+        <span class="n">partitioned_v</span> <span class="o">=</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_tensor</span><span class="p">(</span>
+            <span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span><span class="p">)</span>
+        <span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">pt</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">partitioned_v</span><span class="p">):</span>
+          <span class="n">pt_shape</span> <span class="o">=</span> <span class="n">pt</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+          <span class="n">preconditioner_exists_for_dim</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">))</span>
+          <span class="n">var_rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">var_rank</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+              <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_key_for_var</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">)</span>
+              <span class="n">preconditioner</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span>
+                  <span class="n">var</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">))</span>
+              <span class="n">keys_shapes_and_preconditioner_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                  <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">preconditioner</span><span class="p">),</span> <span class="n">preconditioner</span><span class="p">))</span>
+
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">keys_shapes_and_preconditioner_vars</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
+
+      <span class="n">keys</span><span class="p">,</span> <span class="n">shapes</span><span class="p">,</span> <span class="n">preconditioner_vars</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span>
+          <span class="o">*</span><span class="n">keys_shapes_and_preconditioner_vars</span><span class="p">)</span>
+
+      <span class="n">preconditioner_vals</span><span class="p">,</span> <span class="n">successes</span> <span class="o">=</span> <span class="n">x_ops</span><span class="o">.</span><span class="n">get_preconditioners</span><span class="p">(</span>
+          <span class="n">shapes</span><span class="p">,</span>
+          <span class="n">keys</span><span class="o">=</span><span class="n">keys</span><span class="p">,</span>
+          <span class="n">preconditioner_compute_graphdef</span><span class="o">=</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_compute_graphdef</span><span class="p">))</span>
+
+      <span class="k">for</span> <span class="n">preconditioner_var</span><span class="p">,</span> <span class="n">preconditioner_val</span><span class="p">,</span> <span class="n">success</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
+          <span class="n">preconditioner_vars</span><span class="p">,</span> <span class="n">preconditioner_vals</span><span class="p">,</span> <span class="n">successes</span><span class="p">):</span>
+        <span class="n">success_mult</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">success</span><span class="p">,</span> <span class="n">preconditioner</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">state_ops</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">preconditioner_var</span><span class="p">,</span>
+                             <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">success_mult</span><span class="p">)</span> <span class="o">*</span> <span class="n">preconditioner_var</span> <span class="o">+</span>
+                             <span class="n">success_mult</span> <span class="o">*</span> <span class="n">preconditioner_val</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">assign_ops</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._statistics_key_for_partition_and_dim"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._statistics_key_for_partition_and_dim">[docs]</a>  <span class="k">def</span> <span class="nf">_statistics_key_for_partition_and_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim_index</span><span class="p">,</span> <span class="n">partition_index</span><span class="p">,</span>
+                                            <span class="n">num_partitions</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">num_partitions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s2">&quot;mat_statistics_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dim_index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">partition_index</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_mat_statistics_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dim_index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._preconditioner_key_for_partition_and_dim"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._preconditioner_key_for_partition_and_dim">[docs]</a>  <span class="k">def</span> <span class="nf">_preconditioner_key_for_partition_and_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dim_index</span><span class="p">,</span>
+                                                <span class="n">partition_index</span><span class="p">,</span>
+                                                <span class="n">num_partitions</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">num_partitions</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="s2">&quot;mat_preconditioner_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dim_index</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">partition_index</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_mat_preconditioner_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dim_index</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._key_for_var"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._key_for_var">[docs]</a>  <span class="k">def</span> <span class="nf">_key_for_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">dim_index</span><span class="p">,</span> <span class="n">partition_index</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;P_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">partition_index</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_D_&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">dim_index</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;_&quot;</span> <span class="o">+</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._updated_statistics"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._updated_statistics">[docs]</a>  <span class="k">def</span> <span class="nf">_updated_statistics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns updated Shampoo statistics L_t, R_t, etc.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var: tf.Variable associated with the gradient.</span>
+<span class="sd">      partitioned_grads: Partitioned gradient tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A list of updated statistics matrices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">precond_statistics_update</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_grads</span><span class="p">)</span>
+    <span class="n">mat_stats</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">mat_grads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">mat_dims</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">pt_grad</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">partitioned_grads</span><span class="p">):</span>
+      <span class="n">pt_shape</span> <span class="o">=</span> <span class="n">pt_grad</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+      <span class="n">preconditioner_exists_for_dim</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">))</span>
+      <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">)</span>
+      <span class="c1"># Calculates the preconditioner statistics for each tensor.</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+          <span class="n">mat_stats</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span>
+                  <span class="n">var</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">)))</span>
+          <span class="n">mat_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pt_grad</span><span class="p">)</span>
+          <span class="n">mat_dims</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+    <span class="c1"># axes is the list of indices to reduce - everything but</span>
+    <span class="c1"># the current i.</span>
+    <span class="k">def</span> <span class="nf">_update_statistics</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">stat_var</span><span class="p">,</span> <span class="n">grad</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Update preconditioner statistics.&quot;&quot;&quot;</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s2">&quot;GradientStatistics&quot;</span><span class="p">):</span>
+        <span class="n">var_rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">get_shape</span><span class="p">())</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dim</span><span class="p">))</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">dim</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">var_rank</span><span class="p">))</span>
+        <span class="n">new_stat</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">axes</span><span class="p">))</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_second_moment_averaging</span> <span class="o">==</span> <span class="mf">1.0</span><span class="p">:</span>
+          <span class="n">updated_stat</span> <span class="o">=</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">stat_var</span><span class="p">,</span> <span class="n">new_stat</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">updated_stat</span> <span class="o">=</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span>
+              <span class="n">stat_var</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_second_moment_averaging</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">stat_var</span> <span class="o">+</span>
+              <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_second_moment_averaging</span><span class="p">)</span> <span class="o">*</span> <span class="n">new_stat</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">updated_stat</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_statistics_computation_frequency</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">mat_stat</span><span class="p">,</span> <span class="n">mat_grad</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mat_stats</span><span class="p">,</span> <span class="n">mat_grads</span><span class="p">,</span> <span class="n">mat_dims</span><span class="p">):</span>
+        <span class="n">precond_statistics_update</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="n">_update_statistics</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">mat_stat</span><span class="p">,</span> <span class="n">mat_grad</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+
+      <span class="c1"># NOTE: We rewrite tf.cond() as a while loop to avoid certain overheads</span>
+      <span class="c1"># in XLA from buffer allocation.</span>
+      <span class="k">def</span> <span class="nf">_loop_body</span><span class="p">(</span><span class="n">mat_stats</span><span class="p">,</span> <span class="n">mat_grads</span><span class="p">,</span> <span class="n">mat_dims</span><span class="p">,</span> <span class="n">unused_perform_step</span><span class="p">):</span>
+        <span class="n">precond_statistics_update_ops</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">mat_stat</span><span class="p">,</span> <span class="n">mat_grad</span><span class="p">,</span> <span class="n">dim</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">mat_stats</span><span class="p">,</span> <span class="n">mat_grads</span><span class="p">,</span> <span class="n">mat_dims</span><span class="p">):</span>
+          <span class="n">precond_statistics_update_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="n">_update_statistics</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">mat_stat</span><span class="p">,</span> <span class="n">mat_grad</span><span class="p">))</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">precond_statistics_update_ops</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+      <span class="n">loop_body_fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">_loop_body</span><span class="p">,</span> <span class="n">mat_stats</span><span class="p">,</span> <span class="n">mat_grads</span><span class="p">,</span>
+                                       <span class="n">mat_dims</span><span class="p">)</span>
+      <span class="n">precond_statistics_update</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">while_loop</span><span class="p">(</span><span class="k">lambda</span> <span class="n">perform_step</span><span class="p">:</span> <span class="n">perform_step</span><span class="p">,</span> <span class="n">loop_body_fn</span><span class="p">,</span>
+                        <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_statistics_computation</span><span class="p">]))</span>
+
+    <span class="k">return</span> <span class="n">precond_statistics_update</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._compute_preconditioned_raw_grad"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._compute_preconditioned_raw_grad">[docs]</a>  <span class="k">def</span> <span class="nf">_compute_preconditioned_raw_grad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns preconditioned gradient.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var: tf.Variable associated with the gradient.</span>
+<span class="sd">      partitioned_grads: Partitioned gradient tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A preconditioned gradient tensor.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">partitioned_preconditioned_grads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">num_partitions</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">partitioned_grads</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">pt_grad</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">partitioned_grads</span><span class="p">):</span>
+      <span class="n">pt_shape</span> <span class="o">=</span> <span class="n">pt_grad</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+      <span class="n">rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">)</span>
+      <span class="n">preconditioner_exists_for_dim</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_available_for_dims</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">))</span>
+      <span class="n">preconditioner_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_indices</span><span class="p">(</span><span class="n">pt_shape</span><span class="p">)</span>
+      <span class="n">mat_preconditioner_list</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+          <span class="n">mat_preconditioner_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span>
+                  <span class="n">var</span><span class="p">,</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioner_key_for_partition_and_dim</span><span class="p">(</span>
+                      <span class="n">i</span><span class="p">,</span> <span class="n">pt_idx</span><span class="p">,</span> <span class="n">num_partitions</span><span class="p">)))</span>
+      <span class="n">precond_grad</span> <span class="o">=</span> <span class="n">pt_grad</span>
+      <span class="k">if</span> <span class="n">rank</span> <span class="o">==</span> <span class="mi">2</span> <span class="ow">and</span> <span class="nb">all</span><span class="p">(</span><span class="n">preconditioner_exists_for_dim</span><span class="p">):</span>
+        <span class="c1"># Fast path for speedup.</span>
+        <span class="n">precond_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">mat_preconditioner_list</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">precond_grad</span><span class="p">),</span>
+            <span class="n">mat_preconditioner_list</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">rank</span><span class="p">):</span>
+          <span class="k">if</span> <span class="n">preconditioner_exists_for_dim</span><span class="p">[</span><span class="n">i</span><span class="p">]:</span>
+            <span class="n">precond_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tensordot</span><span class="p">(</span>
+                <span class="n">precond_grad</span><span class="p">,</span>
+                <span class="n">mat_preconditioner_list</span><span class="p">[</span><span class="n">preconditioner_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]],</span>
+                <span class="n">axes</span><span class="o">=</span><span class="p">([</span><span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># if preconditioner is not available we transpose it to</span>
+            <span class="c1"># permute the axis for the next preconditioner.</span>
+            <span class="n">precond_grad</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                <span class="n">precond_grad</span><span class="p">,</span> <span class="n">perm</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">rank</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">partitioned_preconditioned_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">precond_grad</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">reform_tensor</span><span class="p">(</span>
+        <span class="n">partitioned_preconditioned_grads</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_partitioner_metadata</span><span class="p">[</span><span class="n">var</span><span class="p">]</span><span class="o">.</span><span class="n">num_splits_per_dim</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._preconditioned_update"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._preconditioned_update">[docs]</a>  <span class="k">def</span> <span class="nf">_preconditioned_update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">,</span>
+                             <span class="n">diagonal_grad_update</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the matrix preconditioned update.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      var: Variable for which we are computing the preconditioned gradient.</span>
+<span class="sd">      partitioned_grads: Partitioned gradients.</span>
+<span class="sd">      diagonal_grad_update: Update as given by diagonal adagrad.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      scaled preconditioned gradient.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_l2_norm</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">v</span><span class="p">)))</span>
+
+    <span class="n">precond_grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compute_preconditioned_raw_grad</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">gbar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;precond_grad_momentum&quot;</span><span class="p">)</span>
+      <span class="n">matrix_preconditioned_grad</span> <span class="o">=</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span>
+          <span class="n">gbar</span><span class="p">,</span> <span class="n">gbar</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum_tensor</span> <span class="o">+</span> <span class="n">precond_grad</span> <span class="o">*</span>
+          <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum_tensor</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">matrix_preconditioned_grad</span> <span class="o">=</span> <span class="n">precond_grad</span>
+
+    <span class="c1"># We use the direction from Shampoo while using the step size scale from</span>
+    <span class="c1"># diagonal AdaGrad.</span>
+    <span class="n">precond_l2_norm</span> <span class="o">=</span> <span class="n">_l2_norm</span><span class="p">(</span><span class="n">matrix_preconditioned_grad</span><span class="p">)</span>
+    <span class="n">diagonal_l2_norm</span> <span class="o">=</span> <span class="n">_l2_norm</span><span class="p">(</span><span class="n">diagonal_grad_update</span><span class="p">)</span>
+    <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">precond_l2_norm</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">diagonal_l2_norm</span><span class="p">,</span> <span class="mf">1e-30</span><span class="p">)</span> <span class="o">/</span>
+        <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">precond_l2_norm</span><span class="p">,</span> <span class="mf">1e-30</span><span class="p">)),</span> <span class="mf">1.0</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">matrix_preconditioned_grad</span> <span class="o">*</span> <span class="n">multiplier</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._apply_dense"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._apply_dense">[docs]</a>  <span class="k">def</span> <span class="nf">_apply_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="c1"># Calculates the preconditioner statistics for each tensor.</span>
+    <span class="n">partitioned_grads</span> <span class="o">=</span> <span class="n">TensorPartitioner</span><span class="o">.</span><span class="n">partition_tensor</span><span class="p">(</span>
+        <span class="n">grad</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_partition_info</span><span class="p">)</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">var</span><span class="o">.</span><span class="n">get_shape</span><span class="p">()</span>
+    <span class="n">fallback_to_diagonal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fallback_to_diagonal_for_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+
+    <span class="n">precond_statistics_update</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fallback_to_diagonal</span><span class="p">:</span>
+      <span class="n">precond_statistics_update</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_updated_statistics</span><span class="p">(</span>
+          <span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">)</span>
+
+    <span class="n">accumulator</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;accumulator&quot;</span><span class="p">)</span>
+    <span class="n">accumulator_updated</span> <span class="o">=</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">accumulator</span><span class="p">,</span> <span class="n">grad</span> <span class="o">*</span> <span class="n">grad</span><span class="p">)</span>
+    <span class="n">accumulator_inv_sqrt</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">accumulator_updated</span> <span class="o">+</span> <span class="mf">1e-30</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">scaled_g</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_momentum_tensor</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">grad</span> <span class="o">*</span> <span class="n">accumulator_inv_sqrt</span><span class="p">)</span>
+      <span class="n">gbar</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;momentum&quot;</span><span class="p">)</span>
+      <span class="n">gbar_updated</span> <span class="o">=</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span>
+          <span class="n">gbar</span><span class="p">,</span>
+          <span class="n">gbar</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_momentum_tensor</span> <span class="o">-</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">+</span> <span class="n">scaled_g</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">gbar_updated</span> <span class="o">=</span> <span class="p">(</span><span class="n">grad</span> <span class="o">*</span> <span class="n">accumulator_inv_sqrt</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">fallback_to_diagonal</span><span class="p">:</span>
+      <span class="c1"># Update the preconditioner statistics followed by computing the</span>
+      <span class="c1"># preconditioned gradient.</span>
+      <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">precond_statistics_update</span><span class="p">):</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_run_nondiagonal_update</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">preconditioned_grad</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_preconditioned_update</span><span class="p">(</span>
+            <span class="n">var</span><span class="p">,</span> <span class="n">partitioned_grads</span><span class="p">,</span> <span class="n">gbar_updated</span><span class="p">)</span>
+        <span class="c1"># slowly adapt from diagonal to preconditioned gradient.</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_run_nondiagonal_update_warmup</span>
+        <span class="n">warmup_update</span> <span class="o">=</span> <span class="n">s</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">*</span> <span class="p">(</span>
+            <span class="n">w</span> <span class="o">*</span> <span class="n">preconditioned_grad</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">w</span><span class="p">)</span> <span class="o">*</span> <span class="n">gbar_updated</span><span class="p">)</span>
+        <span class="n">fallback_update</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">s</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">*</span> <span class="n">gbar_updated</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">warmup_update</span> <span class="o">+</span> <span class="n">fallback_update</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">state_ops</span><span class="o">.</span><span class="n">assign_sub</span><span class="p">(</span><span class="n">var</span><span class="p">,</span>
+                                  <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">*</span> <span class="n">gbar_updated</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._resource_apply_dense"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._resource_apply_dense">[docs]</a>  <span class="k">def</span> <span class="nf">_resource_apply_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_apply_dense</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span></div>
+
+  <span class="c1"># Sparse gradients are not handled currently and is part of future work.</span>
+<div class="viewcode-block" id="DistributedShampoo._resource_apply_sparse"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._resource_apply_sparse">[docs]</a>  <span class="k">def</span> <span class="nf">_resource_apply_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad_values</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">grad_indices</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DistributedShampoo._apply_sparse"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.DistributedShampoo._apply_sparse">[docs]</a>  <span class="k">def</span> <span class="nf">_apply_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

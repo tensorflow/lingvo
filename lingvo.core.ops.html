@@ -833,6 +833,59 @@ The value when the key is not found.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="function">
+<dt id="lingvo.core.ops.get_preconditioners">
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">get_preconditioners</code><span class="sig-paren">(</span><em class="sig-param">shapes</em>, <em class="sig-param">preconditioner_compute_graphdef</em>, <em class="sig-param">keys</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.get_preconditioners" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get preconditioners for Shampoo optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>shapes</strong> – A list of at least 1 <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with the same type in: <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>, <code class="xref py py-obj docutils literal notranslate"><span class="pre">int64</span></code>.
+A list of Tensors of type Tshape indicating the size of preconditioner.</p></li>
+<li><p><strong>preconditioner_compute_graphdef</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A graphdef which indicates the function to run.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>.
+A list of keys indicating the name of preconditioners.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects (outputs, statuses).</p>
+<p>outputs: A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">shapes</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>. A list of Tensors of type float32 which are the preconditioners.
+statuses: A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">shapes</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. A list of Tensors of type bool which are the preconditioner status.</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.ops.compute_preconditioners">
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">compute_preconditioners</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">exponents</em>, <em class="sig-param">global_step</em>, <em class="sig-param">preconditioner_compute_graphdef</em>, <em class="sig-param">keys</em>, <em class="sig-param">sync=False</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.compute_preconditioners" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute preconditioners for Shampoo optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>inputs</strong> – A list of at least 1 <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A list of Tensors of type float32, of statistic matrices.</p></li>
+<li><p><strong>exponents</strong> – A list with the same length as <code class="xref py py-obj docutils literal notranslate"><span class="pre">inputs</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> objects with type <code class="xref py py-obj docutils literal notranslate"><span class="pre">float32</span></code>.
+A list of scalar Tensors of type float32, exponent for matrix power.</p></li>
+<li><p><strong>global_step</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A scalar Tensor of type int32 which indicates the global step.</p></li>
+<li><p><strong>preconditioner_compute_graphdef</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A graphdef which indicates the function to run.</p></li>
+<li><p><strong>keys</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">strings</span></code>.
+A list of keys indicating the name of preconditioners.</p></li>
+<li><p><strong>sync</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#bool" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">bool</span></code></a>. Defaults to <a class="reference external" href="https://docs.python.org/3.7/library/constants.html#False" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">False</span></code></a>.
+Boolean indicating whether to run preconditioning in synchronous mode.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The created Operation.</p>
+</dd>
+</dl>
+</dd></dl>
+
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 <div class="toctree-wrapper compound">
