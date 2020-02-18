@@ -401,6 +401,53 @@ py_test(
 )
 
 py_library(
+    name = "matrix_functions",
+    srcs = ["matrix_functions.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core/ops",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "matrix_functions_test",
+    size = "small",
+    srcs = ["matrix_functions_test.py"],
+    deps = [
+        ":distributed_shampoo",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "distributed_shampoo",
+    srcs = ["distributed_shampoo.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":matrix_functions",
+        "//lingvo:compat",
+        "//lingvo/core/ops",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "distributed_shampoo_test",
+    size = "small",
+    srcs = ["distributed_shampoo_test.py"],
+    deps = [
+        ":distributed_shampoo",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "early_stop",
     srcs = ["early_stop.py"],
     srcs_version = "PY2AND3",
@@ -724,6 +771,7 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_layer",
+        ":distributed_shampoo",
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",

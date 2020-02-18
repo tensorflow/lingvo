@@ -60,3 +60,6 @@ bpe_words_to_ids = gen_x_ops.bpe_words_to_ids
 
 static_map_string_int = gen_x_ops.static_map_string_int
 static_map_int_string = gen_x_ops.static_map_int_string
+
+get_preconditioners = gen_x_ops.get_preconditioners
+compute_preconditioners = gen_x_ops.compute_preconditioners

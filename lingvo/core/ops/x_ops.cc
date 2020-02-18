@@ -682,5 +682,64 @@ vals: The list of values.
 unk: The value when the key is not found.
 )doc");
 
+REGISTER_OP("ComputePreconditioners")
+    .Input("inputs: num_tensors * float32")
+    .Input("exponents: num_tensors * float32")
+    .Input("global_step: int32")
+    .Attr("preconditioner_compute_graphdef: string")
+    .Attr("keys: list(string)")
+    .Attr("sync: bool = false")
+    .Attr("num_tensors: int >= 1")
+    .SetIsStateful()
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      return Status::OK();
+    })
+    .Doc(R"doc(
+Compute preconditioners for Shampoo optimizer.
+
+inputs: A list of Tensors of type float32, of statistic matrices.
+exponents: A list of scalar Tensors of type float32, exponent for matrix power.
+global_step: A scalar Tensor of type int32 which indicates the global step.
+preconditioner_compute_graphdef: A graphdef which indicates the function to run.
+keys: A list of keys indicating the name of preconditioners.
+sync: Boolean indicating whether to run preconditioning in synchronous mode.
+num_tensors: Number of tensor inputs.
+)doc");
+
+
+REGISTER_OP("GetPreconditioners")
+    .Input("shapes: num_tensors * Tshape")
+    .Output("outputs: num_tensors * float32")
+    .Output("statuses: num_tensors * bool")
+    .Attr("preconditioner_compute_graphdef: string")
+    .Attr("keys: list(string)")
+    .Attr("Tshape: {int32, int64} = DT_INT32")
+    .Attr("num_tensors: int >= 1")
+    .SetIsStateful()
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      std::vector<shape_inference::ShapeHandle> shapes;
+      if (c->input("shapes", &shapes).ok()) {
+        for (int i = 0; i < shapes.size(); ++i) {
+          shape_inference::ShapeHandle out;
+          TF_RETURN_IF_ERROR(c->MakeShapeFromShapeTensor(i, &out));
+          c->set_output(i, out);
+          c->set_output(shapes.size() + i, c->Scalar());
+        }
+      }
+      return Status::OK();
+    })
+    .Doc(R"doc(
+Get preconditioners for Shampoo optimizer.
+
+shapes: A list of Tensors of type Tshape indicating the size of preconditioner.
+outputs: A list of Tensors of type float32 which are the preconditioners.
+statuses: A list of Tensors of type bool which are the preconditioner status.
+preconditioner_compute_graphdef: A graphdef which indicates the function to run.
+keys: A list of keys indicating the name of preconditioners.
+Tshape: The data-type to use for shape.
+num_tensors: Number of tensor inputs.
+)doc");
+
+
 }  // namespace
 }  // namespace tensorflow

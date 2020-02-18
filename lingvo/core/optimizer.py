@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import distributed_shampoo
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 
@@ -283,3 +284,104 @@ class Accumulator(Base):
 
   def AddSummary(self, lr, optimizer, var_grad):
     return self._opt.AddSummary(lr, optimizer, var_grad)
+
+
+class DistributedShampoo(Base):
+  """Approximates full-matrix AdaGrad per layer.
+
+  Approximates full-matrix AdaGrad with kronecker-products of two statistics
+  matrices based on only the first-order gradients of the layer.
+
+  "Second-order optimization made practical.", 2019
+  Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.
+  """
+
+  @classmethod
+  def Params(cls):
+    params = super(DistributedShampoo, cls).Params()
+    params.Define('momentum', 0.9, 'Momentum parameter.')
+    params.Define('start_preconditioning_steps', 1000,
+                  'When to start approximate full matrix preconditioning.')
+    params.Define('initial_accumulator_value', 0.0,
+                  'Initial accumulator value.')
+    params.Define('block_size', 4096, 'Block size for partitioning.')
+    params.Define('block_partition_threshold_size', 1000000,
+                  'Threshold for block partitioning.')
+    params.Define('max_any_dim', 8192,
+                  'max dimension before skipping preconditioning altogether.')
+    params.Define('matrix_epsilon', 1e-6,
+                  'Minimum eigen value used to improve the conditioning.')
+    params.Define(
+        'second_moment_averaging', 1.0,
+        'Averaging coefficient, with special case of (1.0) means sum '
+        'of squares while less than 1.0 is RMSProp style moving'
+        ' average modification.')
+    params.Define(
+        'fallback_to_diagonal_dim', 4096,
+        'If any dimension is larger than this value, the optimizer falls back'
+        ' to the diagonal.')
+    params.Define(
+        'statistics_computation_frequency', 1,
+        'How often to compute statistics. Greater than 1 speeds up training.')
+    return params
+
+  def GetOptimizer(self, lr):
+    params = self.params
+    return distributed_shampoo.DistributedShampoo(
+        learning_rate=lr,
+        momentum=params.momentum,
+        start_preconditioning_steps=params.start_preconditioning_steps,
+        initial_accumulator_value=params.initial_accumulator_value,
+        matrix_epsilon=params.matrix_epsilon,
+        statistics_computation_frequency=(
+            params.statistics_computation_frequency),
+        second_moment_averaging=params.second_moment_averaging,
+        max_any_dim=params.max_any_dim,
+        block_size=params.block_size,
+        global_step=self.theta.global_step)
+
+  def Apply(self, lr, var_grad):
+    """Applies the gradient to the variable.
+
+    Args:
+      lr: A scalar. The base learning rate.
+      var_grad: A `.NestedMap` of (var, grad) pairs.
+
+    Returns:
+      The variable update op.
+    """
+    self._optimizer = self.GetOptimizer(lr)
+
+    def _Apply():
+      return self._optimizer.apply_gradients(
+          [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
+
+    if not py_utils.use_resource_variables():
+      var_update_op = _Apply()
+    else:
+      # Many optimizers, e.g., Adam, Adagrad, etc., create
+      # variables. We need to ensure name scope and variable scope are
+      # cleared. Otherwise, tpu.batch_parallel does not work.
+      with tf.name_scope(None):
+        with tf.variable_scope(
+            tf.VariableScope(use_resource=True, reuse=False)):
+          var_update_op = _Apply()
+    self.AddSummary(lr, self._optimizer, var_grad)
+    return var_update_op
+
+  def ApplyPostTrainingLoop(self, global_step):
+    """Applies any computation to run after each tpu trainining loop.
+
+    Args:
+      global_step: Global step variable.
+
+    Returns:
+      Ops to run after training loop ends.
+    """
+    invoke_async_ops = self._optimizer.invoke_async_preconditioner_computation(
+        tf.cast(global_step, tf.int32))
+    assign_ops = self._optimizer.assign_preconditioner_to_host_vars()
+    return tf.group(*[invoke_async_ops, assign_ops])
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('distributed_shampoo', lr)

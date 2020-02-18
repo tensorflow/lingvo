@@ -61,6 +61,7 @@ cc_library(
         ":best_step_op_kernels",
         ":functional_ops_kernels",
         ":generic_input_op_kernels",
+        ":preconditioner_op_kernels",
         ":random_ops_kernels",
         ":static_map_op",
         ":tokenizer_ops_kernels",
@@ -342,6 +343,39 @@ py_test(
         ":ops",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+lingvo_cc_library(
+    name = "preconditioner_captain",
+    srcs = ["preconditioner_captain.cc"],
+    hdrs = ["preconditioner_captain.h"],
+    deps = [
+        # Implicit tensorflow core_cpu dependency.
+        # Implicit tensorflow C++ proto dependency.
+    ],
+)
+
+custom_kernel_library(
+    name = "preconditioner_op_kernels",
+    srcs = ["preconditioner_op_kernels.cc"],
+    op_def_lib = [":x_ops"],
+    deps = [
+        ":preconditioner_captain",
+    ],
+)
+
+py_test(
+    name = "preconditioner_op_kernels_test",
+    srcs = ["preconditioner_op_kernels_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":ops",
+        "//lingvo/core:test_helper",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
         # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],

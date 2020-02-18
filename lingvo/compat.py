@@ -211,6 +211,7 @@ string_split = tf1.string_split
 strings.reduce_join = reduce_join
 strings.split = tf1.strings.split
 string_to_hash_bucket_fast = tf1.string_to_hash_bucket_fast
+svd = tf1.svd
 Summary = tf1.Summary
 if tf1.summary is not None:
   # tf.summary are not supported on TPU so we sometimes set tf.summary to None
@@ -234,6 +235,7 @@ to_float = tf1.to_float
 to_int32 = tf1.to_int32
 to_int64 = tf1.to_int64
 tpu = tf1.tpu
+no_op = tf1.no_op
 train.AdadeltaOptimizer = tf1.train.AdadeltaOptimizer
 train.AdagradOptimizer = tf1.train.AdagradOptimizer
 train.AdamOptimizer = tf1.train.AdamOptimizer
