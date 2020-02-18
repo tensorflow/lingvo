@@ -196,6 +196,7 @@ reverse_sequence = tf1.reverse_sequence
 RunMetadata = tf1.RunMetadata
 RunOptions = tf1.RunOptions
 saved_model.build_signature_def = tf1.saved_model.build_signature_def
+saved_model.Builder = tf1.saved_model.Builder
 saved_model.load = tf1.saved_model.load
 saved_model.loader = tf1.saved_model.loader
 saved_model.signature_constants = tf1.saved_model.signature_constants
