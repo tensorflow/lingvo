@@ -2817,5 +2817,28 @@ class ForLoopTest(test_utils.TestCase):
     self.assertAllClose(np.pi * np.pi / 6, value, rtol=1e-3)
 
 
+class TopKTest(test_utils.TestCase):
+
+  def test_top_2(self):
+    with self.session() as sess:
+      x_in = tf.random.normal([4, 5, 6, 8])
+      top2_value_a, top2_index_a = py_utils.TopK(x_in, 2)
+      top2_value_b, top2_index_b = tf.math.top_k(x_in, 2)
+      v1, v2 = sess.run([top2_value_a, top2_value_b])
+      v3, v4 = sess.run([top2_index_a, top2_index_b])
+      self.assertAllEqual(v1, v2)
+      self.assertAllEqual(v3, v4)
+
+  def test_top_1(self):
+    with self.session() as sess:
+      x_in = tf.random.normal([4, 5, 6, 8])
+      top1_value_a, top1_index_a = py_utils.TopK(x_in, 1)
+      top1_value_b, top1_index_b = tf.math.top_k(x_in, 1)
+      v1, v2 = sess.run([top1_value_a, top1_value_b])
+      v3, v4 = sess.run([top1_index_a, top1_index_b])
+      self.assertAllEqual(v1, v2)
+      self.assertAllEqual(v3, v4)
+
+
 if __name__ == '__main__':
   tf.test.main()

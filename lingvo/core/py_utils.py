@@ -3952,3 +3952,33 @@ def ForLoop(body, start, limit, delta, loop_state):
     return state
 
   return WhileLoop(LoopCond, LoopBody, state).loop_state
+
+
+def TopK(x_in, k):
+  """Equivalent to tf.math.top_k(x_in, k) but more efficient on tpu."""
+  assert k <= 2, 'This implementation is only efficient for small k.'
+  # TODO(yonghui): Try out an alternative idea where we first reshape x_in as a
+  # 2d tensor, then call tf.math.top_k, and then reshape back.
+  x_in_shape = x_in.shape
+  x_rank = x_in_shape.rank
+  assert x_rank and x_in_shape.as_list()[x_rank - 1] > 0
+  last_dim_size = x_in_shape.as_list()[x_rank - 1]
+  min_value = tf.math.reduce_min(x_in) - 1.0
+
+  out_indices = []
+  out_values = []
+
+  for unused_i in range(k):
+    index_i = tf.math.argmax(x_in, axis=-1, output_type=tf.int32)
+    mask_i = tf.one_hot(index_i, last_dim_size)
+    # TODO(yonghui): Would tf.gather be more efficient and numerically stable
+    # here?
+    value_i = tf.reduce_sum(mask_i * x_in, -1, keepdims=True)
+    x_in = (1.0 - mask_i) * x_in + mask_i * min_value
+    out_indices.append(tf.expand_dims(index_i, -1))
+    out_values.append(value_i)
+
+  if k == 1:
+    return out_values[0], out_indices[0]
+  else:
+    return tf.concat(out_values, x_rank - 1), tf.concat(out_indices, x_rank - 1)
