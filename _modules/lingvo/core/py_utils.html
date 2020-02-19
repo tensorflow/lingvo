@@ -4097,6 +4097,36 @@
     <span class="k">return</span> <span class="n">state</span>
 
   <span class="k">return</span> <span class="n">WhileLoop</span><span class="p">(</span><span class="n">LoopCond</span><span class="p">,</span> <span class="n">LoopBody</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span><span class="o">.</span><span class="n">loop_state</span></div>
+
+
+<div class="viewcode-block" id="TopK"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.TopK">[docs]</a><span class="k">def</span> <span class="nf">TopK</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Equivalent to tf.math.top_k(x_in, k) but more efficient on tpu.&quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">k</span> <span class="o">&lt;=</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;This implementation is only efficient for small k.&#39;</span>
+  <span class="c1"># TODO(yonghui): Try out an alternative idea where we first reshape x_in as a</span>
+  <span class="c1"># 2d tensor, then call tf.math.top_k, and then reshape back.</span>
+  <span class="n">x_in_shape</span> <span class="o">=</span> <span class="n">x_in</span><span class="o">.</span><span class="n">shape</span>
+  <span class="n">x_rank</span> <span class="o">=</span> <span class="n">x_in_shape</span><span class="o">.</span><span class="n">rank</span>
+  <span class="k">assert</span> <span class="n">x_rank</span> <span class="ow">and</span> <span class="n">x_in_shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
+  <span class="n">last_dim_size</span> <span class="o">=</span> <span class="n">x_in_shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()[</span><span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">x_in</span><span class="p">)</span> <span class="o">-</span> <span class="mf">1.0</span>
+
+  <span class="n">out_indices</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">out_values</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="k">for</span> <span class="n">unused_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+    <span class="n">index_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">mask_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">index_i</span><span class="p">,</span> <span class="n">last_dim_size</span><span class="p">)</span>
+    <span class="c1"># TODO(yonghui): Would tf.gather be more efficient and numerically stable</span>
+    <span class="c1"># here?</span>
+    <span class="n">value_i</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask_i</span> <span class="o">*</span> <span class="n">x_in</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">x_in</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">mask_i</span><span class="p">)</span> <span class="o">*</span> <span class="n">x_in</span> <span class="o">+</span> <span class="n">mask_i</span> <span class="o">*</span> <span class="n">min_value</span>
+    <span class="n">out_indices</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">index_i</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+    <span class="n">out_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value_i</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">out_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">out_values</span><span class="p">,</span> <span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">out_indices</span><span class="p">,</span> <span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
