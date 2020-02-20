@@ -481,6 +481,20 @@
     <span class="k">return</span> <span class="n">tensor</span></div>
 
 
+<div class="viewcode-block" id="HasAtLeastRank"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasAtLeastRank">[docs]</a><span class="k">def</span> <span class="nf">HasAtLeastRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has rank &gt;= expected_rank.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_rank</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">&gt;=</span> <span class="n">expected_rank</span><span class="p">,</span> <span class="p">(</span>
+        <span class="s1">&#39;Rank of tensor </span><span class="si">%d</span><span class="s1"> did not exceed the expected value </span><span class="si">%d</span><span class="s1">.&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="p">(</span>
+            <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tensor</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span> <span class="n">tensor</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tensor</span></div>
+
+
 <div class="viewcode-block" id="GetRank"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetRank">[docs]</a><span class="k">def</span> <span class="nf">GetRank</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns tensor&#39;s rank as an int if it&#39;s available, otherwise a Tensor.</span>
 
