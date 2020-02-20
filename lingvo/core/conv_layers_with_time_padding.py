@@ -614,6 +614,7 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
       mask = tf.ones([b, t, 1, 1], p.dtype)
     if p.pooling_type == 'AVG':
       global_sum = tf.reduce_sum(inputs * mask, axis=[1, 2], keepdims=True)
+      f = tf.cast(tf.convert_to_tensor(f), p.dtype)
       count = f * tf.reduce_sum(mask, axis=[1, 2], keep_dims=True)
       out_feature = global_sum / tf.maximum(1.0, count)
     elif p.pooling_type == 'MAX':
