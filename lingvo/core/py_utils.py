@@ -336,6 +336,20 @@ def HasRank(tensor, expected_rank):
     return tensor
 
 
+def HasAtLeastRank(tensor, expected_rank):
+  """Syntactic sugar for asserting that tensor has rank >= expected_rank."""
+  if tensor.shape.ndims is not None and isinstance(expected_rank, int):
+    assert tensor.shape.ndims >= expected_rank, (
+        'Rank of tensor %d did not exceed the expected value %d.') % (
+            tensor.shape.ndims, expected_rank)
+    return tensor
+  if _FromGlobal('enable_asserts'):
+    return with_dependencies(
+        [tf.assert_greater_equal(tf.rank(tensor), expected_rank)], tensor)
+  else:
+    return tensor
+
+
 def GetRank(tensor):
   """Returns tensor's rank as an int if it's available, otherwise a Tensor.
 

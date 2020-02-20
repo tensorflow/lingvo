@@ -435,6 +435,34 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertAllEqual(read_x, [[1, 2], [3, 4]])
     self.assertAllEqual(read_y, [10] * 4)
 
+  def testTensorRank(self):
+    a = tf.constant([1])
+    self.assertIsInstance(py_utils.HasRank(a, 1), tf.Tensor)
+    self.assertIsInstance(py_utils.HasAtLeastRank(a, 1), tf.Tensor)
+
+    b = tf.constant([[1, 2]])
+    self.assertIsInstance(py_utils.HasRank(b, 2), tf.Tensor)
+    self.assertIsInstance(py_utils.HasAtLeastRank(b, 1), tf.Tensor)
+    self.assertIsInstance(py_utils.HasAtLeastRank(b, 2), tf.Tensor)
+    with self.assertRaises(Exception):
+      py_utils.HasAtLeastRank(b, 3)
+
+    c = tf.placeholder(tf.int32, shape=None)
+    d = py_utils.HasAtLeastRank(c, 3)
+    with self.session() as sess:
+      d_v = sess.run(d, feed_dict={c: np.array([[[1, 2]]])})
+      self.assertAllEqual([[[1, 2]]], d_v)
+      with self.assertRaises(Exception):
+        sess.run(d, feed_dict={c: np.array([[1, 2]])})
+
+  def testTensorRankDisableAsserts(self):
+    FLAGS.enable_asserts = False
+    c = tf.placeholder(tf.int32, shape=None)
+    d = py_utils.HasAtLeastRank(c, 3)
+    with self.session() as sess:
+      d_v = sess.run(d, feed_dict={c: np.array([[1, 2]])})
+      self.assertAllEqual([[1, 2]], d_v)
+
   def testGetShape(self):
     a = tf.constant([1])
     self.assertEqual(py_utils.GetShape(a), [1])
