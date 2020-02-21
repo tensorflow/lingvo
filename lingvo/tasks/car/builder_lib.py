@@ -32,7 +32,6 @@ import numpy as np
 import six
 from six.moves import zip
 
-
 # Keys for NestedMap for points: points, features, and padding.
 POINTS_KEY = 'points'
 FEATURES_KEY = 'features'
@@ -244,6 +243,26 @@ class ModelBuilderBase(object):
   def _ApplyFnMulti(self, name, fn, *subs):
     """A common use case where every branch produces a single output tensor."""
     return self._Par(name, fn, *subs)
+
+  def _ApplyInParallelAndMerge(self, name, merge_fn, *subs):
+    """Applies the subs in parallel to the given input and merges their outputs.
+
+    Args:
+      name: String layer name.
+      merge_fn: Function to merge the outputs of `subs`, which will be a
+        flattened list of subs outputs. For example, if there were 3 subs with
+        outputs (out1,), (out21, out22), (out31, out32), the output will be
+        [out1, out21, out22, out31, out32].
+      *subs: Modules to be applied in parallel to the input
+
+    Returns:
+      Params for this layer.
+    """
+
+    return self._Seq(
+        name,
+        self._Join('parallel_subs', *subs),
+        self._ApplyFn('merge', merge_fn))
 
   def _ApplyFn(self, name, fn):
     """Apply fn over the input tuple."""
