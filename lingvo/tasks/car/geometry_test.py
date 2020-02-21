@@ -296,7 +296,7 @@ class GeometryTest(test_utils.TestCase):
     p = tf.constant([[.5, .5], [-1., -3], [-1., 1.]], dtype=tf.float32)
     with self.session() as sess:
       actual = sess.run(geometry._IsOnLeftHandSideOrOn(p, v1, v2))
-      self.assertAllEqual([[True], [False], [True]], actual)
+      self.assertAllEqual([[True, False, True]], actual)
       actual = sess.run(geometry._IsOnLeftHandSideOrOn(v1, v1, v2))
       self.assertAllEqual([[True]], actual)
       actual = sess.run(geometry._IsOnLeftHandSideOrOn(v2, v1, v2))

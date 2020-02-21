@@ -204,9 +204,9 @@ def PointsToImagePlane(points, velo_to_image_plane):
   Args:
     points: A [N, 3] Floating point tensor containing xyz points. Points are
       assumed to be in velo coordinates.
-    velo_to_image_plane: A [3, 4] matrix from velo xyz to image plane xy.
-      After multiplication, you need to divide by last coordinate to recover 2D
-      pixel locations.
+    velo_to_image_plane: A [3, 4] matrix from velo xyz to image plane xy. After
+      multiplication, you need to divide by last coordinate to recover 2D pixel
+      locations.
 
   Returns:
     A [N, 2] Floating point tensor containing points in the image plane.
@@ -383,25 +383,18 @@ def _IsOnLeftHandSideOrOn(point, v1, v2):
     of, or exactly on, the direction indicated by the vertices.
   """
   v1 = py_utils.HasShape(v1, tf.shape(v2))
-  point_x = point[..., 0]
-  point_y = point[..., 1]
-  v1_x = v1[..., 0]
-  v2_x = v2[..., 0]
-  v1_y = v1[..., 1]
-  v2_y = v2[..., 1]
-  # Prepare for broadcast: All point operations are on the left,
-  # and all v1/v2 operations are on the right.
-  point_x = tf.expand_dims(point_x, axis=-1)
-  point_y = tf.expand_dims(point_y, axis=-1)
-  v1_x = tf.expand_dims(v1_x, axis=0)
-  v2_x = tf.expand_dims(v2_x, axis=0)
-  v1_y = tf.expand_dims(v1_y, axis=0)
-  v2_y = tf.expand_dims(v2_y, axis=0)
+  # Prepare for broadcast: All point operations are on the right,
+  # and all v1/v2 operations are on the left. This is faster than left/right
+  # under the assumption that we have more points than vertices.
+  point_x = point[..., tf.newaxis, :, 0]
+  point_y = point[..., tf.newaxis, :, 1]
+  v1_x = v1[..., 0, tf.newaxis]
+  v2_x = v2[..., 0, tf.newaxis]
+  v1_y = v1[..., 1, tf.newaxis]
+  v2_y = v2[..., 1, tf.newaxis]
   d1 = (point_y - v1_y) * (v2_x - v1_x)
   d2 = (point_x - v1_x) * (v2_y - v1_y)
-  d = d1 - d2
-
-  return d >= 0.
+  return d1 >= d2
 
 
 def _IsCounterClockwiseDirection(v1, v2, v3):
@@ -427,8 +420,7 @@ def _IsCounterClockwiseDirection(v1, v2, v3):
   v3_x, v3_y = v3[..., 0], v3[..., 1]
   d1 = (v3_y - v1_y) * (v2_x - v1_x)
   d2 = (v3_x - v1_x) * (v2_y - v1_y)
-  d = d1 - d2
-  return d >= 0.
+  return d1 >= d2
 
 
 def IsWithinBBox(points, bbox):
@@ -475,7 +467,10 @@ def IsWithinBBox(points, bbox):
         tf.logical_and(
             _IsOnLeftHandSideOrOn(points, v3, v4),
             _IsOnLeftHandSideOrOn(points, v4, v1)))
-  return is_inside
+  # Swap the last two dimensions.
+  ndims = is_inside.shape.ndims
+  return tf.transpose(is_inside,
+                      list(range(ndims - 2)) + [ndims - 1, ndims - 2])
 
 
 def BBoxCorners(bboxes):
@@ -582,12 +577,9 @@ def IsWithinBBox3D(points_3d, bboxes_3d):
   z0, z1 = _ComputeLimits(z, dz)
   z_points = tf.expand_dims(points_3d[:, 2], -1)
 
-  def _BroadcastAcrossPoints(z):
-    return tf.transpose(tf.tile(z, [1, num_points]))
-
   is_inside_z = tf.logical_and(
-      tf.less_equal(z_points, _BroadcastAcrossPoints(z1)),
-      tf.greater_equal(z_points, _BroadcastAcrossPoints(z0)))
+      tf.less_equal(z_points, z1[tf.newaxis, :, 0]),
+      tf.greater_equal(z_points, z0[tf.newaxis, :, 0]))
   is_inside_z = py_utils.HasShape(is_inside_z, [num_points, num_bboxes])
 
   return tf.logical_and(is_inside_z, is_inside_2d)
