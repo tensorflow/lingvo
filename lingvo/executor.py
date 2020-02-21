@@ -299,4 +299,11 @@ class ExecutorTpu(base_runner.BaseRunner):
 
         # TODO(blee): More complex saving rules. Currently, we assume
         # we save after every task's program schedule execution.
-        self.save_only_checkpointer.Save(sess, global_step)
+        #
+        # global_step local variable above is a result of sess.run, not a
+        # tf variable, so when we do save_only_checkpointer.Save(...) here
+        # py_utils.GetGlobalStep() is ahead of it by
+        #   (train_executions_per_eval * train_steps_per_loop)
+        # steps ahead already, due to program_schedule.Run(sess).
+        #
+        self.save_only_checkpointer.Save(sess, py_utils.GetGlobalStep())
