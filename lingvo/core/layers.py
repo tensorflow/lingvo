@@ -2645,8 +2645,8 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
     p = super(RelativePositionalEmbeddingLayer, cls).Params()
     p.Define(
         'radius', None,
-        'Radius of the relative window size. Full window size is '
-        'radius * 2 + 1.')
+        'Radius of the relative window size. Distance are clipped to '
+        '[-radius, radius].')
     p.Define('dim', None, 'Dimension of embedding.')
     return p
 
