@@ -316,6 +316,27 @@
 </dd></dl>
 
 <dl class="method">
+<dt id="lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyInParallelAndMerge">
+<code class="sig-name descname">_ApplyInParallelAndMerge</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">merge_fn</em>, <em class="sig-param">*subs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/builder_lib.html#ModelBuilderBase._ApplyInParallelAndMerge"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyInParallelAndMerge" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies the subs in parallel to the given input and merges their outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – String layer name.</p></li>
+<li><p><strong>merge_fn</strong> – Function to merge the outputs of <code class="xref py py-obj docutils literal notranslate"><span class="pre">subs</span></code>, which will be a
+flattened list of subs outputs. For example, if there were 3 subs with
+outputs (out1,), (out21, out22), (out31, out32), the output will be
+[out1, out21, out22, out31, out32].</p></li>
+<li><p><strong>*subs</strong> – Modules to be applied in parallel to the input</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Params for this layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
 <dt id="lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyFn">
 <code class="sig-name descname">_ApplyFn</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/builder_lib.html#ModelBuilderBase._ApplyFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply fn over the input tuple.</p>

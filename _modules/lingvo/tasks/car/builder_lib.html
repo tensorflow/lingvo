@@ -177,7 +177,6 @@
 <span class="kn">import</span> <span class="nn">six</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
-
 <span class="c1"># Keys for NestedMap for points: points, features, and padding.</span>
 <span class="n">POINTS_KEY</span> <span class="o">=</span> <span class="s1">&#39;points&#39;</span>
 <span class="n">FEATURES_KEY</span> <span class="o">=</span> <span class="s1">&#39;features&#39;</span>
@@ -389,6 +388,26 @@
 <div class="viewcode-block" id="ModelBuilderBase._ApplyFnMulti"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyFnMulti">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyFnMulti</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A common use case where every branch produces a single output tensor.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Par</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ModelBuilderBase._ApplyInParallelAndMerge"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyInParallelAndMerge">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyInParallelAndMerge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies the subs in parallel to the given input and merges their outputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: String layer name.</span>
+<span class="sd">      merge_fn: Function to merge the outputs of `subs`, which will be a</span>
+<span class="sd">        flattened list of subs outputs. For example, if there were 3 subs with</span>
+<span class="sd">        outputs (out1,), (out21, out22), (out31, out32), the output will be</span>
+<span class="sd">        [out1, out21, out22, out31, out32].</span>
+<span class="sd">      *subs: Modules to be applied in parallel to the input</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Params for this layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Join</span><span class="p">(</span><span class="s1">&#39;parallel_subs&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="s1">&#39;merge&#39;</span><span class="p">,</span> <span class="n">merge_fn</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="ModelBuilderBase._ApplyFn"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._ApplyFn">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply fn over the input tuple.&quot;&quot;&quot;</span>
