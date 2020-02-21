@@ -349,9 +349,9 @@
 <span class="sd">  Args:</span>
 <span class="sd">    points: A [N, 3] Floating point tensor containing xyz points. Points are</span>
 <span class="sd">      assumed to be in velo coordinates.</span>
-<span class="sd">    velo_to_image_plane: A [3, 4] matrix from velo xyz to image plane xy.</span>
-<span class="sd">      After multiplication, you need to divide by last coordinate to recover 2D</span>
-<span class="sd">      pixel locations.</span>
+<span class="sd">    velo_to_image_plane: A [3, 4] matrix from velo xyz to image plane xy. After</span>
+<span class="sd">      multiplication, you need to divide by last coordinate to recover 2D pixel</span>
+<span class="sd">      locations.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A [N, 2] Floating point tensor containing points in the image plane.</span>
@@ -528,25 +528,18 @@
 <span class="sd">    of, or exactly on, the direction indicated by the vertices.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">v1</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">v2</span><span class="p">))</span>
-  <span class="n">point_x</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-  <span class="n">point_y</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-  <span class="n">v1_x</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-  <span class="n">v2_x</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
-  <span class="n">v1_y</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-  <span class="n">v2_y</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
-  <span class="c1"># Prepare for broadcast: All point operations are on the left,</span>
-  <span class="c1"># and all v1/v2 operations are on the right.</span>
-  <span class="n">point_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">point_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-  <span class="n">point_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">point_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
-  <span class="n">v1_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v1_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-  <span class="n">v2_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v2_x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-  <span class="n">v1_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v1_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-  <span class="n">v2_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">v2_y</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="c1"># Prepare for broadcast: All point operations are on the right,</span>
+  <span class="c1"># and all v1/v2 operations are on the left. This is faster than left/right</span>
+  <span class="c1"># under the assumption that we have more points than vertices.</span>
+  <span class="n">point_x</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+  <span class="n">point_y</span> <span class="o">=</span> <span class="n">point</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="n">v1_x</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+  <span class="n">v2_x</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+  <span class="n">v1_y</span> <span class="o">=</span> <span class="n">v1</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+  <span class="n">v2_y</span> <span class="o">=</span> <span class="n">v2</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
   <span class="n">d1</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span>
   <span class="n">d2</span> <span class="o">=</span> <span class="p">(</span><span class="n">point_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span>
-  <span class="n">d</span> <span class="o">=</span> <span class="n">d1</span> <span class="o">-</span> <span class="n">d2</span>
-
-  <span class="k">return</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mf">0.</span></div>
+  <span class="k">return</span> <span class="n">d1</span> <span class="o">&gt;=</span> <span class="n">d2</span></div>
 
 
 <div class="viewcode-block" id="_IsCounterClockwiseDirection"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry._IsCounterClockwiseDirection">[docs]</a><span class="k">def</span> <span class="nf">_IsCounterClockwiseDirection</span><span class="p">(</span><span class="n">v1</span><span class="p">,</span> <span class="n">v2</span><span class="p">,</span> <span class="n">v3</span><span class="p">):</span>
@@ -572,8 +565,7 @@
   <span class="n">v3_x</span><span class="p">,</span> <span class="n">v3_y</span> <span class="o">=</span> <span class="n">v3</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">v3</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
   <span class="n">d1</span> <span class="o">=</span> <span class="p">(</span><span class="n">v3_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span>
   <span class="n">d2</span> <span class="o">=</span> <span class="p">(</span><span class="n">v3_x</span> <span class="o">-</span> <span class="n">v1_x</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">v2_y</span> <span class="o">-</span> <span class="n">v1_y</span><span class="p">)</span>
-  <span class="n">d</span> <span class="o">=</span> <span class="n">d1</span> <span class="o">-</span> <span class="n">d2</span>
-  <span class="k">return</span> <span class="n">d</span> <span class="o">&gt;=</span> <span class="mf">0.</span></div>
+  <span class="k">return</span> <span class="n">d1</span> <span class="o">&gt;=</span> <span class="n">d2</span></div>
 
 
 <div class="viewcode-block" id="IsWithinBBox"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.IsWithinBBox">[docs]</a><span class="k">def</span> <span class="nf">IsWithinBBox</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">bbox</span><span class="p">):</span>
@@ -620,7 +612,10 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
             <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v3</span><span class="p">,</span> <span class="n">v4</span><span class="p">),</span>
             <span class="n">_IsOnLeftHandSideOrOn</span><span class="p">(</span><span class="n">points</span><span class="p">,</span> <span class="n">v4</span><span class="p">,</span> <span class="n">v1</span><span class="p">)))</span>
-  <span class="k">return</span> <span class="n">is_inside</span></div>
+  <span class="c1"># Swap the last two dimensions.</span>
+  <span class="n">ndims</span> <span class="o">=</span> <span class="n">is_inside</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">is_inside</span><span class="p">,</span>
+                      <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">ndims</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="n">ndims</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ndims</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="BBoxCorners"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxCorners">[docs]</a><span class="k">def</span> <span class="nf">BBoxCorners</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
@@ -727,12 +722,9 @@
   <span class="n">z0</span><span class="p">,</span> <span class="n">z1</span> <span class="o">=</span> <span class="n">_ComputeLimits</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="n">dz</span><span class="p">)</span>
   <span class="n">z_points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">points_3d</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
 
-  <span class="k">def</span> <span class="nf">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_points</span><span class="p">]))</span>
-
   <span class="n">is_inside_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z1</span><span class="p">)),</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">_BroadcastAcrossPoints</span><span class="p">(</span><span class="n">z0</span><span class="p">)))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">z1</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]),</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span> <span class="n">z0</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]))</span>
   <span class="n">is_inside_z</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">is_inside_z</span><span class="p">,</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="n">num_bboxes</span><span class="p">])</span>
 
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">is_inside_z</span><span class="p">,</span> <span class="n">is_inside_2d</span><span class="p">)</span></div>
