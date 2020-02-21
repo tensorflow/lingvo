@@ -444,7 +444,14 @@
 
         <span class="c1"># TODO(blee): More complex saving rules. Currently, we assume</span>
         <span class="c1"># we save after every task&#39;s program schedule execution.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+        <span class="c1">#</span>
+        <span class="c1"># global_step local variable above is a result of sess.run, not a</span>
+        <span class="c1"># tf variable, so when we do save_only_checkpointer.Save(...) here</span>
+        <span class="c1"># py_utils.GetGlobalStep() is ahead of it by</span>
+        <span class="c1">#   (train_executions_per_eval * train_steps_per_loop)</span>
+        <span class="c1"># steps ahead already, due to program_schedule.Run(sess).</span>
+        <span class="c1">#</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 </pre></div>
 
            </div>
