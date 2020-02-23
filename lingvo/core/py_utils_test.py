@@ -2517,7 +2517,7 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
       def Body(result):
         return [
             result + tf.random_uniform(tf.shape(result)) +
-            tf.random_poisson([0.5, 1.5], tf.shape(result))
+            tf.random_poisson(shape=tf.shape(result), lam=[0.5, 1.5])
         ]
 
       return functional_ops.For(

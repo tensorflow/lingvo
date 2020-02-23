@@ -111,7 +111,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
 
     # We expect src_inputs to be of shape
     # [batch_size, num_frames, feature_dim, channels].
-    src_frames = tf.expand_dims(src_frames, dim=-1)
+    src_frames = tf.expand_dims(src_frames, axis=-1)
 
     # Convert target ids, labels, paddings, and weights from shape [batch_size,
     # 1, num_frames] to [batch_size, num_frames]
