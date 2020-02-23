@@ -1149,11 +1149,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_attention_heads', 2, 'Num of attention heads.')
     p.Define(
-        'inner_atten_dim', 0, 'Source/query/hidden dimensions for inner '
-        'attention layer. Should be the value of '
-        'hidden_dim / num_attention_heads. Exactly one of hidden_dim '
-        'and inner_atten_dim can be set.')
-    p.Define(
         'use_source_vec_as_attention_value', True,
         'Whether or not to use source_vec as the attention value as well.'
         ' If True, we expect source_vec and source_contexts are the same.')
@@ -1202,14 +1197,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     """Constructs a MultiHeadedAttention object."""
     super(MultiHeadedAttention, self).__init__(params)
     p = self.params
-    if p.hidden_dim != 0:
-      assert isinstance(p.hidden_dim, int)
-      assert p.inner_atten_dim == 0
-      assert p.hidden_dim % p.num_attention_heads == 0
-      p.inner_atten_dim = p.hidden_dim // p.num_attention_heads
-    else:
-      assert p.inner_atten_dim != 0
-      p.hidden_dim = p.inner_atten_dim * p.num_attention_heads
+    assert symbolic.ToStatic(p.hidden_dim) % p.num_attention_heads == 0
 
     self.TrackQTensor('source_proj_matmul', 'source_proj_add',
                       'query_proj_matmul', 'query_proj_add',
@@ -1295,7 +1283,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
             collections=[self.__class__.__name__ + '_vars'])
         self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
 
-      att_dim = p.inner_atten_dim
+      att_dim = p.hidden_dim // p.num_attention_heads
 
       att_p = p.inner_atten_params.Set(
           source_dim=att_dim,
@@ -1368,7 +1356,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       # => [time, source_batch * num_heads, hidden / num_heads]
       source_projected = tf.reshape(source_projected, [
           time_steps, batch_size * num_heads,
-          symbolic.ToStatic(p.inner_atten_dim)
+          symbolic.ToStatic(p.hidden_dim // num_heads)
       ])
       source_projected = self.ProcessProjectionVec(theta, source_projected,
                                                    'source')
@@ -1579,7 +1567,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     source_seq_len = tf.shape(source_padding)[0]
     num_heads = p.num_attention_heads
     batch_size = tf.shape(query_vec)[0]
-    static_inner_atten_dim = symbolic.ToStatic(p.inner_atten_dim)
+    static_inner_atten_dim = symbolic.ToStatic(p.hidden_dim // num_heads)
     query_vec_projected_shape = [batch_size * num_heads, static_inner_atten_dim]
 
     if p.enable_query_proj:

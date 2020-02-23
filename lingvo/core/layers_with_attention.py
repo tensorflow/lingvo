@@ -82,11 +82,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('context_dim', 0, 'Dimension of the attention contexts.')
     p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_attention_heads', 8, 'Number of attention heads.')
-    p.Define(
-        'inner_atten_dim', 0, 'Number of hidden nodes for inner '
-        'attention layer. Should be the same as '
-        'p.atten_hidden_dim / num_attention_heads. At most one of '
-        'atten_hidden_dim and inner_atten_dim can be set.')
     p.Define('is_masked', False, 'If set, uses masked MultiHeadedAttention.')
     p.Define(
         'mask_ngram_order', 0, 'N-gram order, relevant only when'
@@ -128,7 +123,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     assert p.name
     assert p.source_dim
 
-    if not p.atten_hidden_dim and not p.inner_atten_dim:
+    if not p.atten_hidden_dim:
       p.atten_hidden_dim = p.source_dim
 
     if not p.context_dim:
@@ -144,7 +139,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       params.source_dim = p.source_dim
       params.query_dim = p.source_dim
       params.hidden_dim = p.atten_hidden_dim
-      params.inner_atten_dim = p.inner_atten_dim
       params.context_dim = p.context_dim
       params.ctx_post_proj_dim = p.source_dim
       params.num_attention_heads = p.num_attention_heads
