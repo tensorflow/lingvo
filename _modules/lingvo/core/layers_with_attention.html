@@ -227,11 +227,6 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;context_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention contexts.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_attention_heads&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="s1">&#39;Number of attention heads.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;inner_atten_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes for inner &#39;</span>
-        <span class="s1">&#39;attention layer. Should be the same as &#39;</span>
-        <span class="s1">&#39;p.atten_hidden_dim / num_attention_heads. At most one of &#39;</span>
-        <span class="s1">&#39;atten_hidden_dim and inner_atten_dim can be set.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;is_masked&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If set, uses masked MultiHeadedAttention.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;mask_ngram_order&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;N-gram order, relevant only when&#39;</span>
@@ -273,7 +268,7 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span><span class="p">:</span>
@@ -289,7 +284,6 @@
       <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_hidden_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">inner_atten_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">context_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">context_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
