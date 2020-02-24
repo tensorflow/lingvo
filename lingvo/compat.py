@@ -131,6 +131,7 @@ initialize_all_variables = global_variables_initializer
 initializers.constant = tf1.initializers.constant
 initializers.global_variables = tf1.initializers.global_variables
 initializers.variables = tf1.initializers.variables
+InteractiveSession = tf1.InteractiveSession
 io.tf_record_iterator = tf1.io.tf_record_iterator
 layers = tf1.layers
 local_variables_initializer = tf1.local_variables_initializer
