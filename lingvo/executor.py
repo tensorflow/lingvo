@@ -144,6 +144,7 @@ class ExecutorTpu(base_runner.BaseRunner):
                     data_parallelism, num_devices_per_split)
 
     self.task_scheduler = None
+    self._checkpoint_dir = os.path.join(logdir, 'train')
 
     self._variable_renaming_rules = []
 
@@ -174,6 +175,8 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     tf.logging.info('train_cfg.cls: %s', train_cfg.cls)
 
+    self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir,
+                     'executor_params.txt')
     self._program_schedule_dict = {}
     self._programs = []
 
@@ -256,7 +259,6 @@ class ExecutorTpu(base_runner.BaseRunner):
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
 
-        self._checkpoint_dir = os.path.join(logdir, 'train')
         self.save_only_checkpointer = checkpointer.Checkpointer(
             self._checkpoint_dir,
             model=None,
