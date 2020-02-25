@@ -285,6 +285,63 @@
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">_Cast</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="MlPerfInput"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.MlPerfInput">[docs]</a><span class="k">class</span> <span class="nc">MlPerfInput</span><span class="p">(</span><span class="n">NmtInput</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generator for MLPerf TFRecords.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MlPerfInput.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.MlPerfInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Default params for `MlPerfInput`.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MlPerfInput</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;sos_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Start of sentence id&#39;</span>
+        <span class="s1">&#39;Note in the MLPerf encoding, this is actually &lt;PAD&gt;, however we can &#39;</span>
+        <span class="s1">&#39;make use of it since we never actually use &lt;PAD&gt;.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">natural_order_model</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MlPerfInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MlPerfInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.MlPerfInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+
+    <span class="k">def</span> <span class="nf">Proc</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Parses a serialized tf.Example record.&quot;&quot;&quot;</span>
+      <span class="n">outputs</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+          <span class="p">(</span><span class="s1">&#39;targets&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)),</span>
+      <span class="p">]</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">outputs</span><span class="p">))</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">features</span><span class="p">):</span>
+        <span class="n">features</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">values</span>
+
+      <span class="n">src_ids</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">]</span>
+      <span class="n">tgt_labels</span> <span class="o">=</span> <span class="n">features</span><span class="p">[</span><span class="s1">&#39;targets&#39;</span><span class="p">]</span>
+
+      <span class="c1"># Derive src_paddings, tgt_ids, tgt_paddings.</span>
+      <span class="c1"># tgt_ids is tgt_labels shifted right by one, with a SOS ID prepended.</span>
+      <span class="n">tgt_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([[</span><span class="n">p</span><span class="o">.</span><span class="n">sos_id</span><span class="p">],</span> <span class="n">tgt_labels</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+      <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">src_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">tgt_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tgt_ids</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="n">bucket_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">src_paddings</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tgt_paddings</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+      <span class="k">return</span> <span class="p">[</span>
+          <span class="n">src_ids</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_weights</span>
+      <span class="p">],</span> <span class="n">bucket_key</span>
+
+    <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
+        <span class="n">file_pattern</span><span class="o">=</span><span class="n">file_pattern</span><span class="p">,</span>
+        <span class="n">processor</span><span class="o">=</span><span class="n">Proc</span><span class="p">,</span>
+        <span class="n">dynamic_padding_dimensions</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span>
+        <span class="n">dynamic_padding_constants</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">CommonInputOpArgs</span><span class="p">())</span></div></div>
 </pre></div>
 
            </div>
