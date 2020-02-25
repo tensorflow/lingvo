@@ -1405,7 +1405,8 @@
 <span class="sd">  Note, this version doesn&#39;t support all the options as implemented in</span>
 <span class="sd">  LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization and</span>
 <span class="sd">  etc. Please use the other version if you even need those options. Another</span>
-<span class="sd">  difference is that in this version, c_state is also being layer-normalized.</span>
+<span class="sd">  difference is that in this version, by default, c_state is layer-normalized</span>
+<span class="sd">  for computing new_m.</span>
 
 <span class="sd">  state:</span>
 
@@ -1433,6 +1434,14 @@
         <span class="s1">&#39;Whether to apply layer normalization on state.c. &#39;</span>
         <span class="s1">&#39;If false, LayerNormalizedLSTMCellLean will behave exactly as &#39;</span>
         <span class="s1">&#39;LayerNormalizedLSTMCellSimple.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;cell_value_cap&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;LSTM cell values are capped to be within &#39;</span>
+        <span class="s1">&#39; [-cell_value_cap, +cell_value_cap] if the value is not None. &#39;</span>
+        <span class="s1">&#39;It can be a scalar, a scalar tensor or None. When set to None, &#39;</span>
+        <span class="s1">&#39;no capping is applied.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;enable_lstm_bias&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Enable the LSTM Cell bias.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+             <span class="s1">&#39;Initialization parameters for bias&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(yonghui): Get rid of the following two params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_nonlinearity&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
@@ -1450,6 +1459,11 @@
 
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">output_nonlinearity</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">==</span> <span class="mf">0.0</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span>
+                                                       <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;p.cell_value_cap should be a int/float if not None, but got </span><span class="si">{}</span><span class="s1">&#39;</span>
+          <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">))</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Define weights.</span>
@@ -1467,6 +1481,14 @@
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
+        <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
       <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
@@ -1546,7 +1568,16 @@
     <span class="n">i_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="n">i_g</span><span class="p">)</span>
     <span class="n">f_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="n">f_g</span><span class="p">)</span>
     <span class="n">o_g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
+      <span class="c1"># LayerNormalizedLSTMCellLean applies biases after LN.</span>
+      <span class="n">biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+      <span class="n">i_i</span> <span class="o">+=</span> <span class="n">biases</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">i_g</span> <span class="o">+=</span> <span class="n">biases</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">f_g</span> <span class="o">+=</span> <span class="n">biases</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+      <span class="n">o_g</span> <span class="o">+=</span> <span class="n">biases</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
     <span class="n">new_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">f_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">state0</span><span class="o">.</span><span class="n">c</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">i_g</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">tanh</span><span class="p">(</span><span class="n">i_i</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">new_c</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">new_c</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">)</span>
     <span class="c1"># new_c_normed is only used for computing &#39;new_m&#39;. We use the un-normalized</span>
     <span class="c1"># new_cc as cell state to keep the residual property of lstm cell.</span>
     <span class="n">new_c_normed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LayerNormGate</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="n">new_c</span><span class="p">)</span>
