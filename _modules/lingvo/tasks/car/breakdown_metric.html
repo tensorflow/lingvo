@@ -840,10 +840,10 @@
           <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
       <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="n">image_summary</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">difficulty</span><span class="p">)</span>
-        <span class="c1"># TODO(shlens, rofls): Restore me when the above function is finished.</span>
-        <span class="c1"># image_summaries.append(image_summary)</span>
+    <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">calibration_summaries</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">difficulty</span><span class="p">)</span>
+      <span class="k">for</span> <span class="n">calibration_summary</span> <span class="ow">in</span> <span class="n">calibration_summaries</span><span class="p">:</span>
+        <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calibration_summary</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">image_summaries</span></div></div>
 </pre></div>

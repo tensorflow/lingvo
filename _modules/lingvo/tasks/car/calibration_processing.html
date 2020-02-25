@@ -164,8 +164,64 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
+
+
+<div class="viewcode-block" id="CalibrationCurve"><a class="viewcode-back" href="../../../../lingvo.tasks.car.calibration_processing.html#lingvo.tasks.car.calibration_processing.CalibrationCurve">[docs]</a><span class="k">def</span> <span class="nf">CalibrationCurve</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">hits</span><span class="p">,</span> <span class="n">num_bins</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute data for calibration reliability diagrams and ece.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    scores: 1-D np.array of float32 confidence scores</span>
+<span class="sd">    hits: 1-D np.array of int32 (either 0 or 1) indicating whether predicted</span>
+<span class="sd">      label matches the ground truth label</span>
+<span class="sd">    num_bins: int for the number of calibration bins</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple containing:</span>
+<span class="sd">      - mean_predicted_accuracies: list of mean predicted accuracy for each bin</span>
+<span class="sd">      - mean_empirical_accuracies: list of mean empirical accuracy for each bin</span>
+<span class="sd">      - num_examples: list of the number of examples in each bin</span>
+<span class="sd">      - ece: float for the expected calibration error</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ece</span> <span class="o">=</span> <span class="mf">0.0</span>
+  <span class="n">mean_predicted_accuracies</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">mean_empirical_accuracies</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">num_examples</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="c1"># Bin the hits and scores based on the scores.</span>
+  <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="n">num_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">bin_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">edges</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+  <span class="c1"># Put examples with score equal to 0 in bin 1 because we will skip bin 0.</span>
+  <span class="n">bin_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">scores</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">bin_indices</span><span class="p">)</span>
+
+  <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">bin_indices</span> <span class="o">==</span> <span class="n">j</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">mean_predicted_accuracy</span> <span class="o">=</span> <span class="p">(</span><span class="n">edges</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">edges</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
+    <span class="c1"># pylint: disable=g-explicit-length-test</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">mean_empirical_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">hits</span><span class="p">[</span><span class="n">indices</span><span class="p">])</span>
+      <span class="n">num_example</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">mean_empirical_accuracy</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">num_example</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="c1"># pylint: enable=g-explicit-length-test</span>
+
+    <span class="n">mean_predicted_accuracies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_predicted_accuracy</span><span class="p">)</span>
+    <span class="n">mean_empirical_accuracies</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">mean_empirical_accuracy</span><span class="p">)</span>
+    <span class="n">num_examples</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">num_example</span><span class="p">)</span>
+    <span class="n">ece</span> <span class="o">+=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">mean_empirical_accuracy</span> <span class="o">-</span> \
+                  <span class="n">mean_predicted_accuracy</span><span class="p">)</span> <span class="o">*</span> <span class="n">num_example</span>
+
+  <span class="n">total_num_examples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">num_examples</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">total_num_examples</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="n">ece</span> <span class="o">/=</span> <span class="n">total_num_examples</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">ece</span> <span class="o">=</span> <span class="mf">0.0</span>
+  <span class="k">return</span> <span class="n">mean_predicted_accuracies</span><span class="p">,</span> <span class="n">mean_empirical_accuracies</span><span class="p">,</span> <span class="n">num_examples</span><span class="p">,</span> <span class="n">ece</span></div>
 
 
 <div class="viewcode-block" id="CalibrationCalculator"><a class="viewcode-back" href="../../../../lingvo.tasks.car.calibration_processing.html#lingvo.tasks.car.calibration_processing.CalibrationCalculator">[docs]</a><span class="k">class</span> <span class="nc">CalibrationCalculator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -175,17 +231,37 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span> <span class="o">=</span> <span class="n">metadata</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_num_calibration_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">NumberOfCalibrationBins</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ece_by_class</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_classnames</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_classids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()</span>
 
 <div class="viewcode-block" id="CalibrationCalculator.Calculate"><a class="viewcode-back" href="../../../../lingvo.tasks.car.calibration_processing.html#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Calculate">[docs]</a>  <span class="k">def</span> <span class="nf">Calculate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Calculate metrics for calibration.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Calculate metrics for calibration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      metrics: A dict. Each entry in the dict is a list of C (number of classes)</span>
+<span class="sd">        dicts containing mapping from metric names to individual results.</span>
+<span class="sd">      Individual entries may be the following items:</span>
+<span class="sd">      - scalars: A list of C (number of classes) dicts mapping metric names to</span>
+<span class="sd">        scalar values.</span>
+<span class="sd">      - curves: A list of C dicts mapping metrics names to np.float32 arrays of</span>
+<span class="sd">        shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last dimension, 0</span>
+<span class="sd">        indexes precision and 1 indexes recall.</span>
+<span class="sd">      - calibrations: A list of C dicts mapping metrics names to np.float32</span>
+<span class="sd">        arrays of shape [number of predictions, 2]. The first column is the</span>
+<span class="sd">        predicted probabilty and the second column is 0 or 1 indicating that the</span>
+<span class="sd">        prediction matched a ground truth item.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      nothing</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s1">&#39;calibrations&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CalibrationProcessing invoked but no metrics available &#39;</span>
                       <span class="s1">&#39;for calculating calibration.&#39;</span><span class="p">)</span>
       <span class="k">return</span>
 
-    <span class="n">calibration_by_class</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ece_by_class</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">]):</span>
       <span class="n">classid</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_classids</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
       <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_classnames</span><span class="p">[</span><span class="n">classid</span><span class="p">]</span>
@@ -196,36 +272,73 @@
         <span class="k">continue</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating calibration for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%d</span><span class="s1"> items.&#39;</span> <span class="o">%</span>
                       <span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">])))</span>
-      <span class="n">calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-
-      <span class="c1"># Bin the hits and scores based on the scores.</span>
-      <span class="n">edges</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_calibration_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
 
       <span class="c1"># Ensure that all counts are greater then zero and less then or equal</span>
       <span class="c1"># to 1.0 to guarantee that all scores are counted.</span>
       <span class="n">scores_and_hits</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">clip</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">],</span> <span class="mf">1e-10</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-      <span class="n">bin_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">scores_and_hits</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">edges</span><span class="p">,</span> <span class="n">right</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">scores</span> <span class="o">=</span> <span class="n">scores_and_hits</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+      <span class="n">hits</span> <span class="o">=</span> <span class="n">scores_and_hits</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
+      <span class="n">curve_data</span> <span class="o">=</span> <span class="n">CalibrationCurve</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">hits</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_calibration_bins</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">curve_data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ece_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span> <span class="o">=</span> <span class="n">curve_data</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
 
-      <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_num_calibration_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">j</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="k">continue</span>
-        <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">bin_indices</span> <span class="o">==</span> <span class="n">j</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">mean_predicted_accuracy</span> <span class="o">=</span> <span class="p">(</span><span class="n">edges</span><span class="p">[</span><span class="n">j</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">edges</span><span class="p">[</span><span class="n">j</span><span class="p">])</span> <span class="o">/</span> <span class="mf">2.0</span>
-        <span class="n">mean_empirical_accuracy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">scores_and_hits</span><span class="p">[</span><span class="n">indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="n">num_example</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)</span>
-        <span class="n">calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">mean_predicted_accuracy</span><span class="p">,</span> <span class="n">mean_empirical_accuracy</span><span class="p">,</span> <span class="n">num_example</span><span class="p">])</span>
-
-      <span class="n">calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
-          <span class="n">calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">])</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished calculating calibration for </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">classname</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span> <span class="o">=</span> <span class="n">calibration_by_class</span></div>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ECE[</span><span class="si">{}</span><span class="s1">] = </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">classname</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">_ece_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished calculating calibration for </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">classname</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CalibrationCalculator.Summary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.calibration_processing.html#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Generate an image summary for the calibration curve.&quot;&quot;&quot;</span>
-    <span class="c1"># TODO(shlens, rofls): Implement me.</span>
-    <span class="k">del</span> <span class="n">name</span>
-    <span class="k">return</span></div></div>
+    <span class="sd">&quot;&quot;&quot;Generate tf summaries for calibration.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: str, name of summary.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      list of tf.Summary</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">summaries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">class_id</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">():</span>
+      <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">class_id</span><span class="p">]</span>
+      <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/calibration&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">classname</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">:</span>
+        <span class="k">continue</span>
+
+      <span class="c1"># Extract the data.</span>
+      <span class="n">mean_predicted_accuracy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">mean_empirical_accuracy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">][</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">num_examples_per_bin</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="p">:]</span>
+      <span class="n">total_examples</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">num_examples_per_bin</span><span class="p">)</span>
+      <span class="n">legend</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)]</span>
+
+      <span class="k">def</span> <span class="nf">_CalibrationSetter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Configure the plot for calibration.&quot;&quot;&quot;</span>
+        <span class="n">ticks</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Predicted accuracy&#39;</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Empirical accuracy&#39;</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span>
+        <span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legend</span><span class="p">,</span> <span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
+
+      <span class="n">calibration_curve_summary</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span>
+          <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+          <span class="n">xs</span><span class="o">=</span><span class="n">mean_predicted_accuracy</span><span class="p">,</span>
+          <span class="n">ys</span><span class="o">=</span><span class="n">mean_empirical_accuracy</span><span class="p">,</span>
+          <span class="n">setter</span><span class="o">=</span><span class="n">_CalibrationSetter</span><span class="p">,</span>
+          <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;.&#39;</span><span class="p">,</span>
+          <span class="n">markersize</span><span class="o">=</span><span class="mi">14</span><span class="p">,</span>
+          <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
+          <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+          <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+      <span class="n">ece_summary</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
+              <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/calibration_ece&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">),</span>
+              <span class="n">simple_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_ece_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">])</span>
+      <span class="p">])</span>
+      <span class="n">summaries</span><span class="o">.</span><span class="n">extend</span><span class="p">([</span><span class="n">calibration_curve_summary</span><span class="p">,</span> <span class="n">ece_summary</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">summaries</span></div></div>
 </pre></div>
 
            </div>

@@ -167,6 +167,34 @@
   <div class="section" id="module-lingvo.tasks.car.calibration_processing">
 <span id="lingvo-tasks-car-calibration-processing-module"></span><h1>lingvo.tasks.car.calibration_processing module<a class="headerlink" href="#module-lingvo.tasks.car.calibration_processing" title="Permalink to this headline">¶</a></h1>
 <p>Library for calculating calibration on a prediction.</p>
+<dl class="function">
+<dt id="lingvo.tasks.car.calibration_processing.CalibrationCurve">
+<code class="sig-prename descclassname">lingvo.tasks.car.calibration_processing.</code><code class="sig-name descname">CalibrationCurve</code><span class="sig-paren">(</span><em class="sig-param">scores</em>, <em class="sig-param">hits</em>, <em class="sig-param">num_bins</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCurve" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute data for calibration reliability diagrams and ece.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scores</strong> – 1-D np.array of float32 confidence scores</p></li>
+<li><p><strong>hits</strong> – 1-D np.array of int32 (either 0 or 1) indicating whether predicted
+label matches the ground truth label</p></li>
+<li><p><strong>num_bins</strong> – int for the number of calibration bins</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>mean_predicted_accuracies: list of mean predicted accuracy for each bin</p></li>
+<li><p>mean_empirical_accuracies: list of mean empirical accuracy for each bin</p></li>
+<li><p>num_examples: list of the number of examples in each bin</p></li>
+<li><p>ece: float for the expected calibration error</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple containing</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="class">
 <dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.calibration_processing.</code><code class="sig-name descname">CalibrationCalculator</code><span class="sig-paren">(</span><em class="sig-param">metadata</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator" title="Permalink to this definition">¶</a></dt>
@@ -176,12 +204,41 @@
 <dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator.Calculate">
 <code class="sig-name descname">Calculate</code><span class="sig-paren">(</span><em class="sig-param">metrics</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator.Calculate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Calculate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate metrics for calibration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>metrics</strong> – A dict. Each entry in the dict is a list of C (number of classes)
+dicts containing mapping from metric names to individual results.</p></li>
+<li><p><strong>entries may be the following items</strong> (<em>Individual</em>) – </p></li>
+<li><p><strong>scalars</strong> (<em>-</em>) – A list of C (number of classes) dicts mapping metric names to
+scalar values.</p></li>
+<li><p><strong>curves</strong> (<em>-</em>) – A list of C dicts mapping metrics names to np.float32 arrays of
+shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last dimension, 0
+indexes precision and 1 indexes recall.</p></li>
+<li><p><strong>calibrations</strong> (<em>-</em>) – A list of C dicts mapping metrics names to np.float32
+arrays of shape [number of predictions, 2]. The first column is the
+predicted probabilty and the second column is 0 or 1 indicating that the
+prediction matched a ground truth item.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>nothing</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
 <dt id="lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary">
 <code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCalculator.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generate an image summary for the calibration curve.</p>
+<dd><p>Generate tf summaries for calibration.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>name</strong> – str, name of summary.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>list of tf.Summary</p>
+</dd>
+</dl>
 </dd></dl>
 
 </dd></dl>
