@@ -140,6 +140,18 @@ py_library(
     ],
 )
 
+py_test(
+    name = "calibration_processing_test",
+    srcs = ["calibration_processing_test.py"],
+    deps = [
+        ":calibration_processing",
+        ":kitti_metadata",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
 py_library(
     name = "breakdown_metric",
     srcs = [

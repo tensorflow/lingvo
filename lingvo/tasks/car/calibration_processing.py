@@ -19,8 +19,64 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
+from lingvo.core import plot
 import numpy as np
 from six.moves import range
+
+
+def CalibrationCurve(scores, hits, num_bins):
+  """Compute data for calibration reliability diagrams and ece.
+
+  Args:
+    scores: 1-D np.array of float32 confidence scores
+    hits: 1-D np.array of int32 (either 0 or 1) indicating whether predicted
+      label matches the ground truth label
+    num_bins: int for the number of calibration bins
+
+  Returns:
+    A tuple containing:
+      - mean_predicted_accuracies: list of mean predicted accuracy for each bin
+      - mean_empirical_accuracies: list of mean empirical accuracy for each bin
+      - num_examples: list of the number of examples in each bin
+      - ece: float for the expected calibration error
+  """
+  ece = 0.0
+  mean_predicted_accuracies = []
+  mean_empirical_accuracies = []
+  num_examples = []
+
+  # Bin the hits and scores based on the scores.
+  edges = np.linspace(0.0, 1.0, num_bins + 1)
+  bin_indices = np.digitize(scores, edges, right=True)
+  # Put examples with score equal to 0 in bin 1 because we will skip bin 0.
+  bin_indices = np.where(scores == 0.0, 1, bin_indices)
+
+  for j in range(num_bins + 1):
+    if j == 0:
+      continue
+    indices = np.where(bin_indices == j)[0]
+    mean_predicted_accuracy = (edges[j - 1] + edges[j]) / 2.0
+    # pylint: disable=g-explicit-length-test
+    if len(indices) > 0:
+      mean_empirical_accuracy = np.mean(hits[indices])
+      num_example = len(indices)
+    else:
+      mean_empirical_accuracy = 0.0
+      num_example = 0
+    # pylint: enable=g-explicit-length-test
+
+    mean_predicted_accuracies.append(mean_predicted_accuracy)
+    mean_empirical_accuracies.append(mean_empirical_accuracy)
+    num_examples.append(num_example)
+    ece += np.abs(mean_empirical_accuracy - \
+                  mean_predicted_accuracy) * num_example
+
+  total_num_examples = np.sum(num_examples)
+  if total_num_examples != 0:
+    ece /= total_num_examples
+  else:
+    ece = 0.0
+  return mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece
 
 
 class CalibrationCalculator(object):
@@ -30,17 +86,37 @@ class CalibrationCalculator(object):
     self._metadata = metadata
     self._num_calibration_bins = self._metadata.NumberOfCalibrationBins()
     self._calibration_by_class = None
+    self._ece_by_class = None
     self._classnames = self._metadata.ClassNames()
     self._classids = self._metadata.EvalClassIndices()
 
   def Calculate(self, metrics):
-    """Calculate metrics for calibration."""
+    """Calculate metrics for calibration.
+
+    Args:
+      metrics: A dict. Each entry in the dict is a list of C (number of classes)
+        dicts containing mapping from metric names to individual results.
+      Individual entries may be the following items:
+      - scalars: A list of C (number of classes) dicts mapping metric names to
+        scalar values.
+      - curves: A list of C dicts mapping metrics names to np.float32 arrays of
+        shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last dimension, 0
+        indexes precision and 1 indexes recall.
+      - calibrations: A list of C dicts mapping metrics names to np.float32
+        arrays of shape [number of predictions, 2]. The first column is the
+        predicted probabilty and the second column is 0 or 1 indicating that the
+        prediction matched a ground truth item.
+
+    Returns:
+      nothing
+    """
     if 'calibrations' not in metrics:
       tf.logging.info('CalibrationProcessing invoked but no metrics available '
                       'for calculating calibration.')
       return
 
-    calibration_by_class = {}
+    self._calibration_by_class = {}
+    self._ece_by_class = {}
     for i, c in enumerate(metrics['calibrations']):
       classid = self._classids[i]
       classname = self._classnames[classid]
@@ -51,33 +127,70 @@ class CalibrationCalculator(object):
         continue
       tf.logging.info('Calculating calibration for %s: %d items.' %
                       (classname, len(c['calibrations'])))
-      calibration_by_class[classname] = []
-
-      # Bin the hits and scores based on the scores.
-      edges = np.linspace(0.0, 1.0, self._num_calibration_bins + 1)
 
       # Ensure that all counts are greater then zero and less then or equal
       # to 1.0 to guarantee that all scores are counted.
       scores_and_hits = np.clip(c['calibrations'], 1e-10, 1.0)
-      bin_indices = np.digitize(scores_and_hits[:, 0], edges, right=True)
+      scores = scores_and_hits[:, 0]
+      hits = scores_and_hits[:, 1]
+      curve_data = CalibrationCurve(scores, hits, self._num_calibration_bins)
+      self._calibration_by_class[classname] = np.array(curve_data[0:3])
+      self._ece_by_class[classname] = curve_data[3]
 
-      for j in range(self._num_calibration_bins + 1):
-        if j == 0:
-          continue
-        indices = np.where(bin_indices == j)[0]
-        mean_predicted_accuracy = (edges[j - 1] + edges[j]) / 2.0
-        mean_empirical_accuracy = np.mean(scores_and_hits[indices, 1])
-        num_example = len(indices)
-        calibration_by_class[classname].append(
-            [mean_predicted_accuracy, mean_empirical_accuracy, num_example])
-
-      calibration_by_class[classname] = np.array(
-          calibration_by_class[classname])
+      tf.logging.info('ECE[{}] = {}'.format(classname,
+                                            self._ece_by_class[classname]))
       tf.logging.info('Finished calculating calibration for %s.' % classname)
-      self._calibration_by_class = calibration_by_class
 
   def Summary(self, name):
-    """Generate an image summary for the calibration curve."""
-    # TODO(shlens, rofls): Implement me.
-    del name
-    return
+    """Generate tf summaries for calibration.
+
+    Args:
+      name: str, name of summary.
+
+    Returns:
+      list of tf.Summary
+    """
+    summaries = []
+    for class_id in self._metadata.EvalClassIndices():
+      classname = self._metadata.ClassNames()[class_id]
+      tag_str = '{}/{}/calibration'.format(name, classname)
+
+      if classname not in self._calibration_by_class:
+        continue
+
+      # Extract the data.
+      mean_predicted_accuracy = self._calibration_by_class[classname][0, :]
+      mean_empirical_accuracy = self._calibration_by_class[classname][1, :]
+      num_examples_per_bin = self._calibration_by_class[classname][-1, :]
+      total_examples = np.sum(num_examples_per_bin)
+      legend = ['%s (%d)' % (classname, total_examples)]
+
+      def _CalibrationSetter(fig, axes):
+        """Configure the plot for calibration."""
+        ticks = np.arange(0, 1.05, 0.1)
+        axes.grid(b=False)
+        axes.set_xlabel('Predicted accuracy')
+        axes.set_xticks(ticks)
+        axes.set_ylabel('Empirical accuracy')
+        axes.set_yticks(ticks)
+        axes.legend(legend, numpoints=1)  # pylint: disable=cell-var-from-loop
+        fig.tight_layout()
+
+      calibration_curve_summary = plot.Curve(
+          name=tag_str,
+          figsize=(10, 8),
+          xs=mean_predicted_accuracy,
+          ys=mean_empirical_accuracy,
+          setter=_CalibrationSetter,
+          marker='.',
+          markersize=14,
+          linestyle='-',
+          linewidth=2,
+          alpha=0.5)
+      ece_summary = tf.Summary(value=[
+          tf.Summary.Value(
+              tag='{}/{}/calibration_ece'.format(name, classname),
+              simple_value=self._ece_by_class[classname])
+      ])
+      summaries.extend([calibration_curve_summary, ece_summary])
+    return summaries

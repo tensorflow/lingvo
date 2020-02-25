@@ -695,9 +695,9 @@ class ByDifficulty(BreakdownMetric):
           alpha=0.5)
       image_summaries.append(image_summary)
 
-      for difficulty, c in self._calibration.items():
-        image_summary = c.Summary(difficulty)
-        # TODO(shlens, rofls): Restore me when the above function is finished.
-        # image_summaries.append(image_summary)
+    for difficulty, c in self._calibration.items():
+      calibration_summaries = c.Summary(difficulty)
+      for calibration_summary in calibration_summaries:
+        image_summaries.append(calibration_summary)
 
     return image_summaries
