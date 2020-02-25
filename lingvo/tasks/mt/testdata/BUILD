@@ -11,3 +11,10 @@ filegroup(
         "wmt14_ende_wpm_32k_test.vocab",
     ],
 )
+
+filegroup(
+    name = "mlperf_tfexample",
+    data = [
+        "translate_ende_wmt32k-train-00511-of-00512",
+    ],
+)

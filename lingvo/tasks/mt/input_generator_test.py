@@ -30,6 +30,17 @@ from six.moves import range
 
 class InputTest(test_utils.TestCase):
 
+  def _CreateMlPerfInputParams(self):
+    p = input_generator.MlPerfInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/translate_ende_wmt32k-train-00511-of-00512')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [20, 40]
+    p.bucket_batch_limit = [4, 8]
+    return p
+
   def _CreateNmtInputParams(self):
     p = input_generator.NmtInput.Params()
     input_file = test_helper.test_src_dir_path(
@@ -48,6 +59,42 @@ class InputTest(test_utils.TestCase):
       # Runs a few steps.
       for _ in range(10):
         sess.run(inp.GetPreprocessedInputBatch())
+
+  def testMlPerf(self):
+    p = self._CreateMlPerfInputParams()
+    with self.session(use_gpu=False) as sess:
+      inp = input_generator.MlPerfInput(p)
+      # Runs a few steps.
+      for _ in range(10):
+        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        tf.logging.info(fetched)
+
+  def testMlPerfPadToMax(self):
+    p = self._CreateMlPerfInputParams()
+    p.bucket_upper_bound = [20]
+    p.bucket_batch_limit = [4]
+    p.source_max_length = 30
+    p.target_max_length = 30
+    p.pad_to_max_seq_length = True
+
+    with self.session(use_gpu=False) as sess:
+      inp = input_generator.MlPerfInput(p)
+      # Runs a few steps.
+      for _ in range(10):
+        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+
+    def Check(x, pad):
+      # Check the shape: (batch, maxlen)
+      self.assertEqual(x.shape, (4, 30))
+      # Check the padding.
+      self.assertAllEqual(x[:, 20:], np.full((4, 10), pad))
+
+    Check(fetched.src.ids, 0)
+    Check(fetched.src.paddings, 1)
+    Check(fetched.tgt.ids, 0)
+    Check(fetched.tgt.labels, 0)
+    Check(fetched.tgt.weights, 0)
+    Check(fetched.tgt.paddings, 1)
 
   def testPadToMax(self):
     p = self._CreateNmtInputParams()
