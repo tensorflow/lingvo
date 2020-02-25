@@ -1307,6 +1307,7 @@ lingvo_cuda_py2and3_test(
         ":quant_utils",
         ":rnn_cell",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],

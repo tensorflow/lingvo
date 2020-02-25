@@ -18,6 +18,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from absl.testing import parameterized
+
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -30,7 +32,7 @@ _NUMPY_RANDOM_SEED = 12345
 _RANDOM_SEED = 98274
 
 
-class RNNCellTest(test_utils.TestCase):
+class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   def testGRUCell(self, inline=False, enable_gru_bias=True):
     with self.session(
@@ -101,7 +103,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 11 if enable_gru_bias else 8
       wts = tf.get_collection('GRUCell_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       # pyformat: disable
       if enable_gru_bias:
@@ -178,7 +180,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 2 if enable_lstm_bias else 1
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       # pyformat: disable
       if couple_input_forget_gates:
@@ -321,7 +323,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 2 if enable_lstm_bias else 1
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       if enable_lstm_bias:
         m_expected = [
@@ -397,13 +399,13 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 2
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       masks = tf.get_collection('masks')
-      self.assertEqual(1, len(masks))
+      self.assertLen(masks, 1)
 
       threshold = tf.get_collection('thresholds')
-      self.assertEqual(1, len(threshold))
+      self.assertLen(threshold, 1)
 
       m_expected = [[0.095727, 0.476658], [0.04662, 0.180589],
                     [0.001656, 0.374141]]
@@ -459,13 +461,13 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 3  # weights, biases, projection.
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       masks = tf.get_collection('masks')
-      self.assertEqual(2, len(masks))
+      self.assertLen(masks, 2)
 
       threshold = tf.get_collection('thresholds')
-      self.assertEqual(2, len(threshold))
+      self.assertLen(threshold, 2)
 
       m_expected = [[0.414049], [0.076521], [0.356313]]
       c_expected = [[0.270425, 0.840373], [0.349856, 0.440421],
@@ -511,7 +513,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 3  # weights, biases, projection.
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       m_expected = [[0.414049], [0.076521], [0.356313]]
       c_expected = [[0.270425, 0.840373], [0.349856, 0.440421],
@@ -563,7 +565,7 @@ class RNNCellTest(test_utils.TestCase):
                       size=(3, 8)), tf.float32)), params.num_groups))
 
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
-      self.assertEqual(params.num_groups, len(state1.groups))
+      self.assertLen(state1.groups, params.num_groups)
       out1 = lstm.GetOutput(state1)
 
       # Initialize all the variables, and then run one step.
@@ -571,7 +573,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 2 * params.num_groups  # one for weights, one for biases.
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       state1 = py_utils.ConcatRecursively(state1.groups)
       m_actual = state1.m.eval()
@@ -666,7 +668,7 @@ class RNNCellTest(test_utils.TestCase):
                       size=(3, 8)), tf.float32)), params.num_groups))
 
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
-      self.assertEqual(params.num_groups, len(state1.groups))
+      self.assertLen(state1.groups, params.num_groups)
       out1 = lstm.GetOutput(state1)
 
       # Initialize all the variables, and then run one step.
@@ -674,7 +676,7 @@ class RNNCellTest(test_utils.TestCase):
 
       variable_count = 3 * params.num_groups  # [wm, b, w_proj] for each group.
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(variable_count, len(wts))
+      self.assertLen(wts, variable_count)
 
       state1 = py_utils.ConcatRecursively(state1.groups)
       m_actual = state1.m.eval()
@@ -847,7 +849,7 @@ class RNNCellTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
 
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(2, len(wts))
+      self.assertLen(wts, 2)
 
       # pyformat: disable
       m_expected = [
@@ -892,7 +894,7 @@ class RNNCellTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
 
       wts = tf.get_collection('LSTMCellSimple_vars')
-      self.assertEqual(2, len(wts))
+      self.assertLen(wts, 2)
 
       # pyformat: enable
       self.assertAllClose(state0.m.eval(), state1.m.eval())
@@ -940,7 +942,7 @@ class RNNCellTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
 
       wts = tf.get_collection('ConvLSTMCell_vars')
-      self.assertEqual(2, len(wts))
+      self.assertLen(wts, 2)
 
       # pyformat: disable
       m_expected = [
@@ -1303,6 +1305,35 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
+  @parameterized.named_parameters(('Enable', True), ('Disable', False))
+  def testLNLSTMCellLeanLSTMBias(self, enable):
+    m_expected, c_expected = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellSimple.Params().Set(
+            cell_value_cap=None,
+            enable_lstm_bias=enable,
+            bias_init=py_utils.WeightInit.Constant(1.0)))
+    m, c = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellLean.Params().Set(
+            enable_ln_on_c=False,
+            enable_lstm_bias=enable,
+            bias_init=py_utils.WeightInit.Constant(1.0)))
+    self.assertAllClose(m_expected, m)
+    self.assertAllClose(c_expected, c)
+
+  @parameterized.named_parameters(('HighThreshold', 0.5),
+                                  ('LowThreshold', 5e-4))
+  def testLNLSTMCellLeanCellValueCap(self, cell_value_cap):
+    m_expected, c_expected = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellSimple.Params().Set(
+            enable_lstm_bias=False, cell_value_cap=cell_value_cap))
+    m, c = self._testLNLSTMCell(
+        rnn_cell.LayerNormalizedLSTMCellLean.Params().Set(
+            enable_ln_on_c=False,
+            enable_lstm_bias=False,
+            cell_value_cap=cell_value_cap))
+    self.assertAllClose(m_expected, m)
+    self.assertAllClose(c_expected, c)
+
   def testLNLSTMCellLeanProj(self):
     m_v, c_v = self._testLNLSTMCell(
         rnn_cell.LayerNormalizedLSTMCellLean.Params(), num_hidden_nodes=4)
@@ -1315,6 +1346,7 @@ class RNNCellTest(test_utils.TestCase):
     self.assertAllClose(c_expected, c_v)
 
   def _testLNLSTMCell(self, params, num_hidden_nodes=0):
+    tf.reset_default_graph()
     with self.session(use_gpu=False):
       params = params.Copy()
       params.name = 'lstm'
@@ -1429,9 +1461,9 @@ class RNNCellTest(test_utils.TestCase):
 
       wts = tf.get_collection('DoubleProjectionLSTMCell_vars')
       if enable_ln_on_c:
-        self.assertEqual(2 + 3 * 4 + 2, len(wts))
+        self.assertLen(wts, 2 + 3 * 4 + 2)
       else:
-        self.assertEqual(2 + 3 * 4, len(wts))
+        self.assertLen(wts, 2 + 3 * 4)
 
       if enable_ln_on_c:
         m_expected = [[-0.751002], [0.784634], [0.784634]]

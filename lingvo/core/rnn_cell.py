@@ -1260,7 +1260,8 @@ class LayerNormalizedLSTMCellLean(RNNCell):
   Note, this version doesn't support all the options as implemented in
   LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization and
   etc. Please use the other version if you even need those options. Another
-  difference is that in this version, c_state is also being layer-normalized.
+  difference is that in this version, by default, c_state is layer-normalized
+  for computing new_m.
 
   state:
 
@@ -1288,6 +1289,14 @@ class LayerNormalizedLSTMCellLean(RNNCell):
         'Whether to apply layer normalization on state.c. '
         'If false, LayerNormalizedLSTMCellLean will behave exactly as '
         'LayerNormalizedLSTMCellSimple.')
+    p.Define(
+        'cell_value_cap', None, 'LSTM cell values are capped to be within '
+        ' [-cell_value_cap, +cell_value_cap] if the value is not None. '
+        'It can be a scalar, a scalar tensor or None. When set to None, '
+        'no capping is applied.')
+    p.Define('enable_lstm_bias', False, 'Enable the LSTM Cell bias.')
+    p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
+             'Initialization parameters for bias')
 
     # TODO(yonghui): Get rid of the following two params.
     p.Define('output_nonlinearity', True,
@@ -1305,6 +1314,11 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
     assert p.output_nonlinearity
     assert p.zo_prob == 0.0
+    if p.cell_value_cap is not None and not isinstance(p.cell_value_cap,
+                                                       (int, float)):
+      raise ValueError(
+          'p.cell_value_cap should be a int/float if not None, but got {}'
+          .format(p.cell_value_cap))
 
     with tf.variable_scope(p.name):
       # Define weights.
@@ -1322,6 +1336,14 @@ class LayerNormalizedLSTMCellLean(RNNCell):
             dtype=p.dtype,
             collections=self._VariableCollections())
         self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+
+      if p.enable_lstm_bias:
+        bias_pc = py_utils.WeightParams(
+            shape=[4 * self.hidden_size],
+            init=p.bias_init,
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
       pc = py_utils.WeightParams(
           shape=[self.hidden_size],
@@ -1401,7 +1423,16 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     i_g = self._LayerNormGate(theta, 'i_g', i_g)
     f_g = self._LayerNormGate(theta, 'f_g', f_g)
     o_g = self._LayerNormGate(theta, 'o_g', o_g)
+    if p.enable_lstm_bias:
+      # LayerNormalizedLSTMCellLean applies biases after LN.
+      biases = tf.split(theta.b, num_or_size_splits=4)
+      i_i += biases[0]
+      i_g += biases[1]
+      f_g += biases[2]
+      o_g += biases[3]
     new_c = tf.sigmoid(f_g) * state0.c + tf.sigmoid(i_g) * tf.tanh(i_i)
+    if p.cell_value_cap is not None:
+      new_c = py_utils.clip_by_value(new_c, -p.cell_value_cap, p.cell_value_cap)
     # new_c_normed is only used for computing 'new_m'. We use the un-normalized
     # new_cc as cell state to keep the residual property of lstm cell.
     new_c_normed = self._LayerNormGate(theta, 'c', new_c)
