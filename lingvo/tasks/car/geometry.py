@@ -473,6 +473,48 @@ def IsWithinBBox(points, bbox):
                       list(range(ndims - 2)) + [ndims - 1, ndims - 2])
 
 
+def BBoxCorners2D(bboxes):
+  """Extract the corner points from a 5-DOF bbox representation.
+
+  Args:
+    bboxes: A [..., 5] floating point bounding box representation ([x, y, dx,
+      dy, phi]).
+
+  Returns:
+    A [..., 4, 2] floating point Tensor containing
+      the corner (x, y) points for every bounding box.
+  """
+  corners = tf.constant([
+      [0.5, 0.5],
+      [-0.5, 0.5],
+      [-0.5, -0.5],
+      [0.5, -0.5],
+  ])
+
+  leading_shape = py_utils.GetShape(bboxes)[:-1]
+
+  # Extract location, dimension, and rotation.
+  location = bboxes[..., :2]
+  dimensions = bboxes[..., 2:4]
+  phi_world = bboxes[..., 4]
+
+  # Convert rotation_phis into rotation matrices along unit z.
+  cos = tf.cos(phi_world)
+  sin = tf.sin(phi_world)
+  rotations_world = tf.reshape(
+      tf.stack([cos, -sin, sin, cos], axis=-1), leading_shape + [2, 2])
+
+  # Create axis-aligned corners from length/width/height.
+  corners = tf.einsum('...i,ji->...ji', dimensions, corners)
+
+  # Rotate the corners coordinates to the rotated world frame.
+  corners = tf.einsum('...ij,...kj->...ki', rotations_world, corners)
+
+  # Translate corners to the world location.
+  corners = corners + tf.reshape(location, leading_shape + [1, 2])
+  return corners
+
+
 def BBoxCorners(bboxes):
   """Extract the corner points from a 7-DOF bbox representation.
 
