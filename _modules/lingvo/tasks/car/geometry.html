@@ -618,6 +618,48 @@
                       <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">ndims</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span> <span class="o">+</span> <span class="p">[</span><span class="n">ndims</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">ndims</span> <span class="o">-</span> <span class="mi">2</span><span class="p">])</span></div>
 
 
+<div class="viewcode-block" id="BBoxCorners2D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxCorners2D">[docs]</a><span class="k">def</span> <span class="nf">BBoxCorners2D</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extract the corner points from a 5-DOF bbox representation.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    bboxes: A [..., 5] floating point bounding box representation ([x, y, dx,</span>
+<span class="sd">      dy, phi]).</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A [..., 4, 2] floating point Tensor containing</span>
+<span class="sd">      the corner (x, y) points for every bounding box.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">],</span>
+      <span class="p">[</span><span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>
+      <span class="p">[</span><span class="mf">0.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span>
+  <span class="p">])</span>
+
+  <span class="n">leading_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+  <span class="c1"># Extract location, dimension, and rotation.</span>
+  <span class="n">location</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">dimensions</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span>
+  <span class="n">phi_world</span> <span class="o">=</span> <span class="n">bboxes</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">4</span><span class="p">]</span>
+
+  <span class="c1"># Convert rotation_phis into rotation matrices along unit z.</span>
+  <span class="n">cos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">phi_world</span><span class="p">)</span>
+  <span class="n">sin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">phi_world</span><span class="p">)</span>
+  <span class="n">rotations_world</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">cos</span><span class="p">,</span> <span class="o">-</span><span class="n">sin</span><span class="p">,</span> <span class="n">sin</span><span class="p">,</span> <span class="n">cos</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">leading_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+
+  <span class="c1"># Create axis-aligned corners from length/width/height.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...i,ji-&gt;...ji&#39;</span><span class="p">,</span> <span class="n">dimensions</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+
+  <span class="c1"># Rotate the corners coordinates to the rotated world frame.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;...ij,...kj-&gt;...ki&#39;</span><span class="p">,</span> <span class="n">rotations_world</span><span class="p">,</span> <span class="n">corners</span><span class="p">)</span>
+
+  <span class="c1"># Translate corners to the world location.</span>
+  <span class="n">corners</span> <span class="o">=</span> <span class="n">corners</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">location</span><span class="p">,</span> <span class="n">leading_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">corners</span></div>
+
+
 <div class="viewcode-block" id="BBoxCorners"><a class="viewcode-back" href="../../../../lingvo.tasks.car.geometry.html#lingvo.tasks.car.geometry.BBoxCorners">[docs]</a><span class="k">def</span> <span class="nf">BBoxCorners</span><span class="p">(</span><span class="n">bboxes</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Extract the corner points from a 7-DOF bbox representation.</span>
 
