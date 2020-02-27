@@ -254,13 +254,12 @@ class DistillationTestTask(base_model.DistillationTask):
 
 class DistillationTaskTest(test_utils.TestCase):
 
-  def testFProp(self):
-    p = DistillationTestTask.Params()
-    task = p.Instantiate()
+  def _GetVarValuesBeforeAndAfter(self, params, steps=10):
+    task = params.Instantiate()
     self.assertIsNotNone(task.teacher.params.input)
     self.assertIsNotNone(task.student.params.input)
     metrics = task.FPropDefaultTheta()[0]
-    self.assertItemsEqual(['loss', 'num_samples_in_batch'],
+    self.assertCountEqual(['loss', 'num_samples_in_batch'],
                           list(metrics.keys()))
     task.BProp()
     # Expected side effects of BProp().
@@ -282,17 +281,38 @@ class DistillationTaskTest(test_utils.TestCase):
       # Train for a few steps.
       for _ in range(10):
         sess.run(task.train_op)
-
       for child in ('teacher', 'student'):
         values_after_training[child] = sess.run(variables[child])
-        for k, v in six.iteritems(values_after_training[child]):
-          print('Comparing variable %s' % k)
-          if child == 'teacher':
-            # Teacher vars should not change after training.
-            self.assertAllEqual(values_before_training[child][k], v)
-          else:
-            # Student vars should change after training.
-            self.assertNotAlmostEqual(values_before_training[child][k], v)
+      return values_before_training, values_after_training
+
+  def testFProp(self):
+    values_before_training, values_after_training = (
+        self._GetVarValuesBeforeAndAfter(DistillationTestTask.Params()))
+    for child in ('teacher', 'student'):
+      for k, v in six.iteritems(values_after_training[child]):
+        print('Comparing variable %s' % k)
+        if child == 'teacher':
+          # Teacher vars should not change after training.
+          self.assertAllEqual(values_before_training[child][k], v)
+        else:
+          # Student vars should change after training.
+          self.assertNotAlmostEqual(values_before_training[child][k], v)
+
+  def testFPropTeacherEnabled(self):
+    params = DistillationTestTask.Params()
+    params.train_teacher = True
+    params.distillation_loss_weight.value = 0.5
+    values_before_training, values_after_training = (
+        self._GetVarValuesBeforeAndAfter(params))
+    for child in ('teacher', 'student'):
+      for k, v in six.iteritems(values_after_training[child]):
+        print('Comparing variable %s' % k)
+        if child == 'teacher':
+          # Teacher vars should change after training.
+          self.assertNotAlmostEqual(values_before_training[child][k], v)
+        else:
+          # Student vars should change after training.
+          self.assertNotAlmostEqual(values_before_training[child][k], v)
 
 
 class SingleTaskModelTest(test_utils.TestCase):

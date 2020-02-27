@@ -875,6 +875,10 @@ class DistillationTask(BaseTask):
         'beam_search_temperature', 1.0, 'The temperature to scale the'
         'log-prob of each beam search hypothesis. This is used in '
         'training only')
+    p.Define(
+        'train_teacher', False, 'Adds the teacher\'s loss (w.r.t the ground '
+        'truth labels) to the overall ground truth loss. This can be used for '
+        'instance when the teacher is trained in parallel to the student.')
     return p
 
   @base_layer.initializer
@@ -930,12 +934,25 @@ class DistillationTask(BaseTask):
                          self.p.teacher_target_type)
 
   def ComputeLoss(self, theta, predictions, input_batch):
+    p = self.params
     per_example = {}
     with tf.name_scope('groundtruth_loss'):
-      groundtruth_loss, groundtruth_per_example = self.student.ComputeLoss(
-          theta.student, predictions.student, input_batch)
-      groundtruth_loss['groundtruth_loss'] = groundtruth_loss['loss']
-      per_example.update(groundtruth_per_example)
+      student_groundtruth_loss, student_groundtruth_per_example = (
+          self.student.ComputeLoss(theta.student, predictions.student,
+                                   input_batch))
+      groundtruth_loss = student_groundtruth_loss
+      groundtruth_loss['student_groundtruth_loss'] = (
+          student_groundtruth_loss['loss'])
+      per_example.update(student_groundtruth_per_example)
+
+      if p.train_teacher:
+        teacher_groundtruth_loss, _ = self.teacher.ComputeLoss(
+            theta.teacher, predictions.teacher, input_batch)
+        groundtruth_loss['teacher_groundtruth_loss'] = (
+            teacher_groundtruth_loss['loss'])
+        # The new loss is the wighted sum of the teacher and student losses.
+        groundtruth_loss['loss'] = py_utils.WeightedAvg(*zip(
+            teacher_groundtruth_loss['loss'], student_groundtruth_loss['loss']))
 
     with tf.name_scope('distillation_loss'):
       distillation_loss, distill_per_example = self.ComputeDistillationLoss(
@@ -955,8 +972,12 @@ class DistillationTask(BaseTask):
     raise NotImplementedError('Abstract method')
 
   def BProp(self):
-    # Only bprop on student variables.
-    self._BPropForVariables(self.student.vars)
+    p = self.params
+    if p.train_teacher:
+      return super(DistillationTask, self).BProp()
+    else:
+      # Only bprop on student variables.
+      self._BPropForVariables(self.student.vars)
 
   def Decode(self, input_batch):
     return self.student.Decode(input_batch)
