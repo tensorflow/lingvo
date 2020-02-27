@@ -19,6 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import enum
+
 import lingvo.compat as tf
 from lingvo.core import hyperparams as _params
 from lingvo.core import hyperparams_pb2
@@ -38,6 +40,12 @@ class TestClass1(object):
 class TestClass2(object):
   """This class is used in ParamsToSimpleTextTest as a value of a variable."""
   pass
+
+
+class TestEnum(enum.Enum):
+  """Test enum class."""
+  A = 1
+  B = 2
 
 
 class ParamsTest(test_utils.TestCase):
@@ -223,10 +231,12 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('inner', inner, '')
     outer.Define('list', [1, inner, 2], '')
     outer.Define('dict', {'a': 1, 'b': inner}, '')
+    outer.Define('enum', TestEnum.B, '')
     self.assertEqual(
         '\n' + str(outer), """
 {
   dict: {'a': 1, 'b': {'bar': 2}}
+  enum: TestEnum.B
   foo: 1
   inner: {
     bar: 2
@@ -267,6 +277,7 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('complex_dict_escape', {'a': 'abc"\'\ndef'}, '')
     outer.Define('some_class', complex(0, 1), '')
     outer.Define('optional_bool', None, '')
+    outer.Define('enum', TestEnum.B, '')
     # Arbitrarily use HyperparameterValue as some example proto.
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
@@ -277,6 +288,7 @@ complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'hello'}}
 complex_dict_escape : {'a': 'abc"\'\ndef'}
 dtype : float32
 dtype2 : int32
+enum : TestEnum.B
 foo : 1
 inner.bar : 2.71
 inner.baz : 'hello'
@@ -302,6 +314,7 @@ tuple : (1, 'NoneType')
         class : type/__main__/TestClass2
         tau : true
         tuple : (2, 3)
+        enum : TestEnum.A
         proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/string_val: "a/b"
         """)
 
@@ -313,6 +326,7 @@ complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'world'}}
 complex_dict_escape : {'a': 'abc"\'\ndef'}
 dtype : float32
 dtype2 : float32
+enum : TestEnum.A
 foo : 1
 inner.bar : 2.71
 inner.baz : 'world'
@@ -341,6 +355,7 @@ tuple : (2, 3)
     outer.Define('empty_list', [], '')
     outer.Define('empty_tuple', (), '')
     outer.Define('empty_dict', {}, '')
+    outer.Define('enum', TestEnum.B, '')
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
     rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
@@ -356,6 +371,7 @@ tuple : (2, 3)
     self.assertEqual(outer.empty_list, rebuilt_outer.empty_list)
     self.assertEqual(outer.empty_tuple, rebuilt_outer.empty_tuple)
     self.assertEqual(outer.empty_dict, rebuilt_outer.empty_dict)
+    self.assertEqual(outer.enum, rebuilt_outer.enum)
     self.assertEqual(outer.proto, rebuilt_outer.proto)
 
   def testStringEscaping(self):
@@ -478,15 +494,6 @@ escaping_single : 'In "quotes"'
         deserialized = pclean.Copy()
         deserialized.FromTextWithTypes(x)
         self.assertEqual(p, deserialized)
-
-  def testToStr(self):
-    p = _params.Params()
-    p.Define('str', '', '')
-    p.str = 'test'
-    str_value = str(p)
-    self.assertEqual(str_value, """{
-  str: "test"
-}""")
 
   def testDiff(self):
     a = _params.Params()

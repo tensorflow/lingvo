@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import ast
 import copy
+import enum
 import importlib
 import inspect
 import re
@@ -404,15 +405,11 @@ class Params(object):
         param_pb.param_val.CopyFrom(_ToParam(val))
       elif isinstance(val, list) or isinstance(val, range):
         # The range function is serialized by explicitely calling it.
-        param_pb.list_val.CopyFrom(hyperparams_pb2.HyperparamRepeated())
-        for v in val:
-          param_pb.list_val.items.extend([_ToParamValue(v)])
+        param_pb.list_val.items.extend([_ToParamValue(v) for v in val])
       elif isinstance(val, tuple):
-        param_pb.tuple_val.CopyFrom(hyperparams_pb2.HyperparamRepeated())
-        for v in val:
-          param_pb.tuple_val.items.extend([_ToParamValue(v)])
+        param_pb.tuple_val.items.extend([_ToParamValue(v) for v in val])
       elif isinstance(val, dict):
-        param_pb.dict_val.CopyFrom(hyperparams_pb2.Hyperparam())
+        param_pb.dict_val.SetInParent()
         for k, v in val.items():
           param_pb.dict_val.items[k].CopyFrom(_ToParamValue(v))
       elif isinstance(val, type):
@@ -427,8 +424,12 @@ class Params(object):
         param_pb.int_val = val
       elif isinstance(val, float):
         param_pb.float_val = val
+      elif isinstance(val, enum.Enum):
+        enum_cls = type(val)
+        param_pb.enum_val.type = inspect.getmodule(
+            enum_cls).__name__ + '/' + enum_cls.__name__
+        param_pb.enum_val.name = val.name
       elif isinstance(val, message.Message):
-        param_pb.proto_val.CopyFrom(hyperparams_pb2.ProtoVal())
         proto_cls = type(val)
         param_pb.proto_val.type = inspect.getmodule(
             proto_cls).__name__ + '/' + proto_cls.__name__
@@ -483,6 +484,13 @@ class Params(object):
         return param_pb.float_val
       elif which_oneof == 'bool_val':
         return param_pb.bool_val
+      elif which_oneof == 'enum_val':
+        tokens = param_pb.enum_val.type.split('/')
+        assert len(tokens) == 2
+        enum_cls = getattr(importlib.import_module(tokens[0]), tokens[1])
+        if not issubclass(enum_cls, enum.Enum):
+          return None
+        return enum_cls[param_pb.enum_val.name]
       elif which_oneof == 'proto_val':
         tokens = param_pb.proto_val.type.split('/')
         assert len(tokens) == 2
@@ -541,9 +549,8 @@ class Params(object):
         return _SortedDict({k: GetRepr(v) for k, v in six.iteritems(val)})
       if isinstance(val, (list, tuple)):
         return type(val)([GetRepr(v) for v in val])
-      if isinstance(
-          val,
-          (six.integer_types, float, bool, six.string_types, six.text_type)):
+      if isinstance(val, (six.integer_types, float, bool, six.string_types,
+                          six.text_type, enum.Enum)):
         return val
       if isinstance(val, tf.DType):
         return val.name
@@ -659,6 +666,12 @@ class Params(object):
             val = ast.literal_eval(val)
           except ValueError:
             pass
+      elif isinstance(old_val, enum.Enum):
+        cls, _, name = val.rpartition('.')
+        if val_type != cls:
+          raise ValueError('Expected enum of class %s but got %s' %
+                           (val_type, cls))
+        val = type(old_val)[name]
       elif (isinstance(old_val, type) or isinstance(old_val, message.Message) or
             old_val is None):
         if val == 'NoneType':

@@ -33,6 +33,7 @@ message HyperparamValue {
     int64 int_val = 9;
     float float_val = 10;
     ProtoVal proto_val = 11;
+    EnumVal enum_val = 12;
   }
 }
 
@@ -41,4 +42,10 @@ message HyperparamValue {
 message ProtoVal {
   optional string type = 1;
   optional bytes val = 2;
+}
+
+// An enum.
+message EnumVal {
+  optional string type = 1;
+  optional string name = 2;
 }
