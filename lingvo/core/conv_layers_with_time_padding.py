@@ -603,7 +603,7 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
     """
     p = self.params
     assert p.pooling_type in ['MAX', 'AVG'], p.pooling_type
-    b, t, f, _ = py_utils.GetShape(inputs)
+    b, t, f = py_utils.GetShape(inputs, ndims=3)
 
     if paddings is not None:
       paddings = py_utils.HasShape(paddings, [b, t])

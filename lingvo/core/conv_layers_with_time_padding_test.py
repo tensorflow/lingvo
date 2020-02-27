@@ -331,6 +331,28 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
     self._testHelper('MAX', inputs, paddings, expected_max_output,
                      expected_paddings)
 
+  def testPoolingWithUnknowShapeInput(self):
+    """Tests GlobalPooling layer with unknown shape tensor."""
+
+    @tf.Defun(tf.float32)
+    def remove_shape(tensor):
+      return tensor
+
+    g = tf.Graph()
+    with g.as_default(), tf.Session(graph=g) as _:
+      tf.set_random_seed(24332)
+      input_shape = [3, 5, 2, 4]
+      inputs = np.random.random(input_shape) - 0.5
+      expected_avg_output = np.mean(inputs, axis=(1, 2), keepdims=True)
+      input_tensor = tf.convert_to_tensor(inputs, dtype=tf.float32)
+      # initial shape is [3, 5, 2, 4]
+      self.assertEqual(py_utils.GetShape(input_tensor), input_shape)
+      # remove shape using a tf Defun and verify dynamic tensor shape.
+      input_tensor = remove_shape(input_tensor)
+      self.assertIsInstance(py_utils.GetShape(input_tensor), tf.Tensor)
+      self.assertIsNone(input_tensor.shape.rank)
+      self._testHelper('AVG', input_tensor, None, expected_avg_output, None)
+
 
 if __name__ == '__main__':
   tf.test.main()
