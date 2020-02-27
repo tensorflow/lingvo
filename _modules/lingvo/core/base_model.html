@@ -1020,6 +1020,10 @@
         <span class="s1">&#39;beam_search_temperature&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;The temperature to scale the&#39;</span>
         <span class="s1">&#39;log-prob of each beam search hypothesis. This is used in &#39;</span>
         <span class="s1">&#39;training only&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;train_teacher&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Adds the teacher</span><span class="se">\&#39;</span><span class="s1">s loss (w.r.t the ground &#39;</span>
+        <span class="s1">&#39;truth labels) to the overall ground truth loss. This can be used for &#39;</span>
+        <span class="s1">&#39;instance when the teacher is trained in parallel to the student.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -1075,12 +1079,25 @@
                          <span class="bp">self</span><span class="o">.</span><span class="n">p</span><span class="o">.</span><span class="n">teacher_target_type</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DistillationTask.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">per_example</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;groundtruth_loss&#39;</span><span class="p">):</span>
-      <span class="n">groundtruth_loss</span><span class="p">,</span> <span class="n">groundtruth_per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span>
-          <span class="n">theta</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
-      <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;groundtruth_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span>
-      <span class="n">per_example</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">groundtruth_per_example</span><span class="p">)</span>
+      <span class="n">student_groundtruth_loss</span><span class="p">,</span> <span class="n">student_groundtruth_per_example</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">student</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">student</span><span class="p">,</span>
+                                   <span class="n">input_batch</span><span class="p">))</span>
+      <span class="n">groundtruth_loss</span> <span class="o">=</span> <span class="n">student_groundtruth_loss</span>
+      <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;student_groundtruth_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="n">student_groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+      <span class="n">per_example</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">student_groundtruth_per_example</span><span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_teacher</span><span class="p">:</span>
+        <span class="n">teacher_groundtruth_loss</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">predictions</span><span class="o">.</span><span class="n">teacher</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+        <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;teacher_groundtruth_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">teacher_groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">])</span>
+        <span class="c1"># The new loss is the wighted sum of the teacher and student losses.</span>
+        <span class="n">groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvg</span><span class="p">(</span><span class="o">*</span><span class="nb">zip</span><span class="p">(</span>
+            <span class="n">teacher_groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">],</span> <span class="n">student_groundtruth_loss</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]))</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;distillation_loss&#39;</span><span class="p">):</span>
       <span class="n">distillation_loss</span><span class="p">,</span> <span class="n">distill_per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeDistillationLoss</span><span class="p">(</span>
@@ -1100,8 +1117,12 @@
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DistillationTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Only bprop on student variables.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span></div>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train_teacher</span><span class="p">:</span>
+      <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">DistillationTask</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Only bprop on student variables.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DistillationTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span></div>
