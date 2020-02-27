@@ -726,7 +726,7 @@ class NestedMap(dict):
       return default
 
   def Set(self, key, value):
-    """Sets the value for a nested key, returns `default` if key does not exist.
+    """Sets the value for a nested key.
 
     Note that indexing lists is not supported, names with underscores will be
     considered as one key.
