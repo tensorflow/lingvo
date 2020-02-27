@@ -2217,6 +2217,9 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         '[num_rows, embed_dim // 128, 128].')
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
+    p.Define(
+        'scale_sqrt_depth', False, 'If set True, activations are scaled'
+        ' with sqrt(embedding_dim) in EmbLookup.')
     return p
 
   @base_layer.initializer
@@ -2323,6 +2326,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           inputs=[ids_vec, drets, dembs],
           body=EmbBpropLoop,
           rewrite_with_while=compiled)
+
+      if p.scale_sqrt_depth:
+        dembs *= p.embedding_dim**0.5
+
       return dembs, tf.zeros_like(ids_vec)
 
     @tf.Defun(
@@ -2411,6 +2418,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     embs = tf.nn.embedding_lookup(self.theta.wm, tf.reshape(ids, [-1]))
     out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
                           0)
+    if p.scale_sqrt_depth:
+      embs *= p.embedding_dim**0.5
     return tf.reshape(embs, out_shape)
 
   def FProp(self, theta, ids):
@@ -2442,6 +2451,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           dtype=embs_result.dtype,
           seed=p.random_seed)
       embs_result += emb_noise
+
+    if p.scale_sqrt_depth:
+      embs_result *= p.embedding_dim**0.5
+
     out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
                           0)
     return tf.reshape(embs_result, out_shape)
@@ -3091,12 +3104,25 @@ class SimpleFullSoftmax(SoftmaxLayer):
 class SharedSoftmaxLayer(SimpleFullSoftmax):
   """Shared softmax layer for decoder embedding/softmax matrix."""
 
+  @classmethod
+  def Params(cls):
+    """Params for SharedSoftmaxLayer."""
+    p = super(SharedSoftmaxLayer, cls).Params()
+    p.Define(
+        'scale_sqrt_depth', False, 'If set True, activations are scaled'
+        ' with sqrt(input_dim) in EmbLookup.')
+    return p
+
   def EmbLookup(self, theta, ids):
     p = self.params
     if not py_utils.use_xla():
       ids = py_utils.with_dependencies(
           [py_utils.assert_between(ids, 0, p.num_classes)], ids)
     embs_result = tf.gather(tf.transpose(self._ConcatWeights(theta).wm), ids)
+
+    if p.scale_sqrt_depth:
+      embs_result *= p.input_dim**0.5
+
     return embs_result
 
 

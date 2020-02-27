@@ -2248,8 +2248,11 @@ class EmbeddingLayerTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       test_utils.CompareToGoldenSingleFloat(self, -6.807296, embs_sum.eval())
 
-  def _testSimpleEmbeddingLayer(self, use_matmul, use_3d_weight_tensor,
-                                fprop_mode):
+  def _testSimpleEmbeddingLayer(self,
+                                use_matmul,
+                                use_3d_weight_tensor,
+                                fprop_mode,
+                                scale_sqrt_depth=False):
     g = tf.Graph()
     with g.as_default():
       tf.set_random_seed(398847392)
@@ -2261,6 +2264,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       params.use_matmul = use_matmul
       params.fprop_mode = fprop_mode
       params.use_3d_weight_tensor = use_3d_weight_tensor
+      params.scale_sqrt_depth = scale_sqrt_depth
       params.params_init = py_utils.WeightInit.Gaussian(0.01)
       params.vn.global_vn = False
       params.vn.per_step_vn = False
@@ -2280,8 +2284,12 @@ class EmbeddingLayerTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       emb_matrix_val, ids_val, outputs_val, fast_outputs_val = sess.run(
           [emb_matrix, ids, outputs, fast_outputs])
+      if scale_sqrt_depth:
+        emb_matrix_val *= params.embedding_dim**0.5
+
       self.assertEqual(emb_matrix_val.shape, (8000, 128))
       self.assertEqual(ids_val.shape, (2, 1))
+
       self.assertEqual(outputs_val.shape, (2, 1, 128))
       self.assertAllClose(emb_matrix_val[89, :], outputs_val[0, 0, :])
       self.assertAllClose(emb_matrix_val[100, :], outputs_val[1, 0, :])
@@ -2301,6 +2309,9 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testSimpleEmbeddingLayerGather(self):
     self._testSimpleEmbeddingLayer(False, False, 'gather')
+
+  def testSimpleEmbeddingLayerScaling(self):
+    self._testSimpleEmbeddingLayer(True, False, None, True)
 
   def testSimpleEmbeddingLayerMasked(self):
     g = tf.Graph()
@@ -2351,7 +2362,10 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
       self.assertAllClose(emb_matrix_val[1:3], outputs_val[:, 0, :])
 
-  def _testSimpleEmbeddingLayerGrad(self, use_matmul, use_3d_weight_tensor):
+  def _testSimpleEmbeddingLayerGrad(self,
+                                    use_matmul,
+                                    use_3d_weight_tensor,
+                                    scale_sqrt_depth=False):
     with self.session(use_gpu=True) as sess:
       tf.set_random_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
@@ -2361,6 +2375,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       params.embedding_dim = 128
       params.use_matmul = use_matmul
       params.use_3d_weight_tensor = use_3d_weight_tensor
+      params.scale_sqrt_depth = scale_sqrt_depth
       params.params_init = py_utils.WeightInit.Gaussian(0.01)
       params.vn.global_vn = False
       params.vn.per_step_vn = False
@@ -2385,6 +2400,8 @@ class EmbeddingLayerTest(test_utils.TestCase):
     expected_emb_grad = np.zeros(shape=(8000, 128))
     expected_emb_grad[89, :] = 0.8
     expected_emb_grad[100, :] = 0.2
+    if scale_sqrt_depth:
+      expected_emb_grad *= params.embedding_dim**0.5
     self.assertAllClose(expected_emb_grad, emb_grad_val)
 
   def testSimpleEmbeddingLayerGradForLoop(self):
@@ -2395,6 +2412,9 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testSimpleEmbeddingLayerGradMatmul(self):
     self._testSimpleEmbeddingLayerGrad(True, False)
+
+  def testSimpleEmbeddingLayerGradScaling(self):
+    self._testSimpleEmbeddingLayerGrad(True, False, True)
 
   def testCompareEmbeddingLayers(self):
     classes = 8000
@@ -3248,7 +3268,7 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
 
 class SharedSoftmaxLayerTest(SoftmaxLayerTest):
 
-  def testSharedSoftmaxLayer(self):
+  def _testSharedSoftmaxLayerEmbLookup(self, scale_sqrt_depth=False):
     g = tf.Graph()
     with g.as_default():
       tf.set_random_seed(398847392)
@@ -3262,6 +3282,7 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
       params.chunk_size = 0
       params.apply_pruning = False
       params.params_init = py_utils.WeightInit.Gaussian(0.5, 123456)
+      params.scale_sqrt_depth = scale_sqrt_depth
       params.random_seed = 12345678
 
       emb_layer = layers.SharedSoftmaxLayer(params)
@@ -3277,8 +3298,16 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
       self.assertEqual(emb_matrix_val.shape, (8000, 128))
       self.assertEqual(ids_val.shape, (2, 1))
       self.assertEqual(outputs_val.shape, (2, 1, 128))
+      if scale_sqrt_depth:
+        emb_matrix_val *= params.input_dim**0.5
       self.assertAllClose(emb_matrix_val[89, :], outputs_val[0, 0, :])
       self.assertAllClose(emb_matrix_val[100, :], outputs_val[1, 0, :])
+
+  def testSharedSoftmaxLayerEmbLookup(self):
+    self._testSharedSoftmaxLayerEmbLookup()
+
+  def testSharedSoftmaxLayerEmbLookupScaling(self):
+    self._testSharedSoftmaxLayerEmbLookup(True)
 
 
 class FeedForwardNetTest(test_utils.TestCase):
