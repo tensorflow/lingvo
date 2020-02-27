@@ -283,7 +283,6 @@ class Controller(base_runner.BaseRunner):
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-        self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
         if self._checkpoint_in_controller:
           self.checkpointer = self._CreateCheckpointer(self._train_dir,
                                                        self._model)
@@ -346,9 +345,6 @@ class Controller(base_runner.BaseRunner):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
             self.checkpointer.Save(sess, global_step)
-          # Close all the queues so the enqueue threads can also finish.
-          for close_op in self.close_queue_ops:
-            sess.run(close_op)
           sess.close()
           self._DequeueThreadComplete()
           return
@@ -392,7 +388,6 @@ class Trainer(base_runner.BaseRunner):
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      self.close_queue_ops = tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 
@@ -465,9 +460,6 @@ class Trainer(base_runner.BaseRunner):
         if (self._trial.ShouldStopAndMaybeReport(global_step, eval_metrics) or
             self._ShouldStop(sess, global_step)):
           tf.logging.info('Training finished.')
-          # Close all the queues so the enque threads can also finish.
-          for close_op in self.close_queue_ops:
-            sess.run(close_op)
           if self._early_stop:
             time.sleep(300)  # controller hangs if it doesn't finish first
           self._DequeueThreadComplete()
@@ -660,7 +652,6 @@ class TrainerTpu(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
 
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
-      assert not tf.get_collection(py_utils.CLOSE_QUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 

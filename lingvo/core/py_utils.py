@@ -128,7 +128,6 @@ def _FromGlobal(field_name):
 
 
 ENQUEUE_OPS = '__lingvo_enqueue_ops'
-CLOSE_QUEUE_OPS = '__lingvo_close_queue_ops'
 
 TPU_EMBEDDING_LOAD_OPS = '__lingvo_tpu_embedding_load_ops'
 TPU_EMBEDDING_RETRIEVE_OPS = '__lingvo_tpu_embedding_retrieve_ops'
