@@ -302,6 +302,34 @@ class TransformerSchedule(BaseSchedule):
         (current_step + 1) * warmup_steps**-1.5, (current_step + 1)**-0.5)
 
 
+class TransformerMLPerfSchedule(BaseSchedule):
+  """learning rate with linear warmup, then rsqrt decay."""
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerMLPerfSchedule, cls).Params()
+    p.Define(
+        'warmup_steps', 4000, 'Increase the learning rate linearly for '
+        'the first warmup_steps training steps.')
+    p.Define(
+        'model_dim', 512, 'Model dimension that applies to embedding '
+        'layers and all Transformer layers.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerMLPerfSchedule, self).__init__(params)
+
+  def FProp(self, theta, current_step):
+    """Returns the current learning rate decay."""
+    p = self.params
+    current_step = tf.cast(current_step, tf.float32)
+    warmup_steps = tf.cast(p.warmup_steps, tf.float32)
+    linear_warmup = tf.minimum(1.0, current_step / warmup_steps)
+    rsqrt_decay = tf.rsqrt(tf.maximum(current_step, warmup_steps))
+    return p.model_dim**-0.5 * linear_warmup * rsqrt_decay
+
+
 class TransformerScheduleNoWarmUp(BaseSchedule):
   """Fixed learning rate until decay_start, then decay.
 
