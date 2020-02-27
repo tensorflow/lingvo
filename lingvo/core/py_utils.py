@@ -2218,7 +2218,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
   ]
   filtered_vars = Transform(GetVar, filtered_var_grads)
   for v in filtered_vars:
-    tf.logging.info('AdjustGradientsWithLpLoss: %s', v)
+    tf.logging.info('AdjustGradientsWithLpLoss: %s', v.name)
 
   if p == 2.0:
     lp_loss = 0.5 * lp_regularizer_weight * SumSquared(filtered_vars)
