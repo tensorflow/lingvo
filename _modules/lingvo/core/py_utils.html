@@ -2363,7 +2363,7 @@
   <span class="p">]</span>
   <span class="n">filtered_vars</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">GetVar</span><span class="p">,</span> <span class="n">filtered_var_grads</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">filtered_vars</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;AdjustGradientsWithLpLoss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;AdjustGradientsWithLpLoss: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">:</span>
     <span class="n">lp_loss</span> <span class="o">=</span> <span class="mf">0.5</span> <span class="o">*</span> <span class="n">lp_regularizer_weight</span> <span class="o">*</span> <span class="n">SumSquared</span><span class="p">(</span><span class="n">filtered_vars</span><span class="p">)</span>
