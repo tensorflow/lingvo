@@ -395,7 +395,9 @@ See class header comments for more details.</p></li>
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of the decoder layer
 and its children layers.</p></li>
 <li><p><strong>encoder_outputs</strong> – A NestedMap containing encoder outputs to be passed to
-the callbacks.</p></li>
+the callbacks. Mostly opaque to BeamSearchHelper, except that it should
+contain either a ‘seq_lengths’ field of shape [source_batch_size] or
+a ‘paddings’ field of shape [source_max_lengths, source_batch_size].</p></li>
 <li><p><strong>num_hyps_per_beam_override</strong> – If set to a value &lt;= 0, this parameter is
 ignored. If set to a value &gt; 0, then this value will be used to override
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">p.num_hyps_per_beam</span></code>.</p></li>

@@ -542,7 +542,9 @@
 <span class="sd">      theta: A NestedMap object containing weights&#39; values of the decoder layer</span>
 <span class="sd">        and its children layers.</span>
 <span class="sd">      encoder_outputs: A NestedMap containing encoder outputs to be passed to</span>
-<span class="sd">        the callbacks.</span>
+<span class="sd">        the callbacks. Mostly opaque to BeamSearchHelper, except that it should</span>
+<span class="sd">        contain either a &#39;seq_lengths&#39; field of shape [source_batch_size] or</span>
+<span class="sd">        a &#39;paddings&#39; field of shape [source_max_lengths, source_batch_size].</span>
 <span class="sd">      num_hyps_per_beam_override: If set to a value &lt;= 0, this parameter is</span>
 <span class="sd">        ignored. If set to a value &gt; 0, then this value will be used to override</span>
 <span class="sd">        `p.num_hyps_per_beam`.</span>
@@ -626,22 +628,27 @@
     <span class="n">final_done_hyps</span> <span class="o">=</span> <span class="n">final_bs_states</span><span class="p">[</span><span class="mi">5</span><span class="p">]</span>
     <span class="n">final_other_states</span> <span class="o">=</span> <span class="n">other_states</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">flat_final_other_states</span><span class="p">)</span>
 
-    <span class="c1"># TODO(rpang): avoid inspecting &#39;encoder_outputs&#39;.</span>
-    <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
-    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
-      <span class="n">source_seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_paddings</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
-                            <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">source_seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">),</span> <span class="mi">1</span><span class="p">)),</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Assume that `paddings` has shape [source_max_lengths, source_batch_size]</span>
+    <span class="c1"># by default, and compute `encoded_seq_lengths` accordingly. This can be</span>
+    <span class="c1"># overridden by directly passing `seq_lengths` in the `encoder_outputs`</span>
+    <span class="c1"># NestedMap.</span>
+    <span class="n">encoded_seq_lengths</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;seq_lengths&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">encoded_seq_lengths</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">source_paddings</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">padding</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+        <span class="n">encoded_seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_paddings</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()[</span><span class="mi">0</span><span class="p">]),</span>
+                              <span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">encoded_seq_lengths</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">),</span> <span class="mi">1</span><span class="p">)),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
 
     <span class="c1"># [num_beams, num_hyps_per_beam].</span>
     <span class="n">topk_hyps</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">top_k_terminated_hyps</span><span class="p">(</span>
         <span class="n">final_done_hyps</span><span class="p">,</span>
-        <span class="n">source_seq_lengths</span><span class="p">,</span>
+        <span class="n">encoded_seq_lengths</span><span class="p">,</span>
         <span class="n">k</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
         <span class="n">num_hyps_per_beam</span><span class="o">=</span><span class="n">num_hyps_per_beam</span><span class="p">,</span>
         <span class="n">length_normalization</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">length_normalization</span><span class="p">,</span>
