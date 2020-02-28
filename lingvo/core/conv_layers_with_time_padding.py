@@ -615,16 +615,16 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
     if p.pooling_type == 'AVG':
       global_sum = tf.reduce_sum(inputs * mask, axis=[1, 2], keepdims=True)
       f = tf.cast(tf.convert_to_tensor(f), p.dtype)
-      count = f * tf.reduce_sum(mask, axis=[1, 2], keep_dims=True)
+      count = f * tf.reduce_sum(mask, axis=[1, 2], keepdims=True)
       out_feature = global_sum / tf.maximum(1.0, count)
     elif p.pooling_type == 'MAX':
       large_negative = (
           tf.ones_like(inputs) * p.dtype.max * tf.constant(-0.7, dtype=p.dtype))
       padded_inputs = tf.where_v2(mask > 0.0, inputs, large_negative)
-      out_feature = tf.reduce_max(padded_inputs, axis=[1, 2], keep_dims=True)
+      out_feature = tf.reduce_max(padded_inputs, axis=[1, 2], keepdims=True)
     if paddings is None:
       out_paddings = None
     else:
-      out_paddings = tf.reduce_min(paddings, axis=1, keep_dims=True)
+      out_paddings = tf.reduce_min(paddings, axis=1, keepdims=True)
       out_feature *= 1.0 - out_paddings[..., tf.newaxis, tf.newaxis]
     return out_feature, out_paddings

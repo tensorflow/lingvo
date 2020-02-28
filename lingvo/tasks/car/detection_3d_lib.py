@@ -365,7 +365,7 @@ class Utils3D(object):
 
     if force_match:
       # Reduce over anchors, so we have the max score per ground truth box.
-      gt_max_score = tf.reduce_max(similarity_score, axis=0, keep_dims=True)
+      gt_max_score = tf.reduce_max(similarity_score, axis=0, keepdims=True)
 
       # Force matches occur when the top matching gt bbox for an anchor is the
       # top matching anchor for the gt bbox. When force matching, we match

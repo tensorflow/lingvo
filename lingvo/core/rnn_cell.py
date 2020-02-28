@@ -1117,7 +1117,7 @@ class LayerNormalizedLSTMCell(RNNCell):
       """Normalize the last dimension."""
       if params.use_fused_layernorm:
         counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
-            x, axes=[last_dim], keep_dims=True)
+            x, axes=[last_dim], keepdims=True)
         mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                  None)
       else:

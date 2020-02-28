@@ -564,9 +564,9 @@ def SegmentPool3D(points,
     ValueError: If pooling_method is not one of {min/max/mean}.
   """
   segment_pooling_functions = {
-      'min': tf.unsorted_segment_min,
-      'max': tf.unsorted_segment_max,
-      'mean': tf.unsorted_segment_mean
+      'min': tf.math.unsorted_segment_min,
+      'max': tf.math.unsorted_segment_max,
+      'mean': tf.math.unsorted_segment_mean
   }
 
   if pooling_method not in segment_pooling_functions:

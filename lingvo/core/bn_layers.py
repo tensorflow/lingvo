@@ -401,7 +401,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
   def _Moments(self, inputs, group_size):
     """Computes mean and variance over N,H,W dimensions in inputs."""
     counts, mean_ss, variance_ss, _, = tf.nn.sufficient_statistics(
-        inputs, axes=[0, 1, 2], keep_dims=False)
+        inputs, axes=[0, 1, 2], keepdims=False)
     self.accumulators.counts.Update(counts)
     self.accumulators.mean_ss.Update(mean_ss)
     self.accumulators.variance_ss.Update(variance_ss)

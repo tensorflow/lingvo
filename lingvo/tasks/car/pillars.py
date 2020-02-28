@@ -120,7 +120,7 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
 
     # Compute mean by computing sum and dividing by number of points. Clip the
     # denominator by 1.0 to gracefully handle empty pillars.
-    pillar_sum = tf.reduce_sum(pillar_xyz, axis=2, keep_dims=True)
+    pillar_sum = tf.reduce_sum(pillar_xyz, axis=2, keepdims=True)
     pillar_means = pillar_sum / tf.maximum(
         tf.cast(pillar_num_points, tf.float32), 1.0)
 

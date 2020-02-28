@@ -706,7 +706,7 @@ class ModelBuilderBase(object):
       mask = 1 - inp.padding
       features = inp.features * mask[..., tf.newaxis]
       features = tf.reduce_sum(features, axis=-2)
-      num_real_points = tf.reduce_sum(mask, axis=-1, keep_dims=True)
+      num_real_points = tf.reduce_sum(mask, axis=-1, keepdims=True)
       # Prevent the divisor of our padded mean from ever being 0, so that
       # the gradient flowing back through this op doesn't give us NaNs.
       num_real_points = tf.maximum(num_real_points, 1)

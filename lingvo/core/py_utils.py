@@ -3150,27 +3150,27 @@ def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
   ], seq_length1)
   # Concatenate input sequences.
   reversed_input0 = tf.reverse_sequence(
-      input0, seq_length0, seq_dim=seq_dim, batch_dim=batch_dim)
+      input0, seq_length0, seq_axis=seq_dim, batch_axis=batch_dim)
   reversed_input1 = tf.reverse_sequence(
-      input1, input1_seq_dim, seq_dim=seq_dim, batch_dim=batch_dim)
+      input1, input1_seq_dim, seq_axis=seq_dim, batch_axis=batch_dim)
   reversed_concat = tf.concat([reversed_input1, reversed_input0], axis=seq_dim)
   concat_inputs = tf.reverse_sequence(
       reversed_concat,
       seq_length0 + input1_seq_dim,
-      seq_dim=seq_dim,
-      batch_dim=batch_dim)
+      seq_axis=seq_dim,
+      batch_axis=batch_dim)
   # Concatenate paddings. Note that paddings are always a Tensor of 0s and 1s,
   # so, unlike the inputs, we don't have to reverse padding1, we can simply
   # concatenate reversed padding0 and padding1.
   reversed_padding0 = tf.reverse_sequence(
-      padding0, input0_seq_dim, seq_dim=seq_dim, batch_dim=batch_dim)
+      padding0, input0_seq_dim, seq_axis=seq_dim, batch_axis=batch_dim)
   reversed_concat_padding = tf.concat([reversed_padding0, padding1],
                                       axis=seq_dim)
   concat_paddings = tf.reverse_sequence(
       reversed_concat_padding,
       input0_seq_dim + seq_length1,
-      seq_dim=seq_dim,
-      batch_dim=batch_dim)
+      seq_axis=seq_dim,
+      batch_axis=batch_dim)
   return concat_inputs, concat_paddings
 
 

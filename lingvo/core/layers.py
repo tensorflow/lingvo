@@ -1388,7 +1388,7 @@ class StackingOverTime(base_layer.BaseLayer):
       # an output time step becomes a padded one only if all of the underlying
       # stacked steps are padded ones.
       out_paddings = self._ApplyStack(paddings, pad_value=1)
-      out_paddings = tf.reduce_min(out_paddings, axis=2, keep_dims=True)
+      out_paddings = tf.reduce_min(out_paddings, axis=2, keepdims=True)
 
       return outputs, out_paddings
 
