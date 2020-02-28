@@ -709,9 +709,9 @@
 <span class="sd">    ValueError: If pooling_method is not one of {min/max/mean}.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">segment_pooling_functions</span> <span class="o">=</span> <span class="p">{</span>
-      <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_min</span><span class="p">,</span>
-      <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_max</span><span class="p">,</span>
-      <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_mean</span>
+      <span class="s1">&#39;min&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_min</span><span class="p">,</span>
+      <span class="s1">&#39;max&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_max</span><span class="p">,</span>
+      <span class="s1">&#39;mean&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_mean</span>
   <span class="p">}</span>
 
   <span class="k">if</span> <span class="n">pooling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">segment_pooling_functions</span><span class="p">:</span>

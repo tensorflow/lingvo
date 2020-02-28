@@ -510,7 +510,7 @@
 
     <span class="k">if</span> <span class="n">force_match</span><span class="p">:</span>
       <span class="c1"># Reduce over anchors, so we have the max score per ground truth box.</span>
-      <span class="n">gt_max_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keep_dims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">gt_max_score</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">similarity_score</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="c1"># Force matches occur when the top matching gt bbox for an anchor is the</span>
       <span class="c1"># top matching anchor for the gt bbox. When force matching, we match</span>

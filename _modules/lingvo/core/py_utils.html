@@ -3295,27 +3295,27 @@
   <span class="p">],</span> <span class="n">seq_length1</span><span class="p">)</span>
   <span class="c1"># Concatenate input sequences.</span>
   <span class="n">reversed_input0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
-      <span class="n">input0</span><span class="p">,</span> <span class="n">seq_length0</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+      <span class="n">input0</span><span class="p">,</span> <span class="n">seq_length0</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
   <span class="n">reversed_input1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
-      <span class="n">input1</span><span class="p">,</span> <span class="n">input1_seq_dim</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+      <span class="n">input1</span><span class="p">,</span> <span class="n">input1_seq_dim</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
   <span class="n">reversed_concat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">reversed_input1</span><span class="p">,</span> <span class="n">reversed_input0</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">)</span>
   <span class="n">concat_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
       <span class="n">reversed_concat</span><span class="p">,</span>
       <span class="n">seq_length0</span> <span class="o">+</span> <span class="n">input1_seq_dim</span><span class="p">,</span>
-      <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
-      <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+      <span class="n">seq_axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
+      <span class="n">batch_axis</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
   <span class="c1"># Concatenate paddings. Note that paddings are always a Tensor of 0s and 1s,</span>
   <span class="c1"># so, unlike the inputs, we don&#39;t have to reverse padding1, we can simply</span>
   <span class="c1"># concatenate reversed padding0 and padding1.</span>
   <span class="n">reversed_padding0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
-      <span class="n">padding0</span><span class="p">,</span> <span class="n">input0_seq_dim</span><span class="p">,</span> <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+      <span class="n">padding0</span><span class="p">,</span> <span class="n">input0_seq_dim</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
   <span class="n">reversed_concat_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">reversed_padding0</span><span class="p">,</span> <span class="n">padding1</span><span class="p">],</span>
                                       <span class="n">axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">)</span>
   <span class="n">concat_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
       <span class="n">reversed_concat_padding</span><span class="p">,</span>
       <span class="n">input0_seq_dim</span> <span class="o">+</span> <span class="n">seq_length1</span><span class="p">,</span>
-      <span class="n">seq_dim</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
-      <span class="n">batch_dim</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
+      <span class="n">seq_axis</span><span class="o">=</span><span class="n">seq_dim</span><span class="p">,</span>
+      <span class="n">batch_axis</span><span class="o">=</span><span class="n">batch_dim</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">concat_inputs</span><span class="p">,</span> <span class="n">concat_paddings</span></div>
 
 
