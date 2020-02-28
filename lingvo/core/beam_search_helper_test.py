@@ -26,7 +26,7 @@ from lingvo.core import test_utils
 import numpy as np
 
 
-def GetBeamSearchHelperResults(sess, num_hyps_per_beam):
+def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
   np.random.seed(9384758)
   tf.set_random_seed(8274758)
   vocab_size = 12
@@ -66,6 +66,8 @@ def GetBeamSearchHelperResults(sess, num_hyps_per_beam):
       [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
       dtype=tf.float32)
   encoder_outputs = py_utils.NestedMap(encoded=src_enc, padding=src_enc_padding)
+  if pass_seq_lengths:
+    encoder_outputs['seq_lengths'] = tf.constant([4, 3], dtype=tf.int32)
 
   theta = py_utils.NestedMap()
   decoder_output = bs_helper.BeamSearchDecode(theta, encoder_outputs,
@@ -111,6 +113,23 @@ class BeamSearchHelperTest(test_utils.TestCase):
       expected_topk_ids = [[9, 2, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0]]
       expected_topk_lens = [2, 0]
       expected_topk_scores = [[3.778749], [0.0]]
+      self.assertEqual(expected_topk_ids, topk_ids.tolist())
+      self.assertEqual(expected_topk_lens, topk_lens.tolist())
+      self.assertAllClose(expected_topk_scores, topk_scores)
+
+  def testBeamSearchHelperWithSeqLengths(self):
+    with self.session(use_gpu=False) as sess:
+      topk_ids, topk_lens, topk_scores = GetBeamSearchHelperResults(
+          sess, num_hyps_per_beam=3, pass_seq_lengths=True)
+      print(np.array_repr(topk_ids))
+      print(np.array_repr(topk_lens))
+      print(np.array_repr(topk_scores))
+      expected_topk_ids = [[4, 3, 4, 3, 2, 0, 0], [4, 3, 11, 2, 0, 0, 0],
+                           [4, 3, 6, 2, 0, 0, 0], [6, 0, 4, 6, 6, 11, 2],
+                           [6, 0, 4, 6, 1, 2, 0], [6, 0, 4, 6, 6, 2, 0]]
+      expected_topk_lens = [5, 4, 4, 7, 6, 6]
+      expected_topk_scores = [[8.27340603, 6.26949024, 5.59490776],
+                              [9.74691486, 8.46679497, 7.14809656]]
       self.assertEqual(expected_topk_ids, topk_ids.tolist())
       self.assertEqual(expected_topk_lens, topk_lens.tolist())
       self.assertAllClose(expected_topk_scores, topk_scores)

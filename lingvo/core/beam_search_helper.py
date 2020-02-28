@@ -397,7 +397,9 @@ class BeamSearchHelper(base_layer.BaseLayer):
       theta: A NestedMap object containing weights' values of the decoder layer
         and its children layers.
       encoder_outputs: A NestedMap containing encoder outputs to be passed to
-        the callbacks.
+        the callbacks. Mostly opaque to BeamSearchHelper, except that it should
+        contain either a 'seq_lengths' field of shape [source_batch_size] or
+        a 'paddings' field of shape [source_max_lengths, source_batch_size].
       num_hyps_per_beam_override: If set to a value <= 0, this parameter is
         ignored. If set to a value > 0, then this value will be used to override
         `p.num_hyps_per_beam`.
@@ -481,22 +483,27 @@ class BeamSearchHelper(base_layer.BaseLayer):
     final_done_hyps = final_bs_states[5]
     final_other_states = other_states.Pack(flat_final_other_states)
 
-    # TODO(rpang): avoid inspecting 'encoder_outputs'.
-    source_paddings = encoder_outputs.padding
-    if isinstance(source_paddings, py_utils.NestedMap):
-      source_seq_lengths = tf.cast(
-          tf.round(
-              tf.reduce_sum(1.0 - tf.transpose(source_paddings.Flatten()[0]),
-                            1)), tf.int32)
-    else:
-      source_seq_lengths = tf.cast(
-          tf.round(tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1)),
-          tf.int32)
+    # Assume that `paddings` has shape [source_max_lengths, source_batch_size]
+    # by default, and compute `encoded_seq_lengths` accordingly. This can be
+    # overridden by directly passing `seq_lengths` in the `encoder_outputs`
+    # NestedMap.
+    encoded_seq_lengths = getattr(encoder_outputs, 'seq_lengths', None)
+    if encoded_seq_lengths is None:
+      source_paddings = encoder_outputs.padding
+      if isinstance(source_paddings, py_utils.NestedMap):
+        encoded_seq_lengths = tf.cast(
+            tf.round(
+                tf.reduce_sum(1.0 - tf.transpose(source_paddings.Flatten()[0]),
+                              1)), tf.int32)
+      else:
+        encoded_seq_lengths = tf.cast(
+            tf.round(tf.reduce_sum(1.0 - tf.transpose(source_paddings), 1)),
+            tf.int32)
 
     # [num_beams, num_hyps_per_beam].
     topk_hyps = ops.top_k_terminated_hyps(
         final_done_hyps,
-        source_seq_lengths,
+        encoded_seq_lengths,
         k=num_hyps_per_beam,
         num_hyps_per_beam=num_hyps_per_beam,
         length_normalization=p.length_normalization,
