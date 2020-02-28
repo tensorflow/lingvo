@@ -4522,9 +4522,9 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
       loss = tf.reduce_sum(output)
-      tf.global_variables_initializer().run()
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
+      tf.global_variables_initializer().run()
 
       def DenseGrad(var, grad):
         if isinstance(grad, tf.Tensor):
