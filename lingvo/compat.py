@@ -123,6 +123,7 @@ graph_util.extract_sub_graph = tf1.graph_util.extract_sub_graph
 GraphDef = tf1.GraphDef
 GraphKeys = tf1.GraphKeys
 GraphOptions = tf1.GraphOptions
+HistogramProto = tf1.HistogramProto
 image.resize_bilinear = tf1.image.resize_bilinear
 image.resize_images = tf1.image.resize_images
 image.resize_nearest_neighbor = tf1.image.resize_nearest_neighbor
