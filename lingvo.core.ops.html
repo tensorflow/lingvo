@@ -692,6 +692,29 @@ A vector of shape [batch]. The converted string sequence.</p>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.ops.ml_perf_subword_id_to_string">
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">ml_perf_subword_id_to_string</code><span class="sig-paren">(</span><em class="sig-param">token_ids</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">vocab_filepath</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.ml_perf_subword_id_to_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts sequences from subword token ids to strings</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>token_ids</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A matrix of shape [batch, seq_len].</p></li>
+<li><p><strong>seq_lengths</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>.
+A vector of shape [batch]. seq_lengths[i] is the length of the
+i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+valid tokens for the i-th sequence.</p></li>
+<li><p><strong>vocab_filepath</strong> – A <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>. filepath to the MLPerf subword vocab file.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <a class="reference external" href="https://docs.python.org/3.7/library/string.html#module-string" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">string</span></code></a>.
+A vector of shape [batch]. The converted string sequence.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.ops.ngram_id_to_token">
 <code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">ngram_id_to_token</code><span class="sig-paren">(</span><em class="sig-param">token_ids</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">ngram_vocab_filepath</em>, <em class="sig-param">ngram_separator=''</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.ngram_id_to_token" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts sequences from token ids to actual tokens.</p>
