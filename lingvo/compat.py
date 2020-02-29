@@ -80,7 +80,9 @@ summary = importlib.import_module("tensorflow.summary")
 test = importlib.import_module("tensorflow.compat.v2.test")
 train = importlib.import_module("tensorflow.compat.v2.train")
 
-# V1 symbols used in the codebase, and can be migrated to the v2 version later.
+# TF 1.x symbols used in the codebase.
+# To keep this list short, please use TF 2.x API whenever applicable.
+# Only use TF 1.x API if it has no 2.x equivalent.
 # pylint: disable=undefined-variable
 add_to_collection = tf1.add_to_collection
 all_variables = tf1.global_variables
@@ -216,10 +218,6 @@ tables_initializer = tf1.tables_initializer
 test.compute_gradient_error = tf1.test.compute_gradient_error
 test.get_temp_dir = tf1.test.get_temp_dir
 test.mock = tf1.test.mock
-# TODO(yhliang): do in-place conversion.
-to_float = tf1.to_float
-to_int32 = tf1.to_int32
-to_int64 = tf1.to_int64
 tpu = tf1.tpu
 train.AdadeltaOptimizer = tf1.train.AdadeltaOptimizer
 train.AdagradOptimizer = tf1.train.AdagradOptimizer
@@ -243,13 +241,12 @@ Variable = tf1.Variable
 variables_initializer = tf1.variables_initializer
 VariableScope = tf1.VariableScope
 variable_scope = tf1.variable_scope
-# tf1.where doesn't support broadcast while where v2 does.
-# TODO(yhliang): can we safely switch to v2?
 where = tf1.where
 while_loop = tf1.while_loop
 wrap_function = tf1.wrap_function
 
-# tf.compat.v2 symbols.
+# TF 2.x symbols.
+# Please keep this list short by using TF 2.x API in-place in the codebase.
 assert_greater_equal = debugging.assert_greater_equal
 assert_less_equal = debugging.assert_less_equal
 ceil = math.ceil
@@ -321,6 +318,9 @@ string_join = strings.join
 string_to_hash_bucket_fast = strings.to_hash_bucket_fast
 string_to_number = strings.to_number
 svd = linalg.svd
+to_float = lambda x, name="ToFloat": cast(x, dtype=dtypes.float32, name=name)
+to_int32 = lambda x, name="ToInt32": cast(x, dtype=dtypes.int32, name=name)
+to_int64 = lambda x, name="ToInt64": cast(x, dtype=dtypes.int64, name=name)
 train.Server = distribute.Server
 train.write_graph = io.write_graph
 truncated_normal = random.truncated_normal
