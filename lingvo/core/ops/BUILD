@@ -61,6 +61,7 @@ cc_library(
         ":best_step_op_kernels",
         ":functional_ops_kernels",
         ":generic_input_op_kernels",
+        ":ml_perf_subword_op",
         ":preconditioner_op_kernels",
         ":random_ops_kernels",
         ":static_map_op",
@@ -94,6 +95,16 @@ lingvo_cc_library(
     name = "simple_vocab",
     srcs = ["simple_vocab.cc"],
     hdrs = ["simple_vocab.h"],
+)
+
+custom_kernel_library(
+    name = "ml_perf_subword_op",
+    srcs = ["ml_perf_subword_op.cc"],
+    hdrs = ["ml_perf_subword_op.h"],
+    op_def_lib = [":x_ops"],
+    deps = [
+        "@icu//:common",
+    ],
 )
 
 py_test(
@@ -403,6 +414,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:bpe_codes_vocab",
         "//lingvo/core/ops/testdata:bpe_words_vocab",
+        "//lingvo/core/ops/testdata:mlperf_vocab",
         "//lingvo/core/ops/testdata:test_ngrams",
         "//lingvo/core/ops/testdata:test_vocab",
     ],

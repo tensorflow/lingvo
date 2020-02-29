@@ -1,6 +1,7 @@
 """Setup autoconf repo for tensorflow."""
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+load("//third_party:repo.bzl", "third_party_http_archive")
 
 def _find_tf_include_path(repo_ctx):
     exec_result = repo_ctx.execute(
@@ -245,4 +246,18 @@ filegroup(
             "https://github.com/protocolbuffers/protobuf/releases/download/v3.8.0/protoc-3.8.0-linux-x86_64.zip",
         ],
         sha256 = "717903f32653f07cd895cfe89ca18ff4ca35f825afa7fe17bcb5cb13bf628be0",
+    )
+
+def icu():
+    third_party_http_archive(
+        name = "icu",
+        strip_prefix = "icu-release-64-2",
+        sha256 = "dfc62618aa4bd3ca14a3df548cd65fe393155edd213e49c39f3a30ccd618fc27",
+        urls = [
+            "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-64-2.zip",
+            "https://github.com/unicode-org/icu/archive/release-64-2.zip",
+        ],
+        build_file = "//third_party/icu:BUILD.bazel",
+        system_build_file = "//third_party/icu:BUILD.system",
+        patch_file = "//third_party/icu:udata.patch",
     )

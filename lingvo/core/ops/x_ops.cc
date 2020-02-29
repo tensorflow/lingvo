@@ -740,6 +740,25 @@ Tshape: The data-type to use for shape.
 num_tensors: Number of tensor inputs.
 )doc");
 
+REGISTER_OP("MlPerfSubwordIdToString")
+    .Input("token_ids: int32")
+    .Input("seq_lengths: int32")
+    .Output("sequences: string")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(1));
+      return Status::OK();
+    })
+    .Attr("vocab_filepath: string")
+    .Doc(R"doc(
+Converts sequences from subword token ids to strings
+
+token_ids: A matrix of shape [batch, seq_len].
+seq_lengths: A vector of shape [batch]. seq_lengths[i] is the length of the
+    i-th sequence. Only the first seq_lengths[i] tokens in token_ids[i] are
+    valid tokens for the i-th sequence.
+sequences: A vector of shape [batch]. The converted string sequence.
+vocab_filepath: filepath to the MLPerf subword vocab file.
+)doc");
 
 }  // namespace
 }  // namespace tensorflow

@@ -37,3 +37,8 @@ filegroup(
     name = "wmt",
     data = glob(["wmt/*"]),
 )
+
+filegroup(
+    name = "mlperf_vocab",
+    data = ["mlperf.ende.subwords.vocab"],
+)

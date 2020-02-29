@@ -23,6 +23,7 @@ from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_helper
 from lingvo.core import test_utils
+import six
 
 
 class TokenizerOpsTest(test_utils.TestCase):
@@ -264,6 +265,34 @@ class TokenizerOpsTest(test_utils.TestCase):
           ngram_ids, lengths, ngram_vocab_filepath=vocab)
       scripts_expected = [b'pn?o"{twe', b'gh{rtlcr']
       self.assertEqual(scripts_expected, scripts.eval().tolist())
+
+  def testMlPerf(self):
+    tf.logging.info(dir(ops))
+    vocab = test_helper.test_src_dir_path(
+        'core/ops/testdata/mlperf.ende.subwords.vocab')
+    with self.session(use_gpu=False):
+      lengths = [26, 33]
+      inputs = [[
+          264, 4, 288, 189, 4138, 30725, 14, 1461, 2761, 243, 28, 2692, 9, 1679,
+          2, 1218, 9, 4, 15190, 7, 427, 497, 7, 147, 3, 1, 0, 0, 0, 0, 0, 0, 0
+      ],
+                [
+                    275, 52, 11, 1434, 215, 30372, 1546, 6997, 6495, 291, 802,
+                    10, 9986, 6, 10, 1857, 12726, 13624, 2, 53, 18, 87, 15934,
+                    5618, 12321, 127, 1565, 4209, 885, 777, 335, 3, 1
+                ]]
+      expected = [
+          six.ensure_binary(
+              'If the market “misbehaves,” farmers could be reduced to poverty,'
+              ' leading to the neglect of large areas of Europe.<EOS>'),
+          six.ensure_binary(
+              'Wenn sich der Markt „daneben benimmt“ könnten die Bauern in die '
+              'Armut abgleiten, was zu einer Vernachlässigung großer Teile '
+              'Europas führen würde.<EOS>')
+      ]
+      decode = ops.ml_perf_subword_id_to_string(
+          inputs, lengths, vocab_filepath=vocab)
+      self.assertEqual(expected, decode.eval().tolist())
 
   def testNgramIdToTokenSeparator(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_ngrams.txt')

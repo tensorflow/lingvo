@@ -4,6 +4,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load(
     "//lingvo:repo.bzl",
     "cc_tf_configure",
+    "icu",
     "lingvo_protoc_deps",
     "lingvo_testonly_deps",
 )
@@ -19,3 +20,5 @@ cc_tf_configure()
 lingvo_testonly_deps()
 
 lingvo_protoc_deps()
+
+icu()
