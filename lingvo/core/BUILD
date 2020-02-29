@@ -1596,3 +1596,17 @@ py_test(
         "//lingvo:compat",
     ],
 )
+
+py_library(
+    name = "ml_perf_tokenizer",
+    srcs = ["ml_perf_tokenizer.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":tokenizers",
+        "//lingvo:compat",
+        "//lingvo/core/ops",
+        # Implicit numpy dependency.
+    ],
+)
