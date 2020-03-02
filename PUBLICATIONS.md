@@ -794,6 +794,20 @@ M.&nbsp;X. Chen, B.&nbsp;N. Lee, G.&nbsp;Bansal, Y.&nbsp;Cao, S.&nbsp;Zhang, J.&
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
+[<a name="wang2017tacotron">1</a>]
+</td>
+<td class="bibtexitem">
+Y.&nbsp;Wang, R.&nbsp;Skerry-Ryan, D.&nbsp;Stanton, Y.&nbsp;Wu, R.&nbsp;Weiss, N.&nbsp;Jaitly, Z.&nbsp;Yang,
+  Y.&nbsp;Xiao, Z.&nbsp;Chen, S.&nbsp;Bengio, Q.&nbsp;Le, Y.&nbsp;Agiomyrgiannakis, R.&nbsp;Clark, and
+  R.&nbsp;A. Saurous, &ldquo;Tacotron: Towards end-to-end speech synthesis,&rdquo; in <em>Proc. Interspeech</em>, 2017.
+[&nbsp;<a href="https://google.github.io/tacotron/publications/tacotron/index.html">sound examples</a>&nbsp;|
+<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
+
+</td>
+</tr>
+
+<tr valign="top">
+<td align="right" class="bibtexnumber">
 [<a name="shen2018natural">1</a>]
 </td>
 <td class="bibtexitem">
@@ -803,7 +817,7 @@ J.&nbsp;Shen, R.&nbsp;Pang, R.&nbsp;J. Weiss, M.&nbsp;Schuster, N.&nbsp;Jaitly, 
   predictions,&rdquo; in <em>Proc. IEEE International Conference on Acoustics,
   Speech, and Signal Processing (ICASSP)</em>, 2018.
 [&nbsp;<a href="https://google.github.io/tacotron/publications/tacotron2/index.html">sound examples</a>&nbsp;| 
-<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
+<a href="https://arxiv.org/abs/1712.05884">pdf</a>&nbsp;]
 
 </td>
 </tr>
