@@ -40,6 +40,8 @@ from tensorflow.python.platform import app
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
+# Disable TF2 behavior by default. Please explicitly call
+# `tf.enable_v2_behavior()` to enable TF2 behavior.
 _force_disable_v2 = True
 if _force_disable_v2:
   tf1.disable_v2_behavior()
@@ -206,6 +208,7 @@ if tf1.summary is not None:
   # tf.summary are not supported on TPU so we sometimes set tf.summary to None
   # to prohibit the direct use of it.
   # It is safe to skip copying tf.summary members in such cases.
+  summary.audio = tf1.summary.audio
   summary.FileWriter = tf1.summary.FileWriter
   summary.histogram = tf1.summary.histogram
   summary.image = tf1.summary.image
