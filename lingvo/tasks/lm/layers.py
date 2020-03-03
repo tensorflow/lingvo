@@ -561,15 +561,16 @@ class RnnLm(RnnLmNoEmbedding):
     return p
 
   @base_layer.initializer
-  def __init__(self, params):
+  def __init__(self, params, verify_sizes=True):
     super(RnnLm, self).__init__(params)
     p = self.params
 
-    assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
-        p.emb.vocab_size, p.vocab_size))
-    assert p.emb.embedding_dim == p.rnns.cell_tpl[0].num_input_nodes, (
-        '{} vs. {}'.format(p.emb.embedding_dim,
-                           p.rnns.cell_tpl[0].num_input_nodes))
+    if verify_sizes:
+      assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
+          p.emb.vocab_size, p.vocab_size))
+      assert p.emb.embedding_dim == p.rnns.cell_tpl[0].num_input_nodes, (
+          '{} vs. {}'.format(p.emb.embedding_dim,
+                             p.rnns.cell_tpl[0].num_input_nodes))
 
     with tf.variable_scope(p.name):
       self.CreateChild('emb', p.emb)
