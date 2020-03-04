@@ -56,8 +56,16 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
     waymo_metrics = waymo_metric_p.Instantiate()
     class_names = waymo_metrics.metadata.ClassNames()
 
-    for k, v in p.extra_ap_metrics.items():
-      p.extra_ap_metrics[k] = v.Instantiate()
+    # TODO(bencaine,vrv): There's some code smell with this ap_metrics params
+    # usage. We create local copies of the params to then instantiate them.
+    # Failing to do this risks users editing the params after construction of
+    # the object, making each object method call have the potential for side
+    # effects.
+    # Create a new dictionary with copies of the params converted to objects
+    # so we can then add these to the decoder metrics.
+    extra_ap_metrics = {}
+    for k, metric_p in p.extra_ap_metrics.items():
+      extra_ap_metrics[k] = metric_p.Instantiate()
 
     waymo_metric_bev_p = waymo_metric_p.Copy()
     waymo_metric_bev_p.box_type = '2d'
@@ -85,8 +93,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'waymo_metrics_bev': waymo_metrics_bev,
     })
     self._update_metrics_class_keys = ['waymo_metrics_bev', 'waymo_metrics']
-    for k, v in p.extra_ap_metrics.items():
-      decoder_metrics[k] = v
+    for k, metric in extra_ap_metrics.items():
+      decoder_metrics[k] = metric
       self._update_metrics_class_keys.append(k)
 
     decoder_metrics.mesh = detection_3d_metrics.WorldViewer()
