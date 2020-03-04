@@ -201,8 +201,16 @@
     <span class="n">waymo_metrics</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="n">class_names</span> <span class="o">=</span> <span class="n">waymo_metrics</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
 
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="c1"># TODO(bencaine,vrv): There&#39;s some code smell with this ap_metrics params</span>
+    <span class="c1"># usage. We create local copies of the params to then instantiate them.</span>
+    <span class="c1"># Failing to do this risks users editing the params after construction of</span>
+    <span class="c1"># the object, making each object method call have the potential for side</span>
+    <span class="c1"># effects.</span>
+    <span class="c1"># Create a new dictionary with copies of the params converted to objects</span>
+    <span class="c1"># so we can then add these to the decoder metrics.</span>
+    <span class="n">extra_ap_metrics</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">metric_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">extra_ap_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">metric_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
     <span class="n">waymo_metric_bev_p</span> <span class="o">=</span> <span class="n">waymo_metric_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">waymo_metric_bev_p</span><span class="o">.</span><span class="n">box_type</span> <span class="o">=</span> <span class="s1">&#39;2d&#39;</span>
@@ -230,8 +238,8 @@
         <span class="s1">&#39;waymo_metrics_bev&#39;</span><span class="p">:</span> <span class="n">waymo_metrics_bev</span><span class="p">,</span>
     <span class="p">})</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_update_metrics_class_keys</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;waymo_metrics_bev&#39;</span><span class="p">,</span> <span class="s1">&#39;waymo_metrics&#39;</span><span class="p">]</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">decoder_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">metric</span> <span class="ow">in</span> <span class="n">extra_ap_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+      <span class="n">decoder_metrics</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">metric</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_update_metrics_class_keys</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
 
     <span class="n">decoder_metrics</span><span class="o">.</span><span class="n">mesh</span> <span class="o">=</span> <span class="n">detection_3d_metrics</span><span class="o">.</span><span class="n">WorldViewer</span><span class="p">()</span>
