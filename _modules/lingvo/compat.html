@@ -163,8 +163,6 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
-<span class="kn">import</span> <span class="nn">importlib</span>
-
 <span class="kn">import</span> <span class="nn">tensorflow.compat.v1</span> <span class="k">as</span> <span class="nn">tf1</span>
 <span class="kn">from</span> <span class="nn">tensorflow.compat.v2</span> <span class="kn">import</span> <span class="o">*</span>  <span class="c1"># pylint:disable=wildcard-import, g-bad-import-order</span>
 
@@ -180,6 +178,7 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">check_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">module_wrapper</span> <span class="k">as</span> <span class="n">_module_wrapper</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.platform</span> <span class="kn">import</span> <span class="n">app</span>
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
@@ -195,6 +194,22 @@
                   <span class="s2">&quot;Please disable V2 behavior with tf.disable_v2_behavior(), &quot;</span>
                   <span class="s2">&quot;or proceed at your own risk.&quot;</span><span class="p">)</span>
 
+
+<div class="viewcode-block" id="_clone_module"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat._clone_module">[docs]</a><span class="k">def</span> <span class="nf">_clone_module</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shallow clone of module `m`.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">m</span><span class="p">,</span> <span class="n">_module_wrapper</span><span class="o">.</span><span class="n">TFModuleWrapper</span><span class="p">):</span>
+    <span class="c1"># pylint: disable=protected-access</span>
+    <span class="k">return</span> <span class="n">_module_wrapper</span><span class="o">.</span><span class="n">TFModuleWrapper</span><span class="p">(</span>
+        <span class="n">wrapped</span><span class="o">=</span><span class="n">_clone_module</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="n">_tfmw_wrapped_module</span><span class="p">),</span>
+        <span class="n">module_name</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">_tfmw_module_name</span><span class="p">,</span>
+        <span class="n">public_apis</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">_tfmw_public_apis</span><span class="p">,</span>
+        <span class="n">deprecation</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">_tfmw_print_deprecation_warnings</span><span class="p">,</span>
+        <span class="n">has_lite</span><span class="o">=</span><span class="n">m</span><span class="o">.</span><span class="n">_tfmw_has_lite</span><span class="p">)</span>
+    <span class="c1"># pylint: enable=protected-access</span>
+  <span class="n">out</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">m</span><span class="p">)(</span><span class="n">m</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="n">m</span><span class="o">.</span><span class="vm">__doc__</span><span class="p">)</span>
+  <span class="n">out</span><span class="o">.</span><span class="vm">__dict__</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">m</span><span class="o">.</span><span class="vm">__dict__</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">out</span></div>
+
 <span class="c1"># Aliases to a few routines lingvo libraries uses often.</span>
 <span class="n">Defun</span> <span class="o">=</span> <span class="n">_function_lib</span><span class="o">.</span><span class="n">Defun</span>
 <span class="n">While</span> <span class="o">=</span> <span class="n">functional_ops</span><span class="o">.</span><span class="n">While</span>
@@ -205,27 +220,28 @@
 <span class="n">GetExtraInputs</span> <span class="o">=</span> <span class="n">_function_lib</span><span class="o">.</span><span class="n">get_extra_inputs</span>
 <span class="n">GetExtraArgs</span> <span class="o">=</span> <span class="n">_function_lib</span><span class="o">.</span><span class="n">get_extra_args</span>
 
+<span class="c1"># pylint: disable=undefined-variable, used-before-assignment</span>
 <span class="c1"># Move this V2 symbol here to avoid being overwritten by its following V1</span>
 <span class="c1"># version.</span>
-<span class="n">where_v2</span> <span class="o">=</span> <span class="n">where</span>  <span class="c1"># pylint: disable=undefined-variable, used-before-assignment</span>
+<span class="n">where_v2</span> <span class="o">=</span> <span class="n">where</span>
 
 <span class="c1"># Import the local V2 module to maker sure the following V1 overwritting never</span>
 <span class="c1"># applies to the global module and symbol.</span>
-<span class="n">data</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.data&quot;</span><span class="p">)</span>
-<span class="n">graph_util</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.graph_util&quot;</span><span class="p">)</span>
-<span class="n">image</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.image&quot;</span><span class="p">)</span>
-<span class="n">initializers</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span>
-    <span class="s2">&quot;tensorflow.compat.v2.keras.initializers&quot;</span><span class="p">)</span>
-<span class="n">io</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.io&quot;</span><span class="p">)</span>
-<span class="n">losses</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.keras.losses&quot;</span><span class="p">)</span>
-<span class="n">metrics</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.keras.metrics&quot;</span><span class="p">)</span>
-<span class="n">nn</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.nn&quot;</span><span class="p">)</span>
-<span class="n">random</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.random&quot;</span><span class="p">)</span>
-<span class="n">saved_model</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.saved_model&quot;</span><span class="p">)</span>
-<span class="n">strings</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.strings&quot;</span><span class="p">)</span>
-<span class="n">summary</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.summary&quot;</span><span class="p">)</span>
-<span class="n">test</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.test&quot;</span><span class="p">)</span>
-<span class="n">train</span> <span class="o">=</span> <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="s2">&quot;tensorflow.compat.v2.train&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">graph_util</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">graph_util</span><span class="p">)</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="n">initializers</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="p">)</span>
+<span class="n">io</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">io</span><span class="p">)</span>
+<span class="n">losses</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span>
+<span class="n">metrics</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
+<span class="n">nn</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span>
+<span class="n">random</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">random</span><span class="p">)</span>
+<span class="n">saved_model</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">saved_model</span><span class="p">)</span>
+<span class="n">strings</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">strings</span><span class="p">)</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+<span class="n">test</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
+<span class="n">train</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+<span class="c1"># pylint: enable=undefined-variable, used-before-assignment</span>
 
 <span class="c1"># TF 1.x symbols used in the codebase.</span>
 <span class="c1"># To keep this list short, please use TF 2.x API whenever applicable.</span>
