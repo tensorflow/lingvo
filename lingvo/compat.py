@@ -18,8 +18,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import importlib
-
 import tensorflow.compat.v1 as tf1
 from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
 
@@ -35,6 +33,7 @@ from tensorflow.python.framework import function as _function_lib
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
+from tensorflow.python.util import module_wrapper as _module_wrapper
 
 from tensorflow.python.platform import app
 # pylint: enable=g-direct-tensorflow-import
@@ -50,6 +49,22 @@ elif tf2.enabled():
                   "Please disable V2 behavior with tf.disable_v2_behavior(), "
                   "or proceed at your own risk.")
 
+
+def _clone_module(m):
+  """Shallow clone of module `m`."""
+  if isinstance(m, _module_wrapper.TFModuleWrapper):
+    # pylint: disable=protected-access
+    return _module_wrapper.TFModuleWrapper(
+        wrapped=_clone_module(m._tfmw_wrapped_module),
+        module_name=m._tfmw_module_name,
+        public_apis=m._tfmw_public_apis,
+        deprecation=m._tfmw_print_deprecation_warnings,
+        has_lite=m._tfmw_has_lite)
+    # pylint: enable=protected-access
+  out = type(m)(m.__name__, m.__doc__)
+  out.__dict__.update(m.__dict__)
+  return out
+
 # Aliases to a few routines lingvo libraries uses often.
 Defun = _function_lib.Defun
 While = functional_ops.While
@@ -60,27 +75,28 @@ EmptyLike = inplace_ops.empty_like
 GetExtraInputs = _function_lib.get_extra_inputs
 GetExtraArgs = _function_lib.get_extra_args
 
+# pylint: disable=undefined-variable, used-before-assignment
 # Move this V2 symbol here to avoid being overwritten by its following V1
 # version.
-where_v2 = where  # pylint: disable=undefined-variable, used-before-assignment
+where_v2 = where
 
 # Import the local V2 module to maker sure the following V1 overwritting never
 # applies to the global module and symbol.
-data = importlib.import_module("tensorflow.compat.v2.data")
-graph_util = importlib.import_module("tensorflow.compat.v2.graph_util")
-image = importlib.import_module("tensorflow.compat.v2.image")
-initializers = importlib.import_module(
-    "tensorflow.compat.v2.keras.initializers")
-io = importlib.import_module("tensorflow.compat.v2.io")
-losses = importlib.import_module("tensorflow.compat.v2.keras.losses")
-metrics = importlib.import_module("tensorflow.compat.v2.keras.metrics")
-nn = importlib.import_module("tensorflow.compat.v2.nn")
-random = importlib.import_module("tensorflow.compat.v2.random")
-saved_model = importlib.import_module("tensorflow.compat.v2.saved_model")
-strings = importlib.import_module("tensorflow.compat.v2.strings")
-summary = importlib.import_module("tensorflow.summary")
-test = importlib.import_module("tensorflow.compat.v2.test")
-train = importlib.import_module("tensorflow.compat.v2.train")
+data = _clone_module(data)
+graph_util = _clone_module(graph_util)
+image = _clone_module(image)
+initializers = _clone_module(keras.initializers)
+io = _clone_module(io)
+losses = _clone_module(keras.losses)
+metrics = _clone_module(keras.metrics)
+nn = _clone_module(nn)
+random = _clone_module(random)
+saved_model = _clone_module(saved_model)
+strings = _clone_module(strings)
+summary = _clone_module(summary)
+test = _clone_module(test)
+train = _clone_module(train)
+# pylint: enable=undefined-variable, used-before-assignment
 
 # TF 1.x symbols used in the codebase.
 # To keep this list short, please use TF 2.x API whenever applicable.

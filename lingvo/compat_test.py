@@ -19,6 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
+import tensorflow.compat.v1 as tf1
+import tensorflow.compat.v2 as tf2
 from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
 
 
@@ -29,6 +31,26 @@ class CompatTest(tf.test.TestCase):
     self.assertIsNotNone(tf.logging)
     self.assertIsNotNone(tf.flags)
     self.assertIs(tf.Defun, function.Defun)
+
+  def testDoesNotModifyTF2(self):
+    modules_no_overwritten = [
+        (tf2.data, tf1.data),
+        (tf2.graph_util, tf1.graph_util),
+        (tf2.image, tf1.image),
+        (tf2.initializers, tf1.initializers),
+        (tf2.io, tf1.io),
+        (tf2.losses, tf1.losses),
+        (tf2.metrics, tf1.metrics),
+        (tf2.nn, tf1.nn),
+        (tf2.random, tf1.random),
+        (tf2.saved_model, tf1.saved_model),
+        (tf2.strings, tf1.strings),
+        (tf2.summary, tf1.summary),
+        (tf2.test, tf1.test),
+        (tf2.train, tf1.train),
+    ]
+    for modules in modules_no_overwritten:
+      self.assertIsNot(modules[0], modules[1])
 
 
 if __name__ == '__main__':
