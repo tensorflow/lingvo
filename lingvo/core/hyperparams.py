@@ -84,6 +84,21 @@ def _EndsWithTerminalQuote(s, quote_char):
     return False
 
 
+def _IsNamedTuple(x):
+  """Returns whether an object is an instance of a collections.namedtuple.
+
+  Examples::
+
+    _IsNamedTuple((42, 'hi')) ==> False
+    Foo = collections.namedtuple('Foo', ['a', 'b'])
+    _IsNamedTuple(Foo(a=42, b='hi')) ==> True
+
+  Args:
+    x: The object to check.
+  """
+  return isinstance(x, tuple) and hasattr(x, '_fields')
+
+
 class _SortedDict(dict):
   """A dict with a __repr__ that is always sorted by key."""
 
@@ -125,7 +140,8 @@ class _Param(object):
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
       if isinstance(val, dict):
         return _SortedDict({k: GetRepr(v) for k, v in six.iteritems(val)})
-      if isinstance(val, (list, tuple)):
+      if isinstance(val, (list, tuple)) and not _IsNamedTuple(val):
+        # NB: this constructor signature works for tuples, but not namedtuples.
         return type(val)([GetRepr(v) for v in val])
       # NOTE(markmurphy): I introduced Repr() because it's impossible (afaik) to
       # overwrite the __str__ or __repr__ method of a types.FunctionType object.
@@ -406,6 +422,11 @@ class Params(object):
       elif isinstance(val, list) or isinstance(val, range):
         # The range function is serialized by explicitely calling it.
         param_pb.list_val.items.extend([_ToParamValue(v) for v in val])
+      elif _IsNamedTuple(val):
+        val_cls = type(val)
+        param_pb.named_tuple_val.type = inspect.getmodule(
+            val_cls).__name__ + '/' + val_cls.__name__
+        param_pb.named_tuple_val.items.extend([_ToParamValue(v) for v in val])
       elif isinstance(val, tuple):
         param_pb.tuple_val.items.extend([_ToParamValue(v) for v in val])
       elif isinstance(val, dict):
@@ -455,6 +476,11 @@ class Params(object):
   def FromProto(cls, param_pb):
     """Reads from a Hyperparams proto."""
 
+    def _LoadClass(module_and_class_name):
+      tokens = module_and_class_name.split('/')
+      assert len(tokens) == 2, module_and_class_name
+      return getattr(importlib.import_module(tokens[0]), tokens[1])
+
     def _FromParamValue(param_pb):
       """Deserializes HyperparamValue proto."""
 
@@ -463,6 +489,10 @@ class Params(object):
         return _FromParam(param_pb.param_val)
       elif which_oneof == 'list_val':
         return [_FromParamValue(val) for val in param_pb.list_val.items]
+      elif which_oneof == 'named_tuple_val':
+        cls = _LoadClass(param_pb.named_tuple_val.type)
+        return cls(
+            *[_FromParamValue(val) for val in param_pb.named_tuple_val.items])
       elif which_oneof == 'tuple_val':
         return tuple([_FromParamValue(val) for val in param_pb.tuple_val.items])
       elif which_oneof == 'dict_val':
@@ -485,16 +515,12 @@ class Params(object):
       elif which_oneof == 'bool_val':
         return param_pb.bool_val
       elif which_oneof == 'enum_val':
-        tokens = param_pb.enum_val.type.split('/')
-        assert len(tokens) == 2
-        enum_cls = getattr(importlib.import_module(tokens[0]), tokens[1])
+        enum_cls = _LoadClass(param_pb.enum_val.type)
         if not issubclass(enum_cls, enum.Enum):
           return None
         return enum_cls[param_pb.enum_val.name]
       elif which_oneof == 'proto_val':
-        tokens = param_pb.proto_val.type.split('/')
-        assert len(tokens) == 2
-        proto_cls = getattr(importlib.import_module(tokens[0]), tokens[1])
+        proto_cls = _LoadClass(param_pb.proto_val.type)
         if not issubclass(proto_cls, message.Message):
           return None
         proto_msg = proto_cls()
@@ -547,6 +573,8 @@ class Params(object):
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
       if isinstance(val, dict):
         return _SortedDict({k: GetRepr(v) for k, v in six.iteritems(val)})
+      if _IsNamedTuple(val):
+        return _SortedDict({k: GetRepr(v) for k, v in val._asdict().items()})
       if isinstance(val, (list, tuple)):
         return type(val)([GetRepr(v) for v in val])
       if isinstance(val, (six.integer_types, float, bool, six.string_types,
@@ -637,8 +665,9 @@ class Params(object):
             string_continue = (key, quote_char, value)
             continue
         kv[key] = value_stripped
-    for key, val in six.iteritems(kv):
-      old_val = self.Get(key)
+
+    def _ValueFromText(key, old_val, val):
+      """Returns the new param value from its text representation."""
       val_type = type(old_val).__name__
       if isinstance(old_val, (six.string_types, six.text_type)):
         val_type = 'str'
@@ -646,56 +675,74 @@ class Params(object):
         val_type = type_overrides[key]
       # Converts val (a string) to a best-guessed typed value.
       if val_type == 'bool':
-        val = (val and (val != 'False') and (val != 'false'))
+        return val and (val != 'False') and (val != 'false')
       elif val_type == 'int':
-        val = int(val)
+        return int(val)
       elif val_type == 'float':
-        val = float(val)
+        return float(val)
       elif val_type == 'DType':
-        val = tf.as_dtype(val)
+        return tf.as_dtype(val)
+      elif _IsNamedTuple(old_val):
+        # Maps field name to new value (or its string repr, if non-POD).
+        name_to_new_value = ast.literal_eval(val)
+        contents = {}
+        for k, old_field_value in old_val._asdict().items():
+          new_field_value = name_to_new_value[k]
+          # Recurse to parse any non-POD contents not converted by
+          # literal_eval().
+          if isinstance(new_field_value, six.string_types):
+            contents[k] = _ValueFromText(k, old_field_value, new_field_value)
+          else:
+            contents[k] = new_field_value
+        return type(old_val)(**contents)
       elif val_type in ['list', 'tuple']:
-        val = ast.literal_eval(val)
+        return ast.literal_eval(val)
       elif val_type == 'dict':
-        val = ast.literal_eval(val) if val != 'dict' else {}
+        return ast.literal_eval(val) if val != 'dict' else {}
       elif val_type == 'str':
         val = _UnquoteString(val)
         if val.startswith('[') and val.endswith(']'):
           # We may have stored a list as a string, try converting to a list.
           # In case of ValueError - use the string as is.
           try:
-            val = ast.literal_eval(val)
+            return ast.literal_eval(val)
           except ValueError:
             pass
+        return val
       elif isinstance(old_val, enum.Enum):
         cls, _, name = val.rpartition('.')
         if val_type != cls:
           raise ValueError('Expected enum of class %s but got %s' %
                            (val_type, cls))
-        val = type(old_val)[name]
+        return type(old_val)[name]
       elif (isinstance(old_val, type) or isinstance(old_val, message.Message) or
             old_val is None):
         if val == 'NoneType':
-          val = None
+          return None
         elif old_val is None and val in ('False', 'false'):
-          val = False
+          return False
         elif old_val is None and val in ('True', 'true'):
-          val = True
+          return True
         else:
           try:
             val_type, pkg, cls = val.split('/', 2)
             if val_type == 'type':
-              val = getattr(sys.modules[pkg], cls)
+              return getattr(sys.modules[pkg], cls)
             elif val_type == 'proto':
               cls, proto_str = cls.split('/', 1)
               proto_cls = getattr(sys.modules[pkg], cls)
               if not issubclass(proto_cls, message.Message):
                 raise ValueError('%s is not a proto class.' % proto_cls)
-              val = text_format.Parse(proto_str, proto_cls())
+              return text_format.Parse(proto_str, proto_cls())
           except ValueError as e:
             raise ValueError('Error processing %r : %r with %r' % (key, val, e))
       else:
         raise ValueError('Failed to read a parameter: %r : %r' % (key, val))
-      self.Set(**{key: val})
+
+    for key, val in six.iteritems(kv):
+      old_val = self.Get(key)
+      new_val = _ValueFromText(key, old_val, val)
+      self.Set(**{key: new_val})
 
   def ToTextWithTypes(self):
     """Same as ToText but encodes both params and their types."""

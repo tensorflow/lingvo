@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import enum
 
 import lingvo.compat as tf
@@ -46,6 +47,11 @@ class TestEnum(enum.Enum):
   """Test enum class."""
   A = 1
   B = 2
+
+
+class TestNamedTuple(collections.namedtuple('TestNamedTuple', ['a', 'b'])):
+  """Test namedtuple class."""
+  pass
 
 
 class ParamsTest(test_utils.TestCase):
@@ -253,8 +259,8 @@ class ParamsTest(test_utils.TestCase):
     k_set, v_set = set(keys), set(values)
     number_of_params = 0
     for k, v in p.IterParams():
-      self.assertTrue(k in k_set)
-      self.assertTrue(v in v_set)
+      self.assertIn(k, k_set)
+      self.assertIn(v, v_set)
       number_of_params += 1
     self.assertEqual(number_of_params, len(keys))
 
@@ -278,6 +284,9 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('some_class', complex(0, 1), '')
     outer.Define('optional_bool', None, '')
     outer.Define('enum', TestEnum.B, '')
+    outer.Define('namedtuple', TestNamedTuple([42], tf.float32), '')
+    outer.Define('namedtuple2', tf.io.FixedLenSequenceFeature([42], tf.float32),
+                 '')
     # Arbitrarily use HyperparameterValue as some example proto.
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
 
@@ -294,6 +303,8 @@ inner.bar : 2.71
 inner.baz : 'hello'
 list_of_params[0].bar : 2.71
 list_of_params[0].baz : 'hello'
+namedtuple : {'a': [42], 'b': 'float32'}
+namedtuple2 : {'allow_missing': False, 'default_value': 'NoneType', 'dtype': 'float32', 'shape': [42]}
 optional_bool : NoneType
 plain_dict : {'a': 10}
 proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/int_val: 42
@@ -315,6 +326,9 @@ tuple : (1, 'NoneType')
         tau : true
         tuple : (2, 3)
         enum : TestEnum.A
+        # Note dtypes and other non-POD are represented as strings.
+        namedtuple : {'a': 27, 'b': 'int32'}
+        namedtuple2 : {'allow_missing': True, 'default_value': 'NoneType', 'dtype': 'int32', 'shape': [43]}
         proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/string_val: "a/b"
         """)
 
@@ -332,6 +346,8 @@ inner.bar : 2.71
 inner.baz : 'world'
 list_of_params[0].bar : 2.72
 list_of_params[0].baz : 'hello'
+namedtuple : {'a': 27, 'b': 'int32'}
+namedtuple2 : {'allow_missing': True, 'default_value': 'NoneType', 'dtype': 'int32', 'shape': [43]}
 optional_bool : True
 plain_dict : {'x': 0.3}
 proto : proto/lingvo.core.hyperparams_pb2/HyperparamValue/string_val: "a/b"
@@ -340,6 +356,9 @@ some_class : complex
 tau : True
 tuple : (2, 3)
 """)
+    self.assertEqual(outer.namedtuple.b, tf.int32)
+    self.assertEqual(outer.namedtuple2.dtype, tf.int32)
+    self.assertIsNone(outer.namedtuple2.default_value, tf.int32)
 
   def testToFromProto(self):
     outer = _params.Params()
@@ -357,6 +376,8 @@ tuple : (2, 3)
     outer.Define('empty_dict', {}, '')
     outer.Define('enum', TestEnum.B, '')
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
+    outer.Define('namedtuple', tf.io.FixedLenSequenceFeature([42], tf.float32),
+                 '')
 
     rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
 
@@ -373,6 +394,7 @@ tuple : (2, 3)
     self.assertEqual(outer.empty_dict, rebuilt_outer.empty_dict)
     self.assertEqual(outer.enum, rebuilt_outer.enum)
     self.assertEqual(outer.proto, rebuilt_outer.proto)
+    self.assertEqual(outer.namedtuple, rebuilt_outer.namedtuple)
 
   def testStringEscaping(self):
     p = _params.Params()

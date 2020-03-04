@@ -34,6 +34,7 @@ message HyperparamValue {
     float float_val = 10;
     ProtoVal proto_val = 11;
     EnumVal enum_val = 12;
+    NamedTupleVal named_tuple_val = 13;
   }
 }
 
@@ -48,4 +49,10 @@ message ProtoVal {
 message EnumVal {
   optional string type = 1;
   optional string name = 2;
+}
+
+// A namedtuple.
+message NamedTupleVal {
+  optional string type = 1;
+  repeated HyperparamValue items = 2;
 }
