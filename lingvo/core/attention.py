@@ -893,9 +893,11 @@ class DotProductAttention(BaseAttentionLayer):
 
       logit_scale = tf.stop_gradient(
           tf.rsqrt(
-              tf.cast(tf.shape(query_vec)[1], dtype=py_utils.FPropDtype(p))))
-      source_batch = tf.shape(concated_source_vecs)[0]
-      target_batch = tf.shape(query_vec)[0]
+              tf.cast(
+                  py_utils.GetShape(query_vec)[1],
+                  dtype=py_utils.FPropDtype(p))))
+      source_batch = py_utils.GetShape(concated_source_vecs)[0]
+      target_batch = py_utils.GetShape(query_vec)[0]
       query_vec *= per_dim_scale
       # The n here refers to the "n" described in the comment above.
       n = target_batch // source_batch
@@ -963,12 +965,12 @@ class DotProductAttention(BaseAttentionLayer):
         - context_vector: [target_batch, context_dim].
         - probs:          [target_batch, time].
       """
-      py_utils.assert_shape_match([tf.shape(concated_source_vecs)[2]],
-                                  [tf.shape(query_vec)[1]])
-      py_utils.assert_shape_match([tf.shape(concated_source_vecs)[2]],
+      py_utils.assert_shape_match([py_utils.GetShape(concated_source_vecs)[2]],
+                                  [py_utils.GetShape(query_vec)[1]])
+      py_utils.assert_shape_match([py_utils.GetShape(concated_source_vecs)[2]],
                                   [symbolic.ToStatic(p.source_dim)])
-      source_batch = tf.shape(concated_source_vecs)[1]
-      target_batch = tf.shape(query_vec)[0]
+      source_batch = py_utils.GetShape(concated_source_vecs)[1]
+      target_batch = py_utils.GetShape(query_vec)[0]
       n = target_batch // source_batch
       returned_probs = AttenProbs(per_dim_scale, source_padding,
                                   concated_source_vecs, query_vec,
@@ -1087,8 +1089,8 @@ class DotProductAttention(BaseAttentionLayer):
 
     source_padding = packed_src.source_padding
     source_segment_id = packed_src.source_segment_id
-    query_batch_size = tf.shape(query_vec)[0]
-    source_sequence_length = tf.shape(source_padding)[0]
+    query_batch_size = py_utils.GetShape(query_vec)[0]
+    source_sequence_length = py_utils.GetShape(source_padding)[0]
     if per_step_source_padding is None:
       zero = tf.constant(0.0, dtype=query_vec.dtype)
       per_step_source_padding = tf.fill(
@@ -1099,7 +1101,7 @@ class DotProductAttention(BaseAttentionLayer):
       source_segment_id = tf.zeros_like(source_padding)
     if query_segment_id is None:
       query_segment_id = tf.zeros(
-          tf.shape(query_vec)[0], dtype=source_padding.dtype)
+          py_utils.GetShape(query_vec)[0], dtype=source_padding.dtype)
 
     def ScaleFn(x):
       return tf.nn.softplus(x) / tf.nn.softplus(tf.constant(0.0, dtype=x.dtype))
@@ -1332,12 +1334,13 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       assert p.query_dim == p.hidden_dim
     with tf.name_scope('init__0'):
       if p.use_source_vec_as_attention_value:
-        source_vecs = py_utils.HasShape(source_vecs, tf.shape(source_contexts))
-      time_steps = tf.shape(source_vecs)[0]
-      batch_size = tf.shape(source_vecs)[1]
+        source_vecs = py_utils.HasShape(source_vecs,
+                                        py_utils.GetShape(source_contexts))
+      time_steps = py_utils.GetShape(source_vecs)[0]
+      batch_size = py_utils.GetShape(source_vecs)[1]
       # source_projected shape [time * source_batch, hidden]
       with tf.name_scope('init__0a'):
-        source_vec_depth = tf.shape(source_vecs)[2]
+        source_vec_depth = py_utils.GetShape(source_vecs)[2]
       with tf.name_scope('init__0b'):
         if p.enable_source_proj:
           source_projected = (
@@ -1364,7 +1367,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_contexts_reshaped = source_projected
       else:
         if p.enable_ctx_pre_proj:
-          source_context_depth = tf.shape(source_contexts)[2]
+          source_context_depth = py_utils.GetShape(source_contexts)[2]
           source_contexts_projected = fns.qbatchmatmul(
               tf.reshape(source_contexts, [-1, source_context_depth]),
               fns.qweight(theta.ctx_proj),
@@ -1466,7 +1469,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       'source_padding' is of shape [t, batch_size, num_heads];
       'source_segment_id' is of shape [t, batch_size, num_heads].
     """
-    batch_size = tf.shape(new_source_vecs)[0]
+    batch_size = py_utils.GetShape(new_source_vecs)[0]
     if new_source_paddings is None:
       new_source_paddings = tf.zeros([batch_size], dtype=new_source_vecs.dtype)
     if new_source_segment_ids is None:
@@ -1564,9 +1567,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     p = self.params
     fns = self.fns
     source_padding = packed_src.source_padding
-    source_seq_len = tf.shape(source_padding)[0]
+    source_seq_len = py_utils.GetShape(source_padding)[0]
     num_heads = p.num_attention_heads
-    batch_size = tf.shape(query_vec)[0]
+    batch_size = py_utils.GetShape(query_vec)[0]
     static_inner_atten_dim = symbolic.ToStatic(p.hidden_dim // num_heads)
     query_vec_projected_shape = [batch_size * num_heads, static_inner_atten_dim]
 
@@ -1585,7 +1588,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     else:
       query_vec_projected = tf.reshape(query_vec, query_vec_projected_shape)
 
-    query_batch_size = tf.shape(query_vec)[0]
+    query_batch_size = py_utils.GetShape(query_vec)[0]
     if query_segment_id is None:
       query_segment_id = tf.zeros(
           query_batch_size * num_heads, dtype=source_padding.dtype)
@@ -1689,10 +1692,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     # hidden_dim / num_head]
     # inp: [batch_size * num_head, num_style]
     packed_context = py_utils.with_dependencies([
-        py_utils.assert_shape_match([tf.shape(packed_context)[0]],
-                                    [tf.shape(atten_probs)[0]])
+        py_utils.assert_shape_match([py_utils.GetShape(packed_context)[0]],
+                                    [py_utils.GetShape(atten_probs)[0]])
     ], packed_context)
-    b_size = tf.shape(packed_context)[0] // num_heads
+    b_size = py_utils.GetShape(packed_context)[0] // num_heads
     ctx_vec = tf.reshape(
         tf.matmul(tf.expand_dims(atten_probs, 1), packed_context), [b_size, -1])
     if p.enable_ctx_post_proj:
@@ -1709,8 +1712,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     concated_source_contexts = cached_src.source_contexts
     source_padding = cached_src.source_padding
     source_segment_id = cached_src.source_segment_id
-    batch_size = tf.shape(concated_source_vecs)[1]
-    src_seq_len = tf.shape(concated_source_vecs)[0]
+    batch_size = py_utils.GetShape(concated_source_vecs)[1]
+    src_seq_len = py_utils.GetShape(concated_source_vecs)[0]
     num_heads = p.num_attention_heads
     packed_src = py_utils.NestedMap()
     packed_src.source_vecs = tf.reshape(
