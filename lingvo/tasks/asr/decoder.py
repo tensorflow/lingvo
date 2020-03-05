@@ -424,6 +424,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     self.contextualizer.InitAttention(theta.contextualizer, packed_src)
     return packed_src
 
+  def _GetEncoderPaddings(self, encoder_outputs):
+    """Get Encoder Paddings from encoder_outputs."""
+    if encoder_outputs and isinstance(encoder_outputs.padding, tf.Tensor):
+      return encoder_outputs.padding
+    else:
+      return None
+
   def BaseZeroState(self,
                     theta,
                     encoder_outputs,
@@ -764,13 +771,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     else:
       predictions = self.ComputePredictionsFunctional(theta, encoder_outputs,
                                                       targets)
-    if encoder_outputs and isinstance(encoder_outputs.padding, tf.Tensor):
+    encoder_paddings = self._GetEncoderPaddings(encoder_outputs)
+    if isinstance(encoder_paddings, tf.Tensor):
       # source_padding is of shape [time, batch]. Compute source_enc_len, which
       # is used for computing attention loss.
-      predictions.source_enc_len = tf.reduce_sum(
-          1 - encoder_outputs.padding, axis=0)
+      predictions.source_enc_len = tf.reduce_sum(1 - encoder_paddings, axis=0)
       if 'paddings' in targets:
-        source_batch = py_utils.GetShape(encoder_outputs.padding)[1]
+        source_batch = py_utils.GetShape(encoder_paddings)[1]
         target_batch = py_utils.GetShape(targets.paddings)[0]
         multiplier = target_batch // source_batch
         source_len = py_utils.RepeatDim(
