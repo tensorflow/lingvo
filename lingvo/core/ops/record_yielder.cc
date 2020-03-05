@@ -219,7 +219,7 @@ class PlainTextIterator : public RecordIterator {
     Status s = buf_.ReadLine(&line_);
     if (errors::IsOutOfRange(s)) return false;
     TF_CHECK_OK(s);
-    *key = strings::Printf("%08lld", num_++);
+    *key = strings::Printf("%08lld", static_cast<long long>(num_++));
     *value = line_;
     return true;
   }
@@ -241,7 +241,7 @@ class TFRecordIterator : public RecordIterator {
   bool Next(string* key, Rope* value) override {
     Status s = reader_.ReadRecord(&record_);
     if (errors::IsOutOfRange(s)) return false;
-    *key = strings::Printf("%08lld", num_++);
+    *key = strings::Printf("%08lld", static_cast<long long>(num_++));
     *value = record_;
     return true;
   }
@@ -273,7 +273,7 @@ class IotaIterator : public RecordIterator {
     if (num_ >= max_) {
       return false;
     }
-    *key = strings::Printf("%010lld", num_++);
+    *key = strings::Printf("%010lld", static_cast<long long>(num_++));
     *value = *key;
     return true;
   }
