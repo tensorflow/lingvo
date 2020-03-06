@@ -552,8 +552,8 @@
           <span class="k">try</span><span class="p">:</span>
             <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
             <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span>
-                <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">())</span>
+                <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span>
+                <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">variables_for_ema</span><span class="p">))</span>
 
             <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
               <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
