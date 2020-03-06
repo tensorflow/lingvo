@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.adagraft module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.attention module" href="lingvo.core.attention.html" />
+    <link rel="prev" title="lingvo.core.steps.rnn_steps module" href="lingvo.core.steps.rnn_steps.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.adagraft module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.adagraft.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.adagraft">
+<span id="lingvo-core-adagraft-module"></span><h1>lingvo.core.adagraft module<a class="headerlink" href="#module-lingvo.core.adagraft" title="Permalink to this headline">¶</a></h1>
+<p>AdaGraft optimizer <a class="reference external" href="https://arxiv.org/abs/2002.11803">https://arxiv.org/abs/2002.11803</a> .</p>
+<dl class="class">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.adagraft.</code><code class="sig-name descname">AdaGraftOptimizer</code><span class="sig-paren">(</span><em class="sig-param">learning_rate</em>, <em class="sig-param">magnitude_optimizer</em>, <em class="sig-param">direction_optimizer</em>, <em class="sig-param">diagnostic=False</em>, <em class="sig-param">use_global_norm=False</em>, <em class="sig-param">name='AdaGraft'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.training.optimizer.Optimizer</span></code></p>
+<p>Optimizer which combines per-layer direction and magnitude from two optimizers.</p>
+<p>Disentangling Adaptive Gradient Methods from Learning Rates
+Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang
+<a class="reference external" href="https://arxiv.org/abs/2002.11803">https://arxiv.org/abs/2002.11803</a></p>
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._create_slots">
+<code class="sig-name descname">_create_slots</code><span class="sig-paren">(</span><em class="sig-param">var_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._create_slots"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._create_slots" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create all slots needed by the variables.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>var_list</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Variable</span></code> objects.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._prepare">
+<code class="sig-name descname">_prepare</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._prepare"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._prepare" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create all needed tensors before applying gradients.</p>
+<p>This is called with the name_scope using the “name” that
+users have chosen for the application of gradients.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._apply_dense">
+<code class="sig-name descname">_apply_dense</code><span class="sig-paren">(</span><em class="sig-param">grad</em>, <em class="sig-param">var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply dense gradients to <code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code>.</p></li>
+<li><p><strong>var</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Variable</span></code> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_dense">
+<code class="sig-name descname">_resource_apply_dense</code><span class="sig-paren">(</span><em class="sig-param">grad</em>, <em class="sig-param">var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._resource_apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply dense gradients to the variable <code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> representing the gradient.</p></li>
+<li><p><strong>handle</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of dtype <a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a> which points to the variable
+to be updated.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code> which updates the value of the variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._internal_apply_dense">
+<code class="sig-name descname">_internal_apply_dense</code><span class="sig-paren">(</span><em class="sig-param">grad</em>, <em class="sig-param">var</em>, <em class="sig-param">magnitude_optimizer_apply_fn</em>, <em class="sig-param">direction_optimizer_apply_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._internal_apply_dense"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._internal_apply_dense" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main optimization logic of AdaGraft, which calls the child optimizers.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – Tensor containing gradients.</p></li>
+<li><p><strong>var</strong> – Tensor containing parameter values.</p></li>
+<li><p><strong>magnitude_optimizer_apply_fn</strong> – Apply magnitude optimizer.</p></li>
+<li><p><strong>direction_optimizer_apply_fn</strong> – Apply direction optimizer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The final update op, which increments var by the grafted step.</p>
+</dd>
+</dl>
+<p>Pseudocode:
+- Copy weights into scratch space ‘scratch_copy’.
+- Run magnitude_optimizer in-place.
+- Use scratch copy to figure out how far we moved (‘magnitude_step’).
+- Copy weights back.
+- Run direction_optimizer in-place.
+- Move weights along the line segment with scratch_copy.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._finish">
+<code class="sig-name descname">_finish</code><span class="sig-paren">(</span><em class="sig-param">update_ops</em>, <em class="sig-param">name_scope</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._finish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._finish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Do what is needed to finish the update.</p>
+<p>This is called with the <code class="xref py py-obj docutils literal notranslate"><span class="pre">name_scope</span></code> using the “name” that
+users have chosen for the application of gradients.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>update_ops</strong> – List of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code> objects to update variables.  This list
+contains the values returned by the <a class="reference internal" href="#lingvo.core.adagraft.AdaGraftOptimizer._apply_dense" title="lingvo.core.adagraft.AdaGraftOptimizer._apply_dense"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_dense()</span></code></a> and
+<a class="reference internal" href="#lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse" title="lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_sparse()</span></code></a> calls.</p></li>
+<li><p><strong>name_scope</strong> – String.  Name to use for the returned operation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The operation to apply updates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_sparse">
+<code class="sig-name descname">_resource_apply_sparse</code><span class="sig-paren">(</span><em class="sig-param">grad_values</em>, <em class="sig-param">var</em>, <em class="sig-param">grad_indices</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._resource_apply_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_sparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply sparse gradients to the variable <code class="xref py py-obj docutils literal notranslate"><span class="pre">handle</span></code>.</p>
+<p>Similar to <a class="reference internal" href="#lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse" title="lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_sparse</span></code></a>, the <code class="xref py py-obj docutils literal notranslate"><span class="pre">indices</span></code> argument to this method has been
+de-duplicated. Optimizers which deal correctly with non-unique indices may
+instead override <code class="xref py py-obj docutils literal notranslate"><span class="pre">_resource_apply_sparse_duplicate_indices</span></code> to avoid this
+overhead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> representing the gradient for the affected indices.</p></li>
+<li><p><strong>handle</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of dtype <a class="reference external" href="https://docs.python.org/3.7/library/resource.html#module-resource" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">resource</span></code></a> which points to the variable
+to be updated.</p></li>
+<li><p><strong>indices</strong> – a <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of integral type representing the indices for
+which the gradient is nonzero. Indices are unique.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code> which updates the value of the variable.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse">
+<code class="sig-name descname">_apply_sparse</code><span class="sig-paren">(</span><em class="sig-param">grad</em>, <em class="sig-param">var</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/adagraft.html#AdaGraftOptimizer._apply_sparse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add ops to apply sparse gradients to <code class="xref py py-obj docutils literal notranslate"><span class="pre">var</span></code>.</p>
+<p>The IndexedSlices object passed to <code class="xref py py-obj docutils literal notranslate"><span class="pre">grad</span></code> in this function is by default
+pre-processed in <code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_sparse_duplicate_indices</span></code> to remove duplicate
+indices (see its docstring for details). Optimizers which can tolerate or
+have correct special cases for duplicate sparse indices may override
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">_apply_sparse_duplicate_indices</span></code> instead of this function, avoiding that
+overhead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>grad</strong> – <code class="xref py py-obj docutils literal notranslate"><span class="pre">IndexedSlices</span></code>, with no repeated indices.</p></li>
+<li><p><strong>var</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Variable</span></code> object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>An <code class="xref py py-obj docutils literal notranslate"><span class="pre">Operation</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.attention.html" class="btn btn-neutral float-right" title="lingvo.core.attention module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.steps.rnn_steps.html" class="btn btn-neutral float-left" title="lingvo.core.steps.rnn_steps module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

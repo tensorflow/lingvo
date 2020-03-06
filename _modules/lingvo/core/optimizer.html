@@ -165,6 +165,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">adagraft</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">distributed_shampoo</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -530,6 +531,75 @@
 
 <div class="viewcode-block" id="DistributedShampoo.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;distributed_shampoo&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="AdaGraft"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdaGraft">[docs]</a><span class="k">class</span> <span class="nc">AdaGraft</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Optimizer which combines step size and direction of two optimizers.</span>
+
+
+<span class="sd">  Disentangling Adaptive Gradient Methods from Learning Rates</span>
+<span class="sd">  Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang</span>
+<span class="sd">  https://arxiv.org/abs/2002.11803</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="AdaGraft.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdaGraft.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AdaGraft</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;magnitude_optimizer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="s1">&#39;Instantiated Optimizer layer providing the step size.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;direction_optimizer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+                  <span class="s1">&#39;Instantiated Optimizer layer providing the step direction.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;direction_optimizer_lr&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Custom constant learning rate passed to direction &#39;</span>
+        <span class="s1">&#39;optimizer. If None, then pass scheduled lr for both.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_global_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to graft global l2 norm.&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;diagnostic&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to record norm measurements.&#39;</span><span class="p">)</span>
+
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;AdaGraft&#39;</span>
+    <span class="k">return</span> <span class="n">params</span></div>
+
+<div class="viewcode-block" id="AdaGraft.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdaGraft.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">direction_optimizer_lr</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dir_lr</span> <span class="o">=</span> <span class="n">lr</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">dir_lr</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">direction_optimizer_lr</span>
+
+    <span class="n">magnitude_tf_optimizer</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="n">lr</span><span class="p">)</span>
+    <span class="n">direction_tf_optimizer</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="n">lr</span><span class="o">=</span><span class="n">dir_lr</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">adagraft</span><span class="o">.</span><span class="n">AdaGraftOptimizer</span><span class="p">(</span>
+        <span class="mf">1.0</span><span class="p">,</span>
+        <span class="n">magnitude_tf_optimizer</span><span class="p">,</span>
+        <span class="n">direction_tf_optimizer</span><span class="p">,</span>
+        <span class="n">use_global_norm</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">,</span>
+        <span class="n">diagnostic</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">diagnostic</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AdaGraft.AddSummary"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.AdaGraft.AddSummary">[docs]</a>  <span class="k">def</span> <span class="nf">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;adagraft_lr&#39;</span><span class="p">,</span> <span class="n">lr</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">diagnostic</span><span class="p">:</span>  <span class="c1"># verbose option</span>
+      <span class="n">m_step_norm_total</span> <span class="o">=</span> <span class="mf">0.0</span>
+      <span class="n">d_step_norm_total</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+      <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>  <span class="c1"># record layer-wise gradient norms</span>
+        <span class="n">m_step_norm</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;m_step_norm&#39;</span><span class="p">)</span>
+        <span class="n">d_step_norm</span> <span class="o">=</span> <span class="n">optimizer</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;d_step_norm&#39;</span><span class="p">)</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/m_step_norm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">m_step_norm</span><span class="p">)</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/d_step_norm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">d_step_norm</span><span class="p">)</span>
+        <span class="n">m_step_norm_total</span> <span class="o">+=</span> <span class="n">m_step_norm</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">d_step_norm_total</span> <span class="o">+=</span> <span class="n">d_step_norm</span><span class="o">**</span><span class="mi">2</span>
+
+      <span class="c1"># record global gradient norms</span>
+      <span class="n">m_step_norm_total</span> <span class="o">**=</span> <span class="mf">0.5</span>
+      <span class="n">d_step_norm_total</span> <span class="o">**=</span> <span class="mf">0.5</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/m_step_norm&#39;</span><span class="p">,</span> <span class="n">m_step_norm_total</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/d_step_norm&#39;</span><span class="p">,</span> <span class="n">d_step_norm_total</span><span class="p">)</span>
+      <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;optimizer/norm_correction&#39;</span><span class="p">,</span>
+                           <span class="n">m_step_norm_total</span> <span class="o">/</span> <span class="n">d_step_norm_total</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

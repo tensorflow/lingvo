@@ -1,0 +1,375 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.adagraft &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.adagraft</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.adagraft</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;AdaGraft optimizer https://arxiv.org/abs/2002.11803 .&quot;&quot;&quot;</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+
+
+<div class="viewcode-block" id="AdaGraftOptimizer"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer">[docs]</a><span class="k">class</span> <span class="nc">AdaGraftOptimizer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Optimizer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Optimizer which combines per-layer direction and magnitude from two optimizers.</span>
+
+<span class="sd">  Disentangling Adaptive Gradient Methods from Learning Rates</span>
+<span class="sd">  Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang</span>
+<span class="sd">  https://arxiv.org/abs/2002.11803</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">learning_rate</span><span class="p">,</span>
+               <span class="n">magnitude_optimizer</span><span class="p">,</span>
+               <span class="n">direction_optimizer</span><span class="p">,</span>
+               <span class="n">diagnostic</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">use_global_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+               <span class="n">name</span><span class="o">=</span><span class="s2">&quot;AdaGraft&quot;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Construct a new AdaGraft optimizer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      learning_rate: A `Tensor` or a floating point value. The learning rate.</span>
+<span class="sd">      magnitude_optimizer: Child Optimizer to inherit step sizes.</span>
+<span class="sd">      direction_optimizer: Child Optimizer to inherit step directions.</span>
+<span class="sd">      diagnostic: Whether to record per-tensor step norms.</span>
+<span class="sd">      use_global_norm: Graft global l2 norms rather than per-layer.</span>
+<span class="sd">      name: Optional name prefix for the operations created when applying</span>
+<span class="sd">        gradients.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">AdaGraftOptimizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span> <span class="o">=</span> <span class="n">magnitude_optimizer</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span> <span class="o">=</span> <span class="n">direction_optimizer</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">diagnostic</span> <span class="o">=</span> <span class="n">diagnostic</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span> <span class="o">=</span> <span class="n">use_global_norm</span>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._create_slots"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._create_slots">[docs]</a>  <span class="k">def</span> <span class="nf">_create_slots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">var_list</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">_create_slots</span><span class="p">(</span><span class="n">var_list</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">_create_slots</span><span class="p">(</span><span class="n">var_list</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">var_list</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_zeros_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s2">&quot;scratch_copy&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagnostic</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_make_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;m_step_norm&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_get_or_make_slot</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span> <span class="s2">&quot;d_step_norm&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._prepare"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._prepare">[docs]</a>  <span class="k">def</span> <span class="nf">_prepare</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">_prepare</span><span class="p">()</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">_prepare</span><span class="p">()</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+    <span class="n">learning_rate</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_call_if_callable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="n">learning_rate</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>  <span class="c1"># create list of all vars for global _finish</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_variables</span> <span class="o">=</span> <span class="p">[]</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._apply_dense"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._apply_dense">[docs]</a>  <span class="k">def</span> <span class="nf">_apply_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>  <span class="c1"># pylint: disable=g-doc-args</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_apply_dense</span><span class="p">(</span>
+        <span class="n">grad</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">_apply_dense</span><span class="p">,</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">_apply_dense</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._resource_apply_dense"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_dense">[docs]</a>  <span class="k">def</span> <span class="nf">_resource_apply_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_internal_apply_dense</span><span class="p">(</span>
+        <span class="n">grad</span><span class="p">,</span>
+        <span class="n">var</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">_resource_apply_dense</span><span class="p">,</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">_resource_apply_dense</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._internal_apply_dense"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._internal_apply_dense">[docs]</a>  <span class="k">def</span> <span class="nf">_internal_apply_dense</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">magnitude_optimizer_apply_fn</span><span class="p">,</span>
+                            <span class="n">direction_optimizer_apply_fn</span><span class="p">):</span>  <span class="c1"># pylint: disable=g-doc-args</span>
+    <span class="sd">&quot;&quot;&quot;Main optimization logic of AdaGraft, which calls the child optimizers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      grad: Tensor containing gradients.</span>
+<span class="sd">      var: Tensor containing parameter values.</span>
+<span class="sd">      magnitude_optimizer_apply_fn: Apply magnitude optimizer.</span>
+<span class="sd">      direction_optimizer_apply_fn: Apply direction optimizer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The final update op, which increments var by the grafted step.</span>
+
+<span class="sd">    Pseudocode:</span>
+<span class="sd">    - Copy weights into scratch space &#39;scratch_copy&#39;.</span>
+<span class="sd">    - Run magnitude_optimizer in-place.</span>
+<span class="sd">    - Use scratch copy to figure out how far we moved (&#39;magnitude_step&#39;).</span>
+<span class="sd">    - Copy weights back.</span>
+<span class="sd">    - Run direction_optimizer in-place.</span>
+<span class="sd">    - Move weights along the line segment with scratch_copy.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_variables</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
+
+    <span class="c1"># Slot with current parameter values</span>
+    <span class="n">scratch_slot</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;scratch_copy&quot;</span><span class="p">)</span>
+    <span class="n">old_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">scratch_slot</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">old_var</span><span class="p">]):</span>
+      <span class="n">m_updated_var</span> <span class="o">=</span> <span class="n">magnitude_optimizer_apply_fn</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+    <span class="c1"># Run magnitude optimizer and compute the norm of the update.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">m_updated_var</span><span class="p">]):</span>
+      <span class="n">m_step</span> <span class="o">=</span> <span class="n">var</span> <span class="o">-</span> <span class="n">old_var</span>
+      <span class="n">m_step_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">m_step</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagnostic</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>
+        <span class="n">m_step_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;m_step_norm&quot;</span><span class="p">),</span> <span class="n">m_step_norm</span><span class="p">)</span>
+
+    <span class="c1"># Run direction optimizer and compute its norm, and the direction.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">m_step_norm</span><span class="p">]):</span>
+      <span class="n">flushed_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">old_var</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">flushed_var</span><span class="p">]):</span>
+      <span class="n">d_updated_var</span> <span class="o">=</span> <span class="n">direction_optimizer_apply_fn</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+    <span class="c1"># Run an update of the direction optimizer with magnitude optimizer norm.</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">d_updated_var</span><span class="p">]):</span>
+      <span class="n">d_step</span> <span class="o">=</span> <span class="n">var</span> <span class="o">-</span> <span class="n">old_var</span>
+      <span class="n">d_step_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">d_step</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">diagnostic</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>
+        <span class="n">d_step_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;d_step_norm&quot;</span><span class="p">),</span> <span class="n">d_step_norm</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>
+        <span class="n">flushed_var</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">old_var</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">d_step_norm</span><span class="p">,</span> <span class="n">flushed_var</span><span class="p">]):</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">scratch_slot</span><span class="p">,</span> <span class="n">d_step</span><span class="p">)</span>
+      <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">d_step_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="p">(</span><span class="n">m_step_norm</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">d_step_norm</span><span class="p">,</span> <span class="mf">1e-30</span><span class="p">))</span> <span class="o">*</span> <span class="n">d_step</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">d_step</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">old_var</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">*</span> <span class="n">step</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._finish"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._finish">[docs]</a>  <span class="k">def</span> <span class="nf">_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">update_ops</span><span class="p">,</span> <span class="n">name_scope</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">update_ops</span><span class="p">):</span>
+      <span class="n">ops1</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">magnitude_optimizer</span><span class="o">.</span><span class="n">_finish</span><span class="p">([],</span> <span class="n">name_scope</span> <span class="o">+</span> <span class="s2">&quot;_m&quot;</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+      <span class="n">ops2</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">direction_optimizer</span><span class="o">.</span><span class="n">_finish</span><span class="p">([],</span> <span class="n">name_scope</span> <span class="o">+</span> <span class="s2">&quot;_d&quot;</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">use_global_norm</span><span class="p">:</span>  <span class="c1"># apply global grafting</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">ops1</span><span class="p">,</span> <span class="n">ops2</span><span class="p">]):</span>
+          <span class="n">m_global_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+          <span class="n">d_global_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">(</span><span class="mf">0.</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_variables</span><span class="p">:</span>
+            <span class="n">m_step_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;m_step_norm&quot;</span><span class="p">)</span>
+            <span class="n">d_step_norm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;d_step_norm&quot;</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">m_global_norm</span><span class="p">,</span> <span class="n">m_step_norm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">d_global_norm</span><span class="p">,</span> <span class="n">d_step_norm</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+
+          <span class="n">multiplier</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">m_global_norm</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">d_global_norm</span><span class="p">,</span> <span class="mf">1e-30</span><span class="p">))</span>
+
+          <span class="n">step_ops</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_variables</span><span class="p">:</span>
+            <span class="n">d_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_slot</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="s2">&quot;scratch_copy&quot;</span><span class="p">)</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">d_step_norm</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">multiplier</span> <span class="o">*</span> <span class="n">d_step</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">d_step</span><span class="p">))</span>
+            <span class="n">step_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate_tensor</span> <span class="o">*</span> <span class="n">step</span><span class="p">)</span>
+            <span class="n">step_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step_op</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">step_ops</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name_scope</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="p">([</span><span class="n">ops1</span><span class="p">,</span> <span class="n">ops2</span><span class="p">]</span> <span class="o">+</span> <span class="n">update_ops</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="n">name_scope</span><span class="p">)</span></div>
+
+  <span class="c1"># Sparse gradients are not handled currently and is part of future work.</span>
+<div class="viewcode-block" id="AdaGraftOptimizer._resource_apply_sparse"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._resource_apply_sparse">[docs]</a>  <span class="k">def</span> <span class="nf">_resource_apply_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad_values</span><span class="p">,</span> <span class="n">var</span><span class="p">,</span> <span class="n">grad_indices</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="AdaGraftOptimizer._apply_sparse"><a class="viewcode-back" href="../../../lingvo.core.adagraft.html#lingvo.core.adagraft.AdaGraftOptimizer._apply_sparse">[docs]</a>  <span class="k">def</span> <span class="nf">_apply_sparse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
