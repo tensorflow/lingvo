@@ -497,11 +497,11 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   @classmethod
   def FPropMeta(cls, p, inputs, paddings):
     py_utils.CheckShapes((inputs, paddings))
-    b, t, f, ic = inputs
+    b, t, f, _ = inputs
     assert f == 1
     oc = p.filter_shape[2] * p.filter_shape[3] * p.weight_tiling_factor
     outputs = tshape.Shape([b, t, f, oc])
-    flops = b * t * f * p.filter_shape[0] * ic * oc * 5
+    flops = b * t * f * p.filter_shape[0] * oc * 5
     return py_utils.NestedMap(flops=flops, out_shapes=(outputs, paddings))
 
 

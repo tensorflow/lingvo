@@ -23,6 +23,7 @@ import lingvo.compat as tf
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+from lingvo.core import tshape
 import numpy as np
 from six.moves import zip
 
@@ -51,7 +52,7 @@ class ConvLayerTest(test_utils.TestCase):
       self.assertEqual(expected_var_names, conv_var_names)
 
   def testConv2DLayerWithPaddingOutputChannels(self):
-    with self.session(use_gpu=True):
+    with self.session():
       params = conv_layers_with_time_padding.Conv2DLayerWithPadding.Params()
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 32]
@@ -124,7 +125,7 @@ class ConvLayerTest(test_utils.TestCase):
       self.assertAllClose([-3.584711, 3.324082], [v1, v2])
 
   def testDepthwiseConv2DLayerOutputChannels(self):
-    with self.session(use_gpu=True):
+    with self.session():
       params = conv_layers_with_time_padding.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 2]
@@ -218,7 +219,7 @@ class ConvLayerTest(test_utils.TestCase):
     return output
 
   def testNormalizedDepthwiseConv2DLayerOutputChannels(self):
-    with self.session(use_gpu=True):
+    with self.session():
       params = (
           conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer.Params())
       params.name = 'conv'
@@ -226,6 +227,26 @@ class ConvLayerTest(test_utils.TestCase):
       params.weight_tiling_factor = 2
       actual_output_channels = params.cls.OutputChannels(params)
       self.assertEqual(4, actual_output_channels)
+
+  def testNormalizedDepthwiseConv2DLayerFPropMeta(self):
+    params = (
+        conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer.Params())
+    params.name = 'conv'
+    params.filter_shape = [3, 1, 2, 1]
+    params.weight_tiling_factor = 2
+    batch, time, frequency, in_channel = 2, 4, 1, 4
+    output_channels = 4
+    inputs_shape = tshape.Shape([batch, time, frequency, in_channel])
+    paddings_shape = tshape.Shape([batch, time])
+    with self.session():
+      out = params.cls.FPropMeta(params, inputs_shape, paddings_shape)
+      expected_flops = batch * time * frequency * params.filter_shape[
+          0] * output_channels * 5
+      self.assertEqual(expected_flops, out.flops)
+      out_shapes = out.out_shapes
+      self.assertEqual(out_shapes[0].ToTensorShape().as_list(),
+                       [batch, time, frequency, output_channels])
+      self.assertEqual(out_shapes[1].ToTensorShape().as_list(), [batch, time])
 
   def testNormalizedDepthwiseConv2DLayerFProp(self):
     expected_output = [[0.91136134, 1.25781929, 1.76708317, 0.9021343],
