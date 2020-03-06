@@ -490,8 +490,10 @@ class Params(object):
       elif which_oneof == 'list_val':
         return [_FromParamValue(val) for val in param_pb.list_val.items]
       elif which_oneof == 'named_tuple_val':
-        cls = _LoadClass(param_pb.named_tuple_val.type)
-        return cls(
+        named_tuple_cls = _LoadClass(param_pb.named_tuple_val.type)
+        if not issubclass(named_tuple_cls, tuple):
+          return None
+        return named_tuple_cls(
             *[_FromParamValue(val) for val in param_pb.named_tuple_val.items])
       elif which_oneof == 'tuple_val':
         return tuple([_FromParamValue(val) for val in param_pb.tuple_val.items])
