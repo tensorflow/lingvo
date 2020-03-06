@@ -398,6 +398,8 @@ void RecordBatcher::ProcessorLoop() {
       for (auto bucket : out_of_range_buckets) {
         LOG(INFO) << "Out-of-range sample: " << bucket;
       }
+      CHECK_GT(total_records_yielded_, 0)
+          << "No records were yielded. Most likely the input is misconfigured!";
       out_of_range_buckets.clear();
       last_log_update_time_ = current_time;
       next_status_update_duration_seconds_ *= status_update_duration_multiplier;
