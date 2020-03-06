@@ -1858,6 +1858,12 @@ class PadOrTrimToTest(test_utils.TestCase):
       ]
       self.assertAllClose(expected_x, real_x)
 
+  def testDynamicTensorShapeRaises(self):
+    tensor = tf.zeros(shape=[3, 2])
+    shape = tf.TensorShape([3, None])
+    with self.assertRaises(ValueError):
+      py_utils.PadOrTrimTo(tensor, shape)
+
   def test4D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)

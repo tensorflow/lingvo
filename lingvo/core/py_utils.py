@@ -3200,10 +3200,16 @@ def PadOrTrimTo(x, shape, pad_val=0):
   Returns:
     'x' is padded with pad_val and sliced so that the result has the given
     shape.
+
+  Raises:
+    ValueError: if shape is a tf.TensorShape and not fully defined.
   """
   if isinstance(shape, (list, tuple)):
     expected_rank = len(shape)
   elif isinstance(shape, tf.TensorShape):
+    if not shape.is_fully_defined():
+      raise ValueError('shape %s padding %s must be fully defined.' %
+                       (shape, x))
     expected_rank = shape.rank
   else:
     shape = HasRank(shape, 1)
