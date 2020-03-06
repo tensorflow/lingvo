@@ -766,10 +766,37 @@ py_test(
 )
 
 py_library(
+    name = "adagraft",
+    srcs = [
+        "adagraft.py",
+    ],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core/ops",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "adagraft_test",
+    size = "small",
+    srcs = ["adagraft_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":adagraft",
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":adagraft",
         ":base_layer",
         ":distributed_shampoo",
         ":py_utils",

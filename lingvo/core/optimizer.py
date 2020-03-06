@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
+from lingvo.core import adagraft
 from lingvo.core import base_layer
 from lingvo.core import distributed_shampoo
 from lingvo.core import py_utils
@@ -385,3 +386,72 @@ class DistributedShampoo(Base):
 
   def AddSummary(self, lr, optimizer, var_grad):
     summary_utils.scalar('distributed_shampoo', lr)
+
+
+class AdaGraft(Base):
+  """Optimizer which combines step size and direction of two optimizers.
+
+
+  Disentangling Adaptive Gradient Methods from Learning Rates
+  Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang
+  https://arxiv.org/abs/2002.11803
+  """
+
+  @classmethod
+  def Params(cls):
+    params = super(AdaGraft, cls).Params()
+
+    params.Define('magnitude_optimizer', None,
+                  'Instantiated Optimizer layer providing the step size.')
+    params.Define('direction_optimizer', None,
+                  'Instantiated Optimizer layer providing the step direction.')
+    params.Define(
+        'direction_optimizer_lr', None,
+        'Custom constant learning rate passed to direction '
+        'optimizer. If None, then pass scheduled lr for both.')
+    params.Define('use_global_norm', False, 'Whether to graft global l2 norm.')
+    params.Define('diagnostic', False, 'Whether to record norm measurements.')
+
+    params.name = 'AdaGraft'
+    return params
+
+  def GetOptimizer(self, lr):
+    params = self.params
+
+    if params.direction_optimizer_lr is None:
+      dir_lr = lr
+    else:
+      dir_lr = params.direction_optimizer_lr
+
+    magnitude_tf_optimizer = params.magnitude_optimizer.GetOptimizer(lr=lr)
+    direction_tf_optimizer = params.direction_optimizer.GetOptimizer(lr=dir_lr)
+
+    return adagraft.AdaGraftOptimizer(
+        1.0,
+        magnitude_tf_optimizer,
+        direction_tf_optimizer,
+        use_global_norm=params.use_global_norm,
+        diagnostic=params.diagnostic)
+
+  def AddSummary(self, lr, optimizer, var_grad):
+    summary_utils.scalar('adagraft_lr', lr)
+
+    if self.params.diagnostic:  # verbose option
+      m_step_norm_total = 0.0
+      d_step_norm_total = 0.0
+
+      for v, _ in var_grad.Flatten():  # record layer-wise gradient norms
+        m_step_norm = optimizer.get_slot(v, 'm_step_norm')
+        d_step_norm = optimizer.get_slot(v, 'd_step_norm')
+        summary_utils.scalar('optimizer/m_step_norm_%s' % v.name, m_step_norm)
+        summary_utils.scalar('optimizer/d_step_norm_%s' % v.name, d_step_norm)
+        m_step_norm_total += m_step_norm**2
+        d_step_norm_total += d_step_norm**2
+
+      # record global gradient norms
+      m_step_norm_total **= 0.5
+      d_step_norm_total **= 0.5
+      summary_utils.scalar('optimizer/m_step_norm', m_step_norm_total)
+      summary_utils.scalar('optimizer/d_step_norm', d_step_norm_total)
+      summary_utils.scalar('optimizer/norm_correction',
+                           m_step_norm_total / d_step_norm_total)
