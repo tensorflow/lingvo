@@ -407,8 +407,8 @@ class InferenceGraphExporter(object):
           try:
             mdl = model_cfg.Instantiate()
             variables_to_restore = (
-                _MakeVariableDictionary(tf.global_variables())
-                if not mdl.ema else mdl.ema.variables_to_restore())
+                _MakeVariableDictionary(tf.global_variables()) if not mdl.ema
+                else mdl.ema.variables_to_restore(mdl.variables_for_ema))
 
             if bfloat16_override:
               saver_var_spec = (
