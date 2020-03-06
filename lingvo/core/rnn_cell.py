@@ -1211,8 +1211,8 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
           collections=self._VariableCollections())
       self.CreateVariable('ln_scale', ln_scale_pc, self.AddGlobalVN)
 
-  def _Mix(self, theta, state0, inputs):
-    xmw = super(LayerNormalizedLSTMCellSimple, self)._Mix(theta, state0, inputs)
+  def _Gates(self, xmw, theta, state0, inputs):
+    """Compute the new state."""
     p = self.params
 
     # TODO(dehao): refactor the code to remove reshape and use fused layernorm.
@@ -1248,7 +1248,9 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       x_norm = _LayerNorm(x_reshaped)
       return tf.reshape(x_norm, tf.shape(x)) * tf.expand_dims(scale, 0)
 
-    return _PerGateLayerNorm(xmw, theta.ln_scale)
+    xmw = _PerGateLayerNorm(xmw, theta.ln_scale)
+    return super(LayerNormalizedLSTMCellSimple,
+                 self)._Gates(xmw, theta, state0, inputs)
 
 
 class LayerNormalizedLSTMCellLean(RNNCell):
@@ -1297,6 +1299,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     p.Define('enable_lstm_bias', False, 'Enable the LSTM Cell bias.')
     p.Define('bias_init', py_utils.WeightInit.Constant(0.0),
              'Initialization parameters for bias')
+    p.Define('use_ln_bias', True, 'If to include a bias term for layer norm.')
 
     # TODO(yonghui): Get rid of the following two params.
     p.Define('output_nonlinearity', True,
@@ -1355,7 +1358,8 @@ class LayerNormalizedLSTMCellLean(RNNCell):
         ln_gates += ['c']
       for ln_name in ln_gates:
         self.CreateVariable('ln_scale_' + ln_name, pc, self.AddGlobalVN)
-        self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
+        if p.use_ln_bias:
+          self.CreateVariable('bias_' + ln_name, pc, self.AddGlobalVN)
 
   @property
   def output_size(self):
@@ -1412,8 +1416,11 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
     normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
     scale = theta['ln_scale_%s' % gate_name] + 1.0
-    bias = theta['bias_%s' % gate_name]
-    return normed * scale + bias
+    if p.use_ln_bias:
+      bias = theta['bias_%s' % gate_name]
+      return normed * scale + bias
+    else:
+      return normed * scale
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""

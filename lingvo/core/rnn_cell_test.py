@@ -1345,35 +1345,65 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllClose(m_expected, m_v)
     self.assertAllClose(c_expected, c_v)
 
+  def testLNLSTMCellLeanFeatureParity(self):
+    """Tests feature parity with LayerNormalizedLSTMCellSimple ...
+
+    under the same configuration.
+    """
+    m_expected, c_expected, grads_expected = self._testLNLSTMCellFPropBProp(
+        rnn_cell.LayerNormalizedLSTMCellSimple.Params().Set(
+            enable_lstm_bias=True, cell_value_cap=5e-4))
+    m, c, grads = self._testLNLSTMCellFPropBProp(
+        rnn_cell.LayerNormalizedLSTMCellLean.Params().Set(
+            enable_lstm_bias=True,
+            cell_value_cap=5e-4,
+            enable_ln_on_c=False,
+            use_ln_bias=False))
+    self.assertAllClose(m_expected, m)
+    self.assertAllClose(c_expected, c)
+    print('grads_expected: %r' % grads_expected)
+    print('grads_actual: %r' % grads)
+    self.assertAllClose(grads_expected.wm, grads.wm)
+    self.assertAllClose(grads_expected.b, grads.b)
+    self.assertAllClose(
+        grads_expected.ln_scale,
+        np.concatenate([
+            grads.ln_scale_i_i, grads.ln_scale_i_g, grads.ln_scale_f_g,
+            grads.ln_scale_o_g
+        ]))
+
+  def _testLNLSTMCellHelper(self, params, num_hidden_nodes=0):
+    params = params.Copy()
+    params.name = 'lstm'
+    params.output_nonlinearity = True
+    params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
+    params.vn.global_vn = False
+    params.vn.per_step_vn = False
+    params.num_input_nodes = 2
+    params.num_output_nodes = 2
+    if num_hidden_nodes:
+      params.num_hidden_nodes = num_hidden_nodes
+    params.zo_prob = 0.0
+    params.random_seed = _RANDOM_SEED
+
+    lstm = params.Instantiate()
+
+    np.random.seed(_NUMPY_RANDOM_SEED)
+    inputs = py_utils.NestedMap(
+        act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
+        padding=tf.zeros([3, 1]))
+    state0 = py_utils.NestedMap(
+        c=tf.constant(
+            np.random.uniform(size=(3, lstm.hidden_size)), tf.float32),
+        m=tf.constant(
+            np.random.uniform(size=(3, lstm.output_size)), tf.float32))
+    state1, _ = lstm.FPropDefaultTheta(state0, inputs)
+    return lstm, state0, state1
+
   def _testLNLSTMCell(self, params, num_hidden_nodes=0):
     tf.reset_default_graph()
     with self.session(use_gpu=False):
-      params = params.Copy()
-      params.name = 'lstm'
-      params.output_nonlinearity = True
-      params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
-      params.vn.global_vn = False
-      params.vn.per_step_vn = False
-      params.num_input_nodes = 2
-      params.num_output_nodes = 2
-      if num_hidden_nodes:
-        params.num_hidden_nodes = num_hidden_nodes
-      params.zo_prob = 0.0
-      params.random_seed = _RANDOM_SEED
-
-      lstm = params.Instantiate()
-
-      np.random.seed(_NUMPY_RANDOM_SEED)
-      inputs = py_utils.NestedMap(
-          act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],
-          padding=tf.zeros([3, 1]))
-      state0 = py_utils.NestedMap(
-          c=tf.constant(
-              np.random.uniform(size=(3, lstm.hidden_size)), tf.float32),
-          m=tf.constant(
-              np.random.uniform(size=(3, lstm.output_size)), tf.float32))
-      state1, _ = lstm.FPropDefaultTheta(state0, inputs)
-
+      _, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
       # Initialize all the variables, and then run one step.
       tf.global_variables_initializer().run()
 
@@ -1382,6 +1412,28 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       print('m_v', np.array_repr(m_v))
       print('c_v', np.array_repr(c_v))
       return m_v, c_v
+
+  def _testLNLSTMCellFPropBProp(self, params, num_hidden_nodes=0):
+    tf.reset_default_graph()
+    with self.session(use_gpu=False) as sess:
+      lstm, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
+      loss = -tf.log(
+          tf.sigmoid(
+              tf.reduce_sum(tf.square(state1.m)) +
+              tf.reduce_sum(state1.m * state1.c * state1.c)))
+      grads = tf.gradients(loss, lstm.vars.Flatten())
+      grads = [g for g in grads if g is not None]
+      # Initialize all the variables, and then run one step.
+      tf.global_variables_initializer().run()
+
+      m_v, c_v, grads_v = sess.run([state1.m, state1.c, grads])
+      print('m_v', np.array_repr(m_v))
+      print('c_v', np.array_repr(c_v))
+      grads_val = py_utils.NestedMap()
+      for (n, _), val in zip(lstm.vars.FlattenItems(), grads_v):
+        print(n, np.array_repr(val))
+        grads_val[n] = val
+      return m_v, c_v, grads_val
 
   def testDoubleProjectionLSTMCell(self):
     self._testDoubleProjectionLSTMCell(enable_ln_on_c=True)
