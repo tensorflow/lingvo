@@ -167,6 +167,32 @@
 <span id="lingvo-core-spectrum-augmenter-module"></span><h1>lingvo.core.spectrum_augmenter module<a class="headerlink" href="#module-lingvo.core.spectrum_augmenter" title="Permalink to this headline">¶</a></h1>
 <p>Lingvo layers that used for spectrum augmentation.</p>
 <dl class="function">
+<dt id="lingvo.core.spectrum_augmenter._random_uniform_op">
+<code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">_random_uniform_op</code><span class="sig-paren">(</span><em class="sig-param">use_stateless_op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#_random_uniform_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter._random_uniform_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.spectrum_augmenter._random_normal_op">
+<code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">_random_normal_op</code><span class="sig-paren">(</span><em class="sig-param">use_stateless_op</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#_random_normal_op"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter._random_normal_op" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.spectrum_augmenter._global_seed_from_inputs">
+<code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">_global_seed_from_inputs</code><span class="sig-paren">(</span><em class="sig-param">input_floats</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#_global_seed_from_inputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter._global_seed_from_inputs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a random seed tensor based on input floats and mode key.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>input_floats</strong> – a set of float input tensors that are derived from the input
+data (for example, input tokens). The important thing is that these are
+usually different for each batch.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of shape=[2] with integer seed tensors derived from the inputs.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.spectrum_augmenter._hat">
 <code class="sig-prename descclassname">lingvo.core.spectrum_augmenter.</code><code class="sig-name descname">_hat</code><span class="sig-paren">(</span><em class="sig-param">x</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#_hat"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter._hat" title="Permalink to this definition">¶</a></dt>
 <dd><p>Hat function.</p>
@@ -203,7 +229,7 @@
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask">
-<code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">mask_size</em>, <em class="sig-param">max_length=None</em>, <em class="sig-param">masks_per_frame=0.0</em>, <em class="sig-param">multiplicity=1</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_GetMask</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">mask_size</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">max_length=None</em>, <em class="sig-param">masks_per_frame=0.0</em>, <em class="sig-param">multiplicity=1</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns fixed size multi-masks starting from random positions.</p>
 <p>A multi-mask is a mask obtained by applying multiple masks.</p>
 <dl class="simple">
@@ -237,6 +263,7 @@ with shape (batch_size, multiplicity).</p></li>
 <li><p><strong>choose_range</strong> – Range within which the masked entries must lie. Tensor of
 shape (batch_size,).</p></li>
 <li><p><strong>mask_size</strong> – Size of the mask. Integer number.</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>max_length</strong> – Maximum number of allowed consecutive masked entries. Integer
 number or None.</p></li>
 <li><p><strong>masks_per_frame</strong> – Number of masks per frame. Float number. If &gt; 0, the
@@ -259,7 +286,7 @@ number.</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix">
-<code class="sig-name descname">_GetWarpMatrix</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">matrix_size</em>, <em class="sig-param">max_warp_frames=None</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetWarpMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_GetWarpMatrix</code><span class="sig-paren">(</span><em class="sig-param">batch_size</em>, <em class="sig-param">choose_range</em>, <em class="sig-param">matrix_size</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">max_warp_frames=None</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">max_ratio=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._GetWarpMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._GetWarpMatrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns warp matrices starting from random positions.</p>
 <dl class="simple">
 <dt>In this function when max_warp_frames != None:</dt><dd><ol class="arabic simple">
@@ -291,6 +318,7 @@ shape (batch_size,).</p></li>
 Tensor of shape (batch_size,).</p></li>
 <li><p><strong>matrix_size</strong> – Dimension of vector space warp matrix is applied to. Integer
 number.</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>max_warp_frames</strong> – Upper-bound on the warp distance. Integer or None.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
 <li><p><strong>max_ratio</strong> – Maximum ratio between the shift distance and choose_range.
@@ -375,13 +403,14 @@ matrix.</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask">
-<code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FrequencyMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._FrequencyMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._FrequencyMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies frequency masking with given degree to inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
 num_freq, channels).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
 <li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
@@ -394,7 +423,7 @@ num_freq, channels).</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">
-<code class="sig-name descname">_TimeMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">noisify=False</em>, <em class="sig-param">gaussian_noise=False</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_TimeMask</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">noisify=False</em>, <em class="sig-param">gaussian_noise=False</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies time masking with given degree to inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -403,6 +432,7 @@ num_freq, channels).</p></li>
 num_freq, channels).</p></li>
 <li><p><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
 (batch_size,).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>noisify</strong> – Whether to noisify the masked out regions.</p></li>
 <li><p><strong>gaussian_noise</strong> – Whether to use gaussian noise when noisifying.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
@@ -417,7 +447,7 @@ num_freq, channels).</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp">
-<code class="sig-name descname">_TimeWarp</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeWarp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_TimeWarp</code><span class="sig-paren">(</span><em class="sig-param">inputs</em>, <em class="sig-param">seq_lengths</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">dtype=tf.float32</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._TimeWarp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeWarp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies time warping with given degree to inputs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -426,6 +456,7 @@ num_freq, channels).</p></li>
 num_freq, channels).</p></li>
 <li><p><strong>seq_lengths</strong> – The actual sequence lengths which mask been sampled of shape
 (batch_size,).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>dtype</strong> – Data type.</p></li>
 <li><p><strong>domain_id_index</strong> – Domain ID index.</p></li>
 </ul>
@@ -444,7 +475,7 @@ num_freq, channels).</p></li>
 
 <dl class="method">
 <dt id="lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork">
-<code class="sig-name descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em class="sig-param">series_length</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AugmentationNetwork</code><span class="sig-paren">(</span><em class="sig-param">series_length</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em>, <em class="sig-param">global_seed</em>, <em class="sig-param">domain_id_index=0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter.html#SpectrumAugmenter._AugmentationNetwork"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter.SpectrumAugmenter._AugmentationNetwork" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns augmented features.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -453,6 +484,7 @@ num_freq, channels).</p></li>
 <li><p><strong>inputs</strong> – Batch of input features of shape (batch_size, time_length,
 num_freq, channels).</p></li>
 <li><p><strong>paddings</strong> – Batch of padding vectors of shape (batch_size, time_length).</p></li>
+<li><p><strong>global_seed</strong> – an integer seed tensor for stateless random ops.</p></li>
 <li><p><strong>domain_id_index</strong> – domain id index.</p></li>
 </ul>
 </dd>
