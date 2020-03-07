@@ -755,6 +755,36 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
+  def testSpectrumAugmenterWithStatelessRandomOps(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      batch_size = 5
+      inputs1 = tf.random_uniform(
+          shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
+      inputs2 = tf.random_uniform(
+          shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
+      paddings = []
+      for i in range(batch_size):
+        paddings.append(
+            tf.concat([tf.zeros([1, i + 12]),
+                       tf.ones([1, 8 - i])], axis=1))
+      paddings = tf.concat(paddings, axis=0)
+
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_count = 1
+      p.freq_mask_max_bins = 1
+      p.time_mask_max_frames = 5
+      p.time_mask_count = 2
+      p.time_mask_max_ratio = 1.0
+      p.use_input_dependent_random_seed = True
+      specaug_layer = p.Instantiate()
+      h1, _ = specaug_layer.FPropDefaultTheta(inputs1, paddings)
+      h2, _ = specaug_layer.FPropDefaultTheta(inputs2, paddings)
+      actual_layer_output1, actual_layer_output2 = sess.run([h1, h2])
+      self.assertAllEqual(
+          np.shape(actual_layer_output1), np.array([5, 20, 2, 2]))
+      self.assertNotAllEqual(actual_layer_output1, actual_layer_output2)
+
 
 if __name__ == '__main__':
   tf.test.main()

@@ -37,6 +37,31 @@ _SPECAUGMENT_ARGS = (
 )
 
 
+def _random_uniform_op(use_stateless_op):
+  return tf.random.stateless_uniform if use_stateless_op else tf.random.uniform
+
+
+def _random_normal_op(use_stateless_op):
+  return tf.random.stateless_normal if use_stateless_op else tf.random.normal
+
+
+def _global_seed_from_inputs(input_floats):
+  """Generates a random seed tensor based on input floats and mode key.
+
+  Args:
+    input_floats: a set of float input tensors that are derived from the input
+      data (for example, input tokens). The important thing is that these are
+      usually different for each batch.
+
+  Returns:
+    A tensor of shape=[2] with integer seed tensors derived from the inputs.
+  """
+  timestamp = tf.math.floormod(
+      tf.cast(tf.timestamp(), dtype=tf.int64), 10000000)
+  input_sum = tf.cast(tf.reduce_sum(tf.math.abs(input_floats)), dtype=tf.int64)
+  return tf.stack([timestamp + input_sum, timestamp - input_sum], axis=-1)
+
+
 def _hat(x):
   """Hat function.
 
@@ -113,6 +138,11 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'p.time_mask_count = [1, 2, 0] '
         'implies domain 2 will have 1, 7 has 2 and 1 has 0 time masks. '
         'All other domain will not augmented if it exists.')
+    p.Define(
+        'use_input_dependent_random_seed', False,
+        'Whether to use stateless random TensorFlow ops, with seeds'
+        'determined by the input features. This feature is necessary for'
+        'applications including federated learning.')
     return p
 
   @base_layer.initializer
@@ -134,6 +164,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
                batch_size,
                choose_range,
                mask_size,
+               global_seed,
                max_length=None,
                masks_per_frame=0.0,
                multiplicity=1,
@@ -168,6 +199,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       choose_range: Range within which the masked entries must lie. Tensor of
         shape (batch_size,).
       mask_size: Size of the mask. Integer number.
+      global_seed: an integer seed tensor for stateless random ops.
       max_length: Maximum number of allowed consecutive masked entries. Integer
         number or None.
       masks_per_frame: Number of masks per frame. Float number. If > 0, the
@@ -182,10 +214,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       (batch_size, mask_size).
     """
     p = self.params
-    # Non-empty random seed values are only used for testing
-    # seed_1 and seed_2 are set separately to avoid correlation of
-    # mask size and mask position.
-    if p.random_seed:
+    # Non-empty random seed values are only used for testing or when using
+    # stateless random ops. seed_1 and seed_2 are set separately to avoid
+    # correlation of mask size and mask position.
+    if p.use_input_dependent_random_seed:
+      seed_1 = global_seed + 1
+      seed_2 = global_seed + 2
+    elif p.random_seed:
       seed_1 = p.random_seed + 1
       seed_2 = 2 * p.random_seed
     else:
@@ -196,11 +231,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       max_length = tf.broadcast_to(tf.cast(max_length, dtype), (batch_size,))
     else:
       max_length = tf.cast(choose_range, dtype=dtype) * max_ratio
-    masked_portion = tf.random.uniform((batch_size, multiplicity),
-                                       minval=0.0,
-                                       maxval=1.0,
-                                       dtype=dtype,
-                                       seed=seed_1)
+    random_uniform = _random_uniform_op(p.use_input_dependent_random_seed)
+    masked_portion = random_uniform(
+        shape=(batch_size, multiplicity),
+        minval=0.0,
+        maxval=1.0,
+        dtype=dtype,
+        seed=seed_1)
     masked_frame_size = tf.einsum('b,bm->bm', max_length, masked_portion)
     masked_frame_size = tf.cast(masked_frame_size, dtype=tf.int32)
     # Make sure the sampled length was smaller than max_ratio * length_bound.
@@ -213,9 +250,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     length = tf.minimum(masked_frame_size, tf.maximum(length_bound, 1))
 
     # Choose starting point.
-    random_start = tf.random.uniform((batch_size, multiplicity),
-                                     maxval=1.0,
-                                     seed=seed_2)
+    random_start = random_uniform(
+        shape=(batch_size, multiplicity), maxval=1.0, seed=seed_2)
     start_with_in_valid_range = random_start * tf.cast(
         (choose_range - length + 1), dtype=dtype)
     start = tf.cast(start_with_in_valid_range, tf.int32)
@@ -257,6 +293,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
                      batch_size,
                      choose_range,
                      matrix_size,
+                     global_seed,
                      max_warp_frames=None,
                      dtype=tf.float32,
                      max_ratio=1.0):
@@ -286,6 +323,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         Tensor of shape (batch_size,).
       matrix_size: Dimension of vector space warp matrix is applied to. Integer
         number.
+      global_seed: an integer seed tensor for stateless random ops.
       max_warp_frames: Upper-bound on the warp distance. Integer or None.
       dtype: Data type.
       max_ratio: Maximum ratio between the shift distance and choose_range.
@@ -296,31 +334,42 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       (batch_size, matrix_size, matrix_size).
     """
     p = self.params
-    # Non-empty random seed values are only used for testing
-    # seed_1 and seed_2 are set separately to avoid correlation of
-    # warp magnitude and origin position.
-    if p.random_seed:
-      seed_1 = p.random_seed - 1
-      seed_2 = 2 * p.random_seed + 1
+    # Non-empty random seed values are only used for testing or when using
+    # stateless random ops. seed_3, seed_4, and seed_5 are set separately to
+    # avoid correlation of warp magnitude and origin position.
+    if p.use_input_dependent_random_seed:
+      seed_3 = global_seed + 3
+      seed_4 = global_seed + 4
+      seed_5 = global_seed + 5
+    elif p.random_seed:
+      seed_3 = p.random_seed - 1
+      seed_4 = p.random_seed - 1
+      seed_5 = 2 * p.random_seed + 1
     else:
-      seed_1 = p.random_seed
-      seed_2 = p.random_seed
+      seed_3 = p.random_seed
+      seed_4 = p.random_seed
+      seed_5 = p.random_seed
 
     choose_range_dtype = tf.cast(choose_range, dtype=dtype)
     length_upper_bound = tf.cast(max_ratio * choose_range_dtype, dtype=tf.int32)
     # Set shift length.
+
+    random_uniform = _random_uniform_op(p.use_input_dependent_random_seed)
+
     if max_warp_frames and max_warp_frames > 0:
-      shift = tf.random.uniform((batch_size,),
-                                minval=-1 * max_warp_frames,
-                                maxval=max_warp_frames + 1,
-                                dtype=tf.int32,
-                                seed=seed_1)
+      shift = random_uniform(
+          shape=(batch_size,),
+          minval=-1 * max_warp_frames,
+          maxval=max_warp_frames + 1,
+          dtype=tf.int32,
+          seed=seed_3)
     else:
-      random_ratio = tf.random.uniform((batch_size,),
-                                       minval=-1.0,
-                                       maxval=1.0,
-                                       seed=seed_1,
-                                       dtype=dtype)
+      random_ratio = random_uniform(
+          shape=(batch_size,),
+          minval=-1.0,
+          maxval=1.0,
+          dtype=dtype,
+          seed=seed_4)
       shift = tf.cast(random_ratio * tf.cast(length_upper_bound, dtype=dtype),
                       tf.int32)
     # Make sure the sampled length was smaller than max_ratio * length_bound.
@@ -331,7 +380,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     # Choose origin anchor point.
     mid_range = tf.cast(choose_range, dtype=tf.int32)
     mid_range = tf.maximum(choose_range - 2, 0)
-    random_origin = tf.random.uniform((batch_size,), maxval=1.0, seed=seed_2)
+    random_origin = random_uniform(shape=(batch_size,), maxval=1.0, seed=seed_5)
     origin_with_in_valid_range = random_origin * tf.cast(mid_range, dtype=dtype)
     origin = tf.cast(origin_with_in_valid_range, tf.int32) + 1
     # Set destination point of the origin anchor point under the warp map.
@@ -467,6 +516,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
   def _FrequencyMask(self,
                      inputs,
+                     global_seed,
                      dtype=tf.float32,
                      domain_id_index=0):
     """Applies frequency masking with given degree to inputs.
@@ -474,6 +524,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     Args:
       inputs: Batch of input features of shape (batch_size, time_length,
         num_freq, channels).
+      global_seed: an integer seed tensor for stateless random ops.
       dtype: Data type.
       domain_id_index: domain id index.
 
@@ -499,6 +550,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         tf.shape(inputs)[0],
         choose_range=choose_range,
         mask_size=num_freq,
+        global_seed=global_seed,
         max_length=freq_mask_max_bins,
         masks_per_frame=0.0,
         multiplicity=multiplicity,
@@ -511,6 +563,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
   def _TimeMask(self,
                 inputs,
                 seq_lengths,
+                global_seed,
                 noisify=False,
                 gaussian_noise=False,
                 dtype=tf.float32,
@@ -522,6 +575,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         num_freq, channels).
       seq_lengths: The actual sequence lengths which mask been sampled of shape
         (batch_size,).
+      global_seed: an integer seed tensor for stateless random ops.
       noisify: Whether to noisify the masked out regions.
       gaussian_noise: Whether to use gaussian noise when noisifying.
       dtype: Data type.
@@ -558,11 +612,22 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         batch_size,
         choose_range=seq_lengths,
         mask_size=time_length,
+        global_seed=global_seed,
         max_length=time_mask_max_frames,
         masks_per_frame=time_masks_per_frame,
         multiplicity=multiplicity,
         dtype=dtype,
         max_ratio=max_ratio)
+
+    # Non-empty random seed values are only used for testing or when using
+    # stateless random ops. seed_6 and seed_7 are set separately to avoid
+    # correlation of warp magnitude and origin position.
+    if p.use_input_dependent_random_seed:
+      seed_6 = global_seed + 6
+      seed_7 = global_seed + 7
+    else:
+      seed_6 = p.random_seed
+      seed_7 = p.random_seed
 
     outputs = tf.einsum(
         'bxyc,bx->bxyc', inputs, block_arrays, name='einsum_formasking')
@@ -572,18 +637,17 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       if gaussian_noise:
         stddev = 1.0
       else:
-        factor = tf.random_uniform((),
-                                   minval=1.0,
-                                   maxval=2.0,
-                                   dtype=dtype,
-                                   seed=p.random_seed)
+        random_uniform = _random_uniform_op(p.use_input_dependent_random_seed)
+        factor = random_uniform(
+            shape=(), minval=1.0, maxval=2.0, dtype=dtype, seed=seed_6)
         stddev = factor * 0.1 + 0.0001
-      noise = tf.random.normal(
-          [tf.shape(inputs)[0],
-           tf.shape(inputs)[1],
-           tf.shape(inputs)[2]],
+      random_normal = _random_normal_op(p.use_input_dependent_random_seed)
+      noise = random_normal(
+          shape=[tf.shape(inputs)[0],
+                 tf.shape(inputs)[1],
+                 tf.shape(inputs)[2]],
           stddev=stddev,
-          seed=p.random_seed)
+          seed=seed_7)
       if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
         noise = tf.cast(noise, p.fprop_dtype)
       outputs_mask = tf.einsum(
@@ -595,7 +659,12 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     return outputs
 
-  def _TimeWarp(self, inputs, seq_lengths, dtype=tf.float32, domain_id_index=0):
+  def _TimeWarp(self,
+                inputs,
+                seq_lengths,
+                global_seed,
+                dtype=tf.float32,
+                domain_id_index=0):
     """Applies time warping with given degree to inputs.
 
     Args:
@@ -603,6 +672,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         num_freq, channels).
       seq_lengths: The actual sequence lengths which mask been sampled of shape
         (batch_size,).
+      global_seed: an integer seed tensor for stateless random ops.
       dtype: Data type.
       domain_id_index: Domain ID index.
 
@@ -634,6 +704,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         batch_size,
         choose_range=seq_lengths,
         matrix_size=time_length,
+        global_seed=global_seed,
         max_warp_frames=time_warp_max_frames,
         dtype=dtype,
         max_ratio=max_ratio)
@@ -660,6 +731,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
                            series_length,
                            inputs,
                            paddings,
+                           global_seed,
                            domain_id_index=0):
     """Returns augmented features.
 
@@ -668,6 +740,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       inputs: Batch of input features of shape (batch_size, time_length,
         num_freq, channels).
       paddings: Batch of padding vectors of shape (batch_size, time_length).
+      global_seed: an integer seed tensor for stateless random ops.
       domain_id_index: domain id index.
 
     Returns:
@@ -683,16 +756,24 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     lengths = tf.reduce_sum(1 - paddings, 1)
     inputs = self._TimeWarp(
-        inputs, lengths, dtype=dtype, domain_id_index=domain_id_index)
+        inputs,
+        lengths,
+        global_seed=global_seed,
+        dtype=dtype,
+        domain_id_index=domain_id_index)
     inputs = self._TimeMask(
         inputs,
         lengths,
+        global_seed=global_seed,
         noisify=p.use_noise,
         gaussian_noise=p.gaussian_noise,
         dtype=dtype,
         domain_id_index=domain_id_index)
     inputs = self._FrequencyMask(
-        inputs, dtype=dtype, domain_id_index=domain_id_index)
+        inputs,
+        global_seed=global_seed,
+        dtype=dtype,
+        domain_id_index=domain_id_index)
 
     # Restack the features after applying specaugment.
     if p.unstack:
@@ -720,13 +801,21 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     """
     p = self.params
 
+    global_seed = None  # A tensor seed in case stateless random ops are needed.
+    if p.use_input_dependent_random_seed:
+      global_seed = _global_seed_from_inputs(inputs)
+
     batch_size, series_length, _, _ = py_utils.GetShape(inputs)
     if len(p.domain_ids) > 1:
       augmented_inputs = tf.zeros_like(inputs)
       original_inputs = inputs
       for i, domain_id in enumerate(p.domain_ids):
         augmented_domain = self._AugmentationNetwork(
-            series_length, inputs, paddings, domain_id_index=i)
+            series_length,
+            inputs,
+            paddings,
+            global_seed=global_seed,
+            domain_id_index=i)
         target_domain = tf.cast(
             tf.expand_dims(tf.tile([domain_id], [batch_size]), -1),
             dtype=p.dtype)
@@ -747,5 +836,9 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       augmented_inputs = original_inputs + augmented_inputs
     else:
       augmented_inputs = self._AugmentationNetwork(
-          series_length, inputs, paddings, domain_id_index=0)
+          series_length,
+          inputs,
+          paddings,
+          global_seed=global_seed,
+          domain_id_index=0)
     return augmented_inputs, paddings
