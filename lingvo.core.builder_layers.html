@@ -699,17 +699,17 @@ in1,[a,b]     (or a sequence of these things)</p>
 </dd>
 </dl>
 <p>In BNF:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="p">:</span><span class="o">=</span> <span class="p">[</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z_</span><span class="p">][</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z0</span><span class="o">-</span><span class="mi">9</span><span class="n">_</span><span class="p">]</span><span class="o">*</span>
-<span class="n">path</span> <span class="p">:</span><span class="o">=</span> <span class="n">key</span> <span class="o">|</span> <span class="n">path</span> <span class="s1">&#39;.&#39;</span> <span class="n">key</span>
-<span class="n">path_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">path</span> <span class="o">|</span> <span class="n">path_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">path</span>
-<span class="n">item</span> <span class="p">:</span><span class="o">=</span> <span class="n">path</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="nb">map</span>
-<span class="nb">list</span> <span class="p">:</span><span class="o">=</span> <span class="s1">&#39;[&#39;</span> <span class="n">item_seq</span> <span class="s1">&#39;]&#39;</span>
-<span class="n">item_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">item</span> <span class="o">|</span> <span class="n">item_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">item</span>
-<span class="nb">map</span> <span class="p">:</span><span class="o">=</span> <span class="s1">&#39;(&#39;</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;)&#39;</span>
-<span class="n">map_pair</span> <span class="p">:</span><span class="o">=</span> <span class="n">key</span> <span class="s1">&#39;=&#39;</span> <span class="n">item</span>
-<span class="n">map_pair_seq</span> <span class="p">:</span><span class="o">=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">map_pair</span> <span class="o">|</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">map_pair</span>
-<span class="nb">input</span> <span class="p">:</span><span class="o">=</span> <span class="n">item_seq</span>
-<span class="n">output</span> <span class="p">:</span><span class="o">=</span> <span class="n">path_seq</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">key</span> <span class="o">:=</span> <span class="p">[</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z_</span><span class="p">][</span><span class="n">A</span><span class="o">-</span><span class="n">Za</span><span class="o">-</span><span class="n">z0</span><span class="o">-</span><span class="mi">9</span><span class="n">_</span><span class="p">]</span><span class="o">*</span>
+<span class="n">path</span> <span class="o">:=</span> <span class="n">key</span> <span class="o">|</span> <span class="n">path</span> <span class="s1">&#39;.&#39;</span> <span class="n">key</span>
+<span class="n">path_seq</span> <span class="o">:=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">path</span> <span class="o">|</span> <span class="n">path_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">path</span>
+<span class="n">item</span> <span class="o">:=</span> <span class="n">path</span> <span class="o">|</span> <span class="nb">list</span> <span class="o">|</span> <span class="nb">map</span>
+<span class="nb">list</span> <span class="o">:=</span> <span class="s1">&#39;[&#39;</span> <span class="n">item_seq</span> <span class="s1">&#39;]&#39;</span>
+<span class="n">item_seq</span> <span class="o">:=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">item</span> <span class="o">|</span> <span class="n">item_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">item</span>
+<span class="nb">map</span> <span class="o">:=</span> <span class="s1">&#39;(&#39;</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;)&#39;</span>
+<span class="n">map_pair</span> <span class="o">:=</span> <span class="n">key</span> <span class="s1">&#39;=&#39;</span> <span class="n">item</span>
+<span class="n">map_pair_seq</span> <span class="o">:=</span> <span class="o">&lt;</span><span class="n">empty</span><span class="o">&gt;</span> <span class="o">|</span> <span class="n">map_pair</span> <span class="o">|</span> <span class="n">map_pair_seq</span> <span class="s1">&#39;,&#39;</span> <span class="n">map_pair</span>
+<span class="nb">input</span> <span class="o">:=</span> <span class="n">item_seq</span>
+<span class="n">output</span> <span class="o">:=</span> <span class="n">path_seq</span>
 </pre></div>
 </div>
 <dl class="method">
