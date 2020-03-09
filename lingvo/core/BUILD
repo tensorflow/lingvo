@@ -1422,6 +1422,33 @@ py_library(
 )
 
 py_library(
+    name = "lstm_frnn_layer",
+    srcs = ["lstm_frnn_layer.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        # Implicit absl.flags dependency.
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:recurrent",
+        "//lingvo/core:rnn_cell",
+        "//lingvo/core:rnn_layers",
+    ],
+)
+
+py_test(
+    name = "lstm_frnn_layer_test",
+    srcs = ["lstm_frnn_layer_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":lstm_frnn_layer",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
+    ],
+)
+
+py_library(
     name = "scorers",
     srcs = ["scorers.py"],
     srcs_version = "PY2AND3",
