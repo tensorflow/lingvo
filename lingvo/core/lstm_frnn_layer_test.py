@@ -199,6 +199,19 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
     frnn_p = lstm_frnn_layer.LstmFRNN.Params().Set(name='frnn', cell=cell_p)
     self._testHelper(base_frnn_p, frnn_p, packed_inputs)
 
+  def testLayerNormalizedLSTMCellSimple(self):
+    base_cell_p = rnn_cell.LayerNormalizedLSTMCellSimple.Params()
+    base_cell_p.enable_lstm_bias = True
+    self._SetCellParams(base_cell_p)
+    base_frnn_p = rnn_layers.FRNN.Params().Set(
+        name='base_frnn', cell=base_cell_p)
+
+    cell_p = lstm_frnn_layer.LayerNormalizedLSTMCellSimpleExt.Params()
+    cell_p.enable_lstm_bias = True
+    self._SetCellParams(cell_p)
+    frnn_p = lstm_frnn_layer.LstmFRNN.Params().Set(name='frnn', cell=cell_p)
+    self._testHelper(base_frnn_p, frnn_p)
+
   def testLayerNormalizedLSTMCellLean(self):
     base_cell_p = rnn_cell.LayerNormalizedLSTMCellLean.Params()
     base_cell_p.enable_lstm_bias = True

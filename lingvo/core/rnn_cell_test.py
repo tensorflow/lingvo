@@ -1422,7 +1422,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
               tf.reduce_sum(tf.square(state1.m)) +
               tf.reduce_sum(state1.m * state1.c * state1.c)))
       grads = tf.gradients(loss, lstm.vars.Flatten())
-      grads = [g for g in grads if g is not None]
       # Initialize all the variables, and then run one step.
       tf.global_variables_initializer().run()
 

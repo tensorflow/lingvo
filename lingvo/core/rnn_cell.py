@@ -1260,10 +1260,15 @@ class LayerNormalizedLSTMCellLean(RNNCell):
   it avoids certain reshape ops which are not free on TPU.
 
   Note, this version doesn't support all the options as implemented in
-  LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization and
-  etc. Please use the other version if you even need those options. Another
-  difference is that in this version, by default, c_state is layer-normalized
-  for computing new_m.
+  LayerNormalizedLSTMCellSimple, such as quantization, zoneout regularization
+  and etc.
+
+  For the overlapping options, an incomplete list of differences from
+  LayerNormalizedLSTMCellSimple include:
+  - c_state is layer-normalized for computing new_m (if enable_ln_on_c=True)
+  - ln_scale has a fixed offset of 1.
+
+  Please use the other version if you even need those options.
 
   state:
 

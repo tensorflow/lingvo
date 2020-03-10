@@ -129,6 +129,15 @@ class LSTMCellSimpleExt(rnn_cell.LSTMCellSimple, LSTMCellExt):
   pass
 
 
+class LayerNormalizedLSTMCellSimpleExt(rnn_cell.LayerNormalizedLSTMCellSimple,
+                                       LSTMCellExt):
+  """Extends LayerNormalizedLSTMCellSimple with extra methods for ...
+
+  parallelizing input projections across steps.
+  """
+  pass
+
+
 class LayerNormalizedLSTMCellLeanExt(rnn_cell.LayerNormalizedLSTMCellLean,
                                      LSTMCellExt):
   """Extends LayerNormalizedLSTMCellLean with extra methods for parallelizing ...
@@ -159,9 +168,12 @@ class LstmFRNN(base_layer.BaseLayer):
   def __init__(self, params):
     super(LstmFRNN, self).__init__(params)
     p = self.params
-    if p.cell.cls not in (LSTMCellSimpleExt, LayerNormalizedLSTMCellLeanExt):
-      raise ValueError('Only LSTMCellSimpleExt and '
-                       'LayerNormalizedLSTMCellLeanExt are supported.')
+    if p.cell.cls not in (LSTMCellSimpleExt, LayerNormalizedLSTMCellSimpleExt,
+                          LayerNormalizedLSTMCellLeanExt):
+      raise ValueError(
+          'Only LSTMCellSimpleExt, LayerNormalizedLSTMCellSimpleExt and '
+          'LayerNormalizedLSTMCellLeanExt are supported, got {}.'.format(
+              p.cell.cls.__name__))
     self.CreateChild('cell', p.cell)
 
   def zero_state(self, theta, batch_size):
