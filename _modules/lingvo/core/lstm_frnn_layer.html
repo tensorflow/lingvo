@@ -274,6 +274,15 @@
   <span class="k">pass</span></div>
 
 
+<div class="viewcode-block" id="LayerNormalizedLSTMCellSimpleExt"><a class="viewcode-back" href="../../../lingvo.core.lstm_frnn_layer.html#lingvo.core.lstm_frnn_layer.LayerNormalizedLSTMCellSimpleExt">[docs]</a><span class="k">class</span> <span class="nc">LayerNormalizedLSTMCellSimpleExt</span><span class="p">(</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">LayerNormalizedLSTMCellSimple</span><span class="p">,</span>
+                                       <span class="n">LSTMCellExt</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extends LayerNormalizedLSTMCellSimple with extra methods for ...</span>
+
+<span class="sd">  parallelizing input projections across steps.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">pass</span></div>
+
+
 <div class="viewcode-block" id="LayerNormalizedLSTMCellLeanExt"><a class="viewcode-back" href="../../../lingvo.core.lstm_frnn_layer.html#lingvo.core.lstm_frnn_layer.LayerNormalizedLSTMCellLeanExt">[docs]</a><span class="k">class</span> <span class="nc">LayerNormalizedLSTMCellLeanExt</span><span class="p">(</span><span class="n">rnn_cell</span><span class="o">.</span><span class="n">LayerNormalizedLSTMCellLean</span><span class="p">,</span>
                                      <span class="n">LSTMCellExt</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Extends LayerNormalizedLSTMCellLean with extra methods for parallelizing ...</span>
@@ -304,9 +313,12 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">LstmFRNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">cls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LSTMCellSimpleExt</span><span class="p">,</span> <span class="n">LayerNormalizedLSTMCellLeanExt</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only LSTMCellSimpleExt and &#39;</span>
-                       <span class="s1">&#39;LayerNormalizedLSTMCellLeanExt are supported.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">cls</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">LSTMCellSimpleExt</span><span class="p">,</span> <span class="n">LayerNormalizedLSTMCellSimpleExt</span><span class="p">,</span>
+                          <span class="n">LayerNormalizedLSTMCellLeanExt</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Only LSTMCellSimpleExt, LayerNormalizedLSTMCellSimpleExt and &#39;</span>
+          <span class="s1">&#39;LayerNormalizedLSTMCellLeanExt are supported, got </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+              <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LstmFRNN.zero_state"><a class="viewcode-back" href="../../../lingvo.core.lstm_frnn_layer.html#lingvo.core.lstm_frnn_layer.LstmFRNN.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>

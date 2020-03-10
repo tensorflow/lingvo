@@ -725,10 +725,13 @@ Shape [batch, 1]</p></li>
 <p>This version is around 20% faster on TPU than LayerNormalizedLSTMCellSimple as
 it avoids certain reshape ops which are not free on TPU.</p>
 <p>Note, this version doesn’t support all the options as implemented in
-LayerNormalizedLSTMCellSimple, like quantization, zoneout regularization and
-etc. Please use the other version if you even need those options. Another
-difference is that in this version, by default, c_state is layer-normalized
-for computing new_m.</p>
+LayerNormalizedLSTMCellSimple, such as quantization, zoneout regularization
+and etc.</p>
+<p>For the overlapping options, an incomplete list of differences from
+LayerNormalizedLSTMCellSimple include:
+- c_state is layer-normalized for computing new_m (if enable_ln_on_c=True)
+- ln_scale has a fixed offset of 1.</p>
+<p>Please use the other version if you even need those options.</p>
 <p>state:</p>
 <ul class="simple">
 <li><p>m: the lstm output. [batch, cell_nodes]</p></li>
