@@ -508,9 +508,18 @@ class LSTMCellSimple(RNNCell):
     fns = self.fns
     b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
     xmw = fns.qadd(xmw, b, qt='add_bias')
-
+    gates = tf.split(value=xmw, num_or_size_splits=self.num_gates, axis=1)
     if not p.couple_input_forget_gates:
-      i_i, i_g, f_g, o_g = tf.split(value=xmw, num_or_size_splits=4, axis=1)
+      i_i, i_g, f_g, o_g = gates
+    else:
+      i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
+    return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+
+  def _GatesInternal(self, theta, state0, inputs, i_i, i_g, f_g, o_g):
+    p = self.params
+    fns = self.fns
+    if not p.couple_input_forget_gates:
+      assert i_g is not None
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
@@ -518,7 +527,7 @@ class LSTMCellSimple(RNNCell):
           tf.sigmoid(i_g), tf.tanh(i_i), qt='c_forget_gate')
       new_c = fns.qadd(forget_gate, input_gate, qt='c_output_gate')
     else:
-      i_i, f_g, o_g = tf.split(value=xmw, num_or_size_splits=3, axis=1)
+      assert i_g is None
       # Sigmoid / tanh calls are not quantized under the assumption they share
       # the range with c_input_gate and c_forget_gate.
       forget_gate = fns.qmultiply(tf.sigmoid(f_g), state0.c, qt='c_input_gate')
@@ -1203,6 +1212,9 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     super(LayerNormalizedLSTMCellSimple, self).__init__(params)
     p = self.params
 
+    add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
+    self.TrackQTensor(*add_biases, domain='fullyconnected')
+
     with tf.variable_scope(p.name):
       ln_scale_pc = py_utils.WeightParams(
           shape=[self.num_gates * self.hidden_size],
@@ -1213,9 +1225,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
-    p = self.params
 
-    # TODO(dehao): refactor the code to remove reshape and use fused layernorm.
     def _LayerNorm(x):
       """Applies layer normalization on the last dimension of 'x'.
 
@@ -1225,32 +1235,29 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       Returns:
         Layer normalized 'x', with the same shape as the input.
       """
-      last_dim = tf.rank(x) - 1
-      mean = tf.reduce_mean(x, axis=[last_dim], keepdims=True)
-      variance = tf.reduce_mean(
-          tf.square(x - mean), axis=[last_dim], keepdims=True)
+      mean = tf.reduce_mean(x, axis=-1, keepdims=True)
+      variance = tf.reduce_mean(tf.square(x - mean), axis=-1, keepdims=True)
       return (x - mean) * tf.rsqrt(variance + p.layer_norm_epsilon)
 
-    def _PerGateLayerNorm(x, scale):
-      """Applies per-gate layer normalization 'x'.
+    p = self.params
+    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
 
-      Args:
-        x: a tensor of shape [B, self.hidden_size * self.num_gates], containing
-          'num_gates' activations concatenated along the last dimension.
-        scale: per-channel scaling factor, of shape [self.hidden_size *
-          self.num_gates].
+    bs = tf.split(b, num_or_size_splits=self.num_gates, axis=1)
+    ln_scales = tf.split(
+        theta.ln_scale, num_or_size_splits=self.num_gates, axis=0)
+    gates = tf.split(xmw, num_or_size_splits=self.num_gates, axis=1)
 
-      Returns:
-        Per-gate layer normalized 'x', with the same shape as the input.
-      """
-      x_reshaped = tf.reshape(
-          x, tf.stack([tf.shape(x)[0], self.num_gates, self.hidden_size]))
-      x_norm = _LayerNorm(x_reshaped)
-      return tf.reshape(x_norm, tf.shape(x)) * tf.expand_dims(scale, 0)
+    for i in range(self.num_gates):
+      # i_g is None when p.couple_input_forget_gates is True.
+      if gates[i] is not None:
+        gates[i] = _LayerNorm(gates[i]) * tf.expand_dims(ln_scales[i], 0)
+        gates[i] = self.fns.qadd(gates[i], bs[i], qt='add_bias_{}'.format(i))
 
-    xmw = _PerGateLayerNorm(xmw, theta.ln_scale)
-    return super(LayerNormalizedLSTMCellSimple,
-                 self)._Gates(xmw, theta, state0, inputs)
+    if not p.couple_input_forget_gates:
+      i_i, i_g, f_g, o_g = gates
+    else:
+      i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
+    return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
 
 
 class LayerNormalizedLSTMCellLean(RNNCell):
