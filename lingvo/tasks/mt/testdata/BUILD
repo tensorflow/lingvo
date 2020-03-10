@@ -15,6 +15,7 @@ filegroup(
 filegroup(
     name = "mlperf_tfexample",
     data = [
+        "translate_ende_mlperf.packed.tfrecord",
         "translate_ende_wmt32k-train-00511-of-00512",
     ],
 )

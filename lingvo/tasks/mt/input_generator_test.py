@@ -41,6 +41,18 @@ class InputTest(test_utils.TestCase):
     p.bucket_batch_limit = [4, 8]
     return p
 
+  def _CreateMlPerfPackedInputParams(self):
+    p = input_generator.MlPerfInput.Params()
+    input_file = test_helper.test_src_dir_path(
+        'tasks/mt/testdata/translate_ende_mlperf.packed.tfrecord')
+    p.file_pattern = 'tfrecord:' + input_file
+    p.packed_input = True
+    p.file_random_seed = 31415
+    p.file_parallelism = 1
+    p.bucket_upper_bound = [20, 240]
+    p.bucket_batch_limit = [4, 4]
+    return p
+
   def _CreateNmtInputParams(self):
     p = input_generator.NmtInput.Params()
     input_file = test_helper.test_src_dir_path(
@@ -59,6 +71,55 @@ class InputTest(test_utils.TestCase):
       # Runs a few steps.
       for _ in range(10):
         sess.run(inp.GetPreprocessedInputBatch())
+
+  def testMlPerfPackedInput(self):
+    p = self._CreateMlPerfPackedInputParams()
+    with self.session(use_gpu=False) as sess:
+      inp = input_generator.MlPerfInput(p)
+      for _ in range(1):
+        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        tf.logging.info(fetched.src.ids.shape)
+        tf.logging.info(fetched.src.segment_ids.shape)
+        tf.logging.info(fetched.src.segment_pos.shape)
+        tf.logging.info(fetched.tgt.segment_ids.shape)
+        tf.logging.info(fetched.tgt.segment_pos.shape)
+
+  def checkPadShape(self, x, pad, batch_size, actual_max, pad_length):
+    # Check the shape: (batch, maxlen)
+    self.assertEqual(x.shape, (batch_size, pad_length))
+    # Check the padding.
+    self.assertAllEqual(x[:, actual_max:],
+                        np.full((batch_size, (pad_length - actual_max)), pad))
+
+  def testMlPerfPackedInputPadToMax(self):
+    p = self._CreateMlPerfPackedInputParams()
+    p.source_max_length = 300
+    p.target_max_length = 300
+    p.pad_to_max_seq_length = True
+    with self.session(use_gpu=False) as sess:
+      inp = input_generator.MlPerfInput(p)
+      for _ in range(1):
+        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+
+    self.checkPadShape(
+        fetched.src.ids, pad=0, batch_size=4, actual_max=240, pad_length=300)
+
+    self.checkPadShape(
+        fetched.tgt.ids, pad=0, batch_size=4, actual_max=240, pad_length=300)
+
+    self.checkPadShape(
+        fetched.tgt.segment_ids,
+        pad=0,
+        batch_size=4,
+        actual_max=240,
+        pad_length=300)
+
+    self.checkPadShape(
+        fetched.tgt.segment_pos,
+        pad=0,
+        batch_size=4,
+        actual_max=240,
+        pad_length=300)
 
   def testMlPerf(self):
     p = self._CreateMlPerfInputParams()
@@ -88,7 +149,6 @@ class InputTest(test_utils.TestCase):
       self.assertEqual(x.shape, (4, 30))
       # Check the padding.
       self.assertAllEqual(x[:, 20:], np.full((4, 10), pad))
-
     Check(fetched.src.ids, 0)
     Check(fetched.src.paddings, 1)
     Check(fetched.tgt.ids, 0)
