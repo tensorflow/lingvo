@@ -137,7 +137,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'acceleration': input_labels.acceleration,
         # Fill the following in.
         'source_ids': source_ids,
-        'difficulties': input_labels.detection_difficulties,
+        'difficulties': input_labels.combined_detection_difficulties,
         'unfiltered_bboxes_3d_mask': input_labels.unfiltered_bboxes_3d_mask,
         'run_segment': input_metadata.run_segment,
         'run_start_offset': input_metadata.run_start_offset,

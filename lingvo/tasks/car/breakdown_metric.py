@@ -61,9 +61,13 @@ class BreakdownMetric(object):
     self._classnames = p.metadata.ClassNames()
     self._classids = p.metadata.EvalClassIndices()
 
-    for difficulty in p.metadata.DifficultyLevels():
-      self._calibration[difficulty] = calibration.CalibrationCalculator(
-          p.metadata)
+    # We only want to calculate calibration for the lowest difficulty setting
+    # which will include *all* data. Including all data is due to the way
+    # _GetData() works in the kitti_ap_metric.
+    difficulties = p.metadata.DifficultyLevels()
+    lowest_difficulty_str = min(difficulties, key=lambda k: difficulties[k])
+    self._calibration[lowest_difficulty_str] = (
+        calibration.CalibrationCalculator(p.metadata))
 
   def NumBinsOfHistogram(self):
     """Returns int32 of number of bins in histogram."""
@@ -637,8 +641,11 @@ class ByDifficulty(BreakdownMetric):
       self._precision_recall[difficulty] = np.array(
           [c[p.pr_key] for c in curves])
 
-      # Only KITTI metrics contains calibration data.
-      self._calibration[difficulty].Calculate(metrics)
+      # Only KITTI metrics contains calibration data,
+      # And we only compute calibration for the lowest difficulty level
+      # to include all data.
+      if difficulty in self._calibration:
+        self._calibration[difficulty].Calculate(metrics)
 
     tf.logging.info('Calculating AP by difficulty: finished')
 

@@ -58,8 +58,13 @@ def _BuildWaymoMetricConfig(metadata, box_type, waymo_breakdown_metrics):
   for class_name, threshold in metadata.IoUThresholds().items():
     cls_idx = metadata.ClassNames().index(class_name)
     config.iou_thresholds[cls_idx] = threshold
+  # Run on all the data for 2 difficulty levels
   config.breakdown_generator_ids.append(breakdown_pb2.Breakdown.ONE_SHARD)
-  config.difficulties.append(metrics_pb2.Difficulty())
+  difficulty = metrics_pb2.Difficulty()
+  difficulty.levels.append(label_pb2.Label.DifficultyLevel.Value('LEVEL_1'))
+  difficulty.levels.append(label_pb2.Label.DifficultyLevel.Value('LEVEL_2'))
+  config.difficulties.append(difficulty)
+
   # Add extra breakdown metrics.
   for breakdown_value in waymo_breakdown_metrics:
     breakdown_id = breakdown_pb2.Breakdown.GeneratorId.Value(breakdown_value)
@@ -107,8 +112,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
 
     Args:
       classid: int32 specifying the class
-      difficulty: String in [easy, moderate, hard]. If None specified, all
-        difficulty levels are permitted.
+      difficulty: Not used.
       distance: int32 specifying a binned Euclidean distance of the ground truth
         bounding box. If None is specified, all distances are selected.
       num_points: int32 specifying a binned number of laser points within the
@@ -121,7 +125,9 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       specified, classid, difficulty level and binned distance. If no bboxes
       are found with these parameters, returns None.
     """
+    del difficulty
     assert classid > 0 and classid < self.metadata.NumClasses()
+
     g = self._LoadBoundingBoxes(
         'groundtruth',
         classid,
@@ -142,7 +148,11 @@ class WaymoAPMetrics(ap_metric.APMetrics):
 
     return py_utils.NestedMap(
         iou_threshold=iou_threshold,
-        gt=py_utils.NestedMap(imgid=gt_imgids, bbox=gt_boxes, speed=gt_speeds),
+        gt=py_utils.NestedMap(
+            imgid=gt_imgids,
+            bbox=gt_boxes,
+            speed=gt_speeds,
+            difficulty=g.difficulties),
         pd=py_utils.NestedMap(imgid=p.imgids, bbox=p.boxes, score=p.scores))
 
   def _BuildMetric(self, feed_data, classid):
@@ -190,6 +200,9 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     f_gt_speed = tf.placeholder(tf.float32)
     feed_dict[f_gt_speed] = feed_data.gt.speed
 
+    f_gt_difficulty = tf.placeholder(tf.uint8)
+    feed_dict[f_gt_difficulty] = feed_data.gt.difficulty
+
     f_pd_bbox = tf.placeholder(tf.float32)
     feed_dict[f_pd_bbox] = feed_data.pd.bbox
 
@@ -212,7 +225,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
         ground_truth_bbox=f_gt_bbox,
         ground_truth_type=gt_class_ids,
         ground_truth_frame_id=tf.cast(f_gt_imgid, tf.int64),
-        ground_truth_difficulty=tf.zeros_like(f_gt_imgid, dtype=tf.uint8),
+        ground_truth_difficulty=f_gt_difficulty,
         ground_truth_speed=f_gt_speed,
         config=self._waymo_metric_config.SerializeToString())
 
@@ -243,8 +256,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
 
     Args:
       classids: A list of N int32.
-      difficulty: String in [easy, moderate, hard]. If None specified, all
-        difficulty levels are permitted.
+      difficulty: Not used.
       distance: int32 specifying a binned Euclidean distance of the ground truth
         bounding box. If None is specified, all distances are selected.
       num_points: int32 specifying a binned number of laser points within the
@@ -262,6 +274,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last
       dimension, 0 indexes precision and 1 indexes recall.
     """
+    del difficulty
     tf.logging.info('Computing final Waymo metrics.')
     assert classids is not None, 'classids must be supplied.'
     feed_dict = {}
@@ -272,7 +285,6 @@ class WaymoAPMetrics(ap_metric.APMetrics):
       for classid in classids:
         data = self._GetData(
             classid,
-            difficulty=difficulty,
             distance=distance,
             num_points=num_points,
             rotation=rotation)
@@ -315,25 +327,24 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     aph = self._breakdown_metrics['waymo']._average_precision_headings  # pylint:disable=protected-access
     breakdown_names = config_util.get_breakdown_names_from_config(
         self._waymo_metric_config)
-    for i, j in enumerate(self.metadata.EvalClassIndices()):
-      classname = self.metadata.ClassNames()[j]
-      for k, breakdown_name in enumerate(breakdown_names):
-        # Skip adding entries for breakdowns that are in a different class.
-        #
-        # The first breakdown is the overall one, so never skip it.
-        if k > 0 and classname.lower() not in breakdown_name.lower():
-          continue
 
-        if k == 0:
+    for i, class_index in enumerate(self.metadata.EvalClassIndices()):
+      classname = self.metadata.ClassNames()[class_index]
+      for breakdown_name in breakdown_names:
+        # 'ONE_SHARD' breakdowns are the overall metrics (not sliced up)
+        # So we should make that the defualt metric.
+        if 'ONE_SHARD' in breakdown_name:
           # For the overall mAP, include the class name
-          # and set the breakdown_str to 'default' for backwards compatibility.
+          # and set the breakdown_str which will have the level
           prefix = '{}/{}'.format(name, classname)
-          breakdown_str = 'default'
-        else:
-          # All breakdowns after the first one are extra and elide
-          # the classname, since it is present in the breakdown_name.
+          postfix = breakdown_name.replace('ONE_SHARD_', '')
+          breakdown_str = postfix if postfix else 'UNKNOWN'
+        # Otherwise check that the class we are looking at is in the breakdown.
+        elif classname.lower() in breakdown_name.lower():
           prefix = '{}_extra'.format(name)
           breakdown_str = breakdown_name
+        else:
+          continue
 
         tag_str = '{}/AP_{}'.format(prefix, breakdown_str)
         ap_value = ap[breakdown_name][i]
@@ -391,7 +402,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
     p = self.params
 
     image_summaries = []
-    for i, j in enumerate(p.metadata.EvalClassIndices()):
+    for i, class_index in enumerate(p.metadata.EvalClassIndices()):
 
       def _Setter(fig, axes):
         """Configure the plot for precision recall."""
@@ -404,20 +415,21 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
         # TODO(vrv): Add legend indicating number of objects in breakdown.
         fig.tight_layout()
 
-      classname = p.metadata.ClassNames()[j]
-      for k, breakdown_str in enumerate(p.breakdown_list):
-        # Skip adding entries for breakdowns that are in a different class.
-        #
-        # The first breakdown is the overall one, so never skip it.
-        if k > 0 and classname.lower() not in breakdown_str.lower():
-          continue
-        ps = [self._precision_recall[breakdown_str][i][:, 0]]
-        rs = [self._precision_recall[breakdown_str][i][:, 1]]
-        if k == 0:
-          # Overall class PR.
-          tag_str = '{}/{}/PR'.format(name, classname)
-        else:
+      classname = p.metadata.ClassNames()[class_index]
+      for breakdown_name in p.breakdown_list:
+        # 'ONE_SHARD' breakdowns are the overall metrics (not sliced up)
+        # So we should never skip this.
+        if 'ONE_SHARD' in breakdown_name:
+          breakdown_str = breakdown_name.replace('ONE_SHARD_', '')
           tag_str = '{}/{}/{}/PR'.format(name, classname, breakdown_str)
+        # Otherwise check that the class we are looking at is in the breakdown.
+        elif classname.lower() in breakdown_name.lower():
+          tag_str = '{}/{}/{}/PR'.format(name, classname, breakdown_name)
+        else:
+          continue
+
+        ps = [self._precision_recall[breakdown_name][i][:, 0]]
+        rs = [self._precision_recall[breakdown_name][i][:, 1]]
         image_summary = plot.Curve(
             name=tag_str,
             figsize=(10, 8),
@@ -430,7 +442,6 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
             linewidth=2,
             alpha=0.5)
         image_summaries.append(image_summary)
-
     return image_summaries
 
   # Fill in dummy implementations which are largely

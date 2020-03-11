@@ -71,8 +71,10 @@ class APTest(test_utils.TestCase):
     summary = m.Summary('foo')
     # Check that both AP and APH are in the tags.
     tags = [v.tag for v in summary.value]
-    self.assertIn('foo/Pedestrian/AP_default', tags)
-    self.assertIn('foo/Pedestrian/APH_default', tags)
+    self.assertIn('foo/Pedestrian/AP_LEVEL_1', tags)
+    self.assertIn('foo/Pedestrian/APH_LEVEL_1', tags)
+    self.assertIn('foo/Pedestrian/AP_LEVEL_2', tags)
+    self.assertIn('foo/Pedestrian/APH_LEVEL_2', tags)
 
   def testWaymoBreakdowns(self):
     metadata = waymo_metadata.WaymoMetadata()
@@ -100,11 +102,11 @@ class APTest(test_utils.TestCase):
     for v in summary.value:
       if v.tag == 'foo_extra/AP_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
         bd_val = v.simple_value
-      elif v.tag == 'foo/Vehicle/AP_default':
+      elif v.tag == 'foo/Vehicle/AP_LEVEL_1':
         default_val = v.simple_value
       elif v.tag == 'foo_extra/APH_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
         aph_bd_val = v.simple_value
-      elif v.tag == 'foo/Vehicle/APH_default':
+      elif v.tag == 'foo/Vehicle/APH_LEVEL_1':
         aph_default_val = v.simple_value
       elif v.tag == 'foo_extra/AP_VELOCITY_TYPE_VEHICLE_STATIONARY_LEVEL_2':
         vbd_val = v.simple_value

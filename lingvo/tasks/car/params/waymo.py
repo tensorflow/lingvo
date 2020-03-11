@@ -163,6 +163,7 @@ class StarNetBase(base_model_params.SingleTaskModelParams):
     p.preprocessors.Define('filter_nlz_points',
                            waymo_open_input_generator.FilterNLZPoints.Params(),
                            '')
+    # TODO(bencaine): Change this to filter based on difficulty instead
     p.preprocessors.Define(
         'filter_groundtruth',
         input_preprocessors.FilterGroundTruthByNumPoints.Params(), '')

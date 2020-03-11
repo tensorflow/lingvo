@@ -359,9 +359,6 @@ class FilterGroundTruthByNumPoints(Preprocessor):
 
     labels.bboxes_3d_mask: Boxes with less than params.min_num_points are set
     to 0.
-
-    labels.unfiltered_bboxes_3d_mask: Boxes with less than
-    params.min_num_points are set to 0.
   """
 
   @classmethod
@@ -383,12 +380,6 @@ class FilterGroundTruthByNumPoints(Preprocessor):
         bbox_is_valid, features.labels.labels,
         p.background_id * tf.ones_like(features.labels.labels))
     features.labels.bboxes_3d_mask *= tf.cast(bbox_is_valid, tf.float32)
-    # TODO(bencaine): When we properly implement Waymo difficulty levels
-    # we should consider removing this as the difficulty classes will remove
-    # the issue where boxes with less than p.min_num_points are included in
-    # the AP metric.
-    features.labels.unfiltered_bboxes_3d_mask *= tf.cast(
-        bbox_is_valid, tf.float32)
     return features
 
   def TransformShapes(self, shapes):
@@ -431,10 +422,6 @@ class FilterGroundTruthByDifficulty(Preprocessor):
         bbox_is_valid, features.labels.labels,
         p.background_id * tf.ones_like(features.labels.labels))
     features.labels.bboxes_3d_mask *= tf.cast(bbox_is_valid, tf.float32)
-    # TODO(bencaine): When we properly implement Waymo difficulty levels
-    # we should consider removing this.
-    features.labels.unfiltered_bboxes_3d_mask *= tf.cast(
-        bbox_is_valid, tf.float32)
     return features
 
   def TransformShapes(self, shapes):

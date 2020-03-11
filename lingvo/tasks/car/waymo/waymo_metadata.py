@@ -39,7 +39,7 @@ class WaymoMetadata(evaluation_metadata.EvaluationMetadata):
 
   def DifficultyLevels(self):
     """Dictionary of difficulty level strings to int32 indices."""
-    return {'default': 0}
+    return {'UNKNOWN': 0, 'LEVEL_1': 1, 'LEVEL_2': 2}
 
   def IoUThresholds(self):
     return {
