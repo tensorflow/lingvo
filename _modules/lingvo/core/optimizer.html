@@ -193,6 +193,13 @@
     <span class="sd">&quot;&quot;&quot;Allows subclasses control computation of gradients.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span><span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="Base.VarReuseForSlotVars"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.VarReuseForSlotVars">[docs]</a>  <span class="k">def</span> <span class="nf">VarReuseForSlotVars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Multi-task models require AUTO_REUSE for var sharing.&quot;&quot;&quot;</span>
+    <span class="n">var_reuse</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
+      <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
+    <span class="k">return</span> <span class="n">var_reuse</span></div>
+
 <div class="viewcode-block" id="Base.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Base.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>
 
@@ -215,12 +222,10 @@
       <span class="c1"># Many optimizers, e.g., Adam, Adagrad, etc., create</span>
       <span class="c1"># variables. We need to ensure name scope and variable scope are</span>
       <span class="c1"># cleared. Otherwise, tpu.batch_parallel does not work.</span>
-      <span class="n">var_reuse</span> <span class="o">=</span> <span class="kc">False</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
-        <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">var_reuse</span><span class="p">)):</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
+                <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VarReuseForSlotVars</span><span class="p">())):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
@@ -510,7 +515,8 @@
       <span class="c1"># cleared. Otherwise, tpu.batch_parallel does not work.</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="kc">False</span><span class="p">)):</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span>
+                <span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">VarReuseForSlotVars</span><span class="p">())):</span>
           <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">var_update_op</span></div>
