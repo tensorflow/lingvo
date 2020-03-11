@@ -405,8 +405,12 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     object on a per run_segment basis. This can be used for associating
     objects across frames (over time).
 
-    detection_difficulties: [p.max_num_objects] - The per-box difficulty level
-    for detection task as defined in car.open_dataset.Label.DifficultyLevel.
+    detection_difficulties: [p.max_num_objects] - DO NOT USE FOR EVALUATION.
+    The per-box difficulty level for detection task as defined in
+    car.open_dataset.Label.DifficultyLevel. This is the human raters
+    difficulty level, which does NOT include information about the number
+    of points per box. Therefore, it is an incomplete definition of difficulty
+    and will not correspond to the leaderboard if used to calculate metrics.
 
     combined_detection_difficulties: [p.max_num_objects] - The per-box
     difficulty level derived via both detection_difficulties (labeler defined)

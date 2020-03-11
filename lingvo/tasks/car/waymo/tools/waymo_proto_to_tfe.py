@@ -137,9 +137,19 @@ bboxes_3d_num_points: int64 - [M] - The number of points that fall into each
 3D bounding box: can be used for computing the difficulty of each bounding
 box.
 
-detection_difficulties: int64 - Indicates whether the labelers have determined
-that the object is of LEVEL_2 difficulty.  Should be used jointly with
-num_points above to set the difficulty level.
+detection_difficulties: int64 - DO NOT USE FOR EVALUATION. Indicates whether the
+labelers have determined that the object is of LEVEL_2 difficulty.
+Should be used jointly with num_points above to set the difficulty level,
+which we save in `combined_detection_difficulties`. Because it does not
+include information about the number of points in its calculation,
+it is an incomplete definition of difficulty and will not correspond to the
+leaderboard if used to calculate metrics.
+
+combined_detection_difficulties: int64 - Indicates the difficulty level as
+either UNKNOWN (0), LEVEL_1 (1), or LEVEL_2 (2). This is computed by
+combining a num points based criteria (LEVEL_1 is >= 5 pts, LEVEL_2 is
+>= 1 pt and < 5 pts) and what the human labelers indicated was LEVEL_2, which
+is stored in the detection_difficulty_level field.
 
 tracking_difficulties: int64 - Indicates whether the labelers have determined
 that the tracked object is of LEVEL_2 difficulty.
