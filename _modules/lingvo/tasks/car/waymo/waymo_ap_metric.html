@@ -203,8 +203,13 @@
   <span class="k">for</span> <span class="n">class_name</span><span class="p">,</span> <span class="n">threshold</span> <span class="ow">in</span> <span class="n">metadata</span><span class="o">.</span><span class="n">IoUThresholds</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">cls_idx</span> <span class="o">=</span> <span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">class_name</span><span class="p">)</span>
     <span class="n">config</span><span class="o">.</span><span class="n">iou_thresholds</span><span class="p">[</span><span class="n">cls_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">threshold</span>
+  <span class="c1"># Run on all the data for 2 difficulty levels</span>
   <span class="n">config</span><span class="o">.</span><span class="n">breakdown_generator_ids</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">breakdown_pb2</span><span class="o">.</span><span class="n">Breakdown</span><span class="o">.</span><span class="n">ONE_SHARD</span><span class="p">)</span>
-  <span class="n">config</span><span class="o">.</span><span class="n">difficulties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Difficulty</span><span class="p">())</span>
+  <span class="n">difficulty</span> <span class="o">=</span> <span class="n">metrics_pb2</span><span class="o">.</span><span class="n">Difficulty</span><span class="p">()</span>
+  <span class="n">difficulty</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_pb2</span><span class="o">.</span><span class="n">Label</span><span class="o">.</span><span class="n">DifficultyLevel</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;LEVEL_1&#39;</span><span class="p">))</span>
+  <span class="n">difficulty</span><span class="o">.</span><span class="n">levels</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">label_pb2</span><span class="o">.</span><span class="n">Label</span><span class="o">.</span><span class="n">DifficultyLevel</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="s1">&#39;LEVEL_2&#39;</span><span class="p">))</span>
+  <span class="n">config</span><span class="o">.</span><span class="n">difficulties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">difficulty</span><span class="p">)</span>
+
   <span class="c1"># Add extra breakdown metrics.</span>
   <span class="k">for</span> <span class="n">breakdown_value</span> <span class="ow">in</span> <span class="n">waymo_breakdown_metrics</span><span class="p">:</span>
     <span class="n">breakdown_id</span> <span class="o">=</span> <span class="n">breakdown_pb2</span><span class="o">.</span><span class="n">Breakdown</span><span class="o">.</span><span class="n">GeneratorId</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">breakdown_value</span><span class="p">)</span>
@@ -252,8 +257,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      classid: int32 specifying the class</span>
-<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
-<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      difficulty: Not used.</span>
 <span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
 <span class="sd">        bounding box. If None is specified, all distances are selected.</span>
 <span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
@@ -266,7 +270,9 @@
 <span class="sd">      specified, classid, difficulty level and binned distance. If no bboxes</span>
 <span class="sd">      are found with these parameters, returns None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">difficulty</span>
     <span class="k">assert</span> <span class="n">classid</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classid</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">NumClasses</span><span class="p">()</span>
+
     <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LoadBoundingBoxes</span><span class="p">(</span>
         <span class="s1">&#39;groundtruth&#39;</span><span class="p">,</span>
         <span class="n">classid</span><span class="p">,</span>
@@ -287,7 +293,11 @@
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">iou_threshold</span><span class="o">=</span><span class="n">iou_threshold</span><span class="p">,</span>
-        <span class="n">gt</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">imgid</span><span class="o">=</span><span class="n">gt_imgids</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">gt_boxes</span><span class="p">,</span> <span class="n">speed</span><span class="o">=</span><span class="n">gt_speeds</span><span class="p">),</span>
+        <span class="n">gt</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">imgid</span><span class="o">=</span><span class="n">gt_imgids</span><span class="p">,</span>
+            <span class="n">bbox</span><span class="o">=</span><span class="n">gt_boxes</span><span class="p">,</span>
+            <span class="n">speed</span><span class="o">=</span><span class="n">gt_speeds</span><span class="p">,</span>
+            <span class="n">difficulty</span><span class="o">=</span><span class="n">g</span><span class="o">.</span><span class="n">difficulties</span><span class="p">),</span>
         <span class="n">pd</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">imgid</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">imgids</span><span class="p">,</span> <span class="n">bbox</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">boxes</span><span class="p">,</span> <span class="n">score</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">scores</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="WaymoAPMetrics._BuildMetric"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_ap_metric.html#lingvo.tasks.car.waymo.waymo_ap_metric.WaymoAPMetrics._BuildMetric">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildMetric</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feed_data</span><span class="p">,</span> <span class="n">classid</span><span class="p">):</span>
@@ -335,6 +345,9 @@
     <span class="n">f_gt_speed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_gt_speed</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">gt</span><span class="o">.</span><span class="n">speed</span>
 
+    <span class="n">f_gt_difficulty</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+    <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_gt_difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">gt</span><span class="o">.</span><span class="n">difficulty</span>
+
     <span class="n">f_pd_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">feed_dict</span><span class="p">[</span><span class="n">f_pd_bbox</span><span class="p">]</span> <span class="o">=</span> <span class="n">feed_data</span><span class="o">.</span><span class="n">pd</span><span class="o">.</span><span class="n">bbox</span>
 
@@ -357,7 +370,7 @@
         <span class="n">ground_truth_bbox</span><span class="o">=</span><span class="n">f_gt_bbox</span><span class="p">,</span>
         <span class="n">ground_truth_type</span><span class="o">=</span><span class="n">gt_class_ids</span><span class="p">,</span>
         <span class="n">ground_truth_frame_id</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">f_gt_imgid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-        <span class="n">ground_truth_difficulty</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">f_gt_imgid</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">),</span>
+        <span class="n">ground_truth_difficulty</span><span class="o">=</span><span class="n">f_gt_difficulty</span><span class="p">,</span>
         <span class="n">ground_truth_speed</span><span class="o">=</span><span class="n">f_gt_speed</span><span class="p">,</span>
         <span class="n">config</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_waymo_metric_config</span><span class="o">.</span><span class="n">SerializeToString</span><span class="p">())</span>
 
@@ -388,8 +401,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      classids: A list of N int32.</span>
-<span class="sd">      difficulty: String in [easy, moderate, hard]. If None specified, all</span>
-<span class="sd">        difficulty levels are permitted.</span>
+<span class="sd">      difficulty: Not used.</span>
 <span class="sd">      distance: int32 specifying a binned Euclidean distance of the ground truth</span>
 <span class="sd">        bounding box. If None is specified, all distances are selected.</span>
 <span class="sd">      num_points: int32 specifying a binned number of laser points within the</span>
@@ -407,6 +419,7 @@
 <span class="sd">      arrays of shape [NumberOfPrecisionRecallPoints()+1, 2]. In the last</span>
 <span class="sd">      dimension, 0 indexes precision and 1 indexes recall.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">del</span> <span class="n">difficulty</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Computing final Waymo metrics.&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">classids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;classids must be supplied.&#39;</span>
     <span class="n">feed_dict</span> <span class="o">=</span> <span class="p">{}</span>
@@ -417,7 +430,6 @@
       <span class="k">for</span> <span class="n">classid</span> <span class="ow">in</span> <span class="n">classids</span><span class="p">:</span>
         <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetData</span><span class="p">(</span>
             <span class="n">classid</span><span class="p">,</span>
-            <span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">,</span>
             <span class="n">distance</span><span class="o">=</span><span class="n">distance</span><span class="p">,</span>
             <span class="n">num_points</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
             <span class="n">rotation</span><span class="o">=</span><span class="n">rotation</span><span class="p">)</span>
@@ -460,25 +472,24 @@
     <span class="n">aph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_breakdown_metrics</span><span class="p">[</span><span class="s1">&#39;waymo&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">_average_precision_headings</span>  <span class="c1"># pylint:disable=protected-access</span>
     <span class="n">breakdown_names</span> <span class="o">=</span> <span class="n">config_util</span><span class="o">.</span><span class="n">get_breakdown_names_from_config</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_waymo_metric_config</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
-      <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">breakdown_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">breakdown_names</span><span class="p">):</span>
-        <span class="c1"># Skip adding entries for breakdowns that are in a different class.</span>
-        <span class="c1">#</span>
-        <span class="c1"># The first breakdown is the overall one, so never skip it.</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classname</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">breakdown_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-          <span class="k">continue</span>
 
-        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">class_index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+      <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">class_index</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">breakdown_name</span> <span class="ow">in</span> <span class="n">breakdown_names</span><span class="p">:</span>
+        <span class="c1"># &#39;ONE_SHARD&#39; breakdowns are the overall metrics (not sliced up)</span>
+        <span class="c1"># So we should make that the defualt metric.</span>
+        <span class="k">if</span> <span class="s1">&#39;ONE_SHARD&#39;</span> <span class="ow">in</span> <span class="n">breakdown_name</span><span class="p">:</span>
           <span class="c1"># For the overall mAP, include the class name</span>
-          <span class="c1"># and set the breakdown_str to &#39;default&#39; for backwards compatibility.</span>
+          <span class="c1"># and set the breakdown_str which will have the level</span>
           <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">)</span>
-          <span class="n">breakdown_str</span> <span class="o">=</span> <span class="s1">&#39;default&#39;</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># All breakdowns after the first one are extra and elide</span>
-          <span class="c1"># the classname, since it is present in the breakdown_name.</span>
+          <span class="n">postfix</span> <span class="o">=</span> <span class="n">breakdown_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;ONE_SHARD_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+          <span class="n">breakdown_str</span> <span class="o">=</span> <span class="n">postfix</span> <span class="k">if</span> <span class="n">postfix</span> <span class="k">else</span> <span class="s1">&#39;UNKNOWN&#39;</span>
+        <span class="c1"># Otherwise check that the class we are looking at is in the breakdown.</span>
+        <span class="k">elif</span> <span class="n">classname</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">breakdown_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
           <span class="n">prefix</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_extra&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
           <span class="n">breakdown_str</span> <span class="o">=</span> <span class="n">breakdown_name</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">continue</span>
 
         <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/AP_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">breakdown_str</span><span class="p">)</span>
         <span class="n">ap_value</span> <span class="o">=</span> <span class="n">ap</span><span class="p">[</span><span class="n">breakdown_name</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
@@ -536,7 +547,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">image_summaries</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">class_index</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
 
       <span class="k">def</span> <span class="nf">_Setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Configure the plot for precision recall.&quot;&quot;&quot;</span>
@@ -549,20 +560,21 @@
         <span class="c1"># TODO(vrv): Add legend indicating number of objects in breakdown.</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
-      <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">breakdown_str</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">breakdown_list</span><span class="p">):</span>
-        <span class="c1"># Skip adding entries for breakdowns that are in a different class.</span>
-        <span class="c1">#</span>
-        <span class="c1"># The first breakdown is the overall one, so never skip it.</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">classname</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">breakdown_str</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
-          <span class="k">continue</span>
-        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">breakdown_str</span><span class="p">][</span><span class="n">i</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]]</span>
-        <span class="n">rs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">breakdown_str</span><span class="p">][</span><span class="n">i</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]]</span>
-        <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="c1"># Overall class PR.</span>
-          <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/PR&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+      <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">class_index</span><span class="p">]</span>
+      <span class="k">for</span> <span class="n">breakdown_name</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">breakdown_list</span><span class="p">:</span>
+        <span class="c1"># &#39;ONE_SHARD&#39; breakdowns are the overall metrics (not sliced up)</span>
+        <span class="c1"># So we should never skip this.</span>
+        <span class="k">if</span> <span class="s1">&#39;ONE_SHARD&#39;</span> <span class="ow">in</span> <span class="n">breakdown_name</span><span class="p">:</span>
+          <span class="n">breakdown_str</span> <span class="o">=</span> <span class="n">breakdown_name</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;ONE_SHARD_&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
           <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/PR&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="n">breakdown_str</span><span class="p">)</span>
+        <span class="c1"># Otherwise check that the class we are looking at is in the breakdown.</span>
+        <span class="k">elif</span> <span class="n">classname</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">breakdown_name</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span>
+          <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/PR&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="n">breakdown_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">continue</span>
+
+        <span class="n">ps</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">breakdown_name</span><span class="p">][</span><span class="n">i</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]]</span>
+        <span class="n">rs</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">breakdown_name</span><span class="p">][</span><span class="n">i</span><span class="p">][:,</span> <span class="mi">1</span><span class="p">]]</span>
         <span class="n">image_summary</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span>
             <span class="n">name</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span>
             <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
@@ -575,7 +587,6 @@
             <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
             <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
         <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">image_summaries</span></div>
 
   <span class="c1"># Fill in dummy implementations which are largely</span>

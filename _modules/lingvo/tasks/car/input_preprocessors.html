@@ -504,9 +504,6 @@
 
 <span class="sd">    labels.bboxes_3d_mask: Boxes with less than params.min_num_points are set</span>
 <span class="sd">    to 0.</span>
-
-<span class="sd">    labels.unfiltered_bboxes_3d_mask: Boxes with less than</span>
-<span class="sd">    params.min_num_points are set to 0.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="FilterGroundTruthByNumPoints.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByNumPoints.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -528,12 +525,6 @@
         <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">background_id</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">))</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="c1"># TODO(bencaine): When we properly implement Waymo difficulty levels</span>
-    <span class="c1"># we should consider removing this as the difficulty classes will remove</span>
-    <span class="c1"># the issue where boxes with less than p.min_num_points are included in</span>
-    <span class="c1"># the AP metric.</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">features</span></div>
 
 <div class="viewcode-block" id="FilterGroundTruthByNumPoints.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByNumPoints.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>
@@ -576,10 +567,6 @@
         <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">background_id</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">))</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-    <span class="c1"># TODO(bencaine): When we properly implement Waymo difficulty levels</span>
-    <span class="c1"># we should consider removing this.</span>
-    <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-        <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">features</span></div>
 
 <div class="viewcode-block" id="FilterGroundTruthByDifficulty.TransformShapes"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByDifficulty.TransformShapes">[docs]</a>  <span class="k">def</span> <span class="nf">TransformShapes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shapes</span><span class="p">):</span>

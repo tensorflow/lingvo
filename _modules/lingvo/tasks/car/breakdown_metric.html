@@ -206,9 +206,13 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_classnames</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_classids</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()</span>
 
-    <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">calibration</span><span class="o">.</span><span class="n">CalibrationCalculator</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="p">)</span>
+    <span class="c1"># We only want to calculate calibration for the lowest difficulty setting</span>
+    <span class="c1"># which will include *all* data. Including all data is due to the way</span>
+    <span class="c1"># _GetData() works in the kitti_ap_metric.</span>
+    <span class="n">difficulties</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">()</span>
+    <span class="n">lowest_difficulty_str</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">difficulties</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">k</span><span class="p">:</span> <span class="n">difficulties</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">lowest_difficulty_str</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">calibration</span><span class="o">.</span><span class="n">CalibrationCalculator</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="p">))</span>
 
 <div class="viewcode-block" id="BreakdownMetric.NumBinsOfHistogram"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.BreakdownMetric.NumBinsOfHistogram">[docs]</a>  <span class="k">def</span> <span class="nf">NumBinsOfHistogram</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns int32 of number of bins in histogram.&quot;&quot;&quot;</span>
@@ -782,8 +786,11 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
           <span class="p">[</span><span class="n">c</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">pr_key</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
 
-      <span class="c1"># Only KITTI metrics contains calibration data.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span><span class="o">.</span><span class="n">Calculate</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
+      <span class="c1"># Only KITTI metrics contains calibration data,</span>
+      <span class="c1"># And we only compute calibration for the lowest difficulty level</span>
+      <span class="c1"># to include all data.</span>
+      <span class="k">if</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span><span class="o">.</span><span class="n">Calculate</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by difficulty: finished&#39;</span><span class="p">)</span></div>
 
