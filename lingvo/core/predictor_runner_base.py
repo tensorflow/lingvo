@@ -89,7 +89,7 @@ class PredictorRunnerBase(object):
 
   def __init__(self,
                checkpoint,
-               output_dir,
+               output_dir=None,
                inference_graph=None,
                inference_subgraph_name='',
                device_type='cpu',
@@ -139,15 +139,18 @@ class PredictorRunnerBase(object):
     if device_type == 'tpu' and FLAGS.xla_device != 'tpu':
       raise ValueError('xla_device=tpu should be set with device_type=tpu!')
 
-    while True:
-      if tf.gfile.IsDirectory(self._checkpoint):
-        if tf.train.latest_checkpoint(self._checkpoint):
-          break
-      elif tf.gfile.Exists(six.ensure_str(self._checkpoint) + '.index'):
-        break
-      tf.logging.log_first_n(tf.logging.INFO,
-                             'Waiting for checkpoint to be available.', 1)
-      time.sleep(_RETRY_SLEEP_SECONDS)
+    if tf.gfile.IsDirectory(self._checkpoint):
+      initial_checkpoint = tf.train.latest_checkpoint(self._checkpoint)
+      while (not initial_checkpoint or
+             not tf.gfile.Exists(initial_checkpoint + '.index')):
+        tf.logging.log_first_n(tf.logging.INFO,
+                               'Waiting for checkpoint to be available.', 10)
+        time.sleep(_RETRY_SLEEP_SECONDS)
+        initial_checkpoint = tf.train.latest_checkpoint(self._checkpoint)
+    else:
+      initial_checkpoint = self._checkpoint
+      if not tf.gfile.Exists(initial_checkpoint + '.index'):
+        raise ValueError('Could not find checkpoint %s' % initial_checkpoint)
 
     # Use saved inference graph.
     if inference_graph:
@@ -165,6 +168,7 @@ class PredictorRunnerBase(object):
     self._predictor = predictor.Predictor(
         inference_graph=self._inference_graph,
         subgraph_name=inference_subgraph_name,
+        checkpoint=initial_checkpoint,
         device_type=device_type,
         tf_master=tf_master)
     self._threadpool = concurrent.futures.ThreadPoolExecutor(inference_threads)
@@ -268,6 +272,9 @@ class PredictorRunnerBase(object):
       step_str = re.search(r'ckpt-(\d{8})', six.ensure_str(path)).group(1)
       step = int(step_str)
       if step - prev_step >= self._prediction_step_interval:
+        if not self._output_dir:
+          raise ValueError(
+              'output_dir must be specified for _PredictContinuously.')
         output_dir = os.path.join(self._output_dir, 'step_' + step_str)
         tf.gfile.MakeDirs(output_dir)
         self._PredictOneCheckpoint(path, output_dir)
@@ -278,7 +285,8 @@ class PredictorRunnerBase(object):
   @py_utils.RetryOnTransientTfError()
   def Run(self):
     """Monitor checkpoints and runs predictor."""
-    tf.gfile.MakeDirs(self._output_dir)
+    if self._output_dir:
+      tf.gfile.MakeDirs(self._output_dir)
     if tf.gfile.IsDirectory(self._checkpoint):
       self._PredictContinuously()
     else:

@@ -181,8 +181,9 @@ class Predictor(object):
     Args:
       checkpoint: The checkpoint path to restore.
     """
-    self._RunWithValidSession(self._saver.restore, checkpoint)
-    self._checkpoint = checkpoint
+    if checkpoint != self._checkpoint:
+      self._RunWithValidSession(self._saver.restore, checkpoint)
+      self._checkpoint = checkpoint
 
   def Run(self,
           fetch_keys,
