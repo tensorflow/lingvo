@@ -52,6 +52,8 @@ class BaseRunner(object):
       trial:   An optional hyperparameter trial. Used by Vizier studies.
     """
     p = params.Copy()
+    # Set in subclasses.
+    self._job_name = ''
 
     self._params = trial.OverrideModelParams(p)
     tf.logging.info('=' * 60)
@@ -148,7 +150,8 @@ class BaseRunner(object):
     try:
       global_step = sess.run(py_utils.GetGlobalStep())
     except tf.errors.FailedPreconditionError as e:
-      tf.logging.info('Probably the expected race on global_step: %s', e)
+      tf.logging.info('%s: Probably the expected race on global_step: %s',
+                      self._job_name, e)
       raise
     msg = 'step:%6d' % global_step
     self._SetStatusMessage(msg)
@@ -156,7 +159,7 @@ class BaseRunner(object):
       if global_step < start_up_delay_steps:
         msg = 'global step (%d) has not reached start up delay steps (%d)' % (
             global_step, self._start_up_delay_steps)
-        tf.logging.info('%s', msg)
+        tf.logging.info('%s: %s', self._job_name, msg)
         raise tf.errors.FailedPreconditionError(
             node_def=None, op=None, message=msg)
     return global_step
@@ -170,11 +173,11 @@ class BaseRunner(object):
     path = tf.train.latest_checkpoint(self._train_dir)
     if not path:
       msg = 'No check point is found in %s' % self._train_dir
-      tf.logging.info('%s', msg)
+      tf.logging.info('%s: %s', self._job_name, msg)
       raise RuntimeError(msg)
     if path == prev_path:
       msg = 'No new check point is found: %s' % path
-      tf.logging.info('%s', msg)
+      tf.logging.info('%s: %s', self._job_name, msg)
       raise RuntimeError(msg)
     return path
 

@@ -266,6 +266,7 @@ class Controller(base_runner.BaseRunner):
 
   def __init__(self, *args, **kwargs):
     super(Controller, self).__init__(*args, **kwargs)
+    self._job_name = 'controller'
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._control_dir = os.path.join(self._logdir, 'control')
     tf.gfile.MakeDirs(self._control_dir)
@@ -380,6 +381,7 @@ class Trainer(base_runner.BaseRunner):
 
   def __init__(self, *args, **kwargs):
     super(Trainer, self).__init__(*args, **kwargs)
+    self._job_name = 'trainer'
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         self._model = self.params.Instantiate()
@@ -524,6 +526,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
   def __init__(self, *args, **kwargs):
     super(TrainerTpu, self).__init__(*args, **kwargs)
+    self._job_name = 'trainer_tpu'
 
     # Multiple TPU trainer tasks not tested/implemented.
     assert self._cluster.num_replicas == 1
