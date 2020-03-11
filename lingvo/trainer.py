@@ -488,12 +488,14 @@ class Trainer(base_runner.BaseRunner):
             except AttributeError:
               pass
 
-        (_, global_step, eval_metrics, per_example_tensors) = sess.run([
+        (_, eval_metrics, per_example_tensors) = sess.run([
             model_task.train_op,
-            py_utils.GetGlobalStep(),
             model_task.eval_metrics,
             model_task.per_example_tensors,
         ])
+        # Explicitly fetch global_step after running train_op.
+        # TODO(b/151181934): Investigate this behavior further.
+        global_step = sess.run(py_utils.GetGlobalStep())
         model_task.ProcessFPropResults(sess, global_step, eval_metrics,
                                        per_example_tensors)
 
