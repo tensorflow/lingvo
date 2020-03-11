@@ -326,8 +326,9 @@
 <span class="sd">    Args:</span>
 <span class="sd">      checkpoint: The checkpoint path to restore.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span></div>
+    <span class="k">if</span> <span class="n">checkpoint</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span></div>
 
 <div class="viewcode-block" id="Predictor.Run"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
           <span class="n">fetch_keys</span><span class="p">,</span>
