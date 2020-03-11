@@ -197,6 +197,8 @@
 <span class="sd">      trial:   An optional hyperparameter trial. Used by Vizier studies.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="c1"># Set in subclasses.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">trial</span><span class="o">.</span><span class="n">OverrideModelParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">60</span><span class="p">)</span>
@@ -293,7 +295,8 @@
     <span class="k">try</span><span class="p">:</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
     <span class="k">except</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">FailedPreconditionError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Probably the expected race on global_step: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: Probably the expected race on global_step: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
       <span class="k">raise</span>
     <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;step:</span><span class="si">%6d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">global_step</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
@@ -301,7 +304,7 @@
       <span class="k">if</span> <span class="n">global_step</span> <span class="o">&lt;</span> <span class="n">start_up_delay_steps</span><span class="p">:</span>
         <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;global step (</span><span class="si">%d</span><span class="s1">) has not reached start up delay steps (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span>
             <span class="n">global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_start_up_delay_steps</span><span class="p">)</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">FailedPreconditionError</span><span class="p">(</span>
             <span class="n">node_def</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">global_step</span></div>
@@ -315,11 +318,11 @@
     <span class="n">path</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="p">:</span>
       <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No check point is found in </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">path</span> <span class="o">==</span> <span class="n">prev_path</span><span class="p">:</span>
       <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;No new check point is found: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">path</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
       <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">path</span></div>
 
