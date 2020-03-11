@@ -282,9 +282,19 @@
 <span class="sd">3D bounding box: can be used for computing the difficulty of each bounding</span>
 <span class="sd">box.</span>
 
-<span class="sd">detection_difficulties: int64 - Indicates whether the labelers have determined</span>
-<span class="sd">that the object is of LEVEL_2 difficulty.  Should be used jointly with</span>
-<span class="sd">num_points above to set the difficulty level.</span>
+<span class="sd">detection_difficulties: int64 - DO NOT USE FOR EVALUATION. Indicates whether the</span>
+<span class="sd">labelers have determined that the object is of LEVEL_2 difficulty.</span>
+<span class="sd">Should be used jointly with num_points above to set the difficulty level,</span>
+<span class="sd">which we save in `combined_detection_difficulties`. Because it does not</span>
+<span class="sd">include information about the number of points in its calculation,</span>
+<span class="sd">it is an incomplete definition of difficulty and will not correspond to the</span>
+<span class="sd">leaderboard if used to calculate metrics.</span>
+
+<span class="sd">combined_detection_difficulties: int64 - Indicates the difficulty level as</span>
+<span class="sd">either UNKNOWN (0), LEVEL_1 (1), or LEVEL_2 (2). This is computed by</span>
+<span class="sd">combining a num points based criteria (LEVEL_1 is &gt;= 5 pts, LEVEL_2 is</span>
+<span class="sd">&gt;= 1 pt and &lt; 5 pts) and what the human labelers indicated was LEVEL_2, which</span>
+<span class="sd">is stored in the detection_difficulty_level field.</span>
 
 <span class="sd">tracking_difficulties: int64 - Indicates whether the labelers have determined</span>
 <span class="sd">that the tracked object is of LEVEL_2 difficulty.</span>

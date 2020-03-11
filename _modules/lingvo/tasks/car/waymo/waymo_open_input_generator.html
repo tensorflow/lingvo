@@ -550,8 +550,12 @@
 <span class="sd">    object on a per run_segment basis. This can be used for associating</span>
 <span class="sd">    objects across frames (over time).</span>
 
-<span class="sd">    detection_difficulties: [p.max_num_objects] - The per-box difficulty level</span>
-<span class="sd">    for detection task as defined in car.open_dataset.Label.DifficultyLevel.</span>
+<span class="sd">    detection_difficulties: [p.max_num_objects] - DO NOT USE FOR EVALUATION.</span>
+<span class="sd">    The per-box difficulty level for detection task as defined in</span>
+<span class="sd">    car.open_dataset.Label.DifficultyLevel. This is the human raters</span>
+<span class="sd">    difficulty level, which does NOT include information about the number</span>
+<span class="sd">    of points per box. Therefore, it is an incomplete definition of difficulty</span>
+<span class="sd">    and will not correspond to the leaderboard if used to calculate metrics.</span>
 
 <span class="sd">    combined_detection_difficulties: [p.max_num_objects] - The per-box</span>
 <span class="sd">    difficulty level derived via both detection_difficulties (labeler defined)</span>
