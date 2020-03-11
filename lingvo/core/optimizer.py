@@ -48,6 +48,13 @@ class Base(base_layer.BaseLayer):
     """Allows subclasses control computation of gradients."""
     return py_utils.ComputeGradients(loss, vmap, *args, **kwargs)
 
+  def VarReuseForSlotVars(self):
+    """Multi-task models require AUTO_REUSE for var sharing."""
+    var_reuse = False
+    if py_utils.GetOpportunisticVariableReuse():
+      var_reuse = tf.AUTO_REUSE
+    return var_reuse
+
   def Apply(self, lr, var_grad):
     """Applies the gradient to the variable.
 
@@ -70,12 +77,10 @@ class Base(base_layer.BaseLayer):
       # Many optimizers, e.g., Adam, Adagrad, etc., create
       # variables. We need to ensure name scope and variable scope are
       # cleared. Otherwise, tpu.batch_parallel does not work.
-      var_reuse = False
-      if py_utils.GetOpportunisticVariableReuse():
-        var_reuse = tf.AUTO_REUSE
       with tf.name_scope(None):
         with tf.variable_scope(
-            tf.VariableScope(use_resource=True, reuse=var_reuse)):
+            tf.VariableScope(
+                use_resource=True, reuse=self.VarReuseForSlotVars())):
           var_update_op = _Apply()
     self.AddSummary(lr, optimizer, var_grad)
     return var_update_op
@@ -365,7 +370,8 @@ class DistributedShampoo(Base):
       # cleared. Otherwise, tpu.batch_parallel does not work.
       with tf.name_scope(None):
         with tf.variable_scope(
-            tf.VariableScope(use_resource=True, reuse=False)):
+            tf.VariableScope(
+                use_resource=True, reuse=self.VarReuseForSlotVars())):
           var_update_op = _Apply()
     self.AddSummary(lr, self._optimizer, var_grad)
     return var_update_op
