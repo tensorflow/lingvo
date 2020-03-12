@@ -4146,6 +4146,28 @@
     <span class="k">return</span> <span class="n">out_values</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">out_indices</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">out_values</span><span class="p">,</span> <span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">out_indices</span><span class="p">,</span> <span class="n">x_rank</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReadVariable"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ReadVariable">[docs]</a><span class="k">def</span> <span class="nf">ReadVariable</span><span class="p">(</span><span class="n">var_op</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the value of the given variable operation.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    var_op: The variable&#39;s TF `Operation`. It could be one of VarHandleOp,</span>
+<span class="sd">      Variable and VariableV2.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A `Tensor` containing the value of the variable.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;VarHandleOp&#39;</span><span class="p">:</span>
+    <span class="c1"># Filter out the ReadVariableOps that have control dependencies to avoid</span>
+    <span class="c1"># side-effects when the user runs it.</span>
+    <span class="n">filter_fn</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;ReadVariableOp&#39;</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">op</span><span class="o">.</span><span class="n">control_inputs</span>
+    <span class="n">var_readers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="n">filter_fn</span><span class="p">,</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">consumers</span><span class="p">()))</span>
+    <span class="k">assert</span> <span class="n">var_readers</span>
+    <span class="k">return</span> <span class="n">var_readers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+  <span class="k">assert</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Variable&#39;</span><span class="p">,</span> <span class="s1">&#39;VariableV2&#39;</span><span class="p">]</span>
+  <span class="k">return</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
 </pre></div>
 
            </div>
