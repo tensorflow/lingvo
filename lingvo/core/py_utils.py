@@ -4001,3 +4001,25 @@ def TopK(x_in, k):
     return out_values[0], out_indices[0]
   else:
     return tf.concat(out_values, x_rank - 1), tf.concat(out_indices, x_rank - 1)
+
+
+def ReadVariable(var_op):
+  """Returns the value of the given variable operation.
+
+  Args:
+    var_op: The variable's TF `Operation`. It could be one of VarHandleOp,
+      Variable and VariableV2.
+
+  Returns:
+    A `Tensor` containing the value of the variable.
+  """
+  if var_op.type == 'VarHandleOp':
+    # Filter out the ReadVariableOps that have control dependencies to avoid
+    # side-effects when the user runs it.
+    filter_fn = lambda op: op.type == 'ReadVariableOp' and not op.control_inputs
+    var_readers = list(filter(filter_fn, var_op.outputs[0].consumers()))
+    assert var_readers
+    return var_readers[0].outputs[0]
+
+  assert var_op.type in ['Variable', 'VariableV2']
+  return var_op.outputs[0]
