@@ -209,10 +209,9 @@
     <span class="s1">&#39;xla_device&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;If non-empty, can be cpu, gpu, or tpu (case sensitive)&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
-    <span class="s1">&#39;use_resource_var&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="s1">&#39;Use ResourceVariable instead of Variable; this option is &#39;</span>
-    <span class="s1">&#39;ignored when xla_device=tpu, as TPU requires resource &#39;</span>
-    <span class="s1">&#39;variables&#39;</span><span class="p">)</span>
+    <span class="s1">&#39;use_resource_var&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="s1">&#39;Use ResourceVariable instead of RefVariable; this option is &#39;</span>
+    <span class="s1">&#39;enabled by default and will be removed in the future.&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;tpu_compatible&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Create variables in a way compatible with TPU. &#39;</span>
