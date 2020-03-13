@@ -23,6 +23,7 @@ import lingvo.compat as tf
 
 from lingvo.core import datasource
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
 def _MockDataSourceFromFilePattern(file_pattern, input_source_weights=None):
@@ -43,7 +44,7 @@ def _MockDataSourceFromFilePattern(file_pattern, input_source_weights=None):
   return tf.constant([file_pattern])
 
 
-class DatasourceTest(tf.test.TestCase):
+class DatasourceTest(test_utils.TestCase):
 
   def testSimpleDataSourceSucceedsWithStringInput(self):
     ds_params = datasource.SimpleDataSource.Params().Set(

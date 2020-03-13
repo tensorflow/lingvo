@@ -28,6 +28,9 @@ from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
 
+# Disable TF2 behavior for all tests.
+tf.disable_v2_behavior()
+
 tf.flags.DEFINE_boolean(
     'update_goldens', False,
     'Update the goldens, rather than diffing against them.')

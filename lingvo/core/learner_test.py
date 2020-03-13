@@ -24,6 +24,7 @@ from lingvo.core import base_layer
 from lingvo.core import learner
 from lingvo.core import optimizer
 from lingvo.core import py_utils
+from lingvo.core import test_utils
 
 
 class TestLayer(base_layer.BaseLayer):
@@ -45,7 +46,7 @@ class TestLayer(base_layer.BaseLayer):
     return theta.hello + -2 * theta.world
 
 
-class LearnerTest(tf.test.TestCase):
+class LearnerTest(test_utils.TestCase):
 
   def testBasic(self):
     learner_p = learner.Learner.Params().Set(

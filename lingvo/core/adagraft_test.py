@@ -22,10 +22,11 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import adagraft
+from lingvo.core import test_utils
 from six.moves import range
 
 
-class AdagraftTest(tf.test.TestCase):
+class AdagraftTest(test_utils.TestCase):
 
   def test_identity(self):
     # AdaGraft(1, opt, opt) should do the same thing as opt.

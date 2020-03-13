@@ -27,7 +27,6 @@ from tensorflow.python.framework import function  # pylint:disable=g-direct-tens
 class CompatTest(tf.test.TestCase):
 
   def testSomeTFSymbols(self):
-    self.assertFalse(tf.executing_eagerly())
     self.assertIsNotNone(tf.logging)
     self.assertIsNotNone(tf.flags)
     self.assertIs(tf.Defun, function.Defun)

@@ -396,6 +396,7 @@ py_test(
     deps = [
         ":datasource",
         ":py_utils",
+        ":test_utils",
         "//lingvo:compat",
     ],
 )
@@ -623,6 +624,7 @@ py_test(
         ":learner",
         ":optimizer",
         ":py_utils",
+        ":test_utils",
         "//lingvo:compat",
     ],
 )

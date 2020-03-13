@@ -39,8 +39,6 @@ from tensorflow.python.platform import app
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
-# Disable TF2 behavior by default. Please explicitly call
-# `tf.enable_v2_behavior()` to enable TF2 behavior.
 _force_disable_v2 = True
 if _force_disable_v2:
   tf1.disable_v2_behavior()
@@ -124,6 +122,7 @@ data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
 device = tf1.device
 Dimension = tf1.Dimension
+disable_v2_behavior = tf1.disable_v2_behavior
 div = tf1.div
 enable_eager_execution = tf1.enable_eager_execution
 floor_div = tf1.floor_div
