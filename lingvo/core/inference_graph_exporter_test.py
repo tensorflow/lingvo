@@ -373,26 +373,20 @@ class GetOutputNamesTest(test_utils.TestCase):
         # pyformat: disable
         'inference/add_2',
         'inference/input',
-        'save/Assign_1',
-        'save/Assign_2',
         'testing/b/var',
-        'testing/b/var/Assign',
         'testing/b/var/Initializer/random_normal',
         'testing/b/var/Initializer/random_normal/RandomStandardNormal',
         'testing/b/var/Initializer/random_normal/mean',
         'testing/b/var/Initializer/random_normal/mul',
         'testing/b/var/Initializer/random_normal/shape',
         'testing/b/var/Initializer/random_normal/stddev',
-        'testing/b/var/read',
         'testing/w/var',
-        'testing/w/var/Assign',
         'testing/w/var/Initializer/random_normal',
         'testing/w/var/Initializer/random_normal/RandomStandardNormal',
         'testing/w/var/Initializer/random_normal/mean',
         'testing/w/var/Initializer/random_normal/mul',
         'testing/w/var/Initializer/random_normal/shape',
         'testing/w/var/Initializer/random_normal/stddev',
-        'testing/w/var/read',
         # pyformat: enable
     ])
 

@@ -64,10 +64,9 @@ tf.flags.DEFINE_string(
     'xla_device', '', 'If non-empty, can be cpu, gpu, or tpu (case sensitive)')
 
 tf.flags.DEFINE_bool(
-    'use_resource_var', False,
-    'Use ResourceVariable instead of Variable; this option is '
-    'ignored when xla_device=tpu, as TPU requires resource '
-    'variables')
+    'use_resource_var', True,
+    'Use ResourceVariable instead of RefVariable; this option is '
+    'enabled by default and will be removed in the future.')
 
 tf.flags.DEFINE_bool(
     'tpu_compatible', False, 'Create variables in a way compatible with TPU. '

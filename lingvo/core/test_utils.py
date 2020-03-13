@@ -163,22 +163,40 @@ def ComputeNumericGradient(sess,
 
   numeric_grad = np.zeros(x_size, dtype=x_data.dtype)
 
+  # For variables we need to issue an assignment operation in order to update
+  # the value of the variable. This is because with resource variables x will be
+  # pointing to the handle rather than its value.
+  feed_dict = extra_feed_dict or {}
+  ph = tf.placeholder(x_data.dtype, x_shape)
+  x_assign = x.assign(ph) if isinstance(x, tf.Variable) else None
+
   for i in range(0, x_size, step):
     x_pos = x_data.copy()
     if x_size == 1:
       x_pos += delta
     else:
       x_pos.flat[i] += delta
-    y_pos_feed_dict = extra_feed_dict or {}
-    y_pos_feed_dict.update(dict([(x.name, x_pos)]))
-    y_pos = sess.run(y, feed_dict=y_pos_feed_dict)
+    if x_assign is None:
+      feed_dict.update(dict([(x, x_pos)]))
+    else:
+      sess.run(x_assign, feed_dict={ph: x_pos})
+    y_pos = sess.run(y, feed_dict=feed_dict)
+
     x_neg = x_data.copy()
     if x_size == 1:
       x_neg -= delta
     else:
       x_neg.flat[i] -= delta
-    y_neg_feed_dict = extra_feed_dict or {}
-    y_neg_feed_dict.update(dict([(x.name, x_neg)]))
-    y_neg = sess.run(y, feed_dict=y_neg_feed_dict)
+    if x_assign is None:
+      feed_dict.update(dict([(x, x_neg)]))
+    else:
+      sess.run(x_assign, feed_dict={ph: x_neg})
+    y_neg = sess.run(y, feed_dict=feed_dict)
     numeric_grad[i] = (y_pos - y_neg) / (2 * delta)
+
+  # Restore the variable back to its original value to avoid breaking any
+  # further test code that operates on the graph.
+  if x_assign is not None:
+    sess.run(x_assign, feed_dict={ph: x_data})
+
   return numeric_grad.reshape(x_shape)
