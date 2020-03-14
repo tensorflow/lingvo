@@ -513,7 +513,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       if p.filter_stride[1] > 1 and p.filter_shape[1] > 1:
         raise ValueError('Causal convolution only supports width stride = 1 '
                          'or filter width = 1.')
-      width_pad_left = width_pad_size // 2
+      width_pad_left = max(0, width_pad_size - 1) // 2
       width_pad_right = width_pad_size - width_pad_left
       inputs = tf.pad(inputs, [[0, 0], [causal_pad_size, 0],
                                [width_pad_left, width_pad_right], [0, 0]])
