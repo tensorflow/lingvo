@@ -34,6 +34,8 @@ from __future__ import division
 from __future__ import print_function
 
 import contextlib
+import copy
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder_layers
@@ -103,6 +105,8 @@ def CellFnFPropOpReplacementWrapper():
 
 
 def _ToTuple(x):
+  if isinstance(x, list):
+    return tuple(x)
   return x if isinstance(x, tuple) else (x,)
 
 
@@ -327,6 +331,9 @@ class PipeliningLayer(SeqLayer):
     p.Define('micro_batch_size', None, 'Size of a micro batch.')
     p.Define('batch_dim', 0, 'The batch dimension.')
     p.Define('state_dtype', None, 'Externally specify dtype for states.')
+    p.Define(
+        'nested_map_fprop', False, 'Whether arguments and returns of '
+        'cell fprop functions are nested maps')
     return p
 
   def _CalculateOutputShapes(self, input_shapes):
@@ -337,73 +344,58 @@ class PipeliningLayer(SeqLayer):
     information in StackedRecurrent.
 
     Args:
-      input_shapes: tuple of input TensorShapes.
+      input_shapes: NestedMap or tuple of input TensorShapes.
 
     Returns:
-      Return a list of K + 1 lists of shapes where K is the number of
-      partitions.
+      Return a list of K + 1 NestedMaps or lists of tShape where K is
+      the number of partitions.
     """
+    p = self.params
+    shapes = []
+
     # Converts TensorShape to tshape.Shape.
-    inputs = []
-    for x in input_shapes:
+    def _ToTShape(x):
       if x is None:
-        inputs.append(None)
-      else:
-        inputs.append(tshape.Shape(x.as_list()))
-    del input_shapes
+        return None
+      return tshape.Shape(x.as_list())
+
+    shapes = py_utils.Transform(_ToTShape, input_shapes)
+    shapes = _ToTuple(shapes)
 
     state_shapes = []
+    for (_, cell) in self._before_layers:
+      shapes = cell.FPropMeta(cell.params, *shapes).out_shapes
 
-    def RecordInputShapes(tshapes):
-      shapes = []
-      for s in tshapes:
-        shapes.append(None if s is None else s.ToTensorShape().as_list())
-      state_shapes.append(shapes)
-
-    for (_, before_layer) in self._before_layers:
-      inputs = before_layer.FPropMeta(before_layer.params, *inputs).out_shapes
-    RecordInputShapes(inputs)
+    state_shapes.append(shapes[0] if p.nested_map_fprop else shapes)
 
     for (_, cell) in self._cells:
-      inputs = cell.FPropMeta(cell.params, *inputs).out_shapes
-      RecordInputShapes(inputs)
+      shapes = cell.FPropMeta(cell.params, *shapes).out_shapes
+      state_shapes.append(shapes[0] if p.nested_map_fprop else shapes)
 
     return state_shapes
 
-  def FProp(self, theta, *args):
-    """Run multiple cells in different devices in a pipelining manner.
+  def _get_state_dtype(self, *args):
+    if self.params.state_dtype:
+      return self.params.state_dtype
+    if self.params.nested_map_fprop:
+      inputs = args[0].Filter(lambda x: x is not None)
+      return py_utils.Flatten(inputs)[0].dtype
+    return args[0].dtype
 
-    Args:
-      theta: A NestedMap object containing weights' values of this layer and its
-        children layers.
-      *args: Non-keyworded variable length argument list of input tensors.
-
-    Returns:
-      A list of output tensors
-    """
-    # TODO(huangyp): handle optional None inputs.
+  def _get_input_shapes(self, *args):
     p = self.params
-    if self.do_eval:
-      outputs = _ToTuple(args)
-      for (name, l) in self._before_layers:
-        outputs = _ToTuple(outputs)
-        outputs = l.FProp(theta[name], *outputs)
-      for (name, l) in self._cells:
-        outputs = _ToTuple(outputs)
-        outputs = l.FProp(theta[name], *outputs)
-      return outputs
-
-    num_cells = len(p.cell_tpl)
-    cluster = self.cluster
-
-    # Compute shapes of input and output tensors.
-    input_tensors = _ToTuple(args)
-    mini_batch_size = input_tensors[0].get_shape().as_list()[p.batch_dim]
-    if p.state_dtype:
-      state_dtype = p.state_dtype
+    if p.nested_map_fprop:
+      assert len(args) == 1
+      assert isinstance(args[0], py_utils.NestedMap)
+      input_tensors = py_utils.Flatten(args[0])
     else:
-      state_dtype = input_tensors[0].dtype
-
+      input_tensors = _ToTuple(args)
+    # Get batch size from the first tensor which is not None.
+    mini_batch_size = None
+    for input_tensor in input_tensors:
+      if input_tensor is not None:
+        mini_batch_size = input_tensor.get_shape().as_list()[p.batch_dim]
+    assert mini_batch_size is not None
     micro_batch_size = p.micro_batch_size
     if not micro_batch_size:
       if p.num_micro_batches > mini_batch_size:
@@ -422,7 +414,38 @@ class PipeliningLayer(SeqLayer):
       else:
         input_shapes += (None,)
 
+    if p.nested_map_fprop:
+      input_shapes = py_utils.Pack(args[0], input_shapes)
+    return input_shapes
+
+  def FProp(self, theta, *args):
+    """Run multiple cells in different devices in a pipelining manner.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      *args: Non-keyworded variable length argument list of input tensors.
+
+    Returns:
+      A list of output tensors
+    """
+    # TODO(huangyp): handle optional None inputs.
+    p = self.params
+    if self.do_eval:
+      outputs = copy.copy(args)
+      for (name, l) in self._before_layers + self._cells:
+        outputs = _ToTuple(outputs)
+        outputs = l.FProp(theta[name], *outputs)
+      return outputs
+
+    num_cells = len(p.cell_tpl)
+    cluster = self.cluster
+
+    # Compute shapes of input and output tensors.
+    input_shapes = self._get_input_shapes(*args)
+    state_dtype = self._get_state_dtype(*args)
     state_shapes = self._CalculateOutputShapes(input_shapes)
+    tf.logging.info('state_shapes={}'.format(state_shapes))
 
     def GetCellFn(i):
       """Get the ith feature extraction layer."""
@@ -430,14 +453,22 @@ class PipeliningLayer(SeqLayer):
       def CellFn(theta, state0, inputs):
         """A cell fn is exectued inside of StackedRecurrent."""
         del state0
-        fprop_inputs = []
-        for input_idx in range(len(state_shapes[i])):
-          name = 's{}'.format(input_idx)
-          if state_shapes[i][input_idx] is not None:
-            inputs[name].set_shape(state_shapes[i][input_idx])
-            fprop_inputs.append(inputs[name])
-          else:
-            fprop_inputs.append(None)
+
+        def _FPropInputSetShape(name, t_shape):
+          if t_shape is None:
+            return None
+          inputs[name].set_shape(t_shape.ToTensorShape().as_list())
+          return inputs[name]
+
+        if p.nested_map_fprop:
+          # pylint: disable=protected-access
+          fprop_inputs = state_shapes[i]._RecursiveMap(_FPropInputSetShape)
+          # pylint: enable=protected-access
+        else:
+          fprop_inputs = []
+          for input_idx, input_shape in enumerate(state_shapes[i]):
+            name = 's{}'.format(input_idx)
+            fprop_inputs.append(_FPropInputSetShape(name, input_shape))
 
         with py_utils.RemoveAssertContext(remove=True):
           with CellFnFPropOpReplacementWrapper():
@@ -445,16 +476,21 @@ class PipeliningLayer(SeqLayer):
             mb_tensor = inputs[_MICRO_BATCH_STATE_NAME]
             SetOverWriteGlobalStep(mb_tensor)
             _, cell = self._cells[i]
+            fprop_inputs = _ToTuple(fprop_inputs)
             outputs = cell.FProp(theta, *fprop_inputs)
 
-        state1 = py_utils.NestedMap()
+        if p.nested_map_fprop:
+          assert py_utils.IsCompatible(outputs, state_shapes[i + 1])
+          state1 = outputs.Filter(lambda x: x is not None)
+        else:
+          state1 = py_utils.NestedMap()
+          outputs = _ToTuple(outputs)
+          assert len(outputs) == len(state_shapes[i + 1])
+          for output_idx in range(len(outputs)):
+            if outputs[output_idx] is not None:
+              name = 's{}'.format(output_idx)
+              state1[name] = outputs[output_idx]
         state1[_MICRO_BATCH_STATE_NAME] = mb_tensor
-        outputs = _ToTuple(outputs)
-        assert len(outputs) == len(state_shapes[i + 1])
-        for output_idx in range(len(outputs)):
-          if outputs[output_idx] is not None:
-            name = 's{}'.format(output_idx)
-            state1[name] = outputs[output_idx]
         return state1, py_utils.NestedMap()
 
       return CellFn
@@ -469,14 +505,25 @@ class PipeliningLayer(SeqLayer):
       accumulator_layers.append(cell)
       cell_fns.append(GetCellFn(cell_idx))
       thetas.append(theta[cell_name])
-      init_state = py_utils.NestedMap()
+
+      def _TfZeros(t_shape):
+        if t_shape is None:
+          return None
+        return tf.zeros(t_shape.ToTensorShape().as_list(), dtype=state_dtype)
+
+      if p.nested_map_fprop:
+        init_state = py_utils.Transform(_TfZeros, state_shapes[cell_idx + 1])
+        init_state = init_state.Filter(lambda x: x is not None)
+      else:
+        init_state = py_utils.NestedMap()
+        for output_idx, state in enumerate(state_shapes[cell_idx + 1]):
+          state = _TfZeros(state)
+          if state is not None:
+            name = 's{}'.format(output_idx)
+            init_state[name] = state
       init_state[_MICRO_BATCH_STATE_NAME] = tf.cast(0, dtype=state_dtype)
-      for output_idx in range(len(state_shapes[cell_idx + 1])):
-        name = 's{}'.format(output_idx)
-        if state_shapes[cell_idx + 1][output_idx] is not None:
-          init_state[name] = tf.zeros(
-              state_shapes[cell_idx + 1][output_idx], dtype=state_dtype)
       init_states.append(init_state)
+
       devices.append(cluster.WorkerDeviceInModelSplit(cell_idx))
 
     cell_grads = [None] * num_cells
@@ -484,27 +531,34 @@ class PipeliningLayer(SeqLayer):
     cell_out_grads = [lambda x: x] * num_cells
 
     with tf.device(devices[0]):
-      previous = input_tensors
+      previous = _ToTuple(args)
       for (name, l) in self._before_layers:
         previous = l.FProp(theta[name], *previous)
         previous = _ToTuple(previous)
-      inputs = py_utils.NestedMap()
+
+      def _StackAndSplit(x):
+        # Split tensors into microbatches.
+        if x is None:
+          return None
+        return tf.stack(tf.split(x, p.num_micro_batches, axis=p.batch_dim))
+
+      if p.nested_map_fprop:
+        inputs = py_utils.Transform(_StackAndSplit, previous[0])
+        inputs = inputs.Filter(lambda x: x is not None)
+      else:
+        inputs = py_utils.NestedMap()
+        for output_idx, output_tensor in enumerate(previous):
+          output_tensor = _StackAndSplit(output_tensor)
+          if output_tensor is not None:
+            name = 's{}'.format(output_idx)
+            inputs[name] = output_tensor
       gs_tensor = py_utils.GetGlobalStep()
       inputs[_MICRO_BATCH_STATE_NAME] = tf.stack([
           tf.cast(gs_tensor * p.num_micro_batches + t, dtype=state_dtype)
           for t in range(p.num_micro_batches)
       ])
-
-      # TODO(huangyp, dehao): apply dehao's trick to reshape the input tensor
-      # to [p.num_micro_batches, -1, 128].
-      for output_idx, output_tensor in enumerate(previous):
-        name = 's{}'.format(output_idx)
-        if output_tensor is not None:
-          output_tensor = tf.stack(
-              tf.split(output_tensor, p.num_micro_batches, axis=p.batch_dim))
-          inputs[name] = output_tensor
-
-    output, _ = recurrent.StackedRecurrent(
+    tf.logging.info('pipeline input = {}'.format(inputs))
+    output_state, _ = recurrent.StackedRecurrent(
         devices=devices,
         cell_fns=cell_fns,
         cell_grads=cell_grads,
@@ -517,22 +571,35 @@ class PipeliningLayer(SeqLayer):
         unused_acc_state=True)
 
     with tf.device(devices[-1]):
-      output_tensors = []
-      for output_idx in range(len(state_shapes[-1])):
-        state_shape = state_shapes[-1][output_idx]
-        if state_shape is None:
-          output_tensors.append(None)
-          continue
-        output_name = 's{}'.format(output_idx)
-        output_tensor = output[output_name]
+
+      def _ReshapeRetVal(name, t_shape):
+        """Restore shape for tensors in microbatches."""
+        if t_shape is None:
+          return None
+        output_tensor = output_state[name]
         if p.batch_dim != 0:
           perm = list(range(1, p.batch_dim + 1)) + [0]
-          perm += list(range(p.batch_dim + 1, len(state_shape) + 1))
+          perm += list(range(p.batch_dim + 1, t_shape.rank + 1))
           output_tensor = tf.transpose(output_tensor, perm=perm)
-        state_shape[p.batch_dim] *= p.num_micro_batches
-        output_tensor = tf.reshape(output_tensor, state_shape)
-        output_tensors.append(output_tensor)
+        output_shape = t_shape.ToTensorShape().as_list()
+        output_shape[p.batch_dim] *= p.num_micro_batches
+        output_tensor = tf.reshape(output_tensor, output_shape)
+        return output_tensor
+
+      # Construct the final return values from output_state.
+      if p.nested_map_fprop:
+        # pylint: disable=protected-access
+        output_tensors = state_shapes[-1]._RecursiveMap(_ReshapeRetVal)
+        # pylint: enable=protected-access
+      else:
+        output_tensors = []
+        for output_idx, state_shape in enumerate(state_shapes[-1]):
+          output_name = 's{}'.format(output_idx)
+          output_tensor = _ReshapeRetVal(output_name, state_shape)
+          output_tensors.append(output_tensor)
+        if len(output_tensors) == 1:
+          output_tensors = output_tensors[0]
+        else:
+          output_tensors = tuple(output_tensors)
       tf.logging.info('pipeline output = {}'.format(output_tensors))
-      if len(output_tensors) == 1:
-        return output_tensors[0]
-      return tuple(output_tensors)
+      return output_tensors

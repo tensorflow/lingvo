@@ -76,6 +76,21 @@ class _SimpyLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(flops=1, out_shapes=(inputs,))
 
 
+class _SimpyLayerWithNestedMapInput(_SimpyLayer):
+
+  def FProp(self, theta, inputs):
+    p = self.params
+    with tf.name_scope(p.name):
+      vec = self.conv.FProp(theta.conv, inputs.vec)
+      return py_utils.NestedMap(vec=vec, paddings=inputs.paddings)
+
+  @classmethod
+  def FPropMeta(cls, p, inputs):
+    py_utils.CheckShapes(
+        tuple(inputs.Filter(lambda x: x is not None).Flatten()))
+    return py_utils.NestedMap(flops=1, out_shapes=(inputs,))
+
+
 def _Partition(params, num_splits, *shapes):
   seqs = PartitionSequentialLayers(params, num_splits, *shapes)
   return [
@@ -209,6 +224,30 @@ class DummyPipelineCnnTest(test_utils.TestCase):
 
   def testDummyPipelineCnnAutoPartitionFourSplits(self):
     self._verify_timestep_counts(num_splits=4, auto_partition=True)
+
+  def testDummyPipelineCnnNestedMapInput(self):
+    batch_size = 16
+    num_layers = 4
+    cells = []
+    with self.session(graph=tf.Graph()) as sess:
+      for i in range(num_layers):
+        cells.append(_SimpyLayerWithNestedMapInput.Params().Set(
+            name='layer_{}'.format(i)))
+      p = PipeliningLayer.Params().Set(
+          name='pipeline',
+          num_micro_batches=8,
+          micro_batch_size=2,
+          nested_map_fprop=True,
+          cell_tpl=cells,
+          before_tpl=[])
+      layer = p.Instantiate()
+      tf.set_random_seed(1245)
+      inputs = tf.random_uniform([batch_size, 8, 8, 1], seed=12345)
+      outputs = layer.FPropDefaultTheta(
+          py_utils.NestedMap(vec=inputs, paddings=None))
+      sess.run(tf.global_variables_initializer())
+      sess.run(outputs.vec)
+      self.assertEqual(outputs.vec.shape, (batch_size, 8, 8, 1))
 
 
 if __name__ == '__main__':
