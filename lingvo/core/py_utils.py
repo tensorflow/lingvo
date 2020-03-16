@@ -3302,10 +3302,14 @@ def MixByWeight(inputs, weights, seed=None):
 
 
 def CheckShapes(shapes):
-  """Asserts that shapes is a tuple of tshape.Shape."""
+  """Asserts that shapes is a tuple of NestedMap or tshape.Shape."""
   assert isinstance(shapes, tuple), str(shapes)
   for s in shapes:
-    assert isinstance(s, tshape.Shape), '{}: {}'.format(type(s), s)
+    if isinstance(s, NestedMap):
+      assert all([isinstance(t, tshape.Shape) for t in Flatten(s)
+                 ]), '{} contains non-tensor value.'.format(s)
+    else:
+      assert isinstance(s, tshape.Shape), '{}: {}'.format(type(s), s)
 
 
 def FPropDtype(params):

@@ -23,6 +23,7 @@ from lingvo.core import builder_layers as layers
 from lingvo.core import layers as lingvo_layers
 from lingvo.core import py_utils
 from lingvo.core import test_utils
+from lingvo.core import tshape
 import numpy as np
 from six.moves import range
 from six.moves import zip
@@ -102,6 +103,20 @@ class BuilderLayerTest(test_utils.TestCase):
       sess.run(tf.global_variables_initializer())
       x_val, y_val = sess.run([x, y])
       self.assertAllEqual(x_val, y_val)
+
+  def testEmptySequentialLayerFPropMeta(self):
+    g = tf.Graph()
+    with g.as_default():
+      p = layers.SequentialLayer.Params().Set(name='seq')
+      l = p.Instantiate()
+      x = py_utils.NestedMap(val=tf.random_normal(shape=[2, 32]))
+      y = l.FPropDefaultTheta(x)
+      self.assertIsInstance(y.val, tf.Tensor)
+      y_shape = l.FPropMeta(
+          p, py_utils.Transform(lambda t: tshape.Shape(t.shape),
+                                x)).out_shapes[0]
+      self.assertEqual(y.val.shape.as_list(),
+                       y_shape.val.ToTensorShape().as_list())
 
   def testUnarySequentialLayer(self):
     g = tf.Graph()
@@ -356,26 +371,38 @@ class BuilderLayerTest(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
       tf.set_random_seed(24332)
+
+      def _FnMeta(*shapes):
+        return py_utils.NestedMap(flops=1, out_shapes=shapes)
+
       p = layers.GraphLayer.Params().Set(
           name='graph',
           input_endpoints=['x'],
           output_endpoints=['y'],
           sub=[
-              ('x.a->y.c', layers.FnLayer.Params().Set(fn=lambda x: 2 * x)),
-              ('x.b->y.d',
-               layers.FnLayer.Params().Set(name='bar', fn=lambda x: x + 2)),
-              ('y.c,y.d->y.e',
-               layers.FnLayer.Params().Set(name='baz', fn=lambda x, y: x + y)),
+              ('x.a->y.c',
+               layers.FnLayer.Params().Set(fn=lambda x: 2 * x,
+                                           fn_meta=_FnMeta)),
+              ('x.b->y.d', layers.FnLayer.Params().Set(
+                  name='bar', fn=lambda x: x + 2, fn_meta=_FnMeta)),
+              ('y.c,y.d->y.e, y.f', layers.FnLayer.Params().Set(
+                  name='baz', fn=lambda x, y: (x + y, x - y), fn_meta=_FnMeta)),
           ])
       l = p.Instantiate()
       x = py_utils.NestedMap(a=tf.constant(1.0), b=tf.constant(2.0))
       y = l.FProp(l.theta, x)
+      y_shape = l.FPropMeta(
+          p, py_utils.Transform(lambda t: tshape.Shape(t.shape),
+                                x)).out_shapes[0]
+      self.assertDictEqual(
+          py_utils.Transform(lambda t: t.shape.as_list(), y),
+          py_utils.Transform(lambda t: t.ToTensorShape().as_list(), y_shape))
 
     with self.session(graph=g) as sess:
       sess.run(tf.global_variables_initializer())
       y_val = sess.run(y)
       print(y_val)
-      self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0), y_val)
+      self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0, f=-2.0), y_val)
 
   def testSoftCondLayer(self):
     num_experts = 100

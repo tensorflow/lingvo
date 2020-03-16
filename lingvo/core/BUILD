@@ -337,6 +337,7 @@ py_test(
         ":layers",
         ":py_utils",
         ":test_utils",
+        ":tshape",
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
