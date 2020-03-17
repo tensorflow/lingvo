@@ -370,10 +370,10 @@
 <div class="viewcode-block" id="Librispeech960GraphemeTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960GraphemeTpuV2._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960GraphemeTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
-
-    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>\
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -463,9 +463,10 @@
 <div class="viewcode-block" id="Librispeech960WpmTpuV2._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.asr.params.librispeech.html#lingvo.tasks.asr.params.librispeech.Librispeech960WpmTpuV2._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Librispeech960WpmTpuV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
-    <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span><span class="mi">48</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">)</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="k">return</span> <span class="n">p</span></div>
 
