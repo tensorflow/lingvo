@@ -2556,6 +2556,14 @@ def VariationalNoiseParams(scale,
   return p
 
 
+# To disable VN of a layer, we use 1.0 in the first input parameter
+# of the following function because otherwise it is the same to DefaultVN()
+# configuration of base_layer, which will be updated by parent configuration in
+# CopyBaseParams()
+def DisableVN():
+  return VariationalNoiseParams(1.0, False, False)
+
+
 def GetStepSeed():
   """Gets step_seed."""
   step_seed_tensors = tf.get_default_graph().get_collection_ref('step_seed')
