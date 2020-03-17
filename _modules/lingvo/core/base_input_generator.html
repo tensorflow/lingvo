@@ -687,9 +687,16 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">file_datasource</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">:</span>
       <span class="c1"># This is a workaround for subclasses which have defined</span>
       <span class="c1"># their own data source-like functionality.</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Creating data source-like output from class </span><span class="si">%s</span><span class="s1"> using &#39;</span>
+          <span class="s1">&#39;file_pattern </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
       <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
       <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Building data source </span><span class="si">%s</span><span class="s1"> with params </span><span class="si">%s</span><span class="s1"> and &#39;</span>
+          <span class="s1">&#39;file_pattern </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">)</span>
       <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">datasource</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_DataSourceFromFilePattern</span><span class="p">)</span>
     <span class="k">if</span> <span class="s1">&#39;selected_bprop&#39;</span> <span class="ow">in</span> <span class="n">ret</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_onehot</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">selected_bprop</span>
