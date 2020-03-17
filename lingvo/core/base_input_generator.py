@@ -542,9 +542,16 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
     if not p.file_datasource and p.file_pattern:
       # This is a workaround for subclasses which have defined
       # their own data source-like functionality.
+      tf.logging.info(
+          'Creating data source-like output from class %s using '
+          'file_pattern %s', self, p.file_pattern)
       ret = py_utils.NestedMap()
       ret.data = self._DataSourceFromFilePattern(p.file_pattern)
     else:
+      tf.logging.info(
+          'Building data source %s with params %s and '
+          'file_pattern %s', self.datasource, self.datasource.params,
+          p.file_pattern)
       ret = self.datasource.BuildDataSource(self._DataSourceFromFilePattern)
     if 'selected_bprop' in ret:
       self._bprop_onehot = ret.selected_bprop
