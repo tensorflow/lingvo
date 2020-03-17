@@ -225,10 +225,10 @@ class Librispeech960GraphemeTpuV2(Librispeech960Grapheme):
   def _CommonInputParams(self, is_eval):
     p = super(Librispeech960GraphemeTpuV2, self)._CommonInputParams(is_eval)
 
-    p.pad_to_max_seq_length = True
-    p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
-
-    p.source_max_length = p.bucket_upper_bound[-1]\
+    if py_utils.use_tpu():
+      p.pad_to_max_seq_length = True
+      p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
+      p.source_max_length = p.bucket_upper_bound[-1]
 
     return p
 
@@ -318,9 +318,10 @@ class Librispeech960WpmTpuV2(Librispeech960Wpm):
   def _CommonInputParams(self, is_eval):
     p = super(Librispeech960WpmTpuV2, self)._CommonInputParams(is_eval)
 
-    p.pad_to_max_seq_length = True
-    p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
-    p.source_max_length = p.bucket_upper_bound[-1]
+    if py_utils.use_tpu():
+      p.pad_to_max_seq_length = True
+      p.bucket_batch_limit = [48] * len(p.bucket_upper_bound)
+      p.source_max_length = p.bucket_upper_bound[-1]
 
     return p
 
