@@ -345,6 +345,9 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
         max_num_points=None, num_features=3)
     p.Define('lidar_names', ['TOP', 'SIDE_LEFT', 'SIDE_RIGHT', 'FRONT', 'REAR'],
              'The names of the lidars from which lasers will be extracted.')
+    p.Define(
+        'lidar_returns', ['ri1', 'ri2'], 'Which return from the LiDAR to '
+        'extract when we merge the point cloud.')
     return p
 
   def FeatureMap(self):
@@ -352,7 +355,7 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
     p = self.params
     features = {}
     for lidar in p.lidar_names:
-      for ri in ['ri1', 'ri2']:
+      for ri in p.lidar_returns:
         features['laser_%s_%s' %
                  (lidar, ri)] = tf.VarLenFeature(dtype=tf.float32)
     return features
@@ -364,7 +367,7 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
     all_laser_features = []
 
     for lidar in p.lidar_names:
-      for ri in ['ri1', 'ri2']:
+      for ri in p.lidar_returns:
         feature_name = 'laser_%s_%s' % (lidar, ri)
         laser_data = tf.reshape(
             _Dense(features[feature_name]), [-1, 3 + p.num_features])
