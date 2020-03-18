@@ -490,6 +490,9 @@
         <span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lidar_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TOP&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAR&#39;</span><span class="p">],</span>
              <span class="s1">&#39;The names of the lidars from which lasers will be extracted.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;lidar_returns&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">],</span> <span class="s1">&#39;Which return from the LiDAR to &#39;</span>
+        <span class="s1">&#39;extract when we merge the point cloud.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WaymoLaserExtractor.FeatureMap"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -497,7 +500,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">features</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">lidar</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_names</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">]:</span>
+      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_returns</span><span class="p">:</span>
         <span class="n">features</span><span class="p">[</span><span class="s1">&#39;laser_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                  <span class="p">(</span><span class="n">lidar</span><span class="p">,</span> <span class="n">ri</span><span class="p">)]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">features</span></div>
@@ -509,7 +512,7 @@
     <span class="n">all_laser_features</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="k">for</span> <span class="n">lidar</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_names</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ri1&#39;</span><span class="p">,</span> <span class="s1">&#39;ri2&#39;</span><span class="p">]:</span>
+      <span class="k">for</span> <span class="n">ri</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">lidar_returns</span><span class="p">:</span>
         <span class="n">feature_name</span> <span class="o">=</span> <span class="s1">&#39;laser_</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">lidar</span><span class="p">,</span> <span class="n">ri</span><span class="p">)</span>
         <span class="n">laser_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="n">feature_name</span><span class="p">]),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">num_features</span><span class="p">])</span>
