@@ -69,7 +69,10 @@ def _BuildWaymoMetricConfig(metadata, box_type, waymo_breakdown_metrics):
   for breakdown_value in waymo_breakdown_metrics:
     breakdown_id = breakdown_pb2.Breakdown.GeneratorId.Value(breakdown_value)
     config.breakdown_generator_ids.append(breakdown_id)
-    config.difficulties.append(metrics_pb2.Difficulty())
+    difficulty = metrics_pb2.Difficulty()
+    difficulty.levels.append(label_pb2.Label.DifficultyLevel.Value('LEVEL_1'))
+    difficulty.levels.append(label_pb2.Label.DifficultyLevel.Value('LEVEL_2'))
+    config.difficulties.append(difficulty)
   return config
 
 

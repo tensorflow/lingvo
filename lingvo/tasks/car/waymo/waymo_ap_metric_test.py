@@ -100,23 +100,33 @@ class APTest(test_utils.TestCase):
     # Check that the summary value for default ap and
     # a waymo breakdown version by range is the same.
     for v in summary.value:
-      if v.tag == 'foo_extra/AP_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
-        bd_val = v.simple_value
-      elif v.tag == 'foo/Vehicle/AP_LEVEL_1':
+      if v.tag == 'foo/Vehicle/AP_LEVEL_1':
         default_val = v.simple_value
-      elif v.tag == 'foo_extra/APH_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
-        aph_bd_val = v.simple_value
       elif v.tag == 'foo/Vehicle/APH_LEVEL_1':
         aph_default_val = v.simple_value
+      elif v.tag == 'foo_extra/AP_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_1':
+        ap_bd_val_l1 = v.simple_value
+      elif v.tag == 'foo_extra/AP_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
+        ap_bd_val_l2 = v.simple_value
+      elif v.tag == 'foo_extra/APH_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_1':
+        aph_bd_val_l1 = v.simple_value
+      elif v.tag == 'foo_extra/APH_RANGE_TYPE_VEHICLE_[0, 30)_LEVEL_2':
+        aph_bd_val_l2 = v.simple_value
+      elif v.tag == 'foo_extra/AP_VELOCITY_TYPE_VEHICLE_STATIONARY_LEVEL_1':
+        vbd_val_l1 = v.simple_value
       elif v.tag == 'foo_extra/AP_VELOCITY_TYPE_VEHICLE_STATIONARY_LEVEL_2':
-        vbd_val = v.simple_value
+        vbd_val_l2 = v.simple_value
 
-    self.assertEqual(bd_val, default_val)
-    self.assertEqual(aph_bd_val, aph_default_val)
-    self.assertEqual(vbd_val, default_val)
+    self.assertEqual(ap_bd_val_l1, default_val)
+    self.assertEqual(ap_bd_val_l2, default_val)
+    self.assertEqual(aph_bd_val_l1, aph_default_val)
+    self.assertEqual(aph_bd_val_l2, aph_default_val)
+    self.assertEqual(vbd_val_l1, default_val)
+    self.assertEqual(vbd_val_l2, default_val)
 
     # Check that eval classes not evaluated are not present.
     tags = [v.tag for v in summary.value]
+    self.assertNotIn('foo_extra/APH_RANGE_TYPE_SIGN_[0, 30)_LEVEL_1', tags)
     self.assertNotIn('foo_extra/APH_RANGE_TYPE_SIGN_[0, 30)_LEVEL_2', tags)
 
 
