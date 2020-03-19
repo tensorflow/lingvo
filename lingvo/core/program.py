@@ -335,14 +335,17 @@ class EvalProgram(BaseProgram):
           *args: metrics values from previous steps.
 
         Returns:
-          Per-step eval metrics.
+          Summed eval metrics.
         """
         with cluster_factory.SetEval(True):
           self._model = self._task_params.Instantiate()
           self._model.ConstructFPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._model.GetTask().eval_metrics, args)
-          return per_step_eval_metrics
+          summed_metrics = []
+          for x, y in zip(per_step_eval_metrics, args):
+            summed_metrics.append(x + y)
+          return summed_metrics
 
       @tpu_function.on_device_training_loop
       def TpuEval():
