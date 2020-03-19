@@ -480,14 +480,17 @@
 <span class="sd">          *args: metrics values from previous steps.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">          Per-step eval metrics.</span>
+<span class="sd">          Summed eval metrics.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
           <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-          <span class="k">return</span> <span class="n">per_step_eval_metrics</span>
+          <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">summed_metrics</span>
 
       <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
       <span class="k">def</span> <span class="nf">TpuEval</span><span class="p">():</span>
