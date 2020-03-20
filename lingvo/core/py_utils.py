@@ -2029,8 +2029,7 @@ def ComputeGradients(
         # tf.Optimizer.apply_gradients throws up an exception instead
         # of skipping the update.
         return False
-    # Not sure needed since tf.gradients will do this for us.
-    return v.name in dependent_ops_and_tensors
+    return True
 
   filtered_vmap = filtered_vmap.Filter(Needed)
   assert filtered_vmap is not None
@@ -2054,6 +2053,25 @@ def ComputeGradients(
   # structure as filtered_vmap.
   var_grads = filtered_vmap.Pack(
       [VarGrad(v, g) for v, g in zip(filtered_vlist, grads)])
+
+  # TPU training is not compatible with the variable name check below when
+  # control flow v2 is enabled. The main reason is the body function will be
+  # encapsulated as a TF function while variables will be lifted out, and as a
+  # result dependent_ops_and_tensors will not contain any variables. See
+  # b/150689507 for more info.
+  if not tf.compat.v1.control_flow_v2_enabled():
+    # Check that gradients for variables that are not needed by current task is
+    # empty.
+    def CheckGrad(vg):
+      if vg.var.name not in dependent_ops_and_tensors and vg.grad is not None:
+        err_msg = ('Variable %s is not a dependent of %s, expect '
+                   'gradient be None, but got %s. This should not happen, '
+                   'please contact the owner of b/150689507 for further '
+                   'investigation.' % (str(vg.var), str(loss), str(vg.grad)))
+        assert False, err_msg
+      return True
+
+    var_grads = var_grads.Filter(CheckGrad)
 
   # Removes pairs whose grad is None.
   for key, (_, g) in var_grads.FlattenItems():
