@@ -2174,8 +2174,7 @@
         <span class="c1"># tf.Optimizer.apply_gradients throws up an exception instead</span>
         <span class="c1"># of skipping the update.</span>
         <span class="k">return</span> <span class="kc">False</span>
-    <span class="c1"># Not sure needed since tf.gradients will do this for us.</span>
-    <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">dependent_ops_and_tensors</span>
+    <span class="k">return</span> <span class="kc">True</span>
 
   <span class="n">filtered_vmap</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">Needed</span><span class="p">)</span>
   <span class="k">assert</span> <span class="n">filtered_vmap</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
@@ -2199,6 +2198,25 @@
   <span class="c1"># structure as filtered_vmap.</span>
   <span class="n">var_grads</span> <span class="o">=</span> <span class="n">filtered_vmap</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
       <span class="p">[</span><span class="n">VarGrad</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">filtered_vlist</span><span class="p">,</span> <span class="n">grads</span><span class="p">)])</span>
+
+  <span class="c1"># TPU training is not compatible with the variable name check below when</span>
+  <span class="c1"># control flow v2 is enabled. The main reason is the body function will be</span>
+  <span class="c1"># encapsulated as a TF function while variables will be lifted out, and as a</span>
+  <span class="c1"># result dependent_ops_and_tensors will not contain any variables. See</span>
+  <span class="c1"># b/150689507 for more info.</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">control_flow_v2_enabled</span><span class="p">():</span>
+    <span class="c1"># Check that gradients for variables that are not needed by current task is</span>
+    <span class="c1"># empty.</span>
+    <span class="k">def</span> <span class="nf">CheckGrad</span><span class="p">(</span><span class="n">vg</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">vg</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dependent_ops_and_tensors</span> <span class="ow">and</span> <span class="n">vg</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">err_msg</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;Variable </span><span class="si">%s</span><span class="s1"> is not a dependent of </span><span class="si">%s</span><span class="s1">, expect &#39;</span>
+                   <span class="s1">&#39;gradient be None, but got </span><span class="si">%s</span><span class="s1">. This should not happen, &#39;</span>
+                   <span class="s1">&#39;please contact the owner of b/150689507 for further &#39;</span>
+                   <span class="s1">&#39;investigation.&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">var</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">loss</span><span class="p">),</span> <span class="nb">str</span><span class="p">(</span><span class="n">vg</span><span class="o">.</span><span class="n">grad</span><span class="p">)))</span>
+        <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="n">err_msg</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">CheckGrad</span><span class="p">)</span>
 
   <span class="c1"># Removes pairs whose grad is None.</span>
   <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
