@@ -475,7 +475,7 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertEqual(py_utils.GetShape(b, 2), [1, 2])
     self.assertEqual(py_utils.GetShape(b, 3), [1, 2])
 
-    c = tf.zeros([1, a[0], a.shape[0].value, tf.shape(a)[0]])
+    c = tf.zeros([1, a[0], a.shape[0], tf.shape(a)[0]])
     self.assertEqual(py_utils.GetShape(c)[0], 1)
     self.assertEqual(py_utils.GetShape(c)[1], 1)
     self.assertEqual(py_utils.GetShape(c)[2], 1)
@@ -485,7 +485,7 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertEqual(py_utils.GetShape(d)[0], 1)
     self.assertIsInstance(py_utils.GetShape(d)[1], tf.Tensor)
 
-    e = tf.zeros([d.shape[0].value, tf.shape(d)[0], tf.shape(d)[1]])
+    e = tf.zeros([d.shape[0], tf.shape(d)[0], tf.shape(d)[1]])
     self.assertEqual(py_utils.GetShape(e)[0], 1)
     self.assertIsInstance(py_utils.GetShape(e)[1], tf.Tensor)
     self.assertIsInstance(py_utils.GetShape(e)[2], tf.Tensor)
@@ -548,13 +548,13 @@ class PyUtilsTest(test_utils.TestCase):
     b = tf.constant([[1, 2]])
     self.assertEqual(py_utils.GetRank(b), 2)
 
-    c = tf.zeros([1, a[0], a.shape[0].value, tf.shape(a)[0]])
+    c = tf.zeros([1, a[0], a.shape[0], tf.shape(a)[0]])
     self.assertEqual(py_utils.GetRank(c), 4)
 
     d = tf.placeholder(tf.float32, shape=(1, None))
     self.assertEqual(py_utils.GetRank(d), 2)
 
-    e = tf.zeros([d.shape[0].value, tf.shape(d)[0], tf.shape(d)[1]])
+    e = tf.zeros([d.shape[0], tf.shape(d)[0], tf.shape(d)[1]])
     self.assertEqual(py_utils.GetRank(e), 3)
 
     @tf.Defun(tf.float32)

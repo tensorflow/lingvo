@@ -27,7 +27,6 @@ from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-impo
 from absl import flags
 from absl import logging
 # pylint: disable=g-direct-tensorflow-import
-from tensorflow.python import tf2
 
 from tensorflow.python.framework import function as _function_lib
 from tensorflow.python.ops import check_ops
@@ -39,12 +38,9 @@ from tensorflow.python.platform import app
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 
-_force_disable_v2 = True
-if _force_disable_v2:
-  tf1.disable_v2_behavior()
-elif tf2.enabled():
-  logging.warning("Lingvo does not support all TF2 behaviors yet. "
-                  "Please disable V2 behavior with tf.disable_v2_behavior(), "
+if tf1.executing_eagerly():
+  logging.warning("Lingvo does not support eager execution yet. Please disable "
+                  "eager execution with tf.compat.v1.disable_eager_execution() "
                   "or proceed at your own risk.")
 
 
@@ -122,7 +118,7 @@ data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
 device = tf1.device
 Dimension = tf1.Dimension
-disable_v2_behavior = tf1.disable_v2_behavior
+disable_eager_execution = tf1.disable_eager_execution
 div = tf1.div
 enable_eager_execution = tf1.enable_eager_execution
 floor_div = tf1.floor_div

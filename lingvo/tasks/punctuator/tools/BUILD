@@ -9,5 +9,7 @@ py_binary(
     srcs = ["download_brown_corpus.py"],
     python_version = "PY3",
     srcs_version = "PY2AND3",
-    deps = ["//lingvo:compat"],
+    deps = [
+        "//lingvo:compat",
+    ],
 )
