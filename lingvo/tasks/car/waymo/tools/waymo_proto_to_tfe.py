@@ -140,16 +140,16 @@ box.
 detection_difficulties: int64 - DO NOT USE FOR EVALUATION. Indicates whether the
 labelers have determined that the object is of LEVEL_2 difficulty.
 Should be used jointly with num_points above to set the difficulty level,
-which we save in `combined_detection_difficulties`. Because it does not
+which we save in `single_frame_detection_difficulties`. Because it does not
 include information about the number of points in its calculation,
 it is an incomplete definition of difficulty and will not correspond to the
 leaderboard if used to calculate metrics.
 
-combined_detection_difficulties: int64 - Indicates the difficulty level as
-either UNKNOWN (0), LEVEL_1 (1), or LEVEL_2 (2). This is computed by
-combining a num points based criteria (LEVEL_1 is >= 5 pts, LEVEL_2 is
->= 1 pt and < 5 pts) and what the human labelers indicated was LEVEL_2, which
-is stored in the detection_difficulty_level field.
+single_frame_detection_difficulties: int64 - Indicates the difficulty level as
+either LEVEL_1 (1), or LEVEL_2 (2), or IGNORE (999). We first ignore all 3D
+labels without any LiDAR points. Next, we assign LEVEL_2 to examples where
+either the labeler annotates as hard or if the example has <= 5 LiDAR points.
+Finally, the rest of the examples are assigned to LEVEL_1.
 
 tracking_difficulties: int64 - Indicates whether the labelers have determined
 that the tracked object is of LEVEL_2 difficulty.
@@ -494,6 +494,35 @@ class WaymoOpenDatasetConverter(beam.DoFn):
         points_list.append(np.reshape(points_xyz, (-1, 3)))
     return np.concatenate(points_list, axis=0)
 
+  def _single_frame_detection_difficulty(self, human_difficulty, num_points):
+    """Create the `single_frame_detection_difficulty` field.
+
+    When labeling, humans have the option to label a particular frame's bbox
+    as difficult, which overrides the normal number of points based
+    definition. Additionally, boxes with 0 points are ignored by the metric
+    code.
+
+    Args:
+      human_difficulty: What the human raters labeled the difficulty as. This is
+        from the detection_difficulty_level field, and will be either 0 (default
+        value, which is UKNOWN in the proto enum) or 2 (LEVEL_2 difficulty).
+      num_points: The number of points in the bbox.
+
+    Returns:
+      single_frame_detection_difficulty: The single frame detection difficulty
+        per the Waymo Open Dataset paper's definition.
+    """
+    if num_points <= 0:
+      return 999
+
+    if human_difficulty:
+      return human_difficulty
+
+    if num_points <= 5:
+      return 2
+    else:
+      return 1
+
   def add_labels(self, feature, labels, points_xyz):
     """Add 3d bounding box labels into the output feature map.
 
@@ -508,7 +537,7 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     detection_difficulty_levels = []
     tracking_difficulty_levels = []
     bboxes_3d_num_points = []
-    combined_detection_difficulty_levels = []
+    single_frame_detection_difficulty_levels = []
     bboxes = []
     label_md = []
 
@@ -530,19 +559,15 @@ class WaymoOpenDatasetConverter(beam.DoFn):
       tracking_difficulty_levels += [label.tracking_difficulty_level]
       bboxes_3d_num_points += [label.num_lidar_points_in_box]
 
-      # Difficulty level is 0 if labeler did not say this was LEVEL_2.
-      if label.detection_difficulty_level == 0:
-        # Use points in box to compute difficulty level.
-        if bboxes_3d_num_points[-1] >= 5:
-          difficulty_level = 1
-        elif bboxes_3d_num_points[-1] >= 1 and bboxes_3d_num_points[-1] < 5:
-          difficulty_level = 2
-        else:
-          # Set difficulty level of "2" for boxes with no points in box.
-          difficulty_level = 2
-      else:
-        difficulty_level = label.detection_difficulty_level
-      combined_detection_difficulty_levels += [difficulty_level]
+      # Compute the single frame difficulty level per object.
+      human_labeler_difficulty = label.detection_difficulty_level
+      num_points = bboxes_3d_num_points[-1]
+      single_frame_detection_difficulty = (
+          self._single_frame_detection_difficulty(human_labeler_difficulty,
+                                                  num_points))
+      single_frame_detection_difficulty_levels += [
+          single_frame_detection_difficulty
+      ]
 
     bboxes = np.array(bboxes).reshape(-1)
     label_md = np.array(label_md).reshape(-1)
@@ -550,8 +575,8 @@ class WaymoOpenDatasetConverter(beam.DoFn):
     feature['label_ids'].bytes_list.value[:] = label_ids
     feature['detection_difficulties'].int64_list.value[:] = (
         detection_difficulty_levels)
-    feature['combined_detection_difficulties'].int64_list.value[:] = (
-        combined_detection_difficulty_levels)
+    feature['single_frame_detection_difficulties'].int64_list.value[:] = (
+        single_frame_detection_difficulty_levels)
     feature['tracking_difficulties'].int64_list.value[:] = (
         tracking_difficulty_levels)
     feature['bboxes_3d'].float_list.value[:] = list(bboxes)

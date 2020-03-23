@@ -137,7 +137,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'acceleration': input_labels.acceleration,
         # Fill the following in.
         'source_ids': source_ids,
-        'difficulties': input_labels.combined_detection_difficulties,
+        'difficulties': input_labels.single_frame_detection_difficulties,
         'unfiltered_bboxes_3d_mask': input_labels.unfiltered_bboxes_3d_mask,
         'run_segment': input_metadata.run_segment,
         'run_start_offset': input_metadata.run_start_offset,
@@ -224,7 +224,7 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       # for non-KITTI datasets should have a threshold lower than this value.
       heights = np.ones((num_classes, num_boxes)).astype(np.float32)
 
-      gt_mask = dec_out_dict.unfiltered_bboxes_3d_mask[batch_idx].astype(bool)
+      gt_mask = dec_out_dict.bboxes_3d_mask[batch_idx].astype(bool)
       gt_labels = dec_out_dict.labels[batch_idx][gt_mask]
       gt_bboxes = dec_out_dict.bboxes_3d[batch_idx][gt_mask]
       gt_difficulties = dec_out_dict.difficulties[batch_idx][gt_mask]
@@ -248,6 +248,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
                 detection_heights_in_pixels=heights,
             ))
 
+      # We still want to save all ground truth (even if it was filtered
+      # in some way) so we use the unfiltered_bboxes_3d_mask here.
       gt_save_mask = dec_out_dict.unfiltered_bboxes_3d_mask[batch_idx].astype(
           bool)
       pd_save_mask = dec_out_dict.per_class_valid_mask[batch_idx] > 0

@@ -415,7 +415,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     of points per box. Therefore, it is an incomplete definition of difficulty
     and will not correspond to the leaderboard if used to calculate metrics.
 
-    combined_detection_difficulties: [p.max_num_objects] - The per-box
+    single_frame_detection_difficulties: [p.max_num_objects] - The per-box
     difficulty level derived via both detection_difficulties (labeler defined)
     and metric defined (number of points in box).
 
@@ -457,7 +457,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     feature_map['labels'] = tf.VarLenFeature(dtype=tf.int64)
     feature_map['label_ids'] = tf.VarLenFeature(dtype=tf.string)
     feature_map['detection_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['combined_detection_difficulties'] = tf.VarLenFeature(
+    feature_map['single_frame_detection_difficulties'] = tf.VarLenFeature(
         dtype=tf.int64)
     feature_map['tracking_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
     feature_map['bboxes_3d'] = tf.VarLenFeature(dtype=tf.float32)
@@ -488,8 +488,9 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     detection_difficulties = py_utils.PadOrTrimTo(
         tf.cast(_Dense(features['detection_difficulties']), tf.int32),
         [p.max_num_objects])
-    combined_detection_difficulties = py_utils.PadOrTrimTo(
-        tf.cast(_Dense(features['combined_detection_difficulties']), tf.int32),
+    single_frame_detection_difficulties = py_utils.PadOrTrimTo(
+        tf.cast(
+            _Dense(features['single_frame_detection_difficulties']), tf.int32),
         [p.max_num_objects])
     tracking_difficulties = py_utils.PadOrTrimTo(
         tf.cast(_Dense(features['tracking_difficulties']), tf.int32),
@@ -503,17 +504,28 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
       bboxes_3d_mask *= tf.cast(bbox_mask, tf.float32)
 
     outputs = {
-        'labels': labels,
-        'label_ids': label_ids,
-        'detection_difficulties': detection_difficulties,
-        'combined_detection_difficulties': combined_detection_difficulties,
-        'tracking_difficulties': tracking_difficulties,
-        'bboxes_3d': bboxes_3d,
-        'bboxes_3d_mask': bboxes_3d_mask,
-        'bboxes_3d_num_points': bboxes_3d_num_points,
-        'unfiltered_bboxes_3d_mask': unfiltered_bboxes_3d_mask,
-        'speed': label_metadata[:, :2],
-        'acceleration': label_metadata[:, 2:],
+        'labels':
+            labels,
+        'label_ids':
+            label_ids,
+        'detection_difficulties':
+            detection_difficulties,
+        'single_frame_detection_difficulties':
+            single_frame_detection_difficulties,
+        'tracking_difficulties':
+            tracking_difficulties,
+        'bboxes_3d':
+            bboxes_3d,
+        'bboxes_3d_mask':
+            bboxes_3d_mask,
+        'bboxes_3d_num_points':
+            bboxes_3d_num_points,
+        'unfiltered_bboxes_3d_mask':
+            unfiltered_bboxes_3d_mask,
+        'speed':
+            label_metadata[:, :2],
+        'acceleration':
+            label_metadata[:, 2:],
     }
 
     return py_utils.NestedMap(outputs)
@@ -522,17 +534,28 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     """Shape of BBoxes."""
     p = self.params
     shapes = {
-        'labels': tf.TensorShape([p.max_num_objects]),
-        'label_ids': tf.TensorShape([p.max_num_objects]),
-        'detection_difficulties': tf.TensorShape([p.max_num_objects]),
-        'combined_detection_difficulties': tf.TensorShape([p.max_num_objects]),
-        'tracking_difficulties': tf.TensorShape([p.max_num_objects]),
-        'bboxes_3d': tf.TensorShape([p.max_num_objects, 7]),
-        'bboxes_3d_mask': tf.TensorShape([p.max_num_objects]),
-        'bboxes_3d_num_points': tf.TensorShape([p.max_num_objects]),
-        'unfiltered_bboxes_3d_mask': tf.TensorShape([p.max_num_objects]),
-        'speed': tf.TensorShape([p.max_num_objects, 2]),
-        'acceleration': tf.TensorShape([p.max_num_objects, 2])
+        'labels':
+            tf.TensorShape([p.max_num_objects]),
+        'label_ids':
+            tf.TensorShape([p.max_num_objects]),
+        'detection_difficulties':
+            tf.TensorShape([p.max_num_objects]),
+        'single_frame_detection_difficulties':
+            tf.TensorShape([p.max_num_objects]),
+        'tracking_difficulties':
+            tf.TensorShape([p.max_num_objects]),
+        'bboxes_3d':
+            tf.TensorShape([p.max_num_objects, 7]),
+        'bboxes_3d_mask':
+            tf.TensorShape([p.max_num_objects]),
+        'bboxes_3d_num_points':
+            tf.TensorShape([p.max_num_objects]),
+        'unfiltered_bboxes_3d_mask':
+            tf.TensorShape([p.max_num_objects]),
+        'speed':
+            tf.TensorShape([p.max_num_objects, 2]),
+        'acceleration':
+            tf.TensorShape([p.max_num_objects, 2])
     }
     return py_utils.NestedMap(shapes)
 
@@ -542,7 +565,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
     dtypes.labels = tf.int32
     dtypes.label_ids = tf.string
     dtypes.detection_difficulties = tf.int32
-    dtypes.combined_detection_difficulties = tf.int32
+    dtypes.single_frame_detection_difficulties = tf.int32
     dtypes.tracking_difficulties = tf.int32
     dtypes.bboxes_3d = tf.float32
     dtypes.bboxes_3d_mask = tf.float32
