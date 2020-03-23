@@ -285,16 +285,16 @@
 <span class="sd">detection_difficulties: int64 - DO NOT USE FOR EVALUATION. Indicates whether the</span>
 <span class="sd">labelers have determined that the object is of LEVEL_2 difficulty.</span>
 <span class="sd">Should be used jointly with num_points above to set the difficulty level,</span>
-<span class="sd">which we save in `combined_detection_difficulties`. Because it does not</span>
+<span class="sd">which we save in `single_frame_detection_difficulties`. Because it does not</span>
 <span class="sd">include information about the number of points in its calculation,</span>
 <span class="sd">it is an incomplete definition of difficulty and will not correspond to the</span>
 <span class="sd">leaderboard if used to calculate metrics.</span>
 
-<span class="sd">combined_detection_difficulties: int64 - Indicates the difficulty level as</span>
-<span class="sd">either UNKNOWN (0), LEVEL_1 (1), or LEVEL_2 (2). This is computed by</span>
-<span class="sd">combining a num points based criteria (LEVEL_1 is &gt;= 5 pts, LEVEL_2 is</span>
-<span class="sd">&gt;= 1 pt and &lt; 5 pts) and what the human labelers indicated was LEVEL_2, which</span>
-<span class="sd">is stored in the detection_difficulty_level field.</span>
+<span class="sd">single_frame_detection_difficulties: int64 - Indicates the difficulty level as</span>
+<span class="sd">either LEVEL_1 (1), or LEVEL_2 (2), or IGNORE (999). We first ignore all 3D</span>
+<span class="sd">labels without any LiDAR points. Next, we assign LEVEL_2 to examples where</span>
+<span class="sd">either the labeler annotates as hard or if the example has &lt;= 5 LiDAR points.</span>
+<span class="sd">Finally, the rest of the examples are assigned to LEVEL_1.</span>
 
 <span class="sd">tracking_difficulties: int64 - Indicates whether the labelers have determined</span>
 <span class="sd">that the tracked object is of LEVEL_2 difficulty.</span>
@@ -639,6 +639,35 @@
         <span class="n">points_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">)))</span>
     <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span><span class="n">points_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="WaymoOpenDatasetConverter._single_frame_detection_difficulty"><a class="viewcode-back" href="../../../../../../lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.html#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._single_frame_detection_difficulty">[docs]</a>  <span class="k">def</span> <span class="nf">_single_frame_detection_difficulty</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">human_difficulty</span><span class="p">,</span> <span class="n">num_points</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create the `single_frame_detection_difficulty` field.</span>
+
+<span class="sd">    When labeling, humans have the option to label a particular frame&#39;s bbox</span>
+<span class="sd">    as difficult, which overrides the normal number of points based</span>
+<span class="sd">    definition. Additionally, boxes with 0 points are ignored by the metric</span>
+<span class="sd">    code.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      human_difficulty: What the human raters labeled the difficulty as. This is</span>
+<span class="sd">        from the detection_difficulty_level field, and will be either 0 (default</span>
+<span class="sd">        value, which is UKNOWN in the proto enum) or 2 (LEVEL_2 difficulty).</span>
+<span class="sd">      num_points: The number of points in the bbox.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      single_frame_detection_difficulty: The single frame detection difficulty</span>
+<span class="sd">        per the Waymo Open Dataset paper&#39;s definition.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">num_points</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">999</span>
+
+    <span class="k">if</span> <span class="n">human_difficulty</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">human_difficulty</span>
+
+    <span class="k">if</span> <span class="n">num_points</span> <span class="o">&lt;=</span> <span class="mi">5</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">2</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="mi">1</span></div>
+
 <div class="viewcode-block" id="WaymoOpenDatasetConverter.add_labels"><a class="viewcode-back" href="../../../../../../lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.html#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter.add_labels">[docs]</a>  <span class="k">def</span> <span class="nf">add_labels</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feature</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add 3d bounding box labels into the output feature map.</span>
 
@@ -653,7 +682,7 @@
     <span class="n">detection_difficulty_levels</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">tracking_difficulty_levels</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">bboxes_3d_num_points</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">combined_detection_difficulty_levels</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">single_frame_detection_difficulty_levels</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">bboxes</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">label_md</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -675,19 +704,15 @@
       <span class="n">tracking_difficulty_levels</span> <span class="o">+=</span> <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">tracking_difficulty_level</span><span class="p">]</span>
       <span class="n">bboxes_3d_num_points</span> <span class="o">+=</span> <span class="p">[</span><span class="n">label</span><span class="o">.</span><span class="n">num_lidar_points_in_box</span><span class="p">]</span>
 
-      <span class="c1"># Difficulty level is 0 if labeler did not say this was LEVEL_2.</span>
-      <span class="k">if</span> <span class="n">label</span><span class="o">.</span><span class="n">detection_difficulty_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="c1"># Use points in box to compute difficulty level.</span>
-        <span class="k">if</span> <span class="n">bboxes_3d_num_points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">5</span><span class="p">:</span>
-          <span class="n">difficulty_level</span> <span class="o">=</span> <span class="mi">1</span>
-        <span class="k">elif</span> <span class="n">bboxes_3d_num_points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">bboxes_3d_num_points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">5</span><span class="p">:</span>
-          <span class="n">difficulty_level</span> <span class="o">=</span> <span class="mi">2</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="c1"># Set difficulty level of &quot;2&quot; for boxes with no points in box.</span>
-          <span class="n">difficulty_level</span> <span class="o">=</span> <span class="mi">2</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">difficulty_level</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">detection_difficulty_level</span>
-      <span class="n">combined_detection_difficulty_levels</span> <span class="o">+=</span> <span class="p">[</span><span class="n">difficulty_level</span><span class="p">]</span>
+      <span class="c1"># Compute the single frame difficulty level per object.</span>
+      <span class="n">human_labeler_difficulty</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">detection_difficulty_level</span>
+      <span class="n">num_points</span> <span class="o">=</span> <span class="n">bboxes_3d_num_points</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">single_frame_detection_difficulty</span> <span class="o">=</span> <span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_single_frame_detection_difficulty</span><span class="p">(</span><span class="n">human_labeler_difficulty</span><span class="p">,</span>
+                                                  <span class="n">num_points</span><span class="p">))</span>
+      <span class="n">single_frame_detection_difficulty_levels</span> <span class="o">+=</span> <span class="p">[</span>
+          <span class="n">single_frame_detection_difficulty</span>
+      <span class="p">]</span>
 
     <span class="n">bboxes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">label_md</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">label_md</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
@@ -695,8 +720,8 @@
     <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;label_ids&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">bytes_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="n">label_ids</span>
     <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;detection_difficulties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">detection_difficulty_levels</span><span class="p">)</span>
-    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;combined_detection_difficulties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">combined_detection_difficulty_levels</span><span class="p">)</span>
+    <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;single_frame_detection_difficulties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">single_frame_detection_difficulty_levels</span><span class="p">)</span>
     <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;tracking_difficulties&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">int64_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">tracking_difficulty_levels</span><span class="p">)</span>
     <span class="n">feature</span><span class="p">[</span><span class="s1">&#39;bboxes_3d&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">float_list</span><span class="o">.</span><span class="n">value</span><span class="p">[:]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bboxes</span><span class="p">)</span>

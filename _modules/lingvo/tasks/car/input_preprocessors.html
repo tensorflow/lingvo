@@ -538,13 +538,13 @@
   <span class="sd">&quot;&quot;&quot;Removes groundtruth boxes based on detection difficulty.</span>
 
 <span class="sd">  This preprocessor expects features to contain the following keys::</span>
-<span class="sd">    labels.combined_detection_difficulties of shape [..., L]</span>
+<span class="sd">    labels.single_frame_detection_difficulties of shape [..., L]</span>
 <span class="sd">    labels.labels of shape [..., L]</span>
 <span class="sd">    labels.bboxes_3d_mask of shape [..., L]</span>
 <span class="sd">    labels.unfiltered_bboxes_3d_mask of shape [..., L]</span>
 
 <span class="sd">  The preprocessor masks out the bboxes_3d_mask / labels based on whether</span>
-<span class="sd">  combined_detection_difficulties is greater than p.difficulty_threshold.</span>
+<span class="sd">  single_frame_detection_difficulties is greater than p.difficulty_threshold.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="FilterGroundTruthByDifficulty.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByDifficulty.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -562,7 +562,8 @@
 <div class="viewcode-block" id="FilterGroundTruthByDifficulty.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByDifficulty.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">bbox_is_valid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less_equal</span><span class="p">(</span>
-        <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">combined_detection_difficulties</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">difficulty_threshold</span><span class="p">)</span>
+        <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">single_frame_detection_difficulties</span><span class="p">,</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">difficulty_threshold</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
         <span class="n">bbox_is_valid</span><span class="p">,</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">,</span>
         <span class="n">p</span><span class="o">.</span><span class="n">background_id</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">labels</span><span class="p">))</span>

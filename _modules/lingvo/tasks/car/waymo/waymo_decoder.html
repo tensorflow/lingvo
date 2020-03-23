@@ -282,7 +282,7 @@
         <span class="s1">&#39;acceleration&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">acceleration</span><span class="p">,</span>
         <span class="c1"># Fill the following in.</span>
         <span class="s1">&#39;source_ids&#39;</span><span class="p">:</span> <span class="n">source_ids</span><span class="p">,</span>
-        <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">combined_detection_difficulties</span><span class="p">,</span>
+        <span class="s1">&#39;difficulties&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">single_frame_detection_difficulties</span><span class="p">,</span>
         <span class="s1">&#39;unfiltered_bboxes_3d_mask&#39;</span><span class="p">:</span> <span class="n">input_labels</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">,</span>
         <span class="s1">&#39;run_segment&#39;</span><span class="p">:</span> <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_segment</span><span class="p">,</span>
         <span class="s1">&#39;run_start_offset&#39;</span><span class="p">:</span> <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_start_offset</span><span class="p">,</span>
@@ -369,7 +369,7 @@
       <span class="c1"># for non-KITTI datasets should have a threshold lower than this value.</span>
       <span class="n">heights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">))</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-      <span class="n">gt_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
+      <span class="n">gt_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">bool</span><span class="p">)</span>
       <span class="n">gt_labels</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
       <span class="n">gt_difficulties</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_mask</span><span class="p">]</span>
@@ -393,6 +393,8 @@
                 <span class="n">detection_heights_in_pixels</span><span class="o">=</span><span class="n">heights</span><span class="p">,</span>
             <span class="p">))</span>
 
+      <span class="c1"># We still want to save all ground truth (even if it was filtered</span>
+      <span class="c1"># in some way) so we use the unfiltered_bboxes_3d_mask here.</span>
       <span class="n">gt_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">unfiltered_bboxes_3d_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span>
           <span class="nb">bool</span><span class="p">)</span>
       <span class="n">pd_save_mask</span> <span class="o">=</span> <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_valid_mask</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>

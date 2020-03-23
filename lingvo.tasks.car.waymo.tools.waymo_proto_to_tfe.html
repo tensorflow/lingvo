@@ -260,15 +260,15 @@ box.</p>
 <p>detection_difficulties: int64 - DO NOT USE FOR EVALUATION. Indicates whether the
 labelers have determined that the object is of LEVEL_2 difficulty.
 Should be used jointly with num_points above to set the difficulty level,
-which we save in <code class="xref py py-obj docutils literal notranslate"><span class="pre">combined_detection_difficulties</span></code>. Because it does not
+which we save in <code class="xref py py-obj docutils literal notranslate"><span class="pre">single_frame_detection_difficulties</span></code>. Because it does not
 include information about the number of points in its calculation,
 it is an incomplete definition of difficulty and will not correspond to the
 leaderboard if used to calculate metrics.</p>
-<p>combined_detection_difficulties: int64 - Indicates the difficulty level as
-either UNKNOWN (0), LEVEL_1 (1), or LEVEL_2 (2). This is computed by
-combining a num points based criteria (LEVEL_1 is &gt;= 5 pts, LEVEL_2 is
-&gt;= 1 pt and &lt; 5 pts) and what the human labelers indicated was LEVEL_2, which
-is stored in the detection_difficulty_level field.</p>
+<p>single_frame_detection_difficulties: int64 - Indicates the difficulty level as
+either LEVEL_1 (1), or LEVEL_2 (2), or IGNORE (999). We first ignore all 3D
+labels without any LiDAR points. Next, we assign LEVEL_2 to examples where
+either the labeler annotates as hard or if the example has &lt;= 5 LiDAR points.
+Finally, the rest of the examples are assigned to LEVEL_1.</p>
 <p>tracking_difficulties: int64 - Indicates whether the labelers have determined
 that the tracked object is of LEVEL_2 difficulty.</p>
 <p>nlz_proto_strs: string - Vector of NoLabelZone polygon protos.  Currently
@@ -374,6 +374,36 @@ car.open_dataset.CameraCalibration proto.</p></li>
 <dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_merged_pointcloud">
 <code class="sig-name descname">_get_merged_pointcloud</code><span class="sig-paren">(</span><em class="sig-param">feature</em>, <em class="sig-param">laser_names</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter._get_merged_pointcloud"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._get_merged_pointcloud" title="Permalink to this definition">¶</a></dt>
 <dd><p>From the feature list, get a merged pointcloud of all laser sources.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._single_frame_detection_difficulty">
+<code class="sig-name descname">_single_frame_detection_difficulty</code><span class="sig-paren">(</span><em class="sig-param">human_difficulty</em>, <em class="sig-param">num_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/waymo/tools/waymo_proto_to_tfe.html#WaymoOpenDatasetConverter._single_frame_detection_difficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.waymo.tools.waymo_proto_to_tfe.WaymoOpenDatasetConverter._single_frame_detection_difficulty" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the <code class="xref py py-obj docutils literal notranslate"><span class="pre">single_frame_detection_difficulty</span></code> field.</p>
+<p>When labeling, humans have the option to label a particular frame’s bbox
+as difficult, which overrides the normal number of points based
+definition. Additionally, boxes with 0 points are ignored by the metric
+code.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>human_difficulty</strong> – What the human raters labeled the difficulty as. This is
+from the detection_difficulty_level field, and will be either 0 (default
+value, which is UKNOWN in the proto enum) or 2 (LEVEL_2 difficulty).</p></li>
+<li><p><strong>num_points</strong> – The number of points in the bbox.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>The single frame detection difficulty</dt><dd><p>per the Waymo Open Dataset paper’s definition.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>single_frame_detection_difficulty</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="method">
