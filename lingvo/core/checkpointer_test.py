@@ -99,6 +99,10 @@ class CheckpointerTest(test_utils.TestCase):
       self.assertEqual(final_b, b)
       self.assertEqual(final_global_step, global_step)
 
+      # Restore from checkpoint will always work, even though vars are already
+      # initialized.
+      saver.Restore(sess)
+
   def testRestoreWithGlobalStepAlreadyInitialized(self):
     train_dir = os.path.join(self.get_temp_dir(),
                              'testRestoreWithGlobalStepAlreadyInitialized')
@@ -148,8 +152,13 @@ class CheckpointerTest(test_utils.TestCase):
       self.assertAlmostEqual(1.418741, b, places=5)
       self.assertEqual(0, global_step)
 
-      # Will still work, even though we initialized already.
-      saver.Restore(sess)
+      with self.assertRaises(AssertionError):
+        # When initializing from scratch, variables are expected to not already
+        # be initialized.
+        saver.Restore(sess)
+
+      # Unless force_reinitialize is used.
+      saver.Restore(sess, force_reinitialize=True)
 
   def testRestoreWithoutCheckpointInitializesVars(self):
     train_dir = os.path.join(self.get_temp_dir(),

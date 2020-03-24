@@ -91,7 +91,7 @@ class Checkpointer(object):
     self._saver.restore(sess, checkpoint_path)
     tf.logging.info('Load checkpoint done.')
     # Successfully restored from checkpoint.
-    uninitialized_var_names = self.GetUninitializedVars(sess)
+    uninitialized_var_names = self._GetUninitializedVarNames(sess)
     assert not uninitialized_var_names, uninitialized_var_names
 
   def MaybeSave(self, sess, gsteps):
@@ -122,84 +122,70 @@ class Checkpointer(object):
     path = tf.train.latest_checkpoint(self._train_dir)
     if path:
       self.RestoreFromPath(sess, path)
-    return path
+      return True
+    return False
 
-  def GetUninitializedVars(self, sess):
-    return sorted(list(sess.run(self._uninitialized_vars)))
+  def _GetUninitializedVarNames(self, sess):
+    uninitialized_var_names = sorted(list(sess.run(self._uninitialized_vars)))
+    # uninitialized_var_names is a list of strings without ":0" suffix.
+    # tf.report_uninitialized_variables returns binary strings.
+    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
+    return uninitialized_var_names
 
-  def Restore(self, sess):
+  def Restore(self, sess, force_reinitialize=False):
     """Restore from latest checkpoint if available, or initialize."""
     # Try and restore from the latest checkpoint.
     if self._RestoreFromLatestCheckpoint(sess):
       # Successfully restored from checkpoint.
-      uninitialized_var_names = self.GetUninitializedVars(sess)
+      uninitialized_var_names = self._GetUninitializedVarNames(sess)
       assert not uninitialized_var_names, uninitialized_var_names
       return
 
     # Otherwise we need to initialize.
-    if (self._params.train.init_from_checkpoint_rules or
-        any(task.params.train.init_from_checkpoint_rules
-            for task in self._model_tasks)):
-      for task in self._model.tasks:
-        tp = task.params.train
-        if tp.init_from_checkpoint_rules:
-          tf.logging.info('OverrideVarsFromCheckpoints %s',
-                          tp.init_from_checkpoint_rules)
-          py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
-                                               tp.init_from_checkpoint_rules)
+    uninitialized_var_names = self._GetUninitializedVarNames(sess)
+    tf.logging.info('Uninitialized var list: %s', uninitialized_var_names)
+    if not force_reinitialize:
+      # There should only be uninitialized variables if all variables are
+      # uninitialized - with the exception of global_step due to
+      # RestoreGlobalStepIfNeeded in the _LoopEnqueue of TrainerTpu.
+      all_var_names = [
+          six.ensure_binary(v.name[:-2]) for v in tf.global_variables()
+      ]
+      already_initialized_vars = (
+          set(all_var_names) - set(uninitialized_var_names))
+      already_initialized_vars.discard(b'global_step')
+      assert not already_initialized_vars, ('Already initialized vars: %s' %
+                                            sorted(already_initialized_vars))
 
-      if self._params.train.init_from_checkpoint_rules:
-        tp = self._params.train
+    # At this point all variables are uninitialized, so it is safe to run a
+    # global initializer.
+    sess.run(tf.global_variables_initializer())
+    tf.logging.info('Initialized all vars.')
+
+    # Restore specific variables based on init_from_checkpoint_rules.
+    for task in self._model.tasks:
+      tp = task.params.train
+      if tp.init_from_checkpoint_rules:
         tf.logging.info('OverrideVarsFromCheckpoints %s',
                         tp.init_from_checkpoint_rules)
         py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
                                              tp.init_from_checkpoint_rules)
 
-      uninitialized_var_names = self.GetUninitializedVars(sess)
-      if not uninitialized_var_names:
-        return
-
-      tf.logging.info('Remaining uninitialized vars: %s',
-                      uninitialized_var_names)
-
-    uninitialized_var_names = self.GetUninitializedVars(sess)
-    # Need to retrieve vars, removing ":0" suffix from names.
-    uninitialized_vars = [
-        v for v in tf.global_variables()
-        if six.ensure_binary(v.name[:-2]) in uninitialized_var_names
-    ]
-    tf.logging.info('Initialize variables: %s',
-                    sorted([v.name[:-2] for v in uninitialized_vars]))
-    sess.run(tf.variables_initializer(uninitialized_vars))
+    if self._params.train.init_from_checkpoint_rules:
+      tp = self._params.train
+      tf.logging.info('OverrideVarsFromCheckpoints %s',
+                      tp.init_from_checkpoint_rules)
+      py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
+                                           tp.init_from_checkpoint_rules)
 
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""
     assert not self._save_only
-    uninitialized_var_names = self.GetUninitializedVars(sess)
-    # uninitialized_var_names is a list of strings without ":0" suffix.
-    # tf.report_uninitialized_variables returns binary strings.
-    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
+    uninitialized_var_names = self._GetUninitializedVarNames(sess)
     if not uninitialized_var_names:
       # All variables are already initialized.
       return
 
-    tf.logging.info('Uninitialized var list: %s', uninitialized_var_names)
-
-    # There should only be uninitialized variables if all variables are
-    # uninitialized - with the exception of global_step due to
-    # RestoreGlobalStepIfNeeded in the _LoopEnqueue of TrainerTpu.
-    all_var_names = [
-        six.ensure_binary(v.name[:-2]) for v in tf.global_variables()
-    ]
-
-    already_initialized_vars = set(all_var_names) - set(uninitialized_var_names)
-
-    # Disregard if global_step is initialized for the aforementioned reason.
-    already_initialized_vars.discard(b'global_step')
-
-    assert not already_initialized_vars, 'Already initialized vars: %s' % sorted(
-        already_initialized_vars)
-    # Restore from checkpoint
     self.Restore(sess)
 
   def RestoreGlobalStepIfNeeded(self, sess):
@@ -209,7 +195,7 @@ class Checkpointer(object):
       sess: tf.Session.
     """
     assert not self._save_only
-    uninitialized_vars = self.GetUninitializedVars(sess)
+    uninitialized_vars = self._GetUninitializedVarNames(sess)
     if six.ensure_binary('global_step') not in uninitialized_vars:
       return
 
