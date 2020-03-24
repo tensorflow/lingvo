@@ -963,7 +963,7 @@
         <span class="c1"># For b/134415393 -- better to initialize to a known state than</span>
         <span class="c1"># rely on what&#39;s in the session on the trainer/TPU worker.</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainerTpu: Force restore or initialize.&#39;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
       <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
