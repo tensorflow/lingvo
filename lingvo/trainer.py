@@ -815,7 +815,10 @@ class TrainerTpu(base_runner.BaseRunner):
         sess.run(tf.global_variables_initializer())
 
       if FLAGS.checkpoint_in_trainer_tpu:
-        self.checkpointer.RestoreIfNeeded(sess)
+        # For b/134415393 -- better to initialize to a known state than
+        # rely on what's in the session on the trainer/TPU worker.
+        tf.logging.info('TrainerTpu: Force restore or initialize.')
+        self.checkpointer.Restore(sess)
 
       gsteps = py_utils.GetGlobalStep()
       global_step = sess.run(gsteps)

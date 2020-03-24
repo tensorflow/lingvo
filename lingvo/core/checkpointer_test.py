@@ -127,6 +127,30 @@ class CheckpointerTest(test_utils.TestCase):
     self.assertFalse(
         os.path.isfile(os.path.join(train_dir, 'ckpt-00000000.index')))
 
+  def testRestore(self):
+    train_dir = os.path.join(self.get_temp_dir(), 'testRestore')
+    os.mkdir(train_dir)
+    p = base_model.SingleTaskModel.Params(LinearModel.Params())
+    p.input = base_input_generator.BaseInputGenerator.Params()
+
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      saver = checkpointer.Checkpointer(train_dir, model)
+
+      with self.assertRaises(tf.errors.FailedPreconditionError):
+        sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+
+      saver.RestoreIfNeeded(sess)
+      w, b, global_step = sess.run(
+          [model.GetTask().vars.w,
+           model.GetTask().vars.b, model.global_step])
+      self.assertAllClose([0.38615, 2.975221, -0.852826], w)
+      self.assertAlmostEqual(1.418741, b, places=5)
+      self.assertEqual(0, global_step)
+
+      # Will still work, even though we initialized already.
+      saver.Restore(sess)
+
   def testRestoreWithoutCheckpointInitializesVars(self):
     train_dir = os.path.join(self.get_temp_dir(),
                              'testRestoreWithoutCheckpointInitializesVars')
