@@ -694,7 +694,7 @@ class Conv2DLayer(BaseConv2DLayer):
         inputs,
         filter_w,
         strides=strides,
-        dilation_rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
 
@@ -766,7 +766,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayer):
         inputs,
         filter=filter_w,
         strides=[1, strides[0], strides[1], 1],
-        rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
 
@@ -3054,7 +3054,6 @@ class SimpleFullSoftmax(SoftmaxLayer):
           inputs=self._GetInputs(inputs),
           num_sampled=p.num_sampled,
           num_classes=p.num_classes,
-          partition_strategy='div',
           seed=p.random_seed)
       # Avoid computing logits; per_example_argmax is going to be always right.
       per_example_argmax = tf.identity(class_ids)
@@ -3417,7 +3416,7 @@ class DropoutLayer(base_layer.BaseLayer):
   def _Dropout(self, theta, inputs, noise_shape):
     return tf.nn.dropout(
         inputs,
-        keep_prob=self.params.keep_prob,
+        rate=1 - self.params.keep_prob,
         noise_shape=noise_shape,
         seed=self.params.random_seed)
 
@@ -4353,7 +4352,7 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
               padding=p.padding))
       return tf.nn.conv2d(
           input=x,
-          filter=theta.w,
+          filters=theta.w,
           strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
           padding=p.padding,
           dilations=[1, p.dilations[0], p.dilations[1], 1],

@@ -617,7 +617,7 @@ class RnnLm(RnnLmNoEmbedding):
     if p.embedding_dropout_keep_prob < 1.0 and not self.do_eval:
       activation = tf.nn.dropout(
           activation,
-          keep_prob=p.embedding_dropout_keep_prob,
+          rate=1 - p.embedding_dropout_keep_prob,
           seed=p.embedding_dropout_seed)
     return super(RnnLm, self).FProp(theta, activation, paddings, state0, labels,
                                     direct_features)
@@ -702,7 +702,7 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
     if p.embedding_dropout_keep_prob < 1.0 and not self.do_eval:
       activation = tf.nn.dropout(
           activation,
-          keep_prob=p.embedding_dropout_keep_prob,
+          rate=1 - p.embedding_dropout_keep_prob,
           seed=p.embedding_dropout_seed)
     return super(ConditionalRnnLm, self).FProp(theta, activation, paddings,
                                                state0, labels, direct_features)

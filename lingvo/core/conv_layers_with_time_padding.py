@@ -93,7 +93,7 @@ def ComputeConvOutputPadding(paddings, window, stride,
       tf.expand_dims(paddings, -1),
       [window],
       'MAX',
-      padding_algorithm,
+      padding=padding_algorithm,
       strides=[stride],
   )
   return tf.squeeze(out_padding, -1)
@@ -293,7 +293,7 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
         inputs,
         filter_w,
         strides=p.filter_stride,
-        dilation_rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding='SAME')
 
@@ -326,7 +326,7 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
         inputs,
         filter_w,
         strides=p.filter_stride,
-        dilation_rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
 
@@ -397,7 +397,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
         inputs,
         filter_w,
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
-        rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding='SAME')
 
@@ -429,7 +429,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
         inputs,
         filter_w,
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
-        rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
 
@@ -487,7 +487,7 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
             py_utils.GenerateStepSeedPair(p, theta.global_step))
       else:
         filter_w = tf.nn.dropout(
-            filter_w, 1.0 - p.dropconnect_prob, seed=p.random_seed)
+            filter_w, rate=p.dropconnect_prob, seed=p.random_seed)
 
     # Tie the parameters of every subsequent number of weight_tiling_factor
     # channels.
@@ -521,7 +521,7 @@ class CausalNormalizedDepthwiseConv2DLayer(NormalizedDepthwiseConv2DLayer):
         inputs,
         filter_w,
         strides=[1, p.filter_stride[0], p.filter_stride[1], 1],
-        rate=p.dilation_rate,
+        dilations=p.dilation_rate,
         data_format='NHWC',
         padding=padding_algorithm)
 

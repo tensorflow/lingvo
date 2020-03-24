@@ -82,7 +82,7 @@ class BaseClassifier(base_model.BaseTask):
     n, c = tf.unstack(tf.shape(logits), 2)
     labels = py_utils.HasShape(labels, [n])
     weights = py_utils.HasShape(weights, [n])
-    correct = tf.nn.in_top_k(logits, labels, k)
+    correct = tf.nn.in_top_k(targets=labels, predictions=logits, k=k)
     return tf.reduce_sum(tf.cast(correct, weights.dtype) *
                          weights) / tf.maximum(1e-8, tf.reduce_sum(weights))
 
@@ -166,8 +166,7 @@ class ModelV1(BaseClassifier):
       act, _ = self.pool[i].FProp(theta.pool[i], act)
       # Dropout (optional)
       if p.dropout_prob > 0.0 and not self.do_eval:
-        act = tf.nn.dropout(
-            act, keep_prob=1.0 - p.dropout_prob, seed=p.random_seed)
+        act = tf.nn.dropout(act, rate=p.dropout_prob, seed=p.random_seed)
     # FC
     act = self.fc.FProp(theta.fc, tf.reshape(act, [batch, -1]))
 

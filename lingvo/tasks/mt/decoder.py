@@ -490,7 +490,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     if self.do_eval or p.dropout_prob == 0.0:
       return x_in
     else:
-      return tf.nn.dropout(x_in, 1.0 - p.dropout_prob)
+      return tf.nn.dropout(x_in, rate=p.dropout_prob)
 
   def ApplyClipping(self, theta, x):
     if self.cc_schedule:

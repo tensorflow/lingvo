@@ -69,7 +69,7 @@ def _ApplyAttentionDropout(params, x, global_step):
                                          seeds)
   else:
     return tf.nn.dropout(
-        x, 1.0 - params.atten_dropout_prob, seed=params.random_seed)
+        x, rate=params.atten_dropout_prob, seed=params.random_seed)
 
 
 def SafeCumprod(x, *args, **kwargs):

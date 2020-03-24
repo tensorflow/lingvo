@@ -412,7 +412,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       seed = p.random_seed
       if seed and extra_seed:
         seed += extra_seed
-      return tf.nn.dropout(x_in, 1.0 - p.dropout_prob, seed=seed)
+      return tf.nn.dropout(x_in, rate=p.dropout_prob, seed=seed)
 
   def _InitAttention(self, theta, encoder_outputs):
     """Intializes attention and returns a NestedMap with those values."""

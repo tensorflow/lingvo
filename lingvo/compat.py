@@ -171,18 +171,11 @@ moving_average_variables = tf1.moving_average_variables
 multinomial = tf1.multinomial
 name_scope = tf1.name_scope
 
-from tensorflow.python.ops import nn_ops, ctc_ops, nn_impl, embedding_ops  # pylint: disable=g-import-not-at-top, g-multiple-import, g-direct-tensorflow-import
-nn.conv2d = nn_ops.conv2d
-nn.convolution = nn_ops.convolution
-nn.ctc_beam_search_decoder = ctc_ops.ctc_beam_search_decoder
-nn.depthwise_conv2d = nn_impl.depthwise_conv2d
-nn.dropout = nn_ops.dropout
+from tensorflow.python.ops import embedding_ops  # pylint: disable=g-import-not-at-top, g-direct-tensorflow-import
+# v2 doesn't have the arg 'partition_strategy' in the API, and
+# uses 'partition_strategy="div"' by default;
+# while v1 uses 'partition_strategy="mod"' by default. Keep this for now.
 nn.embedding_lookup = embedding_ops.embedding_lookup
-nn.fused_batch_norm = nn_impl.fused_batch_norm
-nn.in_top_k = nn_ops.in_top_k
-nn.pool = nn_ops.pool
-nn.sampled_softmax_loss = nn_impl.sampled_softmax_loss
-nn.xw_plus_b = nn_ops.xw_plus_b
 OptimizerOptions = tf1.OptimizerOptions
 placeholder = tf1.placeholder
 placeholder_with_default = tf1.placeholder_with_default
