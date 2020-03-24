@@ -238,7 +238,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span>
       <span class="p">[</span><span class="n">window</span><span class="p">],</span>
       <span class="s1">&#39;MAX&#39;</span><span class="p">,</span>
-      <span class="n">padding_algorithm</span><span class="p">,</span>
+      <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">,</span>
       <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="n">stride</span><span class="p">],</span>
   <span class="p">)</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">out_padding</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span></div>
@@ -438,7 +438,7 @@
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">filter_w</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">,</span>
-        <span class="n">dilation_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">)</span></div></div>
 
@@ -471,7 +471,7 @@
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">filter_w</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">,</span>
-        <span class="n">dilation_rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div></div>
 
@@ -542,7 +542,7 @@
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">filter_w</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="n">rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;SAME&#39;</span><span class="p">)</span></div></div>
 
@@ -574,7 +574,7 @@
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">filter_w</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="n">rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div></div>
 
@@ -632,7 +632,7 @@
             <span class="n">py_utils</span><span class="o">.</span><span class="n">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">))</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">filter_w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span>
-            <span class="n">filter_w</span><span class="p">,</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropconnect_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+            <span class="n">filter_w</span><span class="p">,</span> <span class="n">rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dropconnect_prob</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
 
     <span class="c1"># Tie the parameters of every subsequent number of weight_tiling_factor</span>
     <span class="c1"># channels.</span>
@@ -666,7 +666,7 @@
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">filter_w</span><span class="p">,</span>
         <span class="n">strides</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="mi">1</span><span class="p">],</span>
-        <span class="n">rate</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">,</span>
         <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="n">padding_algorithm</span><span class="p">)</span></div></div>
 

@@ -316,18 +316,11 @@
 <span class="n">multinomial</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">multinomial</span>
 <span class="n">name_scope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">name_scope</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">nn_ops</span><span class="p">,</span> <span class="n">ctc_ops</span><span class="p">,</span> <span class="n">nn_impl</span><span class="p">,</span> <span class="n">embedding_ops</span>  <span class="c1"># pylint: disable=g-import-not-at-top, g-multiple-import, g-direct-tensorflow-import</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">conv2d</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">conv2d</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">convolution</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">convolution</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">ctc_beam_search_decoder</span> <span class="o">=</span> <span class="n">ctc_ops</span><span class="o">.</span><span class="n">ctc_beam_search_decoder</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">depthwise_conv2d</span> <span class="o">=</span> <span class="n">nn_impl</span><span class="o">.</span><span class="n">depthwise_conv2d</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">dropout</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">dropout</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>  <span class="c1"># pylint: disable=g-import-not-at-top, g-direct-tensorflow-import</span>
+<span class="c1"># v2 doesn&#39;t have the arg &#39;partition_strategy&#39; in the API, and</span>
+<span class="c1"># uses &#39;partition_strategy=&quot;div&quot;&#39; by default;</span>
+<span class="c1"># while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default. Keep this for now.</span>
 <span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">fused_batch_norm</span> <span class="o">=</span> <span class="n">nn_impl</span><span class="o">.</span><span class="n">fused_batch_norm</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">in_top_k</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">pool</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">pool</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">sampled_softmax_loss</span> <span class="o">=</span> <span class="n">nn_impl</span><span class="o">.</span><span class="n">sampled_softmax_loss</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">xw_plus_b</span> <span class="o">=</span> <span class="n">nn_ops</span><span class="o">.</span><span class="n">xw_plus_b</span>
 <span class="n">OptimizerOptions</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">OptimizerOptions</span>
 <span class="n">placeholder</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">placeholder</span>
 <span class="n">placeholder_with_default</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">placeholder_with_default</span>
