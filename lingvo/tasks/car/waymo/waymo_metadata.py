@@ -93,4 +93,4 @@ class WaymoMetadata(evaluation_metadata.EvaluationMetadata):
 
   def MinHeight2D(self):
     """Minimum height of detections to be evaluated."""
-    return {'default': 0}
+    return {level: 0 for level in self.DifficultyLevels()}
