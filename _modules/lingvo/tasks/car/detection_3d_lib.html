@@ -808,6 +808,9 @@
     <span class="n">mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">num_valid</span><span class="p">]),</span>
          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">max_output_size</span> <span class="o">-</span> <span class="n">num_valid</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="n">nms_index_padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">nms_index_padded</span><span class="p">,</span>
+                                <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">nms_index_padded</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">nms_index_padded</span><span class="p">,</span> <span class="n">mask</span></div>
 
 <div class="viewcode-block" id="Utils3D.BatchedNMSIndices"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_3d_lib.html#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedNMSIndices">[docs]</a>  <span class="k">def</span> <span class="nf">BatchedNMSIndices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
