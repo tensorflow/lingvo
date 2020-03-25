@@ -663,6 +663,9 @@ class Utils3D(object):
     mask = tf.concat(
         [tf.ones([num_valid]),
          tf.zeros([max_output_size - num_valid])], axis=0)
+
+    nms_index_padded = tf.where(mask > 0, nms_index_padded,
+                                tf.zeros_like(nms_index_padded))
     return nms_index_padded, mask
 
   def BatchedNMSIndices(self,
