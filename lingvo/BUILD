@@ -294,6 +294,7 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",
+        "//lingvo/core:ml_perf_log",
         "//lingvo/core:multitask_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:task_scheduler",

@@ -1577,6 +1577,7 @@ py_library(
         ":cluster_factory",
         ":hyperparams",
         ":metrics",
+        ":ml_perf_log",
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",
@@ -1665,5 +1666,20 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
+    ],
+)
+
+py_library(
+    name = "ml_perf_log",
+    srcs = ["ml_perf_log.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "ml_perf_log_test",
+    srcs = ["ml_perf_log_test.py"],
+    deps = [
+        ":ml_perf_log",
+        "//lingvo:compat",
     ],
 )
