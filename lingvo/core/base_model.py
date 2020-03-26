@@ -86,19 +86,6 @@ class BaseTask(base_layer.BaseLayer):
 
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
 
-    mlp = p.ml_perf
-    mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
-    mlp.Define('decoder_metric_name', None,
-               'Name of the decoder metric to report for compliance log.')
-    mlp.Define('decoder_metric_success_threshold', None,
-               'Benchmark run must exceed this value to succeeed.')
-    mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
-    mlp.Define('global_batch_size', None, 'Global batch size.')
-    mlp.Define('max_sequence_length', None, 'Maximum sequence length.')
-    mlp.Define('optimizer_name', None, 'Optimizer used.')
-    mlp.Define('base_learning_rate', None, 'Base learning rate.')
-    mlp.Define('warmup_steps', None, 'Number of warm-up steps.')
-
     tp = p.train
     tp.Define(
         'start_up_delay_steps', 200, 'i-th replica starts training after '

@@ -159,7 +159,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       assert len(ps_params_dict) == 1
       self._model_task_name = list(ps_params_dict.keys())[0]
       self._single_task_mode = True
-      self._ml_perf = train_cfg.task.ml_perf
     elif issubclass(train_cfg.cls, base_model.MultiTaskModel):
       tf.logging.info('multi_task_model')
 
@@ -195,6 +194,8 @@ class ExecutorTpu(base_runner.BaseRunner):
       tf.logging.info('program_schedule_params: %s',
                       program_schedule_params.ToText())
       self._programs += ps.Programs()
+      if program_schedule_params.ml_perf.benchmark_name is not None:
+        self._ml_perf = program_schedule_params.ml_perf
 
     tf.logging.info('num_programs: %d', len(self._programs))
 

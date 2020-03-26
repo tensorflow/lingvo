@@ -74,15 +74,17 @@ class BaseProgram(object):
     p.Define('name', 'base_program', 'Program name.')
     p.Define('task_name', None,
              'If multi-task, what the high-level task name is')
+    p.Define('ml_perf', None, 'MLPerf config')
+
     return p
 
   def __init__(self, params):
     self.params = params.Copy()
     p = self.params
     self._task_params = p.task
-    if self._task_params.task.ml_perf.benchmark_name is not None:
+    if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
       self._ml_perf_log = True
-      self._ml_perf = self._task_params.task.ml_perf
+      self._ml_perf = p.ml_perf
       self._ml_perf_epoch = -1
     else:
       self._ml_perf_log = False
@@ -539,6 +541,21 @@ class SimpleProgramSchedule(object):
     p.Define('eval_programs', [], 'List of eval program params.')
     p.Define('num_splits_per_client', None, '')
     p.Define('dataset_names', [], 'List of all dataset names.')
+
+    p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
+
+    mlp = p.ml_perf
+    mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
+    mlp.Define('decoder_metric_name', None,
+               'Name of the decoder metric to report for compliance log.')
+    mlp.Define('decoder_metric_success_threshold', None,
+               'Benchmark run must exceed this value to succeeed.')
+    mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
+    mlp.Define('global_batch_size', None, 'Global batch size.')
+    mlp.Define('max_sequence_length', None, 'Maximum sequence length.')
+    mlp.Define('optimizer_name', None, 'Optimizer used.')
+    mlp.Define('base_learning_rate', None, 'Base learning rate.')
+    mlp.Define('warmup_steps', None, 'Number of warm-up steps.')
     return p
 
   def __init__(self, params):
@@ -553,12 +570,14 @@ class SimpleProgramSchedule(object):
     p.train_program.task = p.task_dict[p.train_program.dataset_name]
     p.train_program.num_splits_per_client = p.num_splits_per_client
     p.train_program.task_name = p.task_name
+    p.train_program.ml_perf = p.ml_perf.Copy()
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
       eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
+      eval_program_params.ml_perf = p.ml_perf.Copy()
 
     self.eval_programs = []
     self.train_program = p.train_program.Instantiate()
