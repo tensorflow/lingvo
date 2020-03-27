@@ -38,6 +38,8 @@ from six.moves import range
 from six.moves import zip
 
 # pylint:disable=g-direct-tensorflow-import
+from tensorflow.core.protobuf.tpu import compilation_result_pb2 as tpu_compilation_result
+from tensorflow.python.tpu import tpu
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.tpu import training_loop as tpu_training_loop
 from tensorflow.python.tpu.ops import tpu_ops
@@ -90,6 +92,7 @@ class BaseProgram(object):
       self._ml_perf_log = False
     self._logdir = p.logdir
     self._task_name = p.task_name
+    self._program_name = ''
 
     # Program dirs are where the summaries are written to.
     if p.task_name:
@@ -111,6 +114,8 @@ class BaseProgram(object):
 
     # Thread Pool for infeed.
     self._infeed_pool = multiprocessing.dummy.Pool(1)
+
+    self._compile_op = None
 
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
@@ -134,6 +139,18 @@ class BaseProgram(object):
     @tpu_function.on_device_training_loop etc.
     """
     raise NotImplementedError()
+
+  def Compile(self, sess):
+    """Compile the program using the given session handle."""
+    if self._compile_op is not None:
+      tf.logging.info('Compiling %s', self._program_name)
+      result = sess.run(self._compile_op)
+      proto = tpu_compilation_result.CompilationResultProto()
+      proto.ParseFromString(result)
+      if proto.status_error_message:
+        tf.logging.fatal('Compilation failed: {}'.format(
+            proto.status_error_message))
+      tf.logging.info('Compiling %s done.', self._program_name)
 
   def Run(self, sess):
     """Execute the program using the given session handle."""
@@ -159,6 +176,7 @@ class TrainProgram(BaseProgram):
   def __init__(self, params):
     super(TrainProgram, self).__init__(params)
     self._step_rate_tracker = summary_utils.StepRateTracker()
+    self._program_name = 'TrainProgram'
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -289,7 +307,7 @@ class TrainProgram(BaseProgram):
         # Final metrics are the avg across self._steps_per_loop steps.
         return self._eval_metrics.FinalizeMetrics(loop_result)
 
-      batch_parallel_res = tf.tpu.batch_parallel(
+      self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
           TpuTrain,
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
@@ -355,6 +373,10 @@ class EvalProgram(BaseProgram):
   evaluation.
   """
 
+  def __init__(self, params):
+    super(EvalProgram, self).__init__(params)
+    self._program_name = 'EvalProgram'
+
   def BuildTpuSubgraph(self):
     tf.logging.info('EvalProgram BuildTpuSubGraph')
     with py_utils.OpportunisticVariableReuseScope(True):
@@ -390,7 +412,7 @@ class EvalProgram(BaseProgram):
         # Final metrics are the avg across self._steps_per_loop steps.
         return self._eval_metrics.FinalizeMetrics(loop_result)
 
-      batch_parallel_res = tf.tpu.batch_parallel(
+      self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
           TpuEval,
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
@@ -422,6 +444,10 @@ class DecodeProgram(BaseProgram):
   decoder run.
   """
 
+  def __init__(self, params):
+    super(DecodeProgram, self).__init__(params)
+    self._program_name = 'DecodeProgram'
+
   def _WriteSummaries(self, job_name, global_step, summaries):
     for unused_name, summary in sorted(summaries.items()):
       self._summary_writer.add_summary(summary, global_step)
@@ -446,7 +472,7 @@ class DecodeProgram(BaseProgram):
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()
 
-    batch_parallel_res = tf.tpu.batch_parallel(
+    self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
         _DecodeFn,
         num_shards=self.data_parallelism,
         device_assignment=py_utils.GetTpuDeviceAssignment())

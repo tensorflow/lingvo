@@ -290,11 +290,12 @@ class ExecutorTpu(base_runner.BaseRunner):
       # Initialize the variables first, if needed.
       for program in self._programs:
         program.RestoreIfNeeded(sess)
+        program.Compile(sess)
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
 
       if self._ml_perf_log:
-        # Post-initialize. Ideally, we want this post-compilation as well.
+        # Post-initialize/compile.
         mlp_log.mlperf_print(key='run_start', value=None)
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
