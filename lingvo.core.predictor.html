@@ -177,11 +177,14 @@
 </div>
 <dl class="function">
 <dt id="lingvo.core.predictor.LoadInferenceGraph">
-<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em class="sig-param">path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">clear_device_placement=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse the given path as an InferenceGraph proto.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><p><strong>path</strong> – The path to the file to load.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> – The path to the file to load.</p></li>
+<li><p><strong>clear_device_placement</strong> – If true, clears device field from nodes in graph.</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>An InferenceGraph object.</p>
@@ -191,7 +194,7 @@
 
 <dl class="class">
 <dt id="lingvo.core.predictor.Predictor">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param">inference_graph</em>, <em class="sig-param">subgraph_name=None</em>, <em class="sig-param">checkpoint=None</em>, <em class="sig-param">device_type='gpu'</em>, <em class="sig-param">tf_master=''</em>, <em class="sig-param">session_config=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param">inference_graph</em>, <em class="sig-param">subgraph_name=None</em>, <em class="sig-param">checkpoint=None</em>, <em class="sig-param">device_type='gpu'</em>, <em class="sig-param">tf_master=''</em>, <em class="sig-param">session_config=None</em>, <em class="sig-param">clear_device_placement=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Loads a model and does inference.</p>
 <p>See model.Inference() documentation for list of fetches and feeds.</p>
@@ -205,6 +208,8 @@
 <li><p><strong>tf_master</strong> – The tf_master.</p></li>
 <li><p><strong>session_config</strong> – A tf.SessionConfig to use. By default
 py_utils.SessionConfig() is used.</p></li>
+<li><p><strong>clear_device_placement</strong> – If set, clears device field of loaded inference
+graph.</p></li>
 </ul>
 </dd>
 </dl>
