@@ -40,11 +40,12 @@ from six.moves import zip
 from google.protobuf import text_format
 
 
-def LoadInferenceGraph(path):
+def LoadInferenceGraph(path, clear_device_placement=False):
   """Parse the given path as an InferenceGraph proto.
 
   Args:
     path: The path to the file to load.
+    clear_device_placement: If true, clears device field from nodes in graph.
 
   Returns:
     An InferenceGraph object.
@@ -52,6 +53,12 @@ def LoadInferenceGraph(path):
   inference_graph = inference_graph_pb2.InferenceGraph()
   with tf.gfile.Open(path, "r") as f:
     text_format.Parse(f.read(), inference_graph)
+  if clear_device_placement:
+    for node in inference_graph.graph_def.node:
+      node.ClearField("device")
+    for function in inference_graph.graph_def.library.function:
+      for node_def in function.node_def:
+        node_def.ClearField("device")
   return inference_graph
 
 
@@ -68,6 +75,8 @@ class Predictor(object):
     tf_master: The tf_master.
     session_config: A tf.SessionConfig to use. By default
       py_utils.SessionConfig() is used.
+    clear_device_placement: If set, clears device field of loaded inference
+      graph.
   """
 
   def __init__(self,
@@ -76,12 +85,14 @@ class Predictor(object):
                checkpoint=None,
                device_type="gpu",
                tf_master="",
-               session_config=None):
+               session_config=None,
+               clear_device_placement=False):
     assert device_type in ["cpu", "gpu", "tpu"]
     subgraph_name = subgraph_name or "default"
     if isinstance(inference_graph, six.string_types):
       tf.logging.info("Reading inference graph from %s.", inference_graph)
-      inference_graph = LoadInferenceGraph(inference_graph)
+      inference_graph = LoadInferenceGraph(inference_graph,
+                                           clear_device_placement)
     self._inference_graph = inference_graph
     self._checkpoint = checkpoint
     self._device_type = device_type
@@ -96,6 +107,13 @@ class Predictor(object):
       self._saver = tf.train.Saver(saver_def=inference_graph.saver_def)
       with tf.device("/%s:0" % "cpu" if device_type == "tpu" else device_type):
         tf.import_graph_def(inference_graph.graph_def, name="")
+      if device_type == "tpu":
+        # If no tpu init op exists, create it here.
+        try:
+          self._graph.get_operation_by_name("tpu_init_op")
+        except KeyError:
+          tf.group(tf.tpu.initialize_system(), name="tpu_init_op")
+
       self._graph.finalize()
 
     if inference_graph.subgraphs:
