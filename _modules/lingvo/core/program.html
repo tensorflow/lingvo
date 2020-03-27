@@ -183,6 +183,8 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf.tpu</span> <span class="kn">import</span> <span class="n">compilation_result_pb2</span> <span class="k">as</span> <span class="n">tpu_compilation_result</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">training_loop</span> <span class="k">as</span> <span class="n">tpu_training_loop</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu.ops</span> <span class="kn">import</span> <span class="n">tpu_ops</span>
@@ -235,6 +237,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
 
     <span class="c1"># Program dirs are where the summaries are written to.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">:</span>
@@ -256,6 +259,8 @@
 
     <span class="c1"># Thread Pool for infeed.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span> <span class="o">=</span> <span class="n">multiprocessing</span><span class="o">.</span><span class="n">dummy</span><span class="o">.</span><span class="n">Pool</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="BaseProgram._SummarizeValue"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram._SummarizeValue">[docs]</a>  <span class="k">def</span> <span class="nf">_SummarizeValue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">steps</span><span class="p">,</span> <span class="n">tag</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span>
@@ -279,6 +284,18 @@
 <span class="sd">    @tpu_function.on_device_training_loop etc.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseProgram.Compile"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Compile">[docs]</a>  <span class="k">def</span> <span class="nf">Compile</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compile the program using the given session handle.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Compiling </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span>
+      <span class="n">result</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">)</span>
+      <span class="n">proto</span> <span class="o">=</span> <span class="n">tpu_compilation_result</span><span class="o">.</span><span class="n">CompilationResultProto</span><span class="p">()</span>
+      <span class="n">proto</span><span class="o">.</span><span class="n">ParseFromString</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">proto</span><span class="o">.</span><span class="n">status_error_message</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Compilation failed: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">proto</span><span class="o">.</span><span class="n">status_error_message</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Compiling </span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Execute the program using the given session handle.&quot;&quot;&quot;</span>
@@ -304,6 +321,7 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">TrainProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;TrainProgram&#39;</span>
 
 <div class="viewcode-block" id="TrainProgram._OutfeedEnqueue"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram._OutfeedEnqueue">[docs]</a>  <span class="k">def</span> <span class="nf">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">):</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">per_example_tensors</span><span class="p">:</span>
@@ -434,7 +452,7 @@
         <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
-      <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">batch_parallel</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
           <span class="n">TpuTrain</span><span class="p">,</span>
           <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
           <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
@@ -500,6 +518,10 @@
 <span class="sd">  evaluation.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">EvalProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;EvalProgram&#39;</span>
+
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EvalProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
@@ -535,7 +557,7 @@
         <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
-      <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">batch_parallel</span><span class="p">(</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
           <span class="n">TpuEval</span><span class="p">,</span>
           <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
           <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
@@ -567,6 +589,10 @@
 <span class="sd">  decoder run.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
+
 <div class="viewcode-block" id="DecodeProgram._WriteSummaries"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram._WriteSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">_WriteSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">unused_name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
@@ -591,7 +617,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
           <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
-    <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">batch_parallel</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
         <span class="n">_DecodeFn</span><span class="p">,</span>
         <span class="n">num_shards</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span><span class="p">,</span>
         <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
