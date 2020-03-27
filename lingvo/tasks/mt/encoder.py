@@ -536,6 +536,8 @@ class TransformerEncoder(base_layer.BaseLayer):
                      1.0 / math.sqrt(1024)),
                  scale_sqrt_depth=True), 'Embedding layer params.')
 
+    p.Define('shared_emb', None, 'Embedding shared with Decoder.')
+
     # Positional embedding related
     p.Define(
         'position_emb',
@@ -574,6 +576,12 @@ class TransformerEncoder(base_layer.BaseLayer):
     super(TransformerEncoder, self).__init__(params)
     p = self.params
 
+    if p.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        # Naming this 'softmax' to match the name of the same component in the
+        # decoder. Variable names need to be the same in order to be reused.
+        self.CreateChild('softmax', p.shared_emb)
+
     with tf.variable_scope(p.name):
       assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
       p.transformer_stack.Set(
@@ -589,8 +597,9 @@ class TransformerEncoder(base_layer.BaseLayer):
         self.CreateChild('emb_proj', proj_p)
 
       # Token embeddings
-      p.token_emb.dtype = p.dtype
-      self.CreateChild('token_emb', p.token_emb)
+      if not p.shared_emb:
+        p.token_emb.dtype = p.dtype
+        self.CreateChild('token_emb', p.token_emb)
 
       # Positional embeddings
       self.CreateChild('position_emb', p.position_emb)
@@ -667,8 +676,13 @@ class TransformerEncoder(base_layer.BaseLayer):
       max_time = tf.shape(input_ids)[1]
 
       # Input token embeddings + positional embeddings
-      input_embs = self.token_emb.EmbLookup(theta.token_emb,
+      if not p.shared_emb:
+        input_embs = self.token_emb.EmbLookup(theta.token_emb,
+                                              tf.reshape(input_ids, [-1]))
+      else:
+        input_embs = self.softmax.EmbLookup(theta.softmax,
                                             tf.reshape(input_ids, [-1]))
+
       input_embs = tf.reshape(input_embs,
                               [-1, max_time, p.token_emb.embedding_dim])
       # [time, batch, dim]
