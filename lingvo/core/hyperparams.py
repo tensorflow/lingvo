@@ -299,6 +299,10 @@ class Params(object):
     """Marks this Params as immutable."""
     self._immutable = True
 
+  def IsImmutable(self):
+    """Return whether this Params is immutable."""
+    return self._immutable
+
   def _GetNested(self, name):
     """Returns nested param by its name."""
     parts = name.split('.')
