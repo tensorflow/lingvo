@@ -8,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>lingvo.core.ml_perf_tokenizer module &mdash; Lingvo  documentation</title>
+  <title>lingvo.core.ml_perf_log module &mdash; Lingvo  documentation</title>
   
 
   
@@ -35,8 +35,8 @@
   <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="lingvo.core.model_helper module" href="lingvo.core.model_helper.html" />
-    <link rel="prev" title="lingvo.core.ml_perf_log module" href="lingvo.core.ml_perf_log.html" /> 
+    <link rel="next" title="lingvo.core.ml_perf_tokenizer module" href="lingvo.core.ml_perf_tokenizer.html" />
+    <link rel="prev" title="lingvo.core.metrics module" href="lingvo.core.metrics.html" /> 
 </head>
 
 <body class="wy-body-for-nav">
@@ -144,13 +144,13 @@
         
           <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
         
-      <li>lingvo.core.ml_perf_tokenizer module</li>
+      <li>lingvo.core.ml_perf_log module</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
-            <a href="_sources/lingvo.core.ml_perf_tokenizer.rst.txt" rel="nofollow"> View page source</a>
+            <a href="_sources/lingvo.core.ml_perf_log.rst.txt" rel="nofollow"> View page source</a>
           
         
       </li>
@@ -163,45 +163,24 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-  <div class="section" id="module-lingvo.core.ml_perf_tokenizer">
-<span id="lingvo-core-ml-perf-tokenizer-module"></span><h1>lingvo.core.ml_perf_tokenizer module<a class="headerlink" href="#module-lingvo.core.ml_perf_tokenizer" title="Permalink to this headline">¶</a></h1>
-<p>Tokenizer for use for the MLPerf transformer benchmark.</p>
-<dl class="class">
-<dt id="lingvo.core.ml_perf_tokenizer.MlPerfTokenizer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.ml_perf_tokenizer.</code><code class="sig-name descname">MlPerfTokenizer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_tokenizer.html#MlPerfTokenizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_tokenizer.MlPerfTokenizer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer" title="lingvo.core.tokenizers.BaseTokenizer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.tokenizers.BaseTokenizer</span></code></a></p>
-<p>Id-&gt;String only for MLPerf decoding.</p>
-<dl class="method">
-<dt id="lingvo.core.ml_perf_tokenizer.MlPerfTokenizer.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_tokenizer.html#MlPerfTokenizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_tokenizer.MlPerfTokenizer.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defaults params for tokenizers.</p>
+  <div class="section" id="module-lingvo.core.ml_perf_log">
+<span id="lingvo-core-ml-perf-log-module"></span><h1>lingvo.core.ml_perf_log module<a class="headerlink" href="#module-lingvo.core.ml_perf_log" title="Permalink to this headline">¶</a></h1>
+<p>Convenience function for logging compliance tags to stdout.</p>
+<dl class="function">
+<dt id="lingvo.core.ml_perf_log.get_caller">
+<code class="sig-prename descclassname">lingvo.core.ml_perf_log.</code><code class="sig-name descname">get_caller</code><span class="sig-paren">(</span><em class="sig-param">stack_index=2</em>, <em class="sig-param">root_dir=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_log.html#get_caller"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_log.get_caller" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="lingvo.core.ml_perf_log.mlperf_format">
+<code class="sig-prename descclassname">lingvo.core.ml_perf_log.</code><code class="sig-name descname">mlperf_format</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">stack_offset=0</em>, <em class="sig-param">metadata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_log.html#mlperf_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_log.mlperf_format" title="Permalink to this definition">¶</a></dt>
+<dd><p>Format a message for MLPerf.</p>
 </dd></dl>
 
-<dl class="method">
-<dt id="lingvo.core.ml_perf_tokenizer.MlPerfTokenizer.IdsToStrings">
-<code class="sig-name descname">IdsToStrings</code><span class="sig-paren">(</span><em class="sig-param">ids</em>, <em class="sig-param">lens</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_tokenizer.html#MlPerfTokenizer.IdsToStrings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_tokenizer.MlPerfTokenizer.IdsToStrings" title="Permalink to this definition">¶</a></dt>
-<dd><p>Converts ids back to strings.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>ids</strong> – A matrix of shape [batch, seqlen]. ids[i, :] is the i-th sample’s
-ids.</p></li>
-<li><p><strong>lens</strong> – A vector of shape [batch]. lens[i] is the sequence length of the
-i-th sample. Only the first lens[i] tokens in ids[i, :] are valid tokens
-for the i-th sequence.</p></li>
-<li><p><strong>languages</strong> – A vector of strings of shape [batch].</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>sequences - A vector of shape [batch]. The converted string sequence.</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – If unknown token type.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
+<dl class="function">
+<dt id="lingvo.core.ml_perf_log.mlperf_print">
+<code class="sig-prename descclassname">lingvo.core.ml_perf_log.</code><code class="sig-name descname">mlperf_print</code><span class="sig-paren">(</span><em class="sig-param">key</em>, <em class="sig-param">value</em>, <em class="sig-param">stack_offset=0</em>, <em class="sig-param">metadata=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/ml_perf_log.html#mlperf_print"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.ml_perf_log.mlperf_print" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </div>
 
@@ -213,10 +192,10 @@ for the i-th sequence.</p></li>
   
     <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
       
-        <a href="lingvo.core.model_helper.html" class="btn btn-neutral float-right" title="lingvo.core.model_helper module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+        <a href="lingvo.core.ml_perf_tokenizer.html" class="btn btn-neutral float-right" title="lingvo.core.ml_perf_tokenizer module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
       
       
-        <a href="lingvo.core.ml_perf_log.html" class="btn btn-neutral float-left" title="lingvo.core.ml_perf_log module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+        <a href="lingvo.core.metrics.html" class="btn btn-neutral float-left" title="lingvo.core.metrics module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
       
     </div>
   

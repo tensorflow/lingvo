@@ -175,6 +175,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ml_perf_log</span> <span class="k">as</span> <span class="n">mlp_log</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">import</span> <span class="nn">six</span>
@@ -224,6 +225,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">task</span><span class="o">.</span><span class="n">ml_perf</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_epoch</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">logdir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name</span>
 
@@ -379,6 +386,16 @@
 
 <div class="viewcode-block" id="TrainProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;global_batch_size&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">global_batch_size</span><span class="p">)</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;max_sequence_length&#39;</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;opt_name&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">optimizer_name</span><span class="p">)</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;opt_base_learning_rate&#39;</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">base_learning_rate</span><span class="p">)</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;opt_learning_rate_warmup_steps&#39;</span><span class="p">,</span>
+                           <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">)</span>
+
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
       <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
@@ -430,6 +447,20 @@
 <div class="viewcode-block" id="TrainProgram.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Executing train program for </span><span class="si">%s</span><span class="s1">.&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_name</span><span class="p">)</span>
     <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+      <span class="n">steps_per_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span>
+      <span class="n">epoch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span> <span class="o">//</span> <span class="n">steps_per_epoch</span>
+      <span class="k">if</span> <span class="n">epoch</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_epoch</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_epoch</span> <span class="o">=</span> <span class="n">epoch</span>
+        <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+            <span class="s1">&#39;block_start&#39;</span><span class="p">,</span>
+            <span class="kc">None</span><span class="p">,</span>
+            <span class="n">metadata</span><span class="o">=</span><span class="p">{</span>
+                <span class="s1">&#39;first_epoch_num&#39;</span><span class="p">:</span> <span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s1">&#39;epoch_count&#39;</span><span class="p">:</span> <span class="mi">1</span>
+            <span class="p">})</span>
 
     <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
@@ -572,6 +603,12 @@
     <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+      <span class="n">steps_per_epoch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">steps_per_epoch</span>
+      <span class="n">epoch</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span> <span class="o">//</span> <span class="n">steps_per_epoch</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+          <span class="s1">&#39;eval_start&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)})</span>
+
     <span class="n">infeed_future</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_infeed_pool</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
     <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
@@ -586,6 +623,11 @@
       <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
         <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+          <span class="s1">&#39;eval_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">epoch</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)})</span>
+
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)}</span>
     <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
@@ -598,7 +640,17 @@
                                    <span class="s1">&#39;decoder_out_</span><span class="si">%09d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">global_step</span><span class="p">)</span>
     <span class="n">decode_finalize_args</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">DecodeFinalizeArgs</span><span class="p">(</span>
         <span class="n">decode_out_path</span><span class="o">=</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="o">=</span><span class="n">buffered_decode_out</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+      <span class="n">mlperf_metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_name</span>
+      <span class="n">mlperf_metric_value</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="n">mlperf_metric</span><span class="p">]</span><span class="o">.</span><span class="n">value</span>
+      <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span>
+          <span class="s1">&#39;eval_accuracy&#39;</span><span class="p">,</span> <span class="n">mlperf_metric_value</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;epoch_num&#39;</span><span class="p">:</span> <span class="n">epoch</span><span class="p">})</span>
+      <span class="k">if</span> <span class="n">mlperf_metric_value</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ml_perf_final_threshold: </span><span class="si">%f</span><span class="s1"> exceeded&#39;</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">decoder_metric_success_threshold</span><span class="p">)</span>
+        <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;run_stop&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">metadata</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;status&#39;</span><span class="p">:</span> <span class="s1">&#39;success&#39;</span><span class="p">})</span></div></div>
 
 
 <div class="viewcode-block" id="MultiTaskProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiTaskProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskProgramSchedule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
