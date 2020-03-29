@@ -884,6 +884,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('bn_params',
              BatchNormLayer.Params().Set(decay=0.999),
              'Default params for batch norm layer.')
+    p.Define('apply_pruning', False,
+             'Whether to prune the weights while training')
     return p
 
   @base_layer.initializer
@@ -910,6 +912,14 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
+
+    if p.apply_pruning:
+      mask_w_pc = py_utils.WeightParams(w_pc.shape,
+                                        py_utils.WeightInit.Constant(1.0),
+                                        p.dtype)
+      threshold_w_pc = py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0.0),
+                                             tf.float32)
     if p.has_bias:
       b_pc = py_utils.WeightParams(
           shape=[p.output_dim],
@@ -922,8 +932,30 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
+
     with tf.variable_scope(p.name):
-      self.CreateVariable('w', w_pc)
+      weights_var_name = 'w'
+      if p.apply_pruning:
+        mask_var_name = 'mask'
+        threshold_var_name = 'threshold'
+        self.CreateVariable(
+            mask_var_name, mask_w_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            threshold_var_name, threshold_w_pc, theta_fn=None, trainable=False)
+
+        def MaskWeightFn(weight):
+          return tf.multiply(
+              self.AddGlobalVN(weight), getattr(self.vars, mask_var_name),
+              'masked_w')
+
+        self.CreateVariable(weights_var_name, w_pc, theta_fn=MaskWeightFn)
+        py_utils.AddToPruningCollections(
+            getattr(self.vars, weights_var_name),
+            getattr(self.vars, mask_var_name),
+            getattr(self.vars, threshold_var_name))
+      else:
+        self.CreateVariable(weights_var_name, w_pc)
+
       if p.has_bias:
         self.CreateVariable('b', b_pc)
       if p.weight_norm:
