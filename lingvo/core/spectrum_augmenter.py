@@ -160,6 +160,24 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     assert p.time_mask_max_frames[0] > -1
     assert p.time_warp_max_frames[0] > -1
 
+  def EinsumBBmBm(self, a, b, name=None):
+    return tf.einsum('b,bm->bm', a, b, name=name)
+
+  def EinsumBmtBmBt(self, a, b, name=None):
+    return tf.einsum('bmt,bm->bt', a, b, name=name)
+
+  def EinsumBxycByBxyc(self, a, b, name=None):
+    return tf.einsum('bxyc,by->bxyc', a, b, name=name)
+
+  def EinsumBxycBxBxyc(self, a, b, name=None):
+    return tf.einsum('bxyc,bx->bxyc', a, b, name=name)
+
+  def EinsumBxyBxBxy(self, a, b, name=None):
+    return tf.einsum('bxy,bx->bxy', a, b, name=name)
+
+  def EinsumBxycBzxBzyc(self, a, b, name=None):
+    return tf.einsum('bxyc,bzx->bzyc', a, b, name=name)
+
   def _GetMask(self,
                batch_size,
                choose_range,
@@ -238,7 +256,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         maxval=1.0,
         dtype=dtype,
         seed=seed_1)
-    masked_frame_size = tf.einsum('b,bm->bm', max_length, masked_portion)
+    masked_frame_size = self.EinsumBBmBm(max_length, masked_portion)
     masked_frame_size = tf.cast(masked_frame_size, dtype=tf.int32)
     # Make sure the sampled length was smaller than max_ratio * length_bound.
     # Note that sampling in this way was biased
@@ -279,7 +297,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       multiplicity_tensor = masks_per_frame * tf.cast(choose_range, dtype=dtype)
       multiplicity_weights = tf.cast(
           multiplicity_weights < multiplicity_tensor, dtype=dtype)
-      pre_mask = tf.einsum('bmt,bm->bt', pre_mask, multiplicity_weights)
+      pre_mask = self.EinsumBmtBmBt(pre_mask, multiplicity_weights)
     else:
       pre_mask = tf.reduce_sum(pre_mask, 1)
     mask = tf.cast(1.0 - tf.cast(pre_mask > 0, dtype=dtype), dtype=dtype)
@@ -484,10 +502,9 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     x = tf.broadcast_to(
         tf.cast(tf.range(matrix_size), dtype=dtype), (batch_size, matrix_size))
     x = (
-        tf.einsum('b,bi->bi', slope_0, x) + tf.einsum(
-            'b,bi->bi', slope_1 - slope_0, tf.nn.relu(x - destination_bc)) +
-        tf.einsum('b,bi->bi', slope_2 - slope_1,
-                  tf.nn.relu(x - choose_range_bc)))
+        self.EinsumBBmBm(slope_0, x) +
+        self.EinsumBBmBm(slope_1 - slope_0, tf.nn.relu(x - destination_bc)) +
+        self.EinsumBBmBm(slope_2 - slope_1, tf.nn.relu(x - choose_range_bc)))
     x = tf.broadcast_to(x, (matrix_size, batch_size, matrix_size))
     x = tf.transpose(x, perm=[1, 2, 0])
 
@@ -556,9 +573,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         multiplicity=multiplicity,
         dtype=dtype,
         max_ratio=1.0)
-    outputs = tf.einsum('bxyc,by->bxyc', inputs, block_arrays)
-
-    return outputs
+    return self.EinsumBxycByBxyc(inputs, block_arrays)
 
   def _TimeMask(self,
                 inputs,
@@ -629,8 +644,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
       seed_6 = p.random_seed
       seed_7 = p.random_seed
 
-    outputs = tf.einsum(
-        'bxyc,bx->bxyc', inputs, block_arrays, name='einsum_formasking')
+    outputs = self.EinsumBxycBxBxyc(
+        inputs, block_arrays, name='einsum_formasking')
     if noisify:
       # Sample noise with standard deviation with factor * 0.1 + 0.0001
       # TODO(ngyuzh): Make sure this won't affect EOS.
@@ -650,11 +665,8 @@ class SpectrumAugmenter(base_layer.BaseLayer):
           seed=seed_7)
       if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
         noise = tf.cast(noise, p.fprop_dtype)
-      outputs_mask = tf.einsum(
-          'bxy,bx->bxy',
-          noise,
-          1.0 - block_arrays,
-          name='einsum_fornoisymasking')
+      outputs_mask = self.EinsumBxyBxBxy(
+          noise, 1.0 - block_arrays, name='einsum_fornoisymasking')
       outputs = outputs + tf.expand_dims(outputs_mask, -1)
 
     return outputs
@@ -709,10 +721,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         dtype=dtype,
         max_ratio=max_ratio)
 
-    outputs = tf.einsum(
-        'bxyc,bzx->bzyc', inputs, warp_matrix, name='einsum_forwarping')
-
-    return outputs
+    return self.EinsumBxycBzxBzyc(inputs, warp_matrix, name='einsum_forwarping')
 
   def UnstackFeatures(self, src_inputs, src_paddings):
     """Unstacks src_input and src_paddings based off stack height."""
@@ -822,16 +831,10 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         # [batch, time].
         domain_mask = tf.cast(
             tf.equal(domain_ids, target_domain), dtype=p.dtype)
-        augmented_domain = tf.einsum(
-            'bxyc,bx->bxyc',
-            augmented_domain,
-            domain_mask,
-            name='einsum_domainmasking')
-        original_inputs = tf.einsum(
-            'bxyc,bx->bxyc',
-            original_inputs,
-            1.0 - domain_mask,
-            name='einsum_domainmasking2')
+        augmented_domain = self.EinsumBxycBxBxyc(
+            augmented_domain, domain_mask, name='einsum_domainmasking')
+        original_inputs = self.EinsumBxycBxBxyc(
+            original_inputs, 1.0 - domain_mask, name='einsum_domainmasking2')
         augmented_inputs = augmented_domain + augmented_inputs
       augmented_inputs = original_inputs + augmented_inputs
     else:

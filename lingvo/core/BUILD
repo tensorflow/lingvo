@@ -1034,6 +1034,32 @@ py_test(
 )
 
 py_library(
+    name = "spectrum_augmenter_on_device",
+    srcs = ["spectrum_augmenter_on_device.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":spectrum_augmenter",
+        "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "spectrum_augmenter_on_device_test",
+    srcs = ["spectrum_augmenter_on_device_test.py"],
+    shard_count = 1,
+    deps = [
+        ":spectrum_augmenter",
+        ":spectrum_augmenter_on_device",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "generic_input",
     srcs = ["generic_input.py"],
     srcs_version = "PY2AND3",
