@@ -29,8 +29,6 @@ from lingvo.core import cluster_factory
 from lingvo.core import early_stop
 from lingvo.core import py_utils
 
-from tensorflow.core.framework import summary_pb2
-
 
 class BaseRunner(object):
   """Base class for all jobs."""
@@ -195,72 +193,79 @@ class BaseRunner(object):
       loop_func(*loop_args)
       tf.logging.info('%s done.', job_name)
       return
-    except py_utils.transient_tf_errors + (
-        tf.errors.OutOfRangeError, tf.errors.DataLossError,
-        tf.errors.InvalidArgumentError, tf.errors.CancelledError) as e:
-      # Retry on these three errors.
-      #   FailedPreconditionError: variables are not initialized.
-      #   AbortedError: processes restarts.
-      #   OutOfRangeError: Test/dev datasets are exhausted.
-      #   DataLossError: Race condition between evaler and trainer when saving
-      #       or removing checkpoints.
-      #   InvalidArgumentError: variables were not initialized. Comes from
-      #       ResourceVariableOp.
-      #   CancelledError: Node was closed (on TPU).
-      self._SetStatusMessage(
-          '%s exception: %s\n' % (job_name, e), retrying=True)
+    except Exception as e:  # pylint:disable=broad-except
+      if 'Compilation failure' in str(e):
+        # Fatal error if failing to compile graph on TPU.
+        retry = False
+      elif isinstance(e, tf.errors.AbortedError):
+        # AbortedError: is thrown when processes restarts.
+        retry = True
+        if self._InVizierStudy():
+          # With Vizier studies, we want to avoid retrying under some error
+          # conditions, these are captured here.
+          # Do not retry (via raise/retry) if AbortedError with RecvTensor
+          # message. This can happen if there are memory issues.
+          if ('The same RecvTensor (WorkerServiceImpl) request was received '
+              'twice' in str(e)):
+            retry = False
+            tf.logging.info('%s done (infeasible error).', job_name)
 
-      for msg in traceback.format_exc().split('\n'):
-        tf.logging.vlog(1, msg)
+      elif isinstance(
+          e, py_utils.transient_tf_errors +
+          (tf.errors.OutOfRangeError, tf.errors.DataLossError,
+           tf.errors.InvalidArgumentError, tf.errors.CancelledError)):
+        # Retry on these errors.
+        #   FailedPreconditionError: variables are not initialized.
+        #   OutOfRangeError: Test/dev datasets are exhausted.
+        #   DataLossError: Race condition between evaler and trainer when saving
+        #       or removing checkpoints.
+        #   CancelledError: Node was closed (on TPU).
+        #   InvalidArgumentError: variables were not initialized. Comes from
+        #       ResourceVariableOp.
+        retry = True
+      else:
+        retry = False
 
-      # With Vizier studies, we want to avoid retrying under some error
-      # conditions, these are captured here.
-      if self._InVizierStudy():
-        # Do not retry (via raise/retry) if AbortedError with RecvTensor
-        # message. This can happen if there are memory issues.
-        if (isinstance(e, tf.errors.AbortedError) and
-            'The same RecvTensor (WorkerServiceImpl) request was received twice'
-            in str(e)):
-          if self._should_report_metrics:
-            self._trial.ReportDone(
-                infeasible=True,
-                infeasible_reason='Infeasible error encountered.')
-          tf.logging.info('%s done (infeasible error).', job_name)
+      if retry:
+        # Retry indefinitely (error should be transient).
+        self._SetStatusMessage(
+            '%s exception: %s\n' % (job_name, e), retrying=True)
+
+        for msg in traceback.format_exc().split('\n'):
+          tf.logging.vlog(1, msg)
+
+        raise
+      else:
+        # Allow the job to complete on errors that are unlikely to be transient,
+        # e.g. caused by a mis-configured model.
+        if self._should_report_metrics:
+          self._trial.ReportDone(
+              infeasible=True, infeasible_reason='Fatal error encountered.')
+        tf.logging.error('%s done (fatal error): %s', job_name, type(e))
+
+        self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
+
+        # Prints the error message line by line to avoid message cropping.
+        msgv = traceback.format_exc().split('\n')
+        for msg in msgv:
+          tf.logging.error(msg)
+
+        # Check if we are potentially running within an experiment. If so,
+        # the worker should continue to the next trial instead of terminating
+        # the process.
+        if self._InVizierStudy():
           return
 
-      # Retry indefinitely (error should be transient).
-      raise
-    except Exception as e:  # pylint: disable=broad-except
-      # Allow the job to complete on errors that are unlikely to be transient,
-      # e.g. caused by a mis-configured model.
-      if self._should_report_metrics:
-        self._trial.ReportDone(
-            infeasible=True, infeasible_reason='Fatal error encountered.')
-      tf.logging.error('%s done (fatal error): %s', job_name, type(e))
-
-      self._SetStatusMessage('%s exception: %s\n' % (job_name, e))
-
-      # Prints the error message line by line to avoid message cropping.
-      msgv = traceback.format_exc().split('\n')
-      for msg in msgv:
-        tf.logging.error(msg)
-
-      # Check if we are potentially running within an experiment. If so,
-      # the worker should continue to the next trial instead of terminating the
-      # process.
-      if self._InVizierStudy():
-        return
-
-      # tf.logging.fatal prints out stack traces. Typically, that's not
-      # useful at all here. Here we want to exit the program
-      # definitively. Because LOG(QFATAL) is not easily available via
-      # python so far, we need a way to exit the program directly.
-      # Because sys.exit(1) must be called from the main thread, and does
-      # not cancel non-daemon threads anyway, we use os._exit instead.
-      # Because tf.logging.error() may return before the flush is complete,
-      # we need an extra sleep before exit.
-      time.sleep(15)
-      os._exit(1)  # pylint: disable=protected-access
+        # tf.logging.fatal prints out stack traces. Typically, that's not
+        # useful at all here. Here we want to exit the program
+        # definitively. Because LOG(QFATAL) is not easily available via
+        # python so far, we need a way to exit the program directly.
+        # Because sys.exit(1) must be called from the main thread, and does
+        # not cancel non-daemon threads anyway, we use os._exit instead.
+        # Because tf.logging.error() may return before the flush is complete,
+        # we need an extra sleep before exit.
+        time.sleep(15)
+        os._exit(1)  # pylint: disable=protected-access
 
   def _DequeueThreadComplete(self):
     self._dequeue_thread_complete = True
@@ -360,7 +365,7 @@ class BaseRunner(object):
     """
     status_metrics = []
     for name, summary in sorted(summaries.items()):
-      if not isinstance(summary, summary_pb2.Summary):
+      if not isinstance(summary, tf.summary.Summary):
         tf.logging.warning(
             'Non tf.Summary args passed to _WriteSummaries, skipping: '
             'job:%s name:%s @%s', job_name, name, global_step)
