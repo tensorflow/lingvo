@@ -174,8 +174,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">early_stop</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">summary_pb2</span>
-
 
 <div class="viewcode-block" id="BaseRunner"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner">[docs]</a><span class="k">class</span> <span class="nc">BaseRunner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all jobs.&quot;&quot;&quot;</span>
@@ -340,72 +338,79 @@
       <span class="n">loop_func</span><span class="p">(</span><span class="o">*</span><span class="n">loop_args</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="k">return</span>
-    <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span> <span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">)</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-      <span class="c1"># Retry on these three errors.</span>
-      <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
-      <span class="c1">#   AbortedError: processes restarts.</span>
-      <span class="c1">#   OutOfRangeError: Test/dev datasets are exhausted.</span>
-      <span class="c1">#   DataLossError: Race condition between evaler and trainer when saving</span>
-      <span class="c1">#       or removing checkpoints.</span>
-      <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
-      <span class="c1">#       ResourceVariableOp.</span>
-      <span class="c1">#   CancelledError: Node was closed (on TPU).</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
-          <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint:disable=broad-except</span>
+      <span class="k">if</span> <span class="s1">&#39;Compilation failure&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+        <span class="c1"># Fatal error if failing to compile graph on TPU.</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">):</span>
+        <span class="c1"># AbortedError: is thrown when processes restarts.</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">():</span>
+          <span class="c1"># With Vizier studies, we want to avoid retrying under some error</span>
+          <span class="c1"># conditions, these are captured here.</span>
+          <span class="c1"># Do not retry (via raise/retry) if AbortedError with RecvTensor</span>
+          <span class="c1"># message. This can happen if there are memory issues.</span>
+          <span class="k">if</span> <span class="p">(</span><span class="s1">&#39;The same RecvTensor (WorkerServiceImpl) request was received &#39;</span>
+              <span class="s1">&#39;twice&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)):</span>
+            <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span>
+          <span class="n">e</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="o">+</span>
+          <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">OutOfRangeError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">DataLossError</span><span class="p">,</span>
+           <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">CancelledError</span><span class="p">)):</span>
+        <span class="c1"># Retry on these errors.</span>
+        <span class="c1">#   FailedPreconditionError: variables are not initialized.</span>
+        <span class="c1">#   OutOfRangeError: Test/dev datasets are exhausted.</span>
+        <span class="c1">#   DataLossError: Race condition between evaler and trainer when saving</span>
+        <span class="c1">#       or removing checkpoints.</span>
+        <span class="c1">#   CancelledError: Node was closed (on TPU).</span>
+        <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
+        <span class="c1">#       ResourceVariableOp.</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
 
-      <span class="c1"># With Vizier studies, we want to avoid retrying under some error</span>
-      <span class="c1"># conditions, these are captured here.</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">():</span>
-        <span class="c1"># Do not retry (via raise/retry) if AbortedError with RecvTensor</span>
-        <span class="c1"># message. This can happen if there are memory issues.</span>
-        <span class="k">if</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">)</span> <span class="ow">and</span>
-            <span class="s1">&#39;The same RecvTensor (WorkerServiceImpl) request was received twice&#39;</span>
-            <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)):</span>
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
-                <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-                <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Infeasible error encountered.&#39;</span><span class="p">)</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible error).&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">retry</span><span class="p">:</span>
+        <span class="c1"># Retry indefinitely (error should be transient).</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span> <span class="n">retrying</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">):</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+
+        <span class="k">raise</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Allow the job to complete on errors that are unlikely to be transient,</span>
+        <span class="c1"># e.g. caused by a mis-configured model.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
+              <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
+
+        <span class="c1"># Prints the error message line by line to avoid message cropping.</span>
+        <span class="n">msgv</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">msgv</span><span class="p">:</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+
+        <span class="c1"># Check if we are potentially running within an experiment. If so,</span>
+        <span class="c1"># the worker should continue to the next trial instead of terminating</span>
+        <span class="c1"># the process.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">():</span>
           <span class="k">return</span>
 
-      <span class="c1"># Retry indefinitely (error should be transient).</span>
-      <span class="k">raise</span>
-    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
-      <span class="c1"># Allow the job to complete on errors that are unlikely to be transient,</span>
-      <span class="c1"># e.g. caused by a mis-configured model.</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ReportDone</span><span class="p">(</span>
-            <span class="n">infeasible</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">infeasible_reason</span><span class="o">=</span><span class="s1">&#39;Fatal error encountered.&#39;</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (fatal error): </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> exception: </span><span class="si">%s</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">job_name</span><span class="p">,</span> <span class="n">e</span><span class="p">))</span>
-
-      <span class="c1"># Prints the error message line by line to avoid message cropping.</span>
-      <span class="n">msgv</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">()</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">msg</span> <span class="ow">in</span> <span class="n">msgv</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
-
-      <span class="c1"># Check if we are potentially running within an experiment. If so,</span>
-      <span class="c1"># the worker should continue to the next trial instead of terminating the</span>
-      <span class="c1"># process.</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">():</span>
-        <span class="k">return</span>
-
-      <span class="c1"># tf.logging.fatal prints out stack traces. Typically, that&#39;s not</span>
-      <span class="c1"># useful at all here. Here we want to exit the program</span>
-      <span class="c1"># definitively. Because LOG(QFATAL) is not easily available via</span>
-      <span class="c1"># python so far, we need a way to exit the program directly.</span>
-      <span class="c1"># Because sys.exit(1) must be called from the main thread, and does</span>
-      <span class="c1"># not cancel non-daemon threads anyway, we use os._exit instead.</span>
-      <span class="c1"># Because tf.logging.error() may return before the flush is complete,</span>
-      <span class="c1"># we need an extra sleep before exit.</span>
-      <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
-      <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
+        <span class="c1"># tf.logging.fatal prints out stack traces. Typically, that&#39;s not</span>
+        <span class="c1"># useful at all here. Here we want to exit the program</span>
+        <span class="c1"># definitively. Because LOG(QFATAL) is not easily available via</span>
+        <span class="c1"># python so far, we need a way to exit the program directly.</span>
+        <span class="c1"># Because sys.exit(1) must be called from the main thread, and does</span>
+        <span class="c1"># not cancel non-daemon threads anyway, we use os._exit instead.</span>
+        <span class="c1"># Because tf.logging.error() may return before the flush is complete,</span>
+        <span class="c1"># we need an extra sleep before exit.</span>
+        <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mi">15</span><span class="p">)</span>
+        <span class="n">os</span><span class="o">.</span><span class="n">_exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span></div>
 
 <div class="viewcode-block" id="BaseRunner._DequeueThreadComplete"><a class="viewcode-back" href="../../lingvo.base_runner.html#lingvo.base_runner.BaseRunner._DequeueThreadComplete">[docs]</a>  <span class="k">def</span> <span class="nf">_DequeueThreadComplete</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">True</span>
@@ -505,7 +510,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">status_metrics</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">summary</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">summaries</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">summary_pb2</span><span class="o">.</span><span class="n">Summary</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">Summary</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
             <span class="s1">&#39;Non tf.Summary args passed to _WriteSummaries, skipping: &#39;</span>
             <span class="s1">&#39;job:</span><span class="si">%s</span><span class="s1"> name:</span><span class="si">%s</span><span class="s1"> @</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
