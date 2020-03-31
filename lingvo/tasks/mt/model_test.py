@@ -60,7 +60,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
     return 10
 
-  def InputBatch(self):
+  def _InputBatch(self):
     np.random.seed(1)
     bs, sl = 10, 7
     src_ids = tf.constant(
@@ -199,8 +199,7 @@ class TransformerModelTest(test_utils.TestCase):
         p.fprop_dtype = fprop_dtype
         p.input.dtype = fprop_dtype
       mdl = p.Instantiate()
-      input_batch = mdl.GetInputBatch()
-      mdl.FProp(mdl.theta, input_batch)
+      mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
       tf.global_variables_initializer().run()

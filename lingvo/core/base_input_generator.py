@@ -122,7 +122,7 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
 
-  def InputBatch(self):
+  def _InputBatch(self):
     """The current input batch, not preprocessed.
 
     This is meant to be overridden by subclasses, but not called directly.
@@ -134,12 +134,27 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     raise NotImplementedError('Abstract method')
 
-  def GetPreprocessedInputBatch(self):
-    return self.PreprocessInputBatch(self.InputBatch())
+  def _PreprocessInputBatch(self, batch):
+    """Preprocesses input batch from _InputBatch.
 
-  def PreprocessInputBatch(self, batch):
-    # Can be overridden by subclasses.
+    Args:
+      batch: A NestedMap containing input tensors in the format returned by
+        _InputBatch.
+
+    Returns:
+      A NestedMap containing preprocessed inputs to feed to the model.
+    """
     return batch
+
+  def GetPreprocessedInputBatch(self):
+    """Returns a NestedMap containing a preprocessed batch of inputs.
+
+    These are the actual inputs fed to the model.
+
+    Subclasses generally should not override this function directly. Instead,
+    override _InputBatch and maybe _PreprocessInputBatch.
+    """
+    return self._PreprocessInputBatch(self._InputBatch())
 
   def CreateTpuFeeds(self):
     """Creates the TPU infeed queue from preprocessed batch."""
@@ -772,7 +787,7 @@ class BaseTinyDatasetInput(BaseInputGenerator):
     p.use_per_host_infeed = True
     return p
 
-  def InputBatch(self):
+  def _InputBatch(self):
     p = self.params
 
     @tf.Defun()
@@ -864,7 +879,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     """
     return input_batch
 
-  def InputBatch(self):
+  def _InputBatch(self):
     p = self.params
 
     def ParseAndProcess(*cols):

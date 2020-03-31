@@ -159,7 +159,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     self._tgt = tgt
     self._src = src
 
-  def InputBatch(self):
+  def _InputBatch(self):
     batch = py_utils.NestedMap()
     batch.bucket_keys = self._bucket_keys
     batch.src = self._src

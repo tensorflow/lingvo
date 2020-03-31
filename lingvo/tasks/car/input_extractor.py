@@ -65,7 +65,7 @@ class FieldsExtractor(base_layer.BaseLayer):
        parent's Extract() call.
 
     3) Shape(): A NestedMap mapping names of outputs to their static shape,
-       without the batch dimension.  In InputBatch, this shape will be used to
+       without the batch dimension.  In _InputBatch, this shape will be used to
        ensure that every output has a statically known shape.
 
   The caller of Extractors calls each extractor's FeatureMap() to populate the

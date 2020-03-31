@@ -73,7 +73,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.parallel_readers = 1
     ig = p.Instantiate()
     with self.session(graph=tf.get_default_graph()) as sess:
-      inputs = ig.InputBatch()
+      inputs = ig.GetPreprocessedInputBatch()
       eval_inputs = sess.run(inputs)
       input_shapes = eval_inputs.Transform(lambda t: t.shape)
       self.assertEqual(input_shapes.audio, (2, 48000))
@@ -87,7 +87,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.parallel_readers = 1
     ig = p.Instantiate()
     with self.session(graph=tf.get_default_graph()) as sess:
-      inputs = ig.InputBatch()
+      inputs = ig.GetPreprocessedInputBatch()
       eval_inputs = sess.run(inputs)
       input_shapes = eval_inputs.Transform(lambda t: t.shape)
       self.assertEqual(input_shapes.audio, (200, 48000))
@@ -103,7 +103,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.parallel_readers = 1
     ig = p.Instantiate()
     with self.session(graph=tf.get_default_graph()) as sess:
-      inputs = ig.InputBatch()
+      inputs = ig.GetPreprocessedInputBatch()
       for _ in range(p.num_epochs):
         eval_inputs = sess.run(inputs)
         self.assertEqual(eval_inputs.audio.shape, (p.batch_size, 48000))
@@ -117,7 +117,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.dataset_type = tf.data.TFRecordDataset
 
     ig = p.Instantiate()
-    batch = ig.InputBatch()
+    batch = ig.GetPreprocessedInputBatch()
     self.assertEqual(batch.audio.shape[0], p.batch_size)
     self.assertEqual(p.batch_size, ig.InfeedBatchSize())
 
@@ -125,7 +125,7 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     ig = p.Instantiate()
     with mock.patch.object(
         ig, 'InfeedBatchSize', return_value=42) as mock_method:
-      batch = ig.InputBatch()
+      batch = ig.GetPreprocessedInputBatch()
       self.assertEqual(batch.audio.shape[0], 42)
     mock_method.assert_called()
 

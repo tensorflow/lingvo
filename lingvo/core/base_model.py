@@ -509,18 +509,14 @@ class BaseTask(base_layer.BaseLayer):
     self._metrics = metrics
     summary_utils.scalar('num_predictions', self._num_predictions)
 
-  def GetInputBatch(self):
-    """Returns input batch from input_generator."""
-    if py_utils.use_tpu():
-      return self.input_generator.CreateTpuFeeds()
-    else:
-      return self.input_generator.SplitInputBatch(
-          self.cluster.num_splits_per_client)
-
   def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""
     if input_batch is None:
-      input_batch = self.GetInputBatch()
+      if py_utils.use_tpu():
+        input_batch = self.input_generator.CreateTpuFeeds()
+      else:
+        input_batch = self.input_generator.SplitInputBatch(
+            self.cluster.num_splits_per_client)
     return self.FProp(self.theta, input_batch)
 
   def AdjustGradients(self, vars_gradients):

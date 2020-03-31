@@ -49,7 +49,7 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._trainInput()
     with self.session() as sess:
       inp = p.Instantiate()
-      inp_batch = inp.InputBatch()
+      inp_batch = inp.GetPreprocessedInputBatch()
       for _ in range(10):
         batch = sess.run(inp_batch)
         self.assertEqual(batch.data.shape, (100, 28, 28, 1))
@@ -61,7 +61,7 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._testInput()
     with self.session() as sess:
       inp = p.Instantiate()
-      inp_batch = inp.InputBatch()
+      inp_batch = inp.GetPreprocessedInputBatch()
       ids = []
       for _ in range(39):
         batch = sess.run(inp_batch)
@@ -95,7 +95,7 @@ class InputGeneratorTest(test_utils.TestCase):
     p = self._trainInput()
     with self.session() as sess:
       inp = p.Instantiate()
-      batch = inp.InputBatch()
+      batch = inp.GetPreprocessedInputBatch()
       epoch0 = self._GetIds(sess, p, batch.sample_ids)
       epoch1 = self._GetIds(sess, p, batch.sample_ids)
       self.assertEqual(list(range(p.num_samples)), sorted(epoch0))

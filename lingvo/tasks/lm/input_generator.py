@@ -82,7 +82,7 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
         processor=ReadInput,
         **self.CommonInputOpArgs())
 
-  def InputBatch(self):
+  def _InputBatch(self):
     ret = py_utils.NestedMap()
     ret.bucket_key = self._bucket_keys
     ret.ids = self._ids

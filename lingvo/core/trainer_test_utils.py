@@ -56,7 +56,7 @@ class CountingInputGenerator(base_input_generator.BaseInputGenerator):
     super(CountingInputGenerator, self).__init__(params)
     self.shape = params.shape
 
-  def InputBatch(self):
+  def _InputBatch(self):
     length = tf.reduce_prod(self.shape)
     counter = summary_utils.StatsCounter('CountingInputGenerator')
     new_value = tf.cast(counter.IncBy(length), dtype=tf.int32) - length

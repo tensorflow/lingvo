@@ -115,7 +115,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     self._input_batch_size = tf.shape(self._src_ids)[0]
     self._sample_ids = tf.range(0, self._input_batch_size, 1)
 
-  def InputBatch(self):
+  def _InputBatch(self):
     ret = py_utils.NestedMap()
 
     ret.bucket_keys = self._bucket_keys
@@ -321,7 +321,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
           dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
           **self.CommonInputOpArgs())
 
-  def InputBatch(self):
+  def _InputBatch(self):
     ret = py_utils.NestedMap()
     ret.bucket_keys = self._bucket_keys
 

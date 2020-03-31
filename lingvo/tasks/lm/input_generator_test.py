@@ -43,7 +43,7 @@ class InputGeneratorTest(test_utils.TestCase):
 
     with self.session(use_gpu=False) as sess:
       inp = p.Instantiate()
-      inp_batch = sess.run(inp.InputBatch())
+      inp_batch = sess.run(inp.GetPreprocessedInputBatch())
       print(inp_batch)
       # pyformat: disable
       # pylint: disable=line-too-long

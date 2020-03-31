@@ -224,7 +224,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     p = self.params
     return tf.constant(p.target_shape[0])
 
-  def InputBatch(self):
+  def _InputBatch(self):
     p = self.params
     ret = py_utils.NestedMap()
     ret.src = py_utils.NestedMap()

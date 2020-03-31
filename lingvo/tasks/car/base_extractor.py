@@ -268,7 +268,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
 
     return self.ProcessFeatures(features)
 
-  def InputBatch(self):
+  def _InputBatch(self):
     batched_outputs, bucket_keys = self._BuildDataSource()
     ret = self._NestedMapFromBatchedOutputs(batched_outputs)
     ret.bucket_keys = bucket_keys

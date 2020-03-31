@@ -463,11 +463,16 @@ class DecodeProgram(BaseProgram):
     py_utils.ResetStepSeed()
 
     def _DecodeFn():
+      """Decode call to be compiled for TPU."""
       with py_utils.OpportunisticVariableReuseScope(True):
         with cluster_factory.SetEval(True):
           self._model = self._task_params.Instantiate()
           self._model_task = self._model.GetTask()
-          input_batch = self._model_task.GetInputBatch()
+          if py_utils.use_tpu():
+            input_batch = self._model_task.input_generator.CreateTpuFeeds()
+          else:
+            input_batch = self._model_task.input_generator.SplitInputBatch(
+                self.cluster.num_splits_per_client)
           metrics_dict = self._model_task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()

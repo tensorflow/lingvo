@@ -224,7 +224,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     super(TestInputGenerator, self).__init__(params)
     self._input_batch_size = tf.constant(1)
 
-  def InputBatch(self):
+  def _InputBatch(self):
     return 0
 
 

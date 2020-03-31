@@ -116,7 +116,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
     self._input_batch_size = tf.shape(self._src_ids)[0]
     self._sample_ids = tf.range(0, self._input_batch_size, 1)
 
-  def InputBatch(self):
+  def _InputBatch(self):
     """Returns a single batch as a `.NestedMap` to be passed to the model."""
     ret = py_utils.NestedMap()
 
