@@ -2849,6 +2849,33 @@
     <span class="k">return</span> <span class="n">result</span></div>
 
 
+<div class="viewcode-block" id="DeterministicVN"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.DeterministicVN">[docs]</a><span class="k">def</span> <span class="nf">DeterministicVN</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">seeds</span><span class="p">,</span> <span class="n">noise_shape</span><span class="p">,</span> <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">std</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Produces Fully deterministic Gaussian noise from shape, mean and std.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    params: Nested map of params.</span>
+<span class="sd">    seeds: A Tensor of shape [2]. 2 seeds for deterministic random number</span>
+<span class="sd">      generator.</span>
+<span class="sd">    noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for</span>
+<span class="sd">      randomly generated Gaussian noise.</span>
+<span class="sd">    mean: Mean for the Gaussian noise.</span>
+<span class="sd">    std: Standard deviation for noise.</span>
+<span class="sd">    name: An optional name for this operation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor with the shape noise_shape and type fprop_dtype.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;gaussian_noise&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">name</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">seeds</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">seeds</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">random_tensor</span> <span class="o">=</span> <span class="n">mean</span> <span class="o">+</span> <span class="p">(</span>
+        <span class="n">std</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_normal</span><span class="p">(</span><span class="n">noise_shape</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seeds</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">FPropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">)</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">:</span>
+      <span class="n">random_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">random_tensor</span><span class="p">,</span> <span class="n">FPropDtype</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">random_tensor</span></div>
+
+
 <span class="n">BATCH_NORM_UPDATES</span> <span class="o">=</span> <span class="s1">&#39;batch_norm_updates&#39;</span>
 
 <span class="n">_BATCH_NORM_UPDATES_DICT</span> <span class="o">=</span> <span class="s1">&#39;__batch_norm_update_dict&#39;</span>

@@ -1664,6 +1664,29 @@ randomly generated keep/drop flags.</p></li>
 </dd></dl>
 
 <dl class="function">
+<dt id="lingvo.core.py_utils.DeterministicVN">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">DeterministicVN</code><span class="sig-paren">(</span><em class="sig-param">params</em>, <em class="sig-param">seeds</em>, <em class="sig-param">noise_shape</em>, <em class="sig-param">mean=0.0</em>, <em class="sig-param">std=1.0</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DeterministicVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DeterministicVN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces Fully deterministic Gaussian noise from shape, mean and std.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>params</strong> – Nested map of params.</p></li>
+<li><p><strong>seeds</strong> – A Tensor of shape [2]. 2 seeds for deterministic random number
+generator.</p></li>
+<li><p><strong>noise_shape</strong> – A 1-D <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>, representing the shape for
+randomly generated Gaussian noise.</p></li>
+<li><p><strong>mean</strong> – Mean for the Gaussian noise.</p></li>
+<li><p><strong>std</strong> – Standard deviation for noise.</p></li>
+<li><p><strong>name</strong> – An optional name for this operation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor with the shape noise_shape and type fprop_dtype.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
 <dt id="lingvo.core.py_utils.UpdateBatchNormVars">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">UpdateBatchNormVars</code><span class="sig-paren">(</span><em class="sig-param">batch_norm_var</em>, <em class="sig-param">batch_norm_stats</em>, <em class="sig-param">decay</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#UpdateBatchNormVars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.UpdateBatchNormVars" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update batch normalization moving averages.</p>
