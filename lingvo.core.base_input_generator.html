@@ -207,8 +207,8 @@
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGenerator.InputBatch">
-<code class="sig-name descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.InputBatch" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator._InputBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current input batch, not preprocessed.</p>
 <p>This is meant to be overridden by subclasses, but not called directly.
 Callers should use <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch" title="lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch"><code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code></a>.</p>
@@ -221,14 +221,28 @@ and denotes the batch dimension.</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch">
-<code class="sig-name descname">GetPreprocessedInputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetPreprocessedInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator._PreprocessInputBatch">
+<code class="sig-name descname">_PreprocessInputBatch</code><span class="sig-paren">(</span><em class="sig-param">batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator._PreprocessInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator._PreprocessInputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Preprocesses input batch from _InputBatch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch</strong> – A NestedMap containing input tensors in the format returned by
+_InputBatch.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap containing preprocessed inputs to feed to the model.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseInputGenerator.PreprocessInputBatch">
-<code class="sig-name descname">PreprocessInputBatch</code><span class="sig-paren">(</span><em class="sig-param">batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.PreprocessInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.PreprocessInputBatch" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch">
+<code class="sig-name descname">GetPreprocessedInputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GetPreprocessedInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a NestedMap containing a preprocessed batch of inputs.</p>
+<p>These are the actual inputs fed to the model.</p>
+<p>Subclasses generally should not override this function directly. Instead,
+override _InputBatch and maybe _PreprocessInputBatch.</p>
+</dd></dl>
 
 <dl class="method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuFeeds">
@@ -465,8 +479,8 @@ for the i-th sequence.</p></li>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseTinyDatasetInput.InputBatch">
-<code class="sig-name descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseTinyDatasetInput.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseTinyDatasetInput.InputBatch" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_input_generator.BaseTinyDatasetInput._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseTinyDatasetInput._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseTinyDatasetInput._InputBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current input batch, not preprocessed.</p>
 <p>This is meant to be overridden by subclasses, but not called directly.
 Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>
@@ -526,8 +540,8 @@ expensive operations vs doing work as the result of InputBatch().</p>
 </dd></dl>
 
 <dl class="method">
-<dt id="lingvo.core.base_input_generator.BaseDataExampleInputGenerator.InputBatch">
-<code class="sig-name descname">InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseDataExampleInputGenerator.InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.InputBatch" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_input_generator.BaseDataExampleInputGenerator._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseDataExampleInputGenerator._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseDataExampleInputGenerator._InputBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current input batch, not preprocessed.</p>
 <p>This is meant to be overridden by subclasses, but not called directly.
 Callers should use <code class="xref py py-obj docutils literal notranslate"><span class="pre">GetPreprocessedInputBatch()</span></code>.</p>

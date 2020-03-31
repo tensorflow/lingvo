@@ -267,7 +267,7 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The current input batch, not preprocessed.</span>
 
 <span class="sd">    This is meant to be overridden by subclasses, but not called directly.</span>
@@ -279,12 +279,27 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">InputBatch</span><span class="p">())</span></div>
+<div class="viewcode-block" id="BaseInputGenerator._PreprocessInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._PreprocessInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Preprocesses input batch from _InputBatch.</span>
 
-<div class="viewcode-block" id="BaseInputGenerator.PreprocessInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.PreprocessInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch</span><span class="p">):</span>
-    <span class="c1"># Can be overridden by subclasses.</span>
+<span class="sd">    Args:</span>
+<span class="sd">      batch: A NestedMap containing input tensors in the format returned by</span>
+<span class="sd">        _InputBatch.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A NestedMap containing preprocessed inputs to feed to the model.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">batch</span></div>
+
+<div class="viewcode-block" id="BaseInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a NestedMap containing a preprocessed batch of inputs.</span>
+
+<span class="sd">    These are the actual inputs fed to the model.</span>
+
+<span class="sd">    Subclasses generally should not override this function directly. Instead,</span>
+<span class="sd">    override _InputBatch and maybe _PreprocessInputBatch.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_InputBatch</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.CreateTpuFeeds"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuFeeds">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuFeeds</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Creates the TPU infeed queue from preprocessed batch.&quot;&quot;&quot;</span>
@@ -917,7 +932,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="BaseTinyDatasetInput.InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTinyDatasetInput._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseTinyDatasetInput._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
@@ -1009,7 +1024,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">input_batch</span></div>
 
-<div class="viewcode-block" id="BaseDataExampleInputGenerator.InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseDataExampleInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">ParseAndProcess</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">):</span>
