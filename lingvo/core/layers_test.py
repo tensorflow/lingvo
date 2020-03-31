@@ -4542,5 +4542,70 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
                           atol=1e-05)
 
 
+class CCTGatingNetworkTest(test_utils.TestCase):
+
+  def testCCTGatingNetworkConstruction(self):
+    with self.session(use_gpu=False):
+      p = layers.CCTGatingNetwork.Params().Set(
+          name='cct_gating',
+          input_dim=10,
+          hidden_layer_dim=20,
+          num_outputs=3,
+          noise_std=5.0,
+          noise_warmup_steps=300)
+      cct_l = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      cct_l.FPropDefaultTheta(a)
+
+  def testCCTGatingNetworkTraining(self):
+    with self.session(use_gpu=False) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      p = layers.CCTGatingNetwork.Params().Set(
+          name='cct_gating',
+          input_dim=10,
+          hidden_layer_dim=20,
+          num_outputs=3,
+          noise_std=5.0,
+          noise_warmup_steps=300)
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      p.is_inference = False
+      cct_net = p.Instantiate()
+
+      a = tf.constant(np.random.rand(3, 10), dtype=tf.float32)
+      out = cct_net.FPropDefaultTheta(a)
+
+      tf.global_variables_initializer().run()
+      out_v = sess.run([out])
+      self.assertAllClose(
+          out_v,
+          [[[0.412904, 0.520129, 0.694699], [0.395485, 0.47316, 0.632451],
+            [0.404144, 0.502593, 0.644338]]])
+
+  def testCCTGatingNetworkInference(self):
+    with self.session(use_gpu=False) as sess:
+      tf.set_random_seed(398847392)
+      np.random.seed(12345)
+      p = layers.CCTGatingNetwork.Params().Set(
+          name='cct_gating',
+          input_dim=10,
+          hidden_layer_dim=20,
+          num_outputs=3,
+          noise_std=5.0,
+          noise_warmup_steps=300)
+      params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
+      p.params_init = params_init
+      p.is_inference = True
+      cct_net = p.Instantiate()
+
+      a = tf.constant(np.random.rand(3, 10), dtype=tf.float32)
+      out = cct_net.FPropDefaultTheta(a)
+
+      tf.global_variables_initializer().run()
+      out_v = sess.run([out])
+      self.assertAllClose(out_v, [[[0., 1., 1.], [0., 0., 1.], [0., 1., 1.]]])
+
+
 if __name__ == '__main__':
   tf.test.main()

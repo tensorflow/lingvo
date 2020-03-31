@@ -1130,6 +1130,22 @@ class DeterministicDropoutTest(test_utils.TestCase):
       self.assertEqual(x_val.dtype, np.float32)
 
 
+class DeterministicVNTest(test_utils.TestCase):
+
+  def testDeterministicVNTest(self):
+    x = py_utils.DeterministicVN(
+        py_utils.NestedMap({'fprop_dtype': tf.float32}),
+        seeds=[1234, 5678],
+        noise_shape=np.asarray([3, 3]))
+    with self.session() as sess:
+      x_val = sess.run(x)
+      self.assertAllClose(
+          [[0.686219, 1.360352, 0.197617], [1.866415, 0.326923, -0.781743],
+           [1.130218, -0.726336, 0.667041]], x_val)
+      self.assertAllClose(4.726707, np.sum(x_val))
+      self.assertEqual(x_val.dtype, np.float32)
+
+
 class WeightedAvgTest(test_utils.TestCase):
 
   def testWeightedAvg(self):

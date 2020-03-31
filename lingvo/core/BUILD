@@ -593,6 +593,7 @@ py_library(
         ":py_utils",
         ":quant_utils",
         ":recurrent",
+        ":schedule",
         ":summary_utils",
         ":symbolic",
         ":tshape",

@@ -32,6 +32,7 @@ from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import recurrent
+from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
@@ -4675,3 +4676,68 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
       output = tf.reshape(output, inputs_shape)
 
     return output
+
+
+class CCTGatingNetwork(quant_utils.QuantizableLayer):
+  """A gating network that is continous for training and discrete for eval.
+
+  Based on the gating network from https://arxiv.org/abs/2002.07106.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CCTGatingNetwork, cls).Params()
+    p.Define('input_dim', 0, 'Depth of the input to the network.')
+    p.Define('hidden_layer_dim', 0, 'Depth of the hidden layer outputs.')
+    p.Define('num_outputs', 0, 'Number of scalar gate outputs.')
+    p.Define('noise_std', 1.0, 'Standard deviation for gating noise.')
+    p.Define('noise_warmup_steps', 1.0, 'Steps to full noise.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(CCTGatingNetwork, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      params = schedule.PolynomialSchedule.Params()
+      params.start = (0, 0.0)
+      params.limit = (p.noise_warmup_steps, p.noise_std)
+      self.CreateChild('noise_std', params)
+
+      params = FeedForwardNet.Params()
+      params.name = 'gating_layer'
+      params.input_dim = p.input_dim
+      params.activation = ['RELU', 'NONE']
+      params.hidden_layer_dims = [p.hidden_layer_dim, p.num_outputs]
+      self.CreateChild('gatingfflayer', params)
+
+  def FProp(self, theta, inputs, paddings=None):
+    p = self.params
+    p_c = self.gatingfflayer.FProp(theta.gatingfflayer, inputs, paddings)
+    if p.is_inference:
+      ones = tf.ones(tf.shape(p_c), py_utils.FPropDtype(p))
+      zeros = tf.zeros(tf.shape(p_c), py_utils.FPropDtype(p))
+      p_c = tf.where(
+          tf.greater_equal(p_c, tf.constant(0.0, dtype=py_utils.FPropDtype(p))),
+          ones, zeros)
+    else:
+      noise_std = self.noise_std.FProp(theta.noise_std, theta.global_step)
+      noise = py_utils.DeterministicVN(
+          p,
+          py_utils.GenerateStepSeedPair(p, theta.global_step),
+          tf.shape(p_c),
+          std=noise_std)
+      p_c = tf.nn.sigmoid(p_c + noise)
+    return p_c
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+    flops = 0
+    in_dim = inputs[-1]
+    other_dims = inputs.num_elements() / in_dim
+    flops = 5 * other_dims * in_dim * p.hidden_layer_dim
+    flops = 5 * other_dims * p.num_outputs * p.hidden_layer_dim
+    out_shape = tshape.Shape(inputs[:-1] + [symbolic.ToStatic(p.num_outputs)])
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))

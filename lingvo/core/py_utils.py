@@ -2704,6 +2704,33 @@ def DeterministicDropout(x, keep_prob, seeds, noise_shape=None, name=None):
     return result
 
 
+def DeterministicVN(params, seeds, noise_shape, mean=0.0, std=1.0, name=None):
+  """Produces Fully deterministic Gaussian noise from shape, mean and std.
+
+  Args:
+    params: Nested map of params.
+    seeds: A Tensor of shape [2]. 2 seeds for deterministic random number
+      generator.
+    noise_shape: A 1-D `Tensor` of type `int32`, representing the shape for
+      randomly generated Gaussian noise.
+    mean: Mean for the Gaussian noise.
+    std: Standard deviation for noise.
+    name: An optional name for this operation.
+
+  Returns:
+    A Tensor with the shape noise_shape and type fprop_dtype.
+  """
+
+  with tf.name_scope(name, 'gaussian_noise') as name:
+    if use_tpu():
+      seeds = tf.cast(seeds, tf.int32)
+    random_tensor = mean + (
+        std * tf.random.stateless_normal(noise_shape, seed=seeds))
+    if FPropDtype(params) != tf.float32:
+      random_tensor = tf.cast(random_tensor, FPropDtype(params))
+    return random_tensor
+
+
 BATCH_NORM_UPDATES = 'batch_norm_updates'
 
 _BATCH_NORM_UPDATES_DICT = '__batch_norm_update_dict'
