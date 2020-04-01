@@ -1085,6 +1085,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_lang_dependent_atten</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">num_aux_atten_post_proj</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">vocab_size</span>
 
+    <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
       <span class="c1"># Taking shared emb/softmax layer out of the decoder variable scope so</span>
       <span class="c1"># that it can also be shared by encoder if needed.</span>
@@ -1125,7 +1126,6 @@
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;trans&#39;</span><span class="p">,</span> <span class="n">params_trans_layers</span><span class="p">)</span>
 
-      <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
