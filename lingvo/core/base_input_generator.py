@@ -832,7 +832,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     p.Define('input_files', None, 'Delimited glob of input files.')
     p.Define(
         'dataset_type', None,
-        'A dataset class constructor such as tf.data.TFRecordDatatset. '
+        'A dataset class constructor such as tf.data.TFRecordDataset. '
         'The class constructor must take a list of filenames and produce an '
         'object that extends tf.data.Dataset.')
     p.Define('randomize_order', True, 'Whether to randomize the order.')
@@ -864,22 +864,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     """
     return {}
 
-  def PostProcessBatch(self, input_batch):
-    """Post processes an input batch.
-
-    By default, just returns the batch unchanged. This happens as part of the
-    parallel reader threads and can therefore be more efficient for performing
-    expensive operations vs doing work as the result of InputBatch().
-
-    Args:
-      input_batch: Input batch NestedMap.
-
-    Returns:
-      Altered batch NestedMap.
-    """
-    return input_batch
-
-  def _InputBatch(self):
+  def GetPreprocessedInputBatch(self):
     p = self.params
 
     def ParseAndProcess(*cols):
@@ -893,7 +878,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
       record = cols[-1]
       feature_spec = self.GetFeatureSpec()
       features = py_utils.NestedMap(tf.parse_example(record, feature_spec))
-      return self.PostProcessBatch(features)
+      return self._PreprocessInputBatch(features)
 
     dataset_factory = p.dataset_type
     dataset = (
