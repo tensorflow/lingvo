@@ -32,6 +32,7 @@ from tensorflow.python.framework import function as _function_lib
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
+from tensorflow.python.ops import math_ops
 from tensorflow.python.util import module_wrapper as _module_wrapper
 
 from tensorflow.python.platform import app
