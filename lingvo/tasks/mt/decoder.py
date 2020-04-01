@@ -940,6 +940,7 @@ class TransformerDecoder(MTBaseDecoder):
     if p.use_lang_dependent_atten and p.task_emb:
       p.trans_tpl.num_aux_atten_post_proj = p.task_emb.vocab_size
 
+    p.softmax.input_dim = p.model_dim
     if self._share_sm_emb:
       # Taking shared emb/softmax layer out of the decoder variable scope so
       # that it can also be shared by encoder if needed.
@@ -980,7 +981,6 @@ class TransformerDecoder(MTBaseDecoder):
 
       self.CreateChildren('trans', params_trans_layers)
 
-      p.softmax.input_dim = p.model_dim
       if not self._share_sm_emb:
         self.CreateChild('softmax', p.softmax)
 
