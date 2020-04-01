@@ -977,7 +977,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_files&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Delimited glob of input files.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;dataset_type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
-        <span class="s1">&#39;A dataset class constructor such as tf.data.TFRecordDatatset. &#39;</span>
+        <span class="s1">&#39;A dataset class constructor such as tf.data.TFRecordDataset. &#39;</span>
         <span class="s1">&#39;The class constructor must take a list of filenames and produce an &#39;</span>
         <span class="s1">&#39;object that extends tf.data.Dataset.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;randomize_order&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to randomize the order.&#39;</span><span class="p">)</span>
@@ -1009,22 +1009,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
 
-<div class="viewcode-block" id="BaseDataExampleInputGenerator.PostProcessBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.PostProcessBatch">[docs]</a>  <span class="k">def</span> <span class="nf">PostProcessBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Post processes an input batch.</span>
-
-<span class="sd">    By default, just returns the batch unchanged. This happens as part of the</span>
-<span class="sd">    parallel reader threads and can therefore be more efficient for performing</span>
-<span class="sd">    expensive operations vs doing work as the result of InputBatch().</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      input_batch: Input batch NestedMap.</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      Altered batch NestedMap.</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">input_batch</span></div>
-
-<div class="viewcode-block" id="BaseDataExampleInputGenerator._InputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator._InputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseDataExampleInputGenerator.GetPreprocessedInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseDataExampleInputGenerator.GetPreprocessedInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetPreprocessedInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">ParseAndProcess</span><span class="p">(</span><span class="o">*</span><span class="n">cols</span><span class="p">):</span>
@@ -1038,7 +1023,7 @@
       <span class="n">record</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">feature_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetFeatureSpec</span><span class="p">()</span>
       <span class="n">features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">parse_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_spec</span><span class="p">))</span>
-      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PostProcessBatch</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
 
     <span class="n">dataset_factory</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_type</span>
     <span class="n">dataset</span> <span class="o">=</span> <span class="p">(</span>
