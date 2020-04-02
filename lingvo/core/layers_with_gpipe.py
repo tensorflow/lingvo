@@ -782,7 +782,7 @@ class GPipeTransformerStack(PipeliningLayer):
             source_paddings,
             None,
             None,
-            None,
+            source_segment_id,
             None,
             transparent_acc,
             transparent_weights,
@@ -790,8 +790,9 @@ class GPipeTransformerStack(PipeliningLayer):
             target_task_id=target_task_id)
       else:
         encoder_outs = encoder_l.FProp(encoder_l.theta, source_vecs,
-                                       source_paddings, None, None, None, None,
-                                       transparent_acc, transparent_weights)
+                                       source_paddings, None, None,
+                                       source_segment_id, None, transparent_acc,
+                                       transparent_weights)
       source_vecs = encoder_outs[0]
       if p.is_transparent and len(encoder_outs) == 8:
         transparent_acc = encoder_outs[6]
