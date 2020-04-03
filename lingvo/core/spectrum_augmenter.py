@@ -143,6 +143,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'Whether to use stateless random TensorFlow ops, with seeds'
         'determined by the input features. This feature is necessary for'
         'applications including federated learning.')
+    p.Define(
+        'use_calibration', False,
+        'Whether to calibrate (scale up) the feature value after masking. The '
+        'calibration helps when one applies specaug inside feature maps, '
+        'similar to DropBlock technique introduced in the paper: '
+        'DropBlock: A regularization method for convolutional networks '
+        'https://arxiv.org/abs/1810.12890')
     return p
 
   @base_layer.initializer
@@ -573,7 +580,14 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         multiplicity=multiplicity,
         dtype=dtype,
         max_ratio=1.0)
-    return self.EinsumBxycByBxyc(inputs, block_arrays)
+    outputs = self.EinsumBxycByBxyc(inputs, block_arrays)
+    if p.use_calibration:
+      # outputs shape: (batch_size, time_length, num_freq, channels)
+      # Get divisor as total number of freq being masked
+      divisor = tf.reshape(tf.einsum('by->b', block_arrays), [-1, 1, 1, 1])
+      # Calibrate by multiplying total num_freq then dividing by masked num_freq
+      outputs = outputs * tf.constant(num_freq, dtype=dtype) / divisor
+    return outputs
 
   def _TimeMask(self,
                 inputs,
@@ -646,6 +660,13 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
     outputs = self.EinsumBxycBxBxyc(
         inputs, block_arrays, name='einsum_formasking')
+    if p.use_calibration:
+      # outputs shape: (batch_size, time_length, num_freq, channels)
+      # Get divisor as total number of time_length being masked
+      divisor = tf.reshape(tf.einsum('by->b', block_arrays), [-1, 1, 1, 1])
+      # Calibrate by multiplying total length then dividing by masked length
+      outputs = outputs * tf.constant(time_length, dtype=dtype) / divisor
+
     if noisify:
       # Sample noise with standard deviation with factor * 0.1 + 0.0001
       # TODO(ngyuzh): Make sure this won't affect EOS.

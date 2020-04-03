@@ -785,6 +785,39 @@ class SpectrumAugmenterTest(test_utils.TestCase):
           np.shape(actual_layer_output1), np.array([5, 20, 2, 2]))
       self.assertNotAllEqual(actual_layer_output1, actual_layer_output2)
 
+  def testSpectrumAugmenterWithCalibration(self):
+    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      tf.set_random_seed(1234)
+      inputs = tf.ones([2, 5, 10, 1], dtype=tf.float32)
+      paddings = tf.zeros([2, 5])
+      p = spectrum_augmenter.SpectrumAugmenter.Params()
+      p.name = 'specAug_layers'
+      p.freq_mask_max_bins = 6
+      p.freq_mask_count = 2
+      p.time_mask_max_frames = 0
+      p.random_seed = 34567
+      p.use_calibration = True
+      specaug_layer = p.Instantiate()
+      # pyformat: disable
+      # pylint: disable=bad-whitespace,bad-continuation
+      expected_output = np.array(
+          [[[[2.5], [2.5], [2.5], [0.], [0.], [0.], [0.], [0.], [0.], [2.5]],
+            [[2.5], [2.5], [2.5], [0.], [0.], [0.], [0.], [0.], [0.], [2.5]],
+            [[2.5], [2.5], [2.5], [0.], [0.], [0.], [0.], [0.], [0.], [2.5]],
+            [[2.5], [2.5], [2.5], [0.], [0.], [0.], [0.], [0.], [0.], [2.5]],
+            [[2.5], [2.5], [2.5], [0.], [0.], [0.], [0.], [0.], [0.], [2.5]]],
+           [[[0.], [0.], [0.], [0.], [0.], [0.], [0.], [0.], [5.], [5.]],
+            [[0.], [0.], [0.], [0.], [0.], [0.], [0.], [0.], [5.], [5.]],
+            [[0.], [0.], [0.], [0.], [0.], [0.], [0.], [0.], [5.], [5.]],
+            [[0.], [0.], [0.], [0.], [0.], [0.], [0.], [0.], [5.], [5.]],
+            [[0.], [0.], [0.], [0.], [0.], [0.], [0.], [0.], [5.], [5.]]]])
+      # pylint: enable=bad-whitespace,bad-continuation
+      # pyformat: enable
+      h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
+      actual_layer_output = sess.run(h)
+      print(np.array_repr(actual_layer_output))
+      self.assertAllClose(actual_layer_output, expected_output)
+
 
 if __name__ == '__main__':
   tf.test.main()
