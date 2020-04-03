@@ -169,23 +169,18 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
 
     self.natural_order_model = p.natural_order_model
 
-    if not p.packed_input:
-      (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,
-       self._tgt_labels,
-       self._tgt_weights), self._bucket_keys = self._BuildDataSource()
-    else:
-      (
-          self._src_ids,
-          self._src_paddings,
-          self._tgt_ids,
-          self._tgt_paddings,
-          self._tgt_labels,
-          self._tgt_weights,
-          self._src_seg_pos,
-          self._src_seg_ids,
-          self._tgt_seg_pos,
-          self._tgt_seg_ids,
-      ), self._bucket_keys = self._BuildDataSource()
+    (
+        self._src_ids,
+        self._src_paddings,
+        self._tgt_ids,
+        self._tgt_paddings,
+        self._tgt_labels,
+        self._tgt_weights,
+        self._src_seg_pos,
+        self._src_seg_ids,
+        self._tgt_seg_pos,
+        self._tgt_seg_ids,
+    ), self._bucket_keys = self._BuildDataSource()
 
     if p.pad_to_max_seq_length:
       assert p.source_max_length
@@ -218,15 +213,18 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
                                                         p.target_max_length, 0,
                                                         target_shape)
 
-      if p.packed_input:
-        self._src_seg_ids = py_utils.PadSequenceDimension(
-            self._src_seg_ids, p.source_max_length, 0, source_shape)
-        self._src_seg_pos = py_utils.PadSequenceDimension(
-            self._src_seg_pos, p.source_max_length, 0, source_shape)
-        self._tgt_seg_ids = py_utils.PadSequenceDimension(
-            self._tgt_seg_ids, p.target_max_length, 0, target_shape)
-        self._tgt_seg_pos = py_utils.PadSequenceDimension(
-            self._tgt_seg_pos, p.target_max_length, 0, target_shape)
+      self._src_seg_ids = py_utils.PadSequenceDimension(self._src_seg_ids,
+                                                        p.source_max_length, 0,
+                                                        source_shape)
+      self._src_seg_pos = py_utils.PadSequenceDimension(self._src_seg_pos,
+                                                        p.source_max_length, 0,
+                                                        source_shape)
+      self._tgt_seg_ids = py_utils.PadSequenceDimension(self._tgt_seg_ids,
+                                                        p.target_max_length, 0,
+                                                        target_shape)
+      self._tgt_seg_pos = py_utils.PadSequenceDimension(self._tgt_seg_pos,
+                                                        p.target_max_length, 0,
+                                                        target_shape)
 
     self._input_batch_size = tf.shape(self._src_ids)[0]
     self._sample_ids = tf.range(0, self._input_batch_size, 1)
@@ -300,26 +298,41 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
       src_ids = features['inputs']
       tgt_labels = features['targets']
 
+      # Derive trivial segmentation for unpacked input.
       src_paddings, tgt_ids, tgt_paddings, tgt_weights, bucket_key = _DerivePaddingsAndIds(
           src_ids, tgt_labels)
+
+      src_len = tf.shape(src_ids)[0]
+      tgt_len = tf.shape(tgt_ids)[0]
+      src_pos = tf.range(src_len, dtype=tf.int32)
+      src_seg = tf.zeros_like(src_paddings)
+      tgt_pos = tf.range(tgt_len, dtype=tf.int32)
+      tgt_seg = tf.zeros_like(tgt_paddings)
+
       return [
-          src_ids, src_paddings, tgt_ids, tgt_paddings, tgt_labels, tgt_weights
+          src_ids,
+          src_paddings,
+          tgt_ids,
+          tgt_paddings,
+          tgt_labels,
+          tgt_weights,
+          src_pos,
+          src_seg,
+          tgt_pos,
+          tgt_seg,
       ], bucket_key
 
     if not p.packed_input:
-      return generic_input.GenericInput(
-          file_pattern=file_pattern,
-          processor=_Proc,
-          dynamic_padding_dimensions=[0] * 6,
-          dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
-          **self.CommonInputOpArgs())
+      processor_fn = _Proc
     else:
-      return generic_input.GenericInput(
-          file_pattern=file_pattern,
-          processor=_ProcPacked,
-          dynamic_padding_dimensions=[0] * 10,
-          dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
-          **self.CommonInputOpArgs())
+      processor_fn = _ProcPacked
+
+    return generic_input.GenericInput(
+        file_pattern=file_pattern,
+        processor=processor_fn,
+        dynamic_padding_dimensions=[0] * 10,
+        dynamic_padding_constants=[0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+        **self.CommonInputOpArgs())
 
   def _InputBatch(self):
     ret = py_utils.NestedMap()
@@ -335,12 +348,11 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     ret.tgt.weights = self._tgt_weights
     ret.tgt.paddings = self._tgt_paddings
 
-    if self.params.packed_input:
-      ret.src.segment_pos = self._src_seg_pos
-      ret.src.segment_ids = self._src_seg_ids
+    ret.src.segment_pos = self._src_seg_pos
+    ret.src.segment_ids = self._src_seg_ids
 
-      ret.tgt.segment_pos = self._tgt_seg_pos
-      ret.tgt.segment_ids = self._tgt_seg_ids
+    ret.tgt.segment_pos = self._tgt_seg_pos
+    ret.tgt.segment_ids = self._tgt_seg_ids
 
     if (self.params.fprop_dtype is None or
         self.params.dtype == self.params.fprop_dtype):
