@@ -288,13 +288,6 @@
         <span class="s1">&#39;Whether to use stateless random TensorFlow ops, with seeds&#39;</span>
         <span class="s1">&#39;determined by the input features. This feature is necessary for&#39;</span>
         <span class="s1">&#39;applications including federated learning.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_calibration&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-        <span class="s1">&#39;Whether to calibrate (scale up) the feature value after masking. The &#39;</span>
-        <span class="s1">&#39;calibration helps when one applies specaug inside feature maps, &#39;</span>
-        <span class="s1">&#39;similar to DropBlock technique introduced in the paper: &#39;</span>
-        <span class="s1">&#39;DropBlock: A regularization method for convolutional networks &#39;</span>
-        <span class="s1">&#39;https://arxiv.org/abs/1810.12890&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -725,14 +718,7 @@
         <span class="n">multiplicity</span><span class="o">=</span><span class="n">multiplicity</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">max_ratio</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
-    <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumBxycByBxyc</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_calibration</span><span class="p">:</span>
-      <span class="c1"># outputs shape: (batch_size, time_length, num_freq, channels)</span>
-      <span class="c1"># Get divisor as total number of freq being masked</span>
-      <span class="n">divisor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;by-&gt;b&#39;</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="c1"># Calibrate by multiplying total num_freq then dividing by masked num_freq</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">num_freq</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">/</span> <span class="n">divisor</span>
-    <span class="k">return</span> <span class="n">outputs</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumBxycByBxyc</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SpectrumAugmenter._TimeMask"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter._TimeMask">[docs]</a>  <span class="k">def</span> <span class="nf">_TimeMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">inputs</span><span class="p">,</span>
@@ -805,13 +791,6 @@
 
     <span class="n">outputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">EinsumBxycBxBxyc</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;einsum_formasking&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_calibration</span><span class="p">:</span>
-      <span class="c1"># outputs shape: (batch_size, time_length, num_freq, channels)</span>
-      <span class="c1"># Get divisor as total number of time_length being masked</span>
-      <span class="n">divisor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;by-&gt;b&#39;</span><span class="p">,</span> <span class="n">block_arrays</span><span class="p">),</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="c1"># Calibrate by multiplying total length then dividing by masked length</span>
-      <span class="n">outputs</span> <span class="o">=</span> <span class="n">outputs</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">time_length</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span> <span class="o">/</span> <span class="n">divisor</span>
-
     <span class="k">if</span> <span class="n">noisify</span><span class="p">:</span>
       <span class="c1"># Sample noise with standard deviation with factor * 0.1 + 0.0001</span>
       <span class="c1"># TODO(ngyuzh): Make sure this won&#39;t affect EOS.</span>
