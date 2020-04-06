@@ -167,9 +167,9 @@
   <div class="section" id="module-lingvo.tasks.car.detection_3d_metrics">
 <span id="lingvo-tasks-car-detection-3d-metrics-module"></span><h1>lingvo.tasks.car.detection_3d_metrics module<a class="headerlink" href="#module-lingvo.tasks.car.detection_3d_metrics" title="Permalink to this headline">¶</a></h1>
 <p>Metrics for 3D detection problems.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">TopDownVisualizationMetric</code><span class="sig-paren">(</span><em class="sig-param">top_down_transform</em>, <em class="sig-param">class_id_to_name=None</em>, <em class="sig-param">image_height=1536</em>, <em class="sig-param">image_width=1024</em>, <em class="sig-param">figsize=None</em>, <em class="sig-param">ground_removal_threshold=-1.35</em>, <em class="sig-param">sampler_num_samples=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">TopDownVisualizationMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">top_down_transform</span></em>, <em class="sig-param"><span class="n">class_id_to_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">image_height</span><span class="o">=</span><span class="default_value">1536</span></em>, <em class="sig-param"><span class="n">image_width</span><span class="o">=</span><span class="default_value">1024</span></em>, <em class="sig-param"><span class="n">figsize</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ground_removal_threshold</span><span class="o">=</span><span class="default_value">- 1.35</span></em>, <em class="sig-param"><span class="n">sampler_num_samples</span><span class="o">=</span><span class="default_value">8</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Top-down detection visualization, expecting 3D laser points and 2D bboxes.</p>
 <p>Updates to this metric is expected to be <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> containing:</p>
@@ -194,9 +194,9 @@ the image, over a 32m x 48m range.</p>
 <p>Ground-truth boxes will be drawn with color=cyan (see DrawBBoxesOnImages for
 details). Predicted boxes will be drawn with a color from the PIL color list,
 with a different color per class.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">decoded_outputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoded_outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add top down visualization to summaries.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -210,21 +210,21 @@ with a different color per class.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._XYWHToExtrema">
-<code class="sig-name descname">_XYWHToExtrema</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._XYWHToExtrema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._XYWHToExtrema" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_XYWHToExtrema</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._XYWHToExtrema"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._XYWHToExtrema" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convert from x, y, dx, dy to extrema ymin, xmin, ymax, xmax.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._DrawLasers">
-<code class="sig-name descname">_DrawLasers</code><span class="sig-paren">(</span><em class="sig-param">images</em>, <em class="sig-param">points_xyz</em>, <em class="sig-param">points_padding</em>, <em class="sig-param">transform</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._DrawLasers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._DrawLasers" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_DrawLasers</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em>, <em class="sig-param"><span class="n">points_xyz</span></em>, <em class="sig-param"><span class="n">points_padding</span></em>, <em class="sig-param"><span class="n">transform</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._DrawLasers"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._DrawLasers" title="Permalink to this definition">¶</a></dt>
 <dd><p>Draw laser points.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Summary">
-<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Summary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.Summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -236,38 +236,38 @@ with a different color per class.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._EvaluateIfNecessary">
-<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a top down image summary, if not already created.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.DrawDifficulty">
-<code class="sig-name descname">DrawDifficulty</code><span class="sig-paren">(</span><em class="sig-param">images</em>, <em class="sig-param">gt_bboxes</em>, <em class="sig-param">gt_box_weights</em>, <em class="sig-param">difficulties</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.DrawDifficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.DrawDifficulty" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DrawDifficulty</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">images</span></em>, <em class="sig-param"><span class="n">gt_bboxes</span></em>, <em class="sig-param"><span class="n">gt_box_weights</span></em>, <em class="sig-param"><span class="n">difficulties</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#TopDownVisualizationMetric.DrawDifficulty"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.TopDownVisualizationMetric.DrawDifficulty" title="Permalink to this definition">¶</a></dt>
 <dd><p>Draw the difficulty values on each ground truth box.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">WorldViewer</code><span class="sig-paren">(</span><em class="sig-param">sampler_num_samples=8</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">WorldViewer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sampler_num_samples</span><span class="o">=</span><span class="default_value">8</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>World Viewer for 3d point cloud scenes.</p>
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer._MAX_HUE">
 <code class="sig-name descname">_MAX_HUE</code><em class="property"> = 0.65</em><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer._MAX_HUE" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer._MAX_DISTANCE_METERS">
 <code class="sig-name descname">_MAX_DISTANCE_METERS</code><em class="property"> = 40.0</em><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer._MAX_DISTANCE_METERS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">decoded_outputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoded_outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add point cloud mesh data to be summarized.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -281,9 +281,9 @@ with a different color per class.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer.Summary">
-<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer.Summary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer.Summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -295,17 +295,17 @@ with a different color per class.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.WorldViewer._EvaluateIfNecessary">
-<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#WorldViewer._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.WorldViewer._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a mesh summary, if not already created.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.detection_3d_metrics.CameraVisualization">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">CameraVisualization</code><span class="sig-paren">(</span><em class="sig-param">figsize=(15</em>, <em class="sig-param">15)</em>, <em class="sig-param">bbox_score_threshold=0.01</em>, <em class="sig-param">sampler_num_samples=8</em>, <em class="sig-param">draw_3d_boxes=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_metrics.</code><code class="sig-name descname">CameraVisualization</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">figsize</span><span class="o">=</span><span class="default_value">15, 15</span></em>, <em class="sig-param"><span class="n">bbox_score_threshold</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">sampler_num_samples</span><span class="o">=</span><span class="default_value">8</span></em>, <em class="sig-param"><span class="n">draw_3d_boxes</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Camera detection visualization.</p>
 <p>Visualizes a camera image and predicted bounding boxes on top
@@ -318,15 +318,15 @@ For each batch (N), for each box B, there are 8 corners, each with
 an X and Y value.</p>
 <p>bbox_scores: [N, B1] float tensor containing predicted box scores.</p>
 </div></blockquote>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">decoded_outputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoded_outputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates this metric (e.g. accumulates statistics) from the arguments.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Summary">
-<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Summary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization.Summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -338,9 +338,9 @@ an X and Y value.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_metrics.CameraVisualization._EvaluateIfNecessary">
-<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_EvaluateIfNecessary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_metrics.html#CameraVisualization._EvaluateIfNecessary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_metrics.CameraVisualization._EvaluateIfNecessary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a camera image summary if not already created.</p>
 </dd></dl>
 

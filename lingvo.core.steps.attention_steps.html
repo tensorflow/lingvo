@@ -168,9 +168,9 @@
   <div class="section" id="module-lingvo.core.steps.attention_steps">
 <span id="lingvo-core-steps-attention-steps-module"></span><h1>lingvo.core.steps.attention_steps module<a class="headerlink" href="#module-lingvo.core.steps.attention_steps" title="Permalink to this headline">¶</a></h1>
 <p>Steps for attention computation.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.steps.attention_steps.AttentionStep">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.steps.attention_steps.</code><code class="sig-name descname">AttentionStep</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.steps.attention_steps.</code><code class="sig-name descname">AttentionStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.step.html#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
 <p>AttentionStep wraps an attention layer in the Step interface.</p>
 <p>An attention algorithm outputs a targeted summary of a set of input vectors.</p>
@@ -181,15 +181,15 @@ weights (attention_probs).</p>
 <p>The result is the weighted sum (using attention_probs) of a set of vectors.
 By default that set of vectors is also external_inputs.src, but it can
 optionally be external_inputs.context if a context tensor is specified.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionStep.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionStep.PrepareExternalInputs">
-<code class="sig-name descname">PrepareExternalInputs</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">external_inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.PrepareExternalInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PrepareExternalInputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">external_inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.PrepareExternalInputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.PrepareExternalInputs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Prepare encoded source data for processing.</p>
 <p>In some attention algorithms, this step will pre-process the source
 feature data so that FProp runs faster.</p>
@@ -215,9 +215,9 @@ src contain useful information.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionStep.ZeroState">
-<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">prepared_inputs</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.ZeroState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">prepared_inputs</span></em>, <em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.ZeroState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produce a zero state for this step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -235,9 +235,9 @@ PrepareExternalInputs.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionStep.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">prepared_inputs</em>, <em class="sig-param">step_inputs</em>, <em class="sig-param">padding</em>, <em class="sig-param">state0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">prepared_inputs</span></em>, <em class="sig-param"><span class="n">step_inputs</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produces a context vector from the attention algorithm.</p>
 <p>The context vector is a summary of the inputs from external_inputs
 which the attention algorithm has determined would be useful for decoding
@@ -275,9 +275,9 @@ this graph.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.steps.attention_steps.AttentionBlockStep">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.steps.attention_steps.</code><code class="sig-name descname">AttentionBlockStep</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.steps.attention_steps.</code><code class="sig-name descname">AttentionBlockStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.step.html#lingvo.core.step.Step" title="lingvo.core.step.Step"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.step.Step</span></code></a></p>
 <p>Computes attention queries and context vectors.</p>
 <p>An attention algorithm produces a summary of a set of input vectors.
@@ -299,15 +299,15 @@ in an implementation-dependent way to produce a query vector.</p>
 <p>In previous implementations, the query generator was just the first layer
 of a stack of RNN layers (rnn_cell[0]). In this implementation, the query
 generator can be any suitable Step, but in practice is one or more RNN layers.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionBlockStep.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionBlockStep.ZeroState">
-<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">prepared_inputs</em>, <em class="sig-param">batch_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep.ZeroState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ZeroState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">prepared_inputs</span></em>, <em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep.ZeroState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep.ZeroState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produce a zero state for this step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -325,9 +325,9 @@ PrepareExternalInputs.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.steps.attention_steps.AttentionBlockStep.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">prepared_inputs</em>, <em class="sig-param">step_inputs</em>, <em class="sig-param">padding</em>, <em class="sig-param">state0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">prepared_inputs</span></em>, <em class="sig-param"><span class="n">step_inputs</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">state0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionBlockStep.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionBlockStep.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produces a query vector and a context vector for the next decoder step.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

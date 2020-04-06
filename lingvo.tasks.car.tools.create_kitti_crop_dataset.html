@@ -197,9 +197,9 @@ preprocessors as that might add additional data augmentation steps.</p>
 <dt>bazel run -c opt </dt><dd><p>//lingvo/tasks/car/tools:create_kitti_crop_dataset –model_name=car.kitti.PillarsModelV1 –norun_preprocessors –input_file_pattern=/path/to/kitti/train_pattern –output_file_pattern=/path/to/output/gt_objects&#64;100</p>
 </dd>
 </dl>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData">
-<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_GetFilteredBoundingBoxData</code><span class="sig-paren">(</span><em class="sig-param">kitti_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_GetFilteredBoundingBoxData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_GetFilteredBoundingBoxData</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">kitti_data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_GetFilteredBoundingBoxData"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._GetFilteredBoundingBoxData" title="Permalink to this definition">¶</a></dt>
 <dd><p>Given a single batch element of data, process it for writing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -213,24 +213,24 @@ cropped pointclouds.</p>
 </dl>
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_ProcessShard</code><span class="sig-paren">(</span><em class="sig-param">model_name</em>, <em class="sig-param">split</em>, <em class="sig-param">run_preprocessors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">_ProcessShard</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">model_name</span></em>, <em class="sig-param"><span class="n">split</span></em>, <em class="sig-param"><span class="n">run_preprocessors</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">apache_beam.transforms.core.DoFn</span></code></p>
 <p>Process a given shard.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._create_graph">
 <code class="sig-name descname">_create_graph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard._create_graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._create_graph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto">
-<code class="sig-name descname">_ToTFExampleProto</code><span class="sig-paren">(</span><em class="sig-param">filtered_data</em>, <em class="sig-param">bbox_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard._ToTFExampleProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ToTFExampleProto</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filtered_data</span></em>, <em class="sig-param"><span class="n">bbox_idx</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard._ToTFExampleProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard._ToTFExampleProto" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process">
-<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">process</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#_ProcessShard.process"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset._ProcessShard.process" title="Permalink to this definition">¶</a></dt>
 <dd><p>Method to use for processing elements.</p>
 <p>This is invoked by <code class="docutils literal notranslate"><span class="pre">DoFnRunner</span></code> for each element of a input
 <code class="docutils literal notranslate"><span class="pre">PCollection</span></code>.</p>
@@ -266,9 +266,9 @@ output watermark of Splittable <code class="docutils literal notranslate"><span 
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.tools.create_kitti_crop_dataset.main">
-<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset.main" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.tools.create_kitti_crop_dataset.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/tools/create_kitti_crop_dataset.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.tools.create_kitti_crop_dataset.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

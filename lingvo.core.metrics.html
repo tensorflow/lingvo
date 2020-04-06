@@ -166,31 +166,31 @@
   <div class="section" id="module-lingvo.core.metrics">
 <span id="lingvo-core-metrics-module"></span><h1>lingvo.core.metrics module<a class="headerlink" href="#module-lingvo.core.metrics" title="Permalink to this headline">¶</a></h1>
 <p>Helper classes for computing performance metrics.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.metrics.CreateScalarSummary">
-<code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">CreateScalarSummary</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">simple_value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CreateScalarSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CreateScalarSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">CreateScalarSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">simple_value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CreateScalarSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CreateScalarSummary" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.BaseMetric">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">BaseMetric</code><a class="reference internal" href="_modules/lingvo/core/metrics.html#BaseMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.BaseMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Base class for aggregating statistics to compute a performance metric.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.BaseMetric.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#BaseMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.BaseMetric.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#BaseMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.BaseMetric.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates this metric (e.g. accumulates statistics) from the arguments.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.BaseMetric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.BaseMetric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.BaseMetric.Summary">
-<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#BaseMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.BaseMetric.Summary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#BaseMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.BaseMetric.Summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -204,48 +204,48 @@
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.AverageMetric">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">AverageMetric</code><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Class to compute a weighted (arithmetic) average value metric.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">value</em>, <em class="sig-param">weight=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">weight</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates this metric (e.g. accumulates statistics) from the arguments.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.GetTotalValue">
 <code class="sig-name descname">GetTotalValue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.GetTotalValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.GetTotalValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.SetTotalValue">
-<code class="sig-name descname">SetTotalValue</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.SetTotalValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.SetTotalValue" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SetTotalValue</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.SetTotalValue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.SetTotalValue" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.total_value">
 <em class="property">property </em><code class="sig-name descname">total_value</code><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.total_value" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.GetTotalWeight">
 <code class="sig-name descname">GetTotalWeight</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.GetTotalWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.GetTotalWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.SetTotalWeight">
-<code class="sig-name descname">SetTotalWeight</code><span class="sig-paren">(</span><em class="sig-param">val</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.SetTotalWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.SetTotalWeight" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SetTotalWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AverageMetric.SetTotalWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.SetTotalWeight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.total_weight">
 <em class="property">property </em><code class="sig-name descname">total_weight</code><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.total_weight" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AverageMetric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.AverageMetric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
@@ -253,27 +253,27 @@
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.F1Metric">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">F1Metric</code><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Class to compute F1 metrics.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.F1Metric.UpdateTruePositive">
-<code class="sig-name descname">UpdateTruePositive</code><span class="sig-paren">(</span><em class="sig-param">count=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateTruePositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateTruePositive" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">UpdateTruePositive</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">count</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateTruePositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateTruePositive" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.F1Metric.UpdateFalsePositive">
-<code class="sig-name descname">UpdateFalsePositive</code><span class="sig-paren">(</span><em class="sig-param">count=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateFalsePositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateFalsePositive" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">UpdateFalsePositive</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">count</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateFalsePositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateFalsePositive" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.F1Metric.UpdateFalseNegative">
-<code class="sig-name descname">UpdateFalseNegative</code><span class="sig-paren">(</span><em class="sig-param">count=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateFalseNegative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateFalseNegative" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">UpdateFalseNegative</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">count</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#F1Metric.UpdateFalseNegative"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.F1Metric.UpdateFalseNegative" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.F1Metric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.F1Metric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
@@ -281,23 +281,23 @@
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.CorpusBleuMetric">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">CorpusBleuMetric</code><span class="sig-paren">(</span><em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">CorpusBleuMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Metric class to compute the corpus-level BLEU score.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.CorpusBleuMetric.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">ref_str</em>, <em class="sig-param">hyp_str</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ref_str</span></em>, <em class="sig-param"><span class="n">hyp_str</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#CorpusBleuMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates this metric (e.g. accumulates statistics) from the arguments.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.CorpusBleuMetric.unsegmenter">
 <em class="property">property </em><code class="sig-name descname">unsegmenter</code><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric.unsegmenter" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.CorpusBleuMetric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.CorpusBleuMetric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
@@ -305,7 +305,7 @@
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.TpuEvalMetrics">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">TpuEvalMetrics</code><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -324,9 +324,9 @@ produced.</p>
 <p>Note that this implementation computes the metrics over all replicas, for the
 last step of the loop only (could be changed to average over all loop steps
 instead).</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics.SetMetrics">
-<code class="sig-name descname">SetMetrics</code><span class="sig-paren">(</span><em class="sig-param">metric_dict</em>, <em class="sig-param">step_args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.SetMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.SetMetrics" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SetMetrics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">metric_dict</span></em>, <em class="sig-param"><span class="n">step_args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.SetMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.SetMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets the metrics to evaluate and the per-step output tensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -348,25 +348,25 @@ loop).</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics.initial_values">
 <em class="property">property </em><code class="sig-name descname">initial_values</code><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.initial_values" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the initial loop values.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics.metrics">
 <em class="property">property </em><code class="sig-name descname">metrics</code><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.metrics" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics._Zip">
-<code class="sig-name descname">_Zip</code><span class="sig-paren">(</span><em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics._Zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics._Zip" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Zip</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">values</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics._Zip"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics._Zip" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics.FinalizeMetrics">
-<code class="sig-name descname">FinalizeMetrics</code><span class="sig-paren">(</span><em class="sig-param">loop_result</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.FinalizeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.FinalizeMetrics" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FinalizeMetrics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loop_result</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.FinalizeMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.FinalizeMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute final average of the metrics, given loop_result tensors.</p>
 <p>To be called outside the training loop body , but still in the scope of
 tpu.batch_parallel.</p>
@@ -380,22 +380,22 @@ tpu.batch_parallel.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.TpuEvalMetrics.PackMetricsValues">
-<code class="sig-name descname">PackMetricsValues</code><span class="sig-paren">(</span><em class="sig-param">values</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.PackMetricsValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.PackMetricsValues" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PackMetricsValues</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">values</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#TpuEvalMetrics.PackMetricsValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.TpuEvalMetrics.PackMetricsValues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Packs numpy values into a dict of metrics.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.metrics.AUCMetric">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">AUCMetric</code><span class="sig-paren">(</span><em class="sig-param">mode='roc'</em>, <em class="sig-param">samples=-1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.metrics.</code><code class="sig-name descname">AUCMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mode</span><span class="o">=</span><span class="default_value">'roc'</span></em>, <em class="sig-param"><span class="n">samples</span><span class="o">=</span><span class="default_value">- 1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.metrics.BaseMetric</span></code></a></p>
 <p>Class to compute the AUC score for binary classification.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AUCMetric.Update">
-<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param">label</em>, <em class="sig-param">prob</em>, <em class="sig-param">weight=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">label</span></em>, <em class="sig-param"><span class="n">prob</span></em>, <em class="sig-param"><span class="n">weight</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates the metrics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -410,15 +410,15 @@ within [0, 1.0].</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AUCMetric.value">
 <em class="property">property </em><code class="sig-name descname">value</code><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.value" title="Permalink to this definition">¶</a></dt>
 <dd><p>Current value of this metric.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.metrics.AUCMetric.Summary">
-<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param">name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Summary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Summary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/metrics.html#AUCMetric.Summary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.metrics.AUCMetric.Summary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts the current state of this metric to a <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.Summary</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

@@ -167,9 +167,9 @@
   <div class="section" id="module-lingvo.tasks.car.ops">
 <span id="lingvo-tasks-car-ops-package"></span><h1>lingvo.tasks.car.ops package<a class="headerlink" href="#module-lingvo.tasks.car.ops" title="Permalink to this headline">¶</a></h1>
 <p>Car Operations.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.ops.pairwise_iou3d">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">pairwise_iou3d</code><span class="sig-paren">(</span><em class="sig-param">boxes_a</em>, <em class="sig-param">boxes_b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.pairwise_iou3d" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">pairwise_iou3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">boxes_a</span></em>, <em class="sig-param"><span class="n">boxes_b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.pairwise_iou3d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calculate pairwise IoUs between two set of 3D bboxes. Every bbox is represented</p>
 <p>as [center_x, center_y, center_z, dim_x, dim_y, dim_z, heading].</p>
 <dl class="field-list simple">
@@ -186,9 +186,9 @@
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.ops.point_to_grid">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">point_to_grid</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">num_points_per_cell</em>, <em class="sig-param">x_intervals</em>, <em class="sig-param">y_intervals</em>, <em class="sig-param">z_intervals</em>, <em class="sig-param">x_range</em>, <em class="sig-param">y_range</em>, <em class="sig-param">z_range</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.point_to_grid" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">point_to_grid</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">num_points_per_cell</span></em>, <em class="sig-param"><span class="n">x_intervals</span></em>, <em class="sig-param"><span class="n">y_intervals</span></em>, <em class="sig-param"><span class="n">z_intervals</span></em>, <em class="sig-param"><span class="n">x_range</span></em>, <em class="sig-param"><span class="n">y_range</span></em>, <em class="sig-param"><span class="n">z_range</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.point_to_grid" title="Permalink to this definition">¶</a></dt>
 <dd><p>Re-organize input points into equally spaced grids. Points in each grid cell are</p>
 <p>shuffled. When not enough available points, the center of each cell with all 0
 on feature dimensions will be used as padding.</p>
@@ -227,9 +227,9 @@ tuple of two scalars: (zmin, zmax). Spatial span of the grid.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.ops.non_max_suppression_3d">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">non_max_suppression_3d</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em>, <em class="sig-param">scores</em>, <em class="sig-param">nms_iou_threshold</em>, <em class="sig-param">score_threshold</em>, <em class="sig-param">max_boxes_per_class</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.non_max_suppression_3d" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">non_max_suppression_3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">nms_iou_threshold</span></em>, <em class="sig-param"><span class="n">score_threshold</span></em>, <em class="sig-param"><span class="n">max_boxes_per_class</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.non_max_suppression_3d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Greedily selects the top subset of 3D (7 DOF format) bounding boxes per class.</p>
 <p>This implementation is rotation and class aware, and for each class takes the
 best boxes that are above our score_threshold and also don’t overlap more than
@@ -274,9 +274,9 @@ for invalid boxes for each class.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.ops.average_precision3d">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">average_precision3d</code><span class="sig-paren">(</span><em class="sig-param">iou_threshold</em>, <em class="sig-param">groundtruth_bbox</em>, <em class="sig-param">groundtruth_imageid</em>, <em class="sig-param">groundtruth_ignore</em>, <em class="sig-param">prediction_bbox</em>, <em class="sig-param">prediction_imageid</em>, <em class="sig-param">prediction_ignore</em>, <em class="sig-param">prediction_score</em>, <em class="sig-param">num_recall_points=1</em>, <em class="sig-param">algorithm='KITTI'</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.average_precision3d" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">average_precision3d</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">iou_threshold</span></em>, <em class="sig-param"><span class="n">groundtruth_bbox</span></em>, <em class="sig-param"><span class="n">groundtruth_imageid</span></em>, <em class="sig-param"><span class="n">groundtruth_ignore</span></em>, <em class="sig-param"><span class="n">prediction_bbox</span></em>, <em class="sig-param"><span class="n">prediction_imageid</span></em>, <em class="sig-param"><span class="n">prediction_ignore</span></em>, <em class="sig-param"><span class="n">prediction_score</span></em>, <em class="sig-param"><span class="n">num_recall_points</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">algorithm</span><span class="o">=</span><span class="default_value">'KITTI'</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.average_precision3d" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes average precision for 3D bounding boxes.</p>
 <p>The output PR is sorted by recall in descending order. When there isn’t enough
 data for num_recall_points + 1 sample points, this tensor will be zero-padded.</p>
@@ -321,9 +321,9 @@ score_and_hit: A <code class="xref py py-obj docutils literal notranslate"><span
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.ops.sample_points">
-<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">points_padding</em>, <em class="sig-param">num_seeded_points</em>, <em class="sig-param">center_selector</em>, <em class="sig-param">neighbor_sampler</em>, <em class="sig-param">num_centers</em>, <em class="sig-param">center_z_min</em>, <em class="sig-param">center_z_max</em>, <em class="sig-param">num_neighbors</em>, <em class="sig-param">max_distance</em>, <em class="sig-param">neighbor_algorithm='auto'</em>, <em class="sig-param">random_seed=-1</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.ops.</code><code class="sig-name descname">sample_points</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">points_padding</span></em>, <em class="sig-param"><span class="n">num_seeded_points</span></em>, <em class="sig-param"><span class="n">center_selector</span></em>, <em class="sig-param"><span class="n">neighbor_sampler</span></em>, <em class="sig-param"><span class="n">num_centers</span></em>, <em class="sig-param"><span class="n">center_z_min</span></em>, <em class="sig-param"><span class="n">center_z_max</span></em>, <em class="sig-param"><span class="n">num_neighbors</span></em>, <em class="sig-param"><span class="n">max_distance</span></em>, <em class="sig-param"><span class="n">neighbor_algorithm</span><span class="o">=</span><span class="default_value">'auto'</span></em>, <em class="sig-param"><span class="n">random_seed</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.car.ops.sample_points" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample points among ‘points’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

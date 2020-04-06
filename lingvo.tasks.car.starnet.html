@@ -180,93 +180,93 @@ for each offset/dimension/rotation that produced predictions.</p>
 at each anchor_bbox (offset) location instead. Note that anchor_bboxes at the
 same offset, but with different rotation/dimension priors will have the same
 featurization.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.starnet.Builder">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">Builder</code><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase" title="lingvo.tasks.car.builder_lib.ModelBuilderBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.builder_lib.ModelBuilderBase</span></code></a></p>
 <p>Builder for StarNet Model.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.MLPMaxFeaturizer">
-<code class="sig-name descname">MLPMaxFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">dims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.MLPMaxFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.MLPMaxFeaturizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">MLPMaxFeaturizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.MLPMaxFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.MLPMaxFeaturizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>MLP followed by Max Featurizer.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.PaddedMLPMaxFeaturizer">
-<code class="sig-name descname">PaddedMLPMaxFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">idims</em>, <em class="sig-param">dims</em>, <em class="sig-param">use_bn=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.PaddedMLPMaxFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.PaddedMLPMaxFeaturizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PaddedMLPMaxFeaturizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">idims</span></em>, <em class="sig-param"><span class="n">dims</span></em>, <em class="sig-param"><span class="n">use_bn</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.PaddedMLPMaxFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.PaddedMLPMaxFeaturizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>MLP followed by Max on padded points.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.FC">
 <code class="sig-name descname">FC</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">idims</em>, <em class="sig-param">odims</em>, <em class="sig-param">use_bn=True</em>, <em class="sig-param">activation_fn=&lt;function relu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.FC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.FC" title="Permalink to this definition">¶</a></dt>
 <dd><p>Fully-connected layer.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.Linear">
-<code class="sig-name descname">Linear</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">idims</em>, <em class="sig-param">odims</em>, <em class="sig-param">params_init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Linear" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Linear</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">idims</span></em>, <em class="sig-param"><span class="n">odims</span></em>, <em class="sig-param"><span class="n">params_init</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Linear" title="Permalink to this definition">¶</a></dt>
 <dd><p>Linear layer for predicting residuals and classification logits.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.Bias">
-<code class="sig-name descname">Bias</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">dims</em>, <em class="sig-param">params_init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Bias" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em>, <em class="sig-param"><span class="n">params_init</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bias layer with optional initialization.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.LinearWithBias">
-<code class="sig-name descname">LinearWithBias</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">idims</em>, <em class="sig-param">odims</em>, <em class="sig-param">linear_params_init=None</em>, <em class="sig-param">bias_params_init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.LinearWithBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.LinearWithBias" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">LinearWithBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">idims</span></em>, <em class="sig-param"><span class="n">odims</span></em>, <em class="sig-param"><span class="n">linear_params_init</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bias_params_init</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.LinearWithBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.LinearWithBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Linear with bias layer with optional initialization.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.Atten">
-<code class="sig-name descname">Atten</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">depth</em>, <em class="sig-param">dims</em>, <em class="sig-param">hdims</em>, <em class="sig-param">heads</em>, <em class="sig-param">odims</em>, <em class="sig-param">keep_prob=1.0</em>, <em class="sig-param">linear_params_init=None</em>, <em class="sig-param">bias_params_init=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Atten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Atten" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Atten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">depth</span></em>, <em class="sig-param"><span class="n">dims</span></em>, <em class="sig-param"><span class="n">hdims</span></em>, <em class="sig-param"><span class="n">heads</span></em>, <em class="sig-param"><span class="n">odims</span></em>, <em class="sig-param"><span class="n">keep_prob</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">linear_params_init</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bias_params_init</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.Atten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.Atten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stacked self-attention followed with a projection.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.GINFeaturizer">
-<code class="sig-name descname">GINFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">fc_dims</em>, <em class="sig-param">mlp_dims</em>, <em class="sig-param">num_laser_features=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.GINFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.GINFeaturizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GINFeaturizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fc_dims</span></em>, <em class="sig-param"><span class="n">mlp_dims</span></em>, <em class="sig-param"><span class="n">num_laser_features</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.GINFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.GINFeaturizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>GIN-based Featurizer.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.GINFeaturizerV2">
-<code class="sig-name descname">GINFeaturizerV2</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">fc_dims</em>, <em class="sig-param">mlp_dims</em>, <em class="sig-param">num_laser_features=1</em>, <em class="sig-param">fc_use_bn=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.GINFeaturizerV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.GINFeaturizerV2" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GINFeaturizerV2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fc_dims</span></em>, <em class="sig-param"><span class="n">mlp_dims</span></em>, <em class="sig-param"><span class="n">num_laser_features</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">fc_use_bn</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.GINFeaturizerV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.GINFeaturizerV2" title="Permalink to this definition">¶</a></dt>
 <dd><p>GIN-based Featurizer for Model V2.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.Builder.ZerosCellFeaturizer">
-<code class="sig-name descname">ZerosCellFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">dims</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.ZerosCellFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.ZerosCellFeaturizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ZerosCellFeaturizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#Builder.ZerosCellFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.Builder.ZerosCellFeaturizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Produces features with 0 values, used for disabling cell featurizer.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.starnet.LossNormType">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">LossNormType</code><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#LossNormType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.LossNormType" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
 <p>An enumeration.</p>
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.car.starnet.LossNormType.NO_NORM">
 <code class="sig-name descname">NO_NORM</code><em class="property"> = 0</em><a class="headerlink" href="#lingvo.tasks.car.starnet.LossNormType.NO_NORM" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.car.starnet.LossNormType.NORM_BY_NUM_POS_PER_CENTER">
 <code class="sig-name descname">NORM_BY_NUM_POS_PER_CENTER</code><em class="property"> = 1</em><a class="headerlink" href="#lingvo.tasks.car.starnet.LossNormType.NORM_BY_NUM_POS_PER_CENTER" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.starnet.ModelBase">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelBase</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelBase</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.tasks.car.point_detector.html#lingvo.tasks.car.point_detector.PointDetectorBase" title="lingvo.tasks.car.point_detector.PointDetectorBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.point_detector.PointDetectorBase</span></code></a></p>
 <p>StarNet Detection Model.</p>
 <dl class="simple">
@@ -290,15 +290,15 @@ corresponding input generator.</p>
 <p>Base class implements common Decoder functions, though they can be
 overridden if desired.</p>
 <p>Sub-classes are expected to implement ComputePredictions.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelBase.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">num_classes</em>, <em class="sig-param">num_anchor_bboxes_per_center</em>, <em class="sig-param">num_laser_features=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">num_anchor_bboxes_per_center</span></em>, <em class="sig-param"><span class="n">num_laser_features</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelBase.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute loss for the sparse detector model v1.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -328,9 +328,9 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelBase.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -348,17 +348,17 @@ assigned_cls_mask. See class doc string for details.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelBase._BBoxesAndLogits">
-<code class="sig-name descname">_BBoxesAndLogits</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase._BBoxesAndLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase._BBoxesAndLogits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_BBoxesAndLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelBase._BBoxesAndLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelBase._BBoxesAndLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decode an input batch, computing predicted bboxes from residuals.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.starnet.ModelV1">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelV1</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelV1</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.starnet.ModelBase" title="lingvo.tasks.car.starnet.ModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.starnet.ModelBase</span></code></a></p>
 <p>StarNet Model V1.</p>
 <p>In this model, each center is first featurized into a single feature vector,
@@ -368,15 +368,15 @@ predictions.</p>
 <p>Effectively, anchor_bboxes shared the same featurization around each cell
 (featurized_cell), but have different regression/classification networks
 for each offset/dimension/rotation that produced predictions.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelV1.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">num_classes</em>, <em class="sig-param">num_anchor_bboxes_per_center</em>, <em class="sig-param">num_laser_features=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">num_anchor_bboxes_per_center</span></em>, <em class="sig-param"><span class="n">num_laser_features</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelV1.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV1.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV1.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -396,9 +396,9 @@ assigned_cls_mask. See class doc string for details.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.starnet.ModelV2">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelV2</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.starnet.</code><code class="sig-name descname">ModelV2</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.starnet.ModelBase" title="lingvo.tasks.car.starnet.ModelBase"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.starnet.ModelBase</span></code></a></p>
 <p>StarNet Model V2.</p>
 <p>This model is similar to V1 except that featurizations are computed at the
@@ -418,21 +418,21 @@ This makes it more natural to leverage featurizers that produce features
 at these anchor-offset specific locations. For example, one could apply a
 PCNN/PointConv model on the entire point cloud (instead of each cell) and
 produce features at given anchor locations.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelV2.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">num_classes</em>, <em class="sig-param">num_anchor_bboxes_offsets</em>, <em class="sig-param">num_anchor_bboxes_rotations</em>, <em class="sig-param">num_anchor_bboxes_dimensions</em>, <em class="sig-param">num_laser_features=1</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">num_classes</span></em>, <em class="sig-param"><span class="n">num_anchor_bboxes_offsets</span></em>, <em class="sig-param"><span class="n">num_anchor_bboxes_rotations</span></em>, <em class="sig-param"><span class="n">num_anchor_bboxes_dimensions</span></em>, <em class="sig-param"><span class="n">num_laser_features</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelV2._CellFeaturizer">
-<code class="sig-name descname">_CellFeaturizer</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2._CellFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2._CellFeaturizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_CellFeaturizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2._CellFeaturizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2._CellFeaturizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Featurizes each center location.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.starnet.ModelV2.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/starnet.html#ModelV2.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.starnet.ModelV2.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

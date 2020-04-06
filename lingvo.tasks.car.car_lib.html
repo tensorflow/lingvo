@@ -167,9 +167,9 @@
   <div class="section" id="module-lingvo.tasks.car.car_lib">
 <span id="lingvo-tasks-car-car-lib-module"></span><h1>lingvo.tasks.car.car_lib module<a class="headerlink" href="#module-lingvo.tasks.car.car_lib" title="Permalink to this headline">¶</a></h1>
 <p>Library of functions on tensors for car layers, builders, and models.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.SquaredDistanceMatrix">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">SquaredDistanceMatrix</code><span class="sig-paren">(</span><em class="sig-param">pa</em>, <em class="sig-param">pb</em>, <em class="sig-param">mem_optimized=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#SquaredDistanceMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.SquaredDistanceMatrix" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">SquaredDistanceMatrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pa</span></em>, <em class="sig-param"><span class="n">pb</span></em>, <em class="sig-param"><span class="n">mem_optimized</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#SquaredDistanceMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.SquaredDistanceMatrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute pair-wise squared distances.</p>
 <dl class="simple">
 <dt>Expanded version (faster but potentially numerically unstable):</dt><dd><p>distance = pa^2 - 2*pa*pb + pb^2</p>
@@ -193,9 +193,9 @@ may have numerical issues.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.NeighborSquaredDistanceMatrix">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">NeighborSquaredDistanceMatrix</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">neighbor_points</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#NeighborSquaredDistanceMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.NeighborSquaredDistanceMatrix" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">NeighborSquaredDistanceMatrix</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">neighbor_points</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#NeighborSquaredDistanceMatrix"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.NeighborSquaredDistanceMatrix" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the squared distance matrix between points and their neighbors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -212,9 +212,9 @@ as a float tf.Tensor of shape [N, P1, K].</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.KnnIndices">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">KnnIndices</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">query_points</em>, <em class="sig-param">k</em>, <em class="sig-param">valid_num=None</em>, <em class="sig-param">max_distance=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#KnnIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.KnnIndices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">KnnIndices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">query_points</span></em>, <em class="sig-param"><span class="n">k</span></em>, <em class="sig-param"><span class="n">valid_num</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_distance</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#KnnIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.KnnIndices" title="Permalink to this definition">¶</a></dt>
 <dd><p>k-nearest neighbors of query_points in points.</p>
 <p>The caller should ensure that points[i, :valid_num[i], :] are the non-padding
 points.</p>
@@ -259,9 +259,9 @@ max_distance is not used.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.NeighborhoodIndices">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">NeighborhoodIndices</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">query_points</em>, <em class="sig-param">k</em>, <em class="sig-param">points_padding=None</em>, <em class="sig-param">max_distance=None</em>, <em class="sig-param">sample_neighbors_uniformly=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#NeighborhoodIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.NeighborhoodIndices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">NeighborhoodIndices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">query_points</span></em>, <em class="sig-param"><span class="n">k</span></em>, <em class="sig-param"><span class="n">points_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">max_distance</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">sample_neighbors_uniformly</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#NeighborhoodIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.NeighborhoodIndices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get indices to k-neighbors of query_points in points.</p>
 <p>Padding is returned along-side indices. Non-padded points are guaranteed to
 be unique (non-repeated) points from original non-padded points.</p>
@@ -304,9 +304,9 @@ uniformly if they are within max distance.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.MatmulGather">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">MatmulGather</code><span class="sig-paren">(</span><em class="sig-param">source</em>, <em class="sig-param">indices</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#MatmulGather"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.MatmulGather" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">MatmulGather</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source</span></em>, <em class="sig-param"><span class="n">indices</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#MatmulGather"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.MatmulGather" title="Permalink to this definition">¶</a></dt>
 <dd><p>Drop in replacement for tf.gather_nd() optimized for speed on TPU.</p>
 <p>TODO(weihan): tf.gather_nd() is supposed to be implemented in the same way
 on TPU. Investigate why it’s much slower.</p>
@@ -323,9 +323,9 @@ on TPU. Investigate why it’s much slower.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.FarthestPointSampler">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">FarthestPointSampler</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">padding</em>, <em class="sig-param">num_sampled_points</em>, <em class="sig-param">precomputed_squared_distance=None</em>, <em class="sig-param">num_seeded_points=0</em>, <em class="sig-param">random_seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#FarthestPointSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.FarthestPointSampler" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">FarthestPointSampler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">num_sampled_points</span></em>, <em class="sig-param"><span class="n">precomputed_squared_distance</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_seeded_points</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">random_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#FarthestPointSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.FarthestPointSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples num_sampled_points from points using farthest point sampling.</p>
 <p>Algorithm:
 1. Start by selecting a random point and adding to a selected set.
@@ -367,9 +367,9 @@ index of the closest sampled point that remains.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.MaxPool3D">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">MaxPool3D</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">point_features</em>, <em class="sig-param">pooling_idx</em>, <em class="sig-param">closest_idx</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#MaxPool3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.MaxPool3D" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">MaxPool3D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">point_features</span></em>, <em class="sig-param"><span class="n">pooling_idx</span></em>, <em class="sig-param"><span class="n">closest_idx</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#MaxPool3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.MaxPool3D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply max pooling to a point cloud with computed sampling indices.</p>
 <p>sampled_idx and closest_idx are the outputs of a sampler such as
 FurthestPointSampler.</p>
@@ -409,9 +409,9 @@ each point.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.car_lib.SegmentPool3D">
-<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">SegmentPool3D</code><span class="sig-paren">(</span><em class="sig-param">points</em>, <em class="sig-param">point_features</em>, <em class="sig-param">pooling_idx</em>, <em class="sig-param">closest_idx</em>, <em class="sig-param">pooling_method='max'</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#SegmentPool3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.SegmentPool3D" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.car_lib.</code><code class="sig-name descname">SegmentPool3D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">points</span></em>, <em class="sig-param"><span class="n">point_features</span></em>, <em class="sig-param"><span class="n">pooling_idx</span></em>, <em class="sig-param"><span class="n">closest_idx</span></em>, <em class="sig-param"><span class="n">pooling_method</span><span class="o">=</span><span class="default_value">'max'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/car_lib.html#SegmentPool3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.car_lib.SegmentPool3D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Performs {min/max/average} pooling over a pointcloud given indices.</p>
 <p>This should be functionally identical when using max to the above
 MaxPool3D function, except it turns out to be much more memory efficient

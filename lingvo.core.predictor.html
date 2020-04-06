@@ -175,9 +175,9 @@
 <span class="p">[</span><span class="n">topk_hyps</span><span class="p">]</span> <span class="o">=</span> <span class="n">pred</span><span class="o">.</span><span class="n">Run</span><span class="p">([</span><span class="s2">&quot;topk_hyps&quot;</span><span class="p">],</span> <span class="n">src_strings</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Hello World&quot;</span><span class="p">])</span>
 </pre></div>
 </div>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.predictor.LoadInferenceGraph">
-<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em class="sig-param">path</em>, <em class="sig-param">clear_device_placement=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">LoadInferenceGraph</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span></em>, <em class="sig-param"><span class="n">clear_device_placement</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#LoadInferenceGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.LoadInferenceGraph" title="Permalink to this definition">¶</a></dt>
 <dd><p>Parse the given path as an InferenceGraph proto.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -192,9 +192,9 @@
 </dl>
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.predictor.Predictor">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param">inference_graph</em>, <em class="sig-param">subgraph_name=None</em>, <em class="sig-param">checkpoint=None</em>, <em class="sig-param">device_type='gpu'</em>, <em class="sig-param">tf_master=''</em>, <em class="sig-param">session_config=None</em>, <em class="sig-param">clear_device_placement=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">Predictor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inference_graph</span></em>, <em class="sig-param"><span class="n">subgraph_name</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">checkpoint</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device_type</span><span class="o">=</span><span class="default_value">'gpu'</span></em>, <em class="sig-param"><span class="n">tf_master</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">session_config</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">clear_device_placement</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Loads a model and does inference.</p>
 <p>See model.Inference() documentation for list of fetches and feeds.</p>
@@ -213,25 +213,25 @@ graph.</p></li>
 </ul>
 </dd>
 </dl>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor.fetch_keys">
 <em class="property">property </em><code class="sig-name descname">fetch_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.fetch_keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor.feed_keys">
 <em class="property">property </em><code class="sig-name descname">feed_keys</code><a class="headerlink" href="#lingvo.core.predictor.Predictor.feed_keys" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor._CreateNewSession">
 <code class="sig-name descname">_CreateNewSession</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._CreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._CreateNewSession" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates self._sess with a new session.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor._MaybeCreateNewSession">
-<code class="sig-name descname">_MaybeCreateNewSession</code><span class="sig-paren">(</span><em class="sig-param">sess_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._MaybeCreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._MaybeCreateNewSession" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_MaybeCreateNewSession</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._MaybeCreateNewSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._MaybeCreateNewSession" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a new session if sess_id is the current session.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -240,15 +240,15 @@ graph.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor._RunWithValidSession">
-<code class="sig-name descname">_RunWithValidSession</code><span class="sig-paren">(</span><em class="sig-param">fn</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._RunWithValidSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._RunWithValidSession" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_RunWithValidSession</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor._RunWithValidSession"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor._RunWithValidSession" title="Permalink to this definition">¶</a></dt>
 <dd><p>Ensures <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code> is called while self._sess is a valid session.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor.Load">
-<code class="sig-name descname">Load</code><span class="sig-paren">(</span><em class="sig-param">checkpoint</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Load" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Load</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">checkpoint</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Load" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loads parameters from a checkpoint.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -257,9 +257,9 @@ graph.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.predictor.Predictor.Run">
-<code class="sig-name descname">Run</code><span class="sig-paren">(</span><em class="sig-param">fetch_keys</em>, <em class="sig-param">validate_fetches=True</em>, <em class="sig-param">session_run_options=None</em>, <em class="sig-param">run_metadata=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fetch_keys</span></em>, <em class="sig-param"><span class="n">validate_fetches</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">session_run_options</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">run_metadata</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#Predictor.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.Predictor.Run" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs predictor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -287,9 +287,9 @@ invalid. If False, returns None for invalid fetches instead.</p></li>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.predictor.main">
-<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param">_</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.main" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.predictor.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">_</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/predictor.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.predictor.main" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </div>

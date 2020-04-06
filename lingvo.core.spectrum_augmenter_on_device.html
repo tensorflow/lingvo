@@ -166,46 +166,46 @@
   <div class="section" id="module-lingvo.core.spectrum_augmenter_on_device">
 <span id="lingvo-core-spectrum-augmenter-on-device-module"></span><h1>lingvo.core.spectrum_augmenter_on_device module<a class="headerlink" href="#module-lingvo.core.spectrum_augmenter_on_device" title="Permalink to this headline">¶</a></h1>
 <p>Lingvo layers that are used for spectrum augmentation on-device.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.spectrum_augmenter_on_device.</code><code class="sig-name descname">SpectrumAugmenterOnDevice</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.spectrum_augmenter_on_device.</code><code class="sig-name descname">SpectrumAugmenterOnDevice</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter" title="lingvo.core.spectrum_augmenter.SpectrumAugmenter"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.spectrum_augmenter.SpectrumAugmenter</span></code></a></p>
 <p>Performs data augmentation as according to the SpecAug paper.</p>
 <p>This implementation uses portable replacements for the tf.einsum ops.</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1904.08779.pdf">https://arxiv.org/pdf/1904.08779.pdf</a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBBmBm">
-<code class="sig-name descname">EinsumBBmBm</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBBmBm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBBmBm" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBBmBm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBBmBm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBBmBm" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘b,bm-&gt;bm’, a, b).</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBmtBmBt">
-<code class="sig-name descname">EinsumBmtBmBt</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBmtBmBt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBmtBmBt" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBmtBmBt</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBmtBmBt"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBmtBmBt" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘bmt,bm-&gt;bt’, a, b).</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycByBxyc">
-<code class="sig-name descname">EinsumBxycByBxyc</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycByBxyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycByBxyc" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBxycByBxyc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycByBxyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycByBxyc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘bxyc,by-&gt;bxyc’, a, b).</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBxBxyc">
-<code class="sig-name descname">EinsumBxycBxBxyc</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycBxBxyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBxBxyc" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBxycBxBxyc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycBxBxyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBxBxyc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘bxyc,bx-&gt;bxyc’, a, b).</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxyBxBxy">
-<code class="sig-name descname">EinsumBxyBxBxy</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxyBxBxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxyBxBxy" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBxyBxBxy</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxyBxBxy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxyBxBxy" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘bxy,bx-&gt;bxy’, a, b).</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBzxBzyc">
-<code class="sig-name descname">EinsumBxycBzxBzyc</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em>, <em class="sig-param">name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycBzxBzyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBzxBzyc" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EinsumBxycBzxBzyc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/spectrum_augmenter_on_device.html#SpectrumAugmenterOnDevice.EinsumBxycBzxBzyc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.EinsumBxycBzxBzyc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Portable replacement for tf.einsum(‘bxyc,bzx-&gt;bzyc’, a, b).</p>
 </dd></dl>
 

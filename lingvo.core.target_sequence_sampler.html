@@ -168,25 +168,25 @@
 <p>A library to sample target sequences given a decoder and decoder inputs.</p>
 <p>The sampled sequences can be used for training, e.g., with scheduled sampling,
 OCD, second-pass deliberation.</p>
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.target_sequence_sampler._ComputePaddings">
-<code class="sig-prename descclassname">lingvo.core.target_sequence_sampler.</code><code class="sig-name descname">_ComputePaddings</code><span class="sig-paren">(</span><em class="sig-param">ids</em>, <em class="sig-param">eos_id</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#_ComputePaddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler._ComputePaddings" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.target_sequence_sampler.</code><code class="sig-name descname">_ComputePaddings</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ids</span></em>, <em class="sig-param"><span class="n">eos_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#_ComputePaddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler._ComputePaddings" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.target_sequence_sampler.</code><code class="sig-name descname">TargetSequenceSampler</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.target_sequence_sampler.</code><code class="sig-name descname">TargetSequenceSampler</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Helper class for sampling target sequences with a decoder from inputs.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample">
-<code class="sig-name descname">Sample</code><span class="sig-paren">(</span><em class="sig-param">decoder_theta</em>, <em class="sig-param">encoder_outputs</em>, <em class="sig-param">random_seed</em>, <em class="sig-param">init_state_callback</em>, <em class="sig-param">pre_step_callback</em>, <em class="sig-param">post_step_callback</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Sample</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decoder_theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">random_seed</span></em>, <em class="sig-param"><span class="n">init_state_callback</span></em>, <em class="sig-param"><span class="n">pre_step_callback</span></em>, <em class="sig-param"><span class="n">post_step_callback</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/target_sequence_sampler.html#TargetSequenceSampler.Sample"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.target_sequence_sampler.TargetSequenceSampler.Sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Samples target sequences, one target sequence per source sequence.</p>
 <p>(Please see beam_search_helper.py for description of decoder callbacks.)</p>
 <dl class="field-list simple">

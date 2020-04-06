@@ -167,69 +167,69 @@
   <div class="section" id="module-lingvo.tasks.asr.frontend">
 <span id="lingvo-tasks-asr-frontend-module"></span><h1>lingvo.tasks.asr.frontend module<a class="headerlink" href="#module-lingvo.tasks.asr.frontend" title="Permalink to this headline">¶</a></h1>
 <p>Layers to construct an ASR frontend.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">AsrFrontendConfig</code><span class="sig-paren">(</span><em class="sig-param">is_null</em>, <em class="sig-param">src_type</em>, <em class="sig-param">src_pcm_scale</em>, <em class="sig-param">src_pcm_sample_rate</em>, <em class="sig-param">output_dim</em>, <em class="sig-param">input_frame_ratio</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">AsrFrontendConfig</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">is_null</span></em>, <em class="sig-param"><span class="n">src_type</span></em>, <em class="sig-param"><span class="n">src_pcm_scale</span></em>, <em class="sig-param"><span class="n">src_pcm_sample_rate</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">input_frame_ratio</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#tuple" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._asdict">
 <code class="sig-name descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._asdict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new OrderedDict which maps field names to their values.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._fields">
 <code class="sig-name descname">_fields</code><em class="property"> = ('is_null', 'src_type', 'src_pcm_scale', 'src_pcm_sample_rate', 'output_dim', 'input_frame_ratio')</em><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._fields" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._make">
 <em class="property">classmethod </em><code class="sig-name descname">_make</code><span class="sig-paren">(</span><em class="sig-param">iterable</em>, <em class="sig-param">new=&lt;built-in method __new__ of type object at 0x9d43a0&gt;</em>, <em class="sig-param">len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._make" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a new AsrFrontendConfig object from a sequence or iterable</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._replace">
-<code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param">**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._replace" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwds</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._replace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new AsrFrontendConfig object replacing specified fields with new values</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig._source">
 <code class="sig-name descname">_source</code><em class="property"> = &quot;from builtins import property as _property, tuple as _tuple\nfrom operator import itemgetter as _itemgetter\nfrom collections import OrderedDict\n\nclass AsrFrontendConfig(tuple):\n    'AsrFrontendConfig(is_null, src_type, src_pcm_scale, src_pcm_sample_rate, output_dim, input_frame_ratio)'\n\n    __slots__ = ()\n\n    _fields = ('is_null', 'src_type', 'src_pcm_scale', 'src_pcm_sample_rate', 'output_dim', 'input_frame_ratio')\n\n    def __new__(_cls, is_null, src_type, src_pcm_scale, src_pcm_sample_rate, output_dim, input_frame_ratio):\n        'Create new instance of AsrFrontendConfig(is_null, src_type, src_pcm_scale, src_pcm_sample_rate, output_dim, input_frame_ratio)'\n        return _tuple.__new__(_cls, (is_null, src_type, src_pcm_scale, src_pcm_sample_rate, output_dim, input_frame_ratio))\n\n    &#64;classmethod\n    def _make(cls, iterable, new=tuple.__new__, len=len):\n        'Make a new AsrFrontendConfig object from a sequence or iterable'\n        result = new(cls, iterable)\n        if len(result) != 6:\n            raise TypeError('Expected 6 arguments, got %d' % len(result))\n        return result\n\n    def _replace(_self, **kwds):\n        'Return a new AsrFrontendConfig object replacing specified fields with new values'\n        result = _self._make(map(kwds.pop, ('is_null', 'src_type', 'src_pcm_scale', 'src_pcm_sample_rate', 'output_dim', 'input_frame_ratio'), _self))\n        if kwds:\n            raise ValueError('Got unexpected field names: %r' % list(kwds))\n        return result\n\n    def __repr__(self):\n        'Return a nicely formatted representation string'\n        return self.__class__.__name__ + '(is_null=%r, src_type=%r, src_pcm_scale=%r, src_pcm_sample_rate=%r, output_dim=%r, input_frame_ratio=%r)' % self\n\n    def _asdict(self):\n        'Return a new OrderedDict which maps field names to their values.'\n        return OrderedDict(zip(self._fields, self))\n\n    def __getnewargs__(self):\n        'Return self as a plain tuple.  Used by copy and pickle.'\n        return tuple(self)\n\n    is_null = _property(_itemgetter(0), doc='Alias for field number 0')\n\n    src_type = _property(_itemgetter(1), doc='Alias for field number 1')\n\n    src_pcm_scale = _property(_itemgetter(2), doc='Alias for field number 2')\n\n    src_pcm_sample_rate = _property(_itemgetter(3), doc='Alias for field number 3')\n\n    output_dim = _property(_itemgetter(4), doc='Alias for field number 4')\n\n    input_frame_ratio = _property(_itemgetter(5), doc='Alias for field number 5')\n\n&quot;</em><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig._source" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.input_frame_ratio">
 <em class="property">property </em><code class="sig-name descname">input_frame_ratio</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.input_frame_ratio" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 5</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.is_null">
 <em class="property">property </em><code class="sig-name descname">is_null</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.is_null" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 0</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.output_dim">
 <em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 4</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_sample_rate">
 <em class="property">property </em><code class="sig-name descname">src_pcm_sample_rate</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_sample_rate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 3</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_scale">
 <em class="property">property </em><code class="sig-name descname">src_pcm_scale</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_pcm_scale" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 2</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.AsrFrontendConfig.src_type">
 <em class="property">property </em><code class="sig-name descname">src_type</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.AsrFrontendConfig.src_type" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 1</p>
@@ -237,35 +237,35 @@
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.asr.frontend._NextPowerOfTwo">
-<code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">_NextPowerOfTwo</code><span class="sig-paren">(</span><em class="sig-param">i</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#_NextPowerOfTwo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend._NextPowerOfTwo" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">_NextPowerOfTwo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">i</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#_NextPowerOfTwo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend._NextPowerOfTwo" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">BaseAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">BaseAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for ASR frontends.</p>
 <p>An ASR frontend is responsible for performing feature extraction from the
 input in the cases where features are not precomputed as part of the
 dataset. In such cases, it would be typical for the input to consist of
 waveform data in some form.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.config">
 <em class="property">property </em><code class="sig-name descname">config</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.config" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the AsrFrontendConfig namedtuple for this instance.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams">
-<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#BaseAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates ASR features for a batch.</p>
 <p>Shapes of the input_batch and output are dependent on the implementation
 and should be paired with the model’s input format and encoder expectations.</p>
@@ -302,20 +302,20 @@ compatible encoder and contains:</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.asr.frontend.NullAsrFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">NullAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">NullAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
 <p>ASR frontend that just returns its input as FProp output.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams">
-<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.NullAsrFrontend.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#NullAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.NullAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Generates ASR features for a batch.</p>
 <p>Shapes of the input_batch and output are dependent on the implementation
 and should be paired with the model’s input format and encoder expectations.</p>
@@ -352,9 +352,9 @@ compatible encoder and contains:</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">MelAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.asr.frontend.</code><code class="sig-name descname">MelAsrFrontend</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.asr.frontend.BaseAsrFrontend" title="lingvo.tasks.asr.frontend.BaseAsrFrontend"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.asr.frontend.BaseAsrFrontend</span></code></a></p>
 <p>An AsrFrontend that implements mel feature extraction from PCM frames.</p>
 <p>This is expressed in pure TensorFlow and without reference to external
@@ -376,41 +376,41 @@ this instance, but it is accepted.</p>
 eliminate fallback logic in this class.</p>
 <p>Only 1 channel is currently supported.
 TODO(laurenzo): Refactor this class to operate on multi-channel inputs.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams">
-<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
+<em class="property">static </em><code class="sig-name descname">GetConfigFromParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.GetConfigFromParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.GetConfigFromParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an AsrFrontendConfig namedtuple with vital config settings.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._CreateWindowFunction">
 <code class="sig-name descname">_CreateWindowFunction</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._CreateWindowFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._CreateWindowFunction" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_size">
 <em class="property">property </em><code class="sig-name descname">window_frame_size</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_size" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_step">
 <em class="property">property </em><code class="sig-name descname">window_frame_step</code><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.window_frame_step" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim">
-<code class="sig-name descname">_RemoveChannelDim</code><span class="sig-paren">(</span><em class="sig-param">pcm_audio_data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._RemoveChannelDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_RemoveChannelDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pcm_audio_data</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._RemoveChannelDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._RemoveChannelDim" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D">
-<code class="sig-name descname">_ReshapeToMono2D</code><span class="sig-paren">(</span><em class="sig-param">pcm_audio_data</em>, <em class="sig-param">paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ReshapeToMono2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ReshapeToMono2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pcm_audio_data</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ReshapeToMono2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ReshapeToMono2D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reshapes a 3D or 4D input to 2D.</p>
 <p>Since the input to FProp can be 3D or 4D (see class comments), this will
 collapse it back to a 2D, mono shape for internal processing.</p>
@@ -429,9 +429,9 @@ pcm_audio_data.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Perform signal processing on a sequence of PCM data.</p>
 <p>NOTE: This implementation does not currently support paddings, and they
 are accepted for compatibility with the super-class.</p>
@@ -465,39 +465,39 @@ compatible encoder and contains:</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault">
-<code class="sig-name descname">_FPropDefault</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropDefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropDefault</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropDefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropDefault" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal">
-<code class="sig-name descname">_StackSignal</code><span class="sig-paren">(</span><em class="sig-param">signal</em>, <em class="sig-param">stack_size</em>, <em class="sig-param">stride</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._StackSignal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_StackSignal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signal</span></em>, <em class="sig-param"><span class="n">stack_size</span></em>, <em class="sig-param"><span class="n">stride</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._StackSignal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._StackSignal" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec">
-<code class="sig-name descname">_PadAndReshapeSpec</code><span class="sig-paren">(</span><em class="sig-param">mel_spectrogram</em>, <em class="sig-param">mel_spectrogram_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._PadAndReshapeSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_PadAndReshapeSpec</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mel_spectrogram</span></em>, <em class="sig-param"><span class="n">mel_spectrogram_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._PadAndReshapeSpec"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._PadAndReshapeSpec" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis">
-<code class="sig-name descname">_ApplyPreemphasis</code><span class="sig-paren">(</span><em class="sig-param">framed_signal</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ApplyPreemphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ApplyPreemphasis</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">framed_signal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._ApplyPreemphasis"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._ApplyPreemphasis" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding">
-<code class="sig-name descname">_GetMelPadding</code><span class="sig-paren">(</span><em class="sig-param">pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._GetMelPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_GetMelPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pcm_audio_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._GetMelPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._GetMelPadding" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk">
-<code class="sig-name descname">_FPropChunk</code><span class="sig-paren">(</span><em class="sig-param">pcm_audio_chunk</em>, <em class="sig-param">pcm_audio_paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropChunk</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">pcm_audio_chunk</span></em>, <em class="sig-param"><span class="n">pcm_audio_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._FPropChunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._FPropChunk" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram">
-<code class="sig-name descname">_MelSpectrogram</code><span class="sig-paren">(</span><em class="sig-param">signal</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._MelSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_MelSpectrogram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">signal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/frontend.html#MelAsrFrontend._MelSpectrogram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.frontend.MelAsrFrontend._MelSpectrogram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the mel spectrogram from a waveform signal.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

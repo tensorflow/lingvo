@@ -229,45 +229,45 @@ input:</p>
 <p>We say that my_tensor was implicitly captured by cell_fn. By default,
 Recurrent doesn’t allow this, but you can change that behavior by setting the
 allow_implicit_captures flag.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent.DevicePair">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">DevicePair</code><span class="sig-paren">(</span><em class="sig-param">send</em>, <em class="sig-param">recv</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">DevicePair</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">send</span></em>, <em class="sig-param"><span class="n">recv</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/stdtypes.html#tuple" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">tuple</span></code></a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent.DevicePair._asdict">
 <code class="sig-name descname">_asdict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._asdict" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new OrderedDict which maps field names to their values.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.core.recurrent.DevicePair._fields">
 <code class="sig-name descname">_fields</code><em class="property"> = ('send', 'recv')</em><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._fields" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent.DevicePair._make">
 <em class="property">classmethod </em><code class="sig-name descname">_make</code><span class="sig-paren">(</span><em class="sig-param">iterable</em>, <em class="sig-param">new=&lt;built-in method __new__ of type object at 0x9d43a0&gt;</em>, <em class="sig-param">len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._make" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a new DevicePair object from a sequence or iterable</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent.DevicePair._replace">
-<code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param">**kwds</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._replace" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwds</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._replace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new DevicePair object replacing specified fields with new values</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.core.recurrent.DevicePair._source">
 <code class="sig-name descname">_source</code><em class="property"> = &quot;from builtins import property as _property, tuple as _tuple\nfrom operator import itemgetter as _itemgetter\nfrom collections import OrderedDict\n\nclass DevicePair(tuple):\n    'DevicePair(send, recv)'\n\n    __slots__ = ()\n\n    _fields = ('send', 'recv')\n\n    def __new__(_cls, send, recv):\n        'Create new instance of DevicePair(send, recv)'\n        return _tuple.__new__(_cls, (send, recv))\n\n    &#64;classmethod\n    def _make(cls, iterable, new=tuple.__new__, len=len):\n        'Make a new DevicePair object from a sequence or iterable'\n        result = new(cls, iterable)\n        if len(result) != 2:\n            raise TypeError('Expected 2 arguments, got %d' % len(result))\n        return result\n\n    def _replace(_self, **kwds):\n        'Return a new DevicePair object replacing specified fields with new values'\n        result = _self._make(map(kwds.pop, ('send', 'recv'), _self))\n        if kwds:\n            raise ValueError('Got unexpected field names: %r' % list(kwds))\n        return result\n\n    def __repr__(self):\n        'Return a nicely formatted representation string'\n        return self.__class__.__name__ + '(send=%r, recv=%r)' % self\n\n    def _asdict(self):\n        'Return a new OrderedDict which maps field names to their values.'\n        return OrderedDict(zip(self._fields, self))\n\n    def __getnewargs__(self):\n        'Return self as a plain tuple.  Used by copy and pickle.'\n        return tuple(self)\n\n    send = _property(_itemgetter(0), doc='Alias for field number 0')\n\n    recv = _property(_itemgetter(1), doc='Alias for field number 1')\n\n&quot;</em><a class="headerlink" href="#lingvo.core.recurrent.DevicePair._source" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent.DevicePair.recv">
 <em class="property">property </em><code class="sig-name descname">recv</code><a class="headerlink" href="#lingvo.core.recurrent.DevicePair.recv" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 1</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent.DevicePair.send">
 <em class="property">property </em><code class="sig-name descname">send</code><a class="headerlink" href="#lingvo.core.recurrent.DevicePair.send" title="Permalink to this definition">¶</a></dt>
 <dd><p>Alias for field number 0</p>
@@ -275,20 +275,20 @@ allow_implicit_captures flag.</p>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._AssertIsCompatible">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AssertIsCompatible</code><span class="sig-paren">(</span><em class="sig-param">a</em>, <em class="sig-param">b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertIsCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertIsCompatible" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AssertIsCompatible</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">a</span></em>, <em class="sig-param"><span class="n">b</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertIsCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertIsCompatible" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._AssertSameTensors">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AssertSameTensors</code><span class="sig-paren">(</span><em class="sig-param">list_a</em>, <em class="sig-param">list_b</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertSameTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertSameTensors" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AssertSameTensors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">list_a</span></em>, <em class="sig-param"><span class="n">list_b</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AssertSameTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AssertSameTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Asserts that two lists of tensors are the same tensors.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._Index">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Index</code><span class="sig-paren">(</span><em class="sig-param">nmap</em>, <em class="sig-param">index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Index" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Index</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em>, <em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Index" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> with x[index, :] for each tensor x in nmap.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -308,9 +308,9 @@ memory.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._Update">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Update</code><span class="sig-paren">(</span><em class="sig-param">nmap_acc</em>, <em class="sig-param">nmap_x</em>, <em class="sig-param">t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Update" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Update</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap_acc</span></em>, <em class="sig-param"><span class="n">nmap_x</span></em>, <em class="sig-param"><span class="n">t</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Update"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Update" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates t-th row in accumulators.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -331,9 +331,9 @@ memory.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._SeqLenDim">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SeqLenDim</code><span class="sig-paren">(</span><em class="sig-param">nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqLenDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqLenDim" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SeqLenDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqLenDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqLenDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the 0-th dim size of tensors in nmap.</p>
 <p>This is the max sequence length according to the shape of the inputs.</p>
 <dl class="field-list simple">
@@ -346,15 +346,15 @@ memory.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent.FlattenPadding">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">FlattenPadding</code><span class="sig-paren">(</span><em class="sig-param">padding</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#FlattenPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.FlattenPadding" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">FlattenPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">padding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#FlattenPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.FlattenPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns padding reduced to have only the time dimension.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._SeqPaddingLength">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SeqPaddingLength</code><span class="sig-paren">(</span><em class="sig-param">inputs_nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqPaddingLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqPaddingLength" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SeqPaddingLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs_nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SeqPaddingLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SeqPaddingLength" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the lengths of paddings at the beginning and end of the sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -367,15 +367,15 @@ tensor’s 0-th dim has the same size.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._SetShapes">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SetShapes</code><span class="sig-paren">(</span><em class="sig-param">dst_nmap</em>, <em class="sig-param">src_nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SetShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SetShapes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_SetShapes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dst_nmap</span></em>, <em class="sig-param"><span class="n">src_nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_SetShapes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._SetShapes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set shapes in dst_nmap using those in src_nmap.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._EmptyAcc">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyAcc</code><span class="sig-paren">(</span><em class="sig-param">slen</em>, <em class="sig-param">nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyAcc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyAcc" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyAcc</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">slen</span></em>, <em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyAcc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyAcc" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a set of accumulators for tensors in nmap.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -394,9 +394,9 @@ ret.key’s shape is [10, 3, 5].</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._EmptyWithFixShape">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyWithFixShape</code><span class="sig-paren">(</span><em class="sig-param">shape</em>, <em class="sig-param">nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyWithFixShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyWithFixShape" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyWithFixShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shape</span></em>, <em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyWithFixShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyWithFixShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a set of empty initialized tensors with fixed shape.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -412,9 +412,9 @@ same dtype as nmap.key, but with the fixed shape.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._EmptyLike">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyLike</code><span class="sig-paren">(</span><em class="sig-param">nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyLike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyLike" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_EmptyLike</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_EmptyLike"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._EmptyLike" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a set of empty initialized tensors.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -427,9 +427,9 @@ its corresponding tensor in nmap. And each tensor is initialized.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._Add">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Add</code><span class="sig-paren">(</span><em class="sig-param">nmap_x</em>, <em class="sig-param">nmap_y</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Add" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap_x</span></em>, <em class="sig-param"><span class="n">nmap_y</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Add" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds tensors in nmap_x with respective tensors in nmap_y.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -444,15 +444,15 @@ its corresponding tensor in nmap. And each tensor is initialized.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent.Dtypes">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Dtypes</code><span class="sig-paren">(</span><em class="sig-param">nmap_list</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Dtypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Dtypes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Dtypes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Dtypes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Dtypes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns all tensors’ data types in a list.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._ConvertNoneGradientToZeros">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_ConvertNoneGradientToZeros</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">dxs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ConvertNoneGradientToZeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ConvertNoneGradientToZeros" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_ConvertNoneGradientToZeros</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xs</span></em>, <em class="sig-param"><span class="n">dxs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ConvertNoneGradientToZeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ConvertNoneGradientToZeros" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sanitize dxs so that None becomes zeros appropriately.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -467,17 +467,17 @@ its corresponding tensor in nmap. And each tensor is initialized.</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._TransformDType">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_TransformDType</code><span class="sig-paren">(</span><em class="sig-param">nmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_TransformDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._TransformDType" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_TransformDType</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_TransformDType"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._TransformDType" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent._Recurrent">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Recurrent</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">cell_grad</em>, <em class="sig-param">stop_fn</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">inputs</em>, <em class="sig-param">extras</em>, <em class="sig-param">cell_type=None</em>, <em class="sig-param">accumulator_layer=None</em>, <em class="sig-param">implicit_captures=None</em>, <em class="sig-param">unused_acc_state=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Recurrent" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Recurrent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">stop_fn</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">extras</span></em>, <em class="sig-param"><span class="n">cell_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">unused_acc_state</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Recurrent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A helper class to construct a recurrent neural net.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent._Recurrent.Compute">
 <code class="sig-name descname">Compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Recurrent.Compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Recurrent.Compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run the computation.</p>
@@ -485,9 +485,9 @@ its corresponding tensor in nmap. And each tensor is initialized.</p>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._ReflectOnCellFn">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_ReflectOnCellFn</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">inputs</em>, <em class="sig-param">accumulator_layer=None</em>, <em class="sig-param">check_stateful_ops=False</em>, <em class="sig-param">allow_implicit_capture=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ReflectOnCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ReflectOnCellFn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_ReflectOnCellFn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">check_stateful_ops</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">allow_implicit_capture</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_ReflectOnCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._ReflectOnCellFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Reflects on the cell_fn, applying asserts and returning needed info.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -513,9 +513,9 @@ tensors.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._GetCellGrad">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_GetCellGrad</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">cell_grad</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">inputs</em>, <em class="sig-param">accumulator_layer</em>, <em class="sig-param">check_stateful_ops=False</em>, <em class="sig-param">allow_implicit_capture=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_GetCellGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._GetCellGrad" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_GetCellGrad</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">check_stateful_ops</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">allow_implicit_capture</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_GetCellGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._GetCellGrad" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the gradient function for cell_fn.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -549,75 +549,75 @@ representing the recurrent neural net’s cell function, i.e.:</p>
 </dl>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._AugmentState">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AugmentState</code><span class="sig-paren">(</span><em class="sig-param">state0</em>, <em class="sig-param">accumulator_layer</em>, <em class="sig-param">allow_overwrite=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AugmentState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AugmentState" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_AugmentState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">allow_overwrite</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_AugmentState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._AugmentState" title="Permalink to this definition">¶</a></dt>
 <dd><p>Augments state0 with additional state.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapAccumulatorCellFn">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapAccumulatorCellFn</code><span class="sig-paren">(</span><em class="sig-param">accumulator_layer</em>, <em class="sig-param">cell_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellFn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapAccumulatorCellFn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">cell_fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell_fn to propagate accumulators.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapAccumulatorCellGradFn">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapAccumulatorCellGradFn</code><span class="sig-paren">(</span><em class="sig-param">accumulator_layer</em>, <em class="sig-param">cell_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellGradFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellGradFn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapAccumulatorCellGradFn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapAccumulatorCellGradFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapAccumulatorCellGradFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell grad function to disable accumulators.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapCellFnWithStepSeed">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellFnWithStepSeed</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellFnWithStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellFnWithStepSeed" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellFnWithStepSeed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellFnWithStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellFnWithStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell_fn to initialize the step seed.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapCellGradFnWithStepSeed">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellGradFnWithStepSeed</code><span class="sig-paren">(</span><em class="sig-param">cell_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellGradFnWithStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellGradFnWithStepSeed" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellGradFnWithStepSeed</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellGradFnWithStepSeed"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellGradFnWithStepSeed" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell grad function to handle step seed in state.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapCellFnWithSymbolValues">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellFnWithSymbolValues</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">symbol_to_tensor_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellFnWithSymbolValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellFnWithSymbolValues" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellFnWithSymbolValues</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">symbol_to_tensor_map</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellFnWithSymbolValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellFnWithSymbolValues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell_fn to propagate symbol values.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._WrapCellGradFnWithSymbolValues">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellGradFnWithSymbolValues</code><span class="sig-paren">(</span><em class="sig-param">cell_grad</em>, <em class="sig-param">cell_fn</em>, <em class="sig-param">symbol_to_tensor_map</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellGradFnWithSymbolValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellGradFnWithSymbolValues" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_WrapCellGradFnWithSymbolValues</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">symbol_to_tensor_map</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_WrapCellGradFnWithSymbolValues"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._WrapCellGradFnWithSymbolValues" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wrap a cell grad function to propagate symbol values.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._DecorateCellFn">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DecorateCellFn</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">accumulator_layer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DecorateCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DecorateCellFn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DecorateCellFn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DecorateCellFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DecorateCellFn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorates cell_fn with additional state information.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._DecorateCellGrad">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DecorateCellGrad</code><span class="sig-paren">(</span><em class="sig-param">cell_grad</em>, <em class="sig-param">accumulator_layer</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DecorateCellGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DecorateCellGrad" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DecorateCellGrad</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DecorateCellGrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DecorateCellGrad" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decorates cell_grad with additional state information.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._IsSingleTimeStep">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_IsSingleTimeStep</code><span class="sig-paren">(</span><em class="sig-param">inputs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_IsSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._IsSingleTimeStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_IsSingleTimeStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_IsSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._IsSingleTimeStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns True only if the time dimension of inputs is 1.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._RecurrentSingleTimeStep">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_RecurrentSingleTimeStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">inputs</em>, <em class="sig-param">cell_fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_RecurrentSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._RecurrentSingleTimeStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_RecurrentSingleTimeStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">cell_fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_RecurrentSingleTimeStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._RecurrentSingleTimeStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Short-cut for the single timestep without explicit cell_grad case.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent.Recurrent">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Recurrent</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">inputs</em>, <em class="sig-param">cell_fn</em>, <em class="sig-param">cell_grad=None</em>, <em class="sig-param">cell_type=None</em>, <em class="sig-param">stop_fn=None</em>, <em class="sig-param">extras=None</em>, <em class="sig-param">check_stateful_ops=False</em>, <em class="sig-param">accumulator_layer=None</em>, <em class="sig-param">allow_implicit_capture=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Recurrent" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">Recurrent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_grad</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">cell_type</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">stop_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">extras</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">check_stateful_ops</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">allow_implicit_capture</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#Recurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.Recurrent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute a recurrent neural net.</p>
 <p>Roughly, <a class="reference internal" href="#lingvo.core.recurrent.Recurrent" title="lingvo.core.recurrent.Recurrent"><code class="xref py py-obj docutils literal notranslate"><span class="pre">Recurrent()</span></code></a> computes the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">state0</span>
@@ -685,30 +685,30 @@ tensors. Only allowed if an explicit <code class="xref py py-obj docutils litera
 </dl>
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent._Link">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Link</code><span class="sig-paren">(</span><em class="sig-param">t</em>, <em class="sig-param">dpair</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Link" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Link</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">t</span></em>, <em class="sig-param"><span class="n">dpair</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Link"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Link" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>A link is a pair of channels.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._CreateLinks">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_CreateLinks</code><span class="sig-paren">(</span><em class="sig-param">nmap</em>, <em class="sig-param">dpair</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_CreateLinks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._CreateLinks" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_CreateLinks</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap</span></em>, <em class="sig-param"><span class="n">dpair</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_CreateLinks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._CreateLinks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates links between the send/recv devices for every tensor in nmap.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._Join">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Join</code><span class="sig-paren">(</span><em class="sig-param">nmap_x</em>, <em class="sig-param">nmap_y</em>, <em class="sig-param">fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Join" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Join</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">nmap_x</span></em>, <em class="sig-param"><span class="n">nmap_y</span></em>, <em class="sig-param"><span class="n">fn</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Join"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Join" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent._Input">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Input</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">cell_out</em>, <em class="sig-param">cell_grad</em>, <em class="sig-param">cell_out_grad</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">accumulator_layer</em>, <em class="sig-param">inputs</em>, <em class="sig-param">extras</em>, <em class="sig-param">out_links</em>, <em class="sig-param">unused_acc_state=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Input" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Input</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_out</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">cell_out_grad</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">extras</span></em>, <em class="sig-param"><span class="n">out_links</span></em>, <em class="sig-param"><span class="n">unused_acc_state</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Input"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Input" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Input layers.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent._Input.Compute">
 <code class="sig-name descname">Compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Input.Compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Input.Compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the input layer.</p>
@@ -716,12 +716,12 @@ tensors. Only allowed if an explicit <code class="xref py py-obj docutils litera
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent._Middle">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Middle</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">cell_out</em>, <em class="sig-param">cell_grad</em>, <em class="sig-param">cell_out_grad</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">accumulator_layer</em>, <em class="sig-param">in_links</em>, <em class="sig-param">padding</em>, <em class="sig-param">slen_dim</em>, <em class="sig-param">per_step_inputs</em>, <em class="sig-param">extras</em>, <em class="sig-param">out_links</em>, <em class="sig-param">unused_acc_state</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Middle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Middle" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Middle</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_out</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">cell_out_grad</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">in_links</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">slen_dim</span></em>, <em class="sig-param"><span class="n">per_step_inputs</span></em>, <em class="sig-param"><span class="n">extras</span></em>, <em class="sig-param"><span class="n">out_links</span></em>, <em class="sig-param"><span class="n">unused_acc_state</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Middle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Middle" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Middle layers.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent._Middle.Compute">
 <code class="sig-name descname">Compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Middle.Compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Middle.Compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the middle layer.</p>
@@ -729,12 +729,12 @@ tensors. Only allowed if an explicit <code class="xref py py-obj docutils litera
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.recurrent._Output">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Output</code><span class="sig-paren">(</span><em class="sig-param">cell_fn</em>, <em class="sig-param">cell_grad</em>, <em class="sig-param">theta</em>, <em class="sig-param">state0</em>, <em class="sig-param">accumulator_layer</em>, <em class="sig-param">in_links</em>, <em class="sig-param">padding</em>, <em class="sig-param">slen_dim</em>, <em class="sig-param">per_step_inputs</em>, <em class="sig-param">extras</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Output" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_Output</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cell_fn</span></em>, <em class="sig-param"><span class="n">cell_grad</span></em>, <em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">state0</span></em>, <em class="sig-param"><span class="n">accumulator_layer</span></em>, <em class="sig-param"><span class="n">in_links</span></em>, <em class="sig-param"><span class="n">padding</span></em>, <em class="sig-param"><span class="n">slen_dim</span></em>, <em class="sig-param"><span class="n">per_step_inputs</span></em>, <em class="sig-param"><span class="n">extras</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Output"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Output" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
 <p>Output layers.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.recurrent._Output.Compute">
 <code class="sig-name descname">Compute</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_Output.Compute"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._Output.Compute" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the output layer.</p>
@@ -742,15 +742,15 @@ tensors. Only allowed if an explicit <code class="xref py py-obj docutils litera
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent._DependsOn">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DependsOn</code><span class="sig-paren">(</span><em class="sig-param">xs</em>, <em class="sig-param">ys</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DependsOn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DependsOn" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">_DependsOn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xs</span></em>, <em class="sig-param"><span class="n">ys</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#_DependsOn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent._DependsOn" title="Permalink to this definition">¶</a></dt>
 <dd><p>Every x in xs should depend on every y in ys via a data edge.</p>
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.recurrent.StackedRecurrent">
-<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">StackedRecurrent</code><span class="sig-paren">(</span><em class="sig-param">devices</em>, <em class="sig-param">cell_fns</em>, <em class="sig-param">cell_grads</em>, <em class="sig-param">cell_outs</em>, <em class="sig-param">cell_out_grads</em>, <em class="sig-param">thetas</em>, <em class="sig-param">init_states</em>, <em class="sig-param">inputs</em>, <em class="sig-param">accumulator_layers=None</em>, <em class="sig-param">unused_acc_state=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#StackedRecurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.StackedRecurrent" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.recurrent.</code><code class="sig-name descname">StackedRecurrent</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">devices</span></em>, <em class="sig-param"><span class="n">cell_fns</span></em>, <em class="sig-param"><span class="n">cell_grads</span></em>, <em class="sig-param"><span class="n">cell_outs</span></em>, <em class="sig-param"><span class="n">cell_out_grads</span></em>, <em class="sig-param"><span class="n">thetas</span></em>, <em class="sig-param"><span class="n">init_states</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">accumulator_layers</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">unused_acc_state</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/recurrent.html#StackedRecurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.recurrent.StackedRecurrent" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes stacked recurrent neural nets placed on various devices.</p>
 <p>Conceptually, StackedRecurrent() computes the following:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="p">(</span><span class="n">device</span><span class="p">,</span> <span class="n">cell_fn</span><span class="p">,</span> <span class="n">cell_out</span><span class="p">,</span> <span class="n">cell_grad</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>

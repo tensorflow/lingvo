@@ -166,9 +166,9 @@
   <div class="section" id="module-lingvo.core.layers_with_attention">
 <span id="lingvo-core-layers-with-attention-module"></span><h1>lingvo.core.layers_with_attention module<a class="headerlink" href="#module-lingvo.core.layers_with_attention" title="Permalink to this headline">¶</a></h1>
 <p>Lingvo layers that depend on attention layers but are not recurrent.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerAttentionLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerAttentionLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Multi-headed attention, add and norm used by ‘Attention Is All You Need’.</p>
 <p>This class implements the first sub-layer of Transformer Layer. Input is
@@ -213,15 +213,15 @@ setting <code class="xref py py-obj docutils literal notranslate"><span class="p
 previous N-1 tokens (as expected for an N-gram model); for details and
 experimental results see <a class="reference external" href="https://arxiv.org/abs/2001.04589">https://arxiv.org/abs/2001.04589</a>.</p></li>
 </ol>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">source_vecs=None</em>, <em class="sig-param">query_segment_id=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">context_vecs=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">source_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">query_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">context_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer attention, residual and normalization layer.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -246,9 +246,9 @@ source_time].</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep">
-<code class="sig-name descname">_FinishExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">unnormalized_query_vec</em>, <em class="sig-param">extended_packed_src</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer._FinishExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FinishExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">unnormalized_query_vec</span></em>, <em class="sig-param"><span class="n">extended_packed_src</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer._FinishExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finish extending prefix by one more time step.</p>
 <p>Isolating this function from ExtendStep allows generalizing self-attention
 to causal attention on other inputs.</p>
@@ -272,9 +272,9 @@ state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">query_vec</em>, <em class="sig-param">prefix_state</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">prefix_state</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Extend prefix by one more time step.</p>
 <p>This function is expected to be called during fast decoding of the
 Transformer model.</p>
@@ -299,35 +299,35 @@ state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerFeedForwardLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerFeedForwardLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Feed-forward, add and norm layer used by ‘Attention Is All You Need’.</p>
 <p>This class implements the second sub-layer of Transformer Layer. First,
 input passes through a feed-forward neural network with one hidden layer and
 then projected back to the original input dimension to apply residual. Output
 of the layer, is then normalized using Layer Normalization.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.output_dim">
 <em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns output dimension of the transformer layer.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.NumOutputNodes">
-<em class="property">classmethod </em><code class="sig-name descname">NumOutputNodes</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.NumOutputNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.NumOutputNodes" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">NumOutputNodes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.NumOutputNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.NumOutputNodes" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerFeedForwardLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Feed-forward, residual and layer-norm.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -346,9 +346,9 @@ its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Transformer Layer proposed by ‘Attention Is All You Need’.</p>
 <p>Applies self-attention followed by a feed forward network and
@@ -357,26 +357,26 @@ layer. In particular, adds residuals from layer input and attention output
 and from attention output (feed-forward input) to feed-forward output.</p>
 <p>Implements the transformer block in ‘Attention is All You Need’:
 <a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.output_dim">
 <em class="property">property </em><code class="sig-name descname">output_dim</code><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.output_dim" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns output dimension of the transformer layer.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.NumOutputNodes">
-<em class="property">classmethod </em><code class="sig-name descname">NumOutputNodes</code><span class="sig-paren">(</span><em class="sig-param">p</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.NumOutputNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.NumOutputNodes" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">NumOutputNodes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.NumOutputNodes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.NumOutputNodes" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer.</p>
 <p>Transformer layer has the naming scheme as follows: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code> and
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_paddings</span></code> are all assumed to be coming from the activations of the
@@ -417,9 +417,9 @@ aux_time].</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">prefix_states</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">t=None</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer, extend one step in decoding.</p>
 <p>This function is expected to be called during fast decoding of Transformer
 models.</p>
@@ -449,22 +449,22 @@ projection index tensor.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerEncoderBranchedConvsLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderBranchedConvsLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerEncoderBranchedConvsLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderBranchedConvsLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Evolved Transformer encoder branched convolutions layer.</p>
 <p>This constructs the branched convolution portion of the Evolved Transformer
 encoder described in <a class="reference external" href="https://arxiv.org/abs/1901.11117">https://arxiv.org/abs/1901.11117</a> .</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderBranchedConvsLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderBranchedConvsLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderBranchedConvsLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.FProp" title="lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -497,22 +497,22 @@ layer and its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerDecoderBranchedConvsLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderBranchedConvsLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerDecoderBranchedConvsLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderBranchedConvsLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Evolved Transformer decoder branched convolutions layer.</p>
 <p>This constructs the branched convolution portion of the Evolved Transformer
 decoder described in <a class="reference external" href="https://arxiv.org/abs/1901.11117">https://arxiv.org/abs/1901.11117</a> .</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderBranchedConvsLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">paddings</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderBranchedConvsLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderBranchedConvsLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.FProp" title="lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -545,12 +545,12 @@ layer and its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerBaseLayer</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerBaseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerBaseLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerBaseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base layer for the Evolved Transformer.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerBaseLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
@@ -558,22 +558,22 @@ layer and its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer" title="lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer</span></code></a></p>
 <p>Evolved Transformer encoder layer.</p>
 <p>An Evolved Transformer encoder layer as described in
 <a class="reference external" href="https://arxiv.org/abs/1901.11117">https://arxiv.org/abs/1901.11117</a> .</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerEncoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.FProp" title="lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -606,22 +606,22 @@ layer and its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerDecoderLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">EvolvedTransformerDecoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer" title="lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer</span></code></a></p>
 <p>Evolved Transformer decoder layer.</p>
 <p>An Evolved Transformer decoder layer as described in
 <a class="reference external" href="https://arxiv.org/abs/1901.11117">https://arxiv.org/abs/1901.11117</a> .</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>The central interface that subclasses should implement. The caller
 calls <a class="reference internal" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.FProp" title="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with a <code class="xref py py-obj docutils literal notranslate"><span class="pre">theta</span></code> dictionary. E.g.:</p>
@@ -652,9 +652,9 @@ layer and its children layers.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">prefix_states</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">t=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#EvolvedTransformerDecoderLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Evolved Transformer decoder layer, extended one step in decoding.</p>
 <p>This function is expected to be called during fast decoding of Evolved
 Transformer models.</p>
@@ -682,9 +682,9 @@ attentions, used for fast decoding.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.MergerLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">MergerLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">MergerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Merges a list of input tensors with various options into a single tensor.</p>
 <p>Implements a merger/combiner operator given a list of tensors. The merger
@@ -698,20 +698,20 @@ operator outputs a single tensor with the following options (merger_op):</p>
 <li><p>gated_avg: Learnt input dependent gates are used to average tensors.</p></li>
 </ul>
 <p>This class is expected to be called by multi-source/multi-column models.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.MergerLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Params for this MergerLayer class.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS">
 <code class="sig-name descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']</em><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.MergerLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inputs</em>, <em class="sig-param">query_vec=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">query_vec</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Combines the list of input tensors into a single tensor.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -734,20 +734,20 @@ its children layers.</p></li>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.StyleLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">StyleLayer</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">StyleLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A layer that performs weighted style emb lookup.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.StyleLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.StyleLayer.EmbLookup">
-<code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">ids</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">EmbLookup</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">ids</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.EmbLookup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.EmbLookup" title="Permalink to this definition">¶</a></dt>
 <dd><p>Looks up style embedding vectors for ids only for test purpose.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -763,9 +763,9 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.StyleLayer.StyleEmbFromProbs">
-<code class="sig-name descname">StyleEmbFromProbs</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.StyleEmbFromProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.StyleEmbFromProbs" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">StyleEmbFromProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.StyleEmbFromProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.StyleEmbFromProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up style embedding based on feedin probabilities.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -780,30 +780,30 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.StyleLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">inp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Look up style embedding.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerLayerWithMultitaskAdapters</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerLayerWithMultitaskAdapters</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerLayer" title="lingvo.core.layers_with_attention.TransformerLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerLayer</span></code></a></p>
 <p>Transformer Layer with multitask residual adapters.</p>
 <p>Applies transformer layer, followed by multitask adapters. Requires an
 additional input specifying the task_id for each input.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">source_paddings</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">source_segment_id=None</em>, <em class="sig-param">aux_segment_id=None</em>, <em class="sig-param">source_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_task_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer with multitask adapters.</p>
 <p>First applies the standard transformer layer. Then applies adapter layers.</p>
 <dl class="field-list simple">
@@ -830,9 +830,9 @@ aux_time].</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">source_vecs</em>, <em class="sig-param">prefix_states</em>, <em class="sig-param">aux_vecs=None</em>, <em class="sig-param">aux_paddings=None</em>, <em class="sig-param">timestep=None</em>, <em class="sig-param">source_task_id=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">timestep</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_task_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerLayerWithMultitaskAdapters.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer with adapters, extend one step in decoding.</p>
 <p>Applies TransformerLayer.ExtendStep, then applies adapters.</p>
 <dl class="field-list simple">

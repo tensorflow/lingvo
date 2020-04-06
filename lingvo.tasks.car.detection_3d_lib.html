@@ -167,7 +167,7 @@
   <div class="section" id="module-lingvo.tasks.car.detection_3d_lib">
 <span id="lingvo-tasks-car-detection-3d-lib-module"></span><h1>lingvo.tasks.car.detection_3d_lib module<a class="headerlink" href="#module-lingvo.tasks.car.detection_3d_lib" title="Permalink to this headline">¶</a></h1>
 <p>Library of useful for functions for working with 3D object detection.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_lib.</code><code class="sig-name descname">Utils3D</code><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
@@ -197,9 +197,9 @@ is expected to regress the residuals each anchor and it’s corresponding
 ground-truth bbox parameters.</p></li>
 </ul>
 </div></blockquote>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.ScaledHuberLoss">
-<code class="sig-name descname">ScaledHuberLoss</code><span class="sig-paren">(</span><em class="sig-param">labels</em>, <em class="sig-param">predictions</em>, <em class="sig-param">weights=1.0</em>, <em class="sig-param">delta=1.0</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ScaledHuberLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ScaledHuberLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ScaledHuberLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">labels</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">weights</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">delta</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ScaledHuberLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ScaledHuberLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Scaled Huber (SmoothL1) Loss.</p>
 <p>This function wraps tf.losses.huber_loss to rescale it by 1 / delta, and
 uses Reduction.NONE.</p>
@@ -229,9 +229,9 @@ quadratic to linear.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss">
-<code class="sig-name descname">CornerLoss</code><span class="sig-paren">(</span><em class="sig-param">gt_bboxes</em>, <em class="sig-param">predicted_bboxes</em>, <em class="sig-param">symmetric=True</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CornerLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CornerLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">gt_bboxes</span></em>, <em class="sig-param"><span class="n">predicted_bboxes</span></em>, <em class="sig-param"><span class="n">symmetric</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CornerLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CornerLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Corner regularization loss.</p>
 <p>This function computes the corner loss, an alternative regression loss
 for box residuals. This was used in the Frustum-PointNets paper [1].</p>
@@ -261,9 +261,9 @@ for the corresponding bbox.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates">
-<code class="sig-name descname">CreateDenseCoordinates</code><span class="sig-paren">(</span><em class="sig-param">ranges</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CreateDenseCoordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CreateDenseCoordinates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ranges</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CreateDenseCoordinates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CreateDenseCoordinates" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create a matrix of coordinate locations corresponding to a dense grid.</p>
 <p>Example: To create (x, y) coordinates corresponding over a 10x10 grid with
 step sizes 1, call <code class="docutils literal notranslate"><span class="pre">CreateDenseCoordinates([(1,</span> <span class="pre">10,</span> <span class="pre">10),</span> <span class="pre">(1,</span> <span class="pre">10,</span> <span class="pre">10)])</span></code>.</p>
@@ -281,9 +281,9 @@ total_points = product of all num_steps.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.MakeAnchorBoxes">
-<code class="sig-name descname">MakeAnchorBoxes</code><span class="sig-paren">(</span><em class="sig-param">anchor_centers</em>, <em class="sig-param">anchor_box_dimensions</em>, <em class="sig-param">anchor_box_offsets</em>, <em class="sig-param">anchor_box_rotations=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.MakeAnchorBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.MakeAnchorBoxes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">MakeAnchorBoxes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">anchor_centers</span></em>, <em class="sig-param"><span class="n">anchor_box_dimensions</span></em>, <em class="sig-param"><span class="n">anchor_box_offsets</span></em>, <em class="sig-param"><span class="n">anchor_box_rotations</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.MakeAnchorBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.MakeAnchorBoxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create anchor boxes from centers, dimensions, offsets.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -306,9 +306,9 @@ corresponds to rotation.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.IOU2DRotatedBoxes">
-<code class="sig-name descname">IOU2DRotatedBoxes</code><span class="sig-paren">(</span><em class="sig-param">bboxes_u</em>, <em class="sig-param">bboxes_v</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.IOU2DRotatedBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.IOU2DRotatedBoxes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">IOU2DRotatedBoxes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes_u</span></em>, <em class="sig-param"><span class="n">bboxes_v</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.IOU2DRotatedBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.IOU2DRotatedBoxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes IoU between every pair of bboxes with headings.</p>
 <p>This function ignores the z dimension, which is not usually considered
 during anchor assignment.</p>
@@ -329,9 +329,9 @@ during anchor assignment.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.AssignAnchors">
-<code class="sig-name descname">AssignAnchors</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">gt_bboxes</em>, <em class="sig-param">gt_bboxes_labels</em>, <em class="sig-param">gt_bboxes_mask</em>, <em class="sig-param">foreground_assignment_threshold=0.5</em>, <em class="sig-param">background_assignment_threshold=0.35</em>, <em class="sig-param">background_class_id=0</em>, <em class="sig-param">force_match=True</em>, <em class="sig-param">similarity_fn=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.AssignAnchors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.AssignAnchors" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AssignAnchors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">anchor_bboxes</span></em>, <em class="sig-param"><span class="n">gt_bboxes</span></em>, <em class="sig-param"><span class="n">gt_bboxes_labels</span></em>, <em class="sig-param"><span class="n">gt_bboxes_mask</span></em>, <em class="sig-param"><span class="n">foreground_assignment_threshold</span><span class="o">=</span><span class="default_value">0.5</span></em>, <em class="sig-param"><span class="n">background_assignment_threshold</span><span class="o">=</span><span class="default_value">0.35</span></em>, <em class="sig-param"><span class="n">background_class_id</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">force_match</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">similarity_fn</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.AssignAnchors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.AssignAnchors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Assigns anchors to bboxes using a similarity function (SSD-based).</p>
 <p>Each anchor box is assigned to the top matching ground truth box.
 Ground truth boxes can be assigned to multiple anchor boxes.</p>
@@ -419,9 +419,9 @@ Note: background anchors do not have regression targets.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.LocalizationResiduals">
-<code class="sig-name descname">LocalizationResiduals</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">assigned_gt_bboxes</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.LocalizationResiduals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.LocalizationResiduals" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">LocalizationResiduals</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">anchor_bboxes</span></em>, <em class="sig-param"><span class="n">assigned_gt_bboxes</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.LocalizationResiduals"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.LocalizationResiduals" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the anchor residuals for every bbox.</p>
 <p>For a given bbox, compute residuals in the following way:</p>
 <blockquote>
@@ -477,9 +477,9 @@ residuals for every corresponding bbox.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes">
-<code class="sig-name descname">ResidualsToBBoxes</code><span class="sig-paren">(</span><em class="sig-param">anchor_bboxes</em>, <em class="sig-param">residuals</em>, <em class="sig-param">min_angle_rad=-3.141592653589793</em>, <em class="sig-param">max_angle_rad=3.141592653589793</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ResidualsToBBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ResidualsToBBoxes</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">anchor_bboxes</span></em>, <em class="sig-param"><span class="n">residuals</span></em>, <em class="sig-param"><span class="n">min_angle_rad</span><span class="o">=</span><span class="default_value">- 3.141592653589793</span></em>, <em class="sig-param"><span class="n">max_angle_rad</span><span class="o">=</span><span class="default_value">3.141592653589793</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.ResidualsToBBoxes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.ResidualsToBBoxes" title="Permalink to this definition">¶</a></dt>
 <dd><p>Converts anchor_boxes and residuals to predicted bboxes.</p>
 <p>This converts predicted residuals into bboxes using the following formulae:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x_predicted</span> <span class="o">=</span> <span class="n">x_a</span> <span class="o">+</span> <span class="n">x_residual</span> <span class="o">*</span> <span class="n">diagonal_xy</span>
@@ -518,9 +518,9 @@ bboxes.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.NMSIndices">
-<code class="sig-name descname">NMSIndices</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em>, <em class="sig-param">scores</em>, <em class="sig-param">max_output_size</em>, <em class="sig-param">nms_iou_threshold=0.3</em>, <em class="sig-param">score_threshold=0.01</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.NMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.NMSIndices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">NMSIndices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">max_output_size</span></em>, <em class="sig-param"><span class="n">nms_iou_threshold</span><span class="o">=</span><span class="default_value">0.3</span></em>, <em class="sig-param"><span class="n">score_threshold</span><span class="o">=</span><span class="default_value">0.01</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.NMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.NMSIndices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply NMS to a series of 3d bounding boxes in 7-DOF format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -542,9 +542,9 @@ quickly ignore irrelevant boxes.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedNMSIndices">
-<code class="sig-name descname">BatchedNMSIndices</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em>, <em class="sig-param">scores</em>, <em class="sig-param">nms_iou_threshold=0.3</em>, <em class="sig-param">score_threshold=0.01</em>, <em class="sig-param">max_num_boxes=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.BatchedNMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedNMSIndices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">BatchedNMSIndices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">nms_iou_threshold</span><span class="o">=</span><span class="default_value">0.3</span></em>, <em class="sig-param"><span class="n">score_threshold</span><span class="o">=</span><span class="default_value">0.01</span></em>, <em class="sig-param"><span class="n">max_num_boxes</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.BatchedNMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedNMSIndices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Batched version of NMSIndices.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -568,9 +568,9 @@ in the batch.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedOrientedNMSIndices">
-<code class="sig-name descname">BatchedOrientedNMSIndices</code><span class="sig-paren">(</span><em class="sig-param">bboxes</em>, <em class="sig-param">scores</em>, <em class="sig-param">nms_iou_threshold</em>, <em class="sig-param">score_threshold</em>, <em class="sig-param">max_boxes_per_class</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.BatchedOrientedNMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedOrientedNMSIndices" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">BatchedOrientedNMSIndices</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bboxes</span></em>, <em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">nms_iou_threshold</span></em>, <em class="sig-param"><span class="n">score_threshold</span></em>, <em class="sig-param"><span class="n">max_boxes_per_class</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.BatchedOrientedNMSIndices"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.BatchedOrientedNMSIndices" title="Permalink to this definition">¶</a></dt>
 <dd><p>Runs batched version of a Per-Class 3D (7-DOF) Non Max Suppression.</p>
 <p>All outputs have shape [batch_size, num_classes, max_boxes_per_class].</p>
 <dl class="field-list simple">
@@ -605,9 +605,9 @@ each box. 1 indicates valid, and 0 invalid.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.tasks.car.detection_3d_lib.Utils3D.CornersToImagePlane">
-<code class="sig-name descname">CornersToImagePlane</code><span class="sig-paren">(</span><em class="sig-param">corners</em>, <em class="sig-param">velo_to_image_plane</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CornersToImagePlane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CornersToImagePlane" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">CornersToImagePlane</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">corners</span></em>, <em class="sig-param"><span class="n">velo_to_image_plane</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#Utils3D.CornersToImagePlane"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.Utils3D.CornersToImagePlane" title="Permalink to this definition">¶</a></dt>
 <dd><p>Project 3d box corners to the image plane.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -628,9 +628,9 @@ bounding box corners projected to the image plane.</p>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.tasks.car.detection_3d_lib.RandomPadOrTrimTo">
-<code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_lib.</code><code class="sig-name descname">RandomPadOrTrimTo</code><span class="sig-paren">(</span><em class="sig-param">tensor_list</em>, <em class="sig-param">num_points_out</em>, <em class="sig-param">seed=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#RandomPadOrTrimTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.RandomPadOrTrimTo" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.tasks.car.detection_3d_lib.</code><code class="sig-name descname">RandomPadOrTrimTo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor_list</span></em>, <em class="sig-param"><span class="n">num_points_out</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/detection_3d_lib.html#RandomPadOrTrimTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.detection_3d_lib.RandomPadOrTrimTo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Pads or Trims a list of Tensors on the major dimension.</p>
 <p>Slices if there are more points, or pads if not enough.</p>
 <dl class="simple">

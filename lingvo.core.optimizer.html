@@ -166,44 +166,44 @@
   <div class="section" id="module-lingvo.core.optimizer">
 <span id="lingvo-core-optimizer-module"></span><h1>lingvo.core.optimizer module<a class="headerlink" href="#module-lingvo.core.optimizer" title="Permalink to this headline">¶</a></h1>
 <p>Optimizers.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.Base">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Base</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Base</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>Base class for all optimizers.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.ComputeGradients">
-<code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param">loss</em>, <em class="sig-param">vmap</em>, <em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allows subclasses control computation of gradients.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.VarReuseForSlotVars">
 <code class="sig-name descname">VarReuseForSlotVars</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.VarReuseForSlotVars"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.VarReuseForSlotVars" title="Permalink to this definition">¶</a></dt>
 <dd><p>Multi-task models require AUTO_REUSE for var sharing.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.Apply">
-<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Apply" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -218,9 +218,9 @@
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Base.ApplyPostTrainingLoop">
-<code class="sig-name descname">ApplyPostTrainingLoop</code><span class="sig-paren">(</span><em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.ApplyPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ApplyPostTrainingLoop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Base.ApplyPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Base.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies any computation to run after each tpu trainining loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -234,176 +234,176 @@
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.SGD">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">SGD</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">SGD</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>SGD.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.SGD.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.SGD.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.Momentum">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Momentum</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Momentum</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Momentum optimizer.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Momentum.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Momentum.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Momentum.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Momentum.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Momentum.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.RMSProp">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">RMSProp</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">RMSProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>RMSProp optimizer.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.RMSProp.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.RMSProp.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.RMSProp.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#RMSProp.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.RMSProp.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.Adagrad">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Adagrad</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Adagrad</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Adagrad.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adagrad.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adagrad.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adagrad.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adagrad.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adagrad.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.AdaDelta">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">AdaDelta</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">AdaDelta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>AdaDelta optimizer.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaDelta.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaDelta.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaDelta.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaDelta.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaDelta.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.Adam">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Adam</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Adam</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Adam.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adam.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adam.ParamsA">
 <em class="property">static </em><code class="sig-name descname">ParamsA</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.ParamsA"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.ParamsA" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient method for a commonly used Adam config.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adam.ParamsB">
 <em class="property">static </em><code class="sig-name descname">ParamsB</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.ParamsB"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.ParamsB" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient method for another commonly used Adam config.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adam.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Adam.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Adam.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Adam.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.Accumulator">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Accumulator</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">Accumulator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Gradient accumulator wrapper.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Accumulator.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Accumulator.Apply">
-<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.Apply" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -418,44 +418,44 @@
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Accumulator.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.Accumulator.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#Accumulator.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.Accumulator.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.DistributedShampoo">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">DistributedShampoo</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">DistributedShampoo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Approximates full-matrix AdaGrad per layer.</p>
 <p>Approximates full-matrix AdaGrad with kronecker-products of two statistics
 matrices based on only the first-order gradients of the layer.</p>
 <p>“Second-order optimization made practical.”, 2019
 Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.DistributedShampoo.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.DistributedShampoo.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.DistributedShampoo.Apply">
-<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.Apply" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies the gradient to the variable.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -470,9 +470,9 @@ Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop">
-<code class="sig-name descname">ApplyPostTrainingLoop</code><span class="sig-paren">(</span><em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.ApplyPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ApplyPostTrainingLoop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.ApplyPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd><p>Applies any computation to run after each tpu trainining loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -484,37 +484,37 @@ Rohan Anil, Vineet Gupta, Tomer Koren, Kevin Regan, Yoram Singer.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.DistributedShampoo.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#DistributedShampoo.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.DistributedShampoo.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.optimizer.AdaGraft">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">AdaGraft</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">AdaGraft</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
 <p>Optimizer which combines step size and direction of two optimizers.</p>
 <p>Disentangling Adaptive Gradient Methods from Learning Rates
 Naman Agarwal, Rohan Anil, Elad Hazan, Tomer Koren, Cyril Zhang
 <a class="reference external" href="https://arxiv.org/abs/2002.11803">https://arxiv.org/abs/2002.11803</a></p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaGraft.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaGraft.GetOptimizer">
-<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param">lr</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft.GetOptimizer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the TF optimizer object.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.optimizer.AdaGraft.AddSummary">
-<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param">lr</em>, <em class="sig-param">optimizer</em>, <em class="sig-param">var_grad</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft.AddSummary" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddSummary</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">optimizer</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#AdaGraft.AddSummary"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.AdaGraft.AddSummary" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds summary if needed.</p>
 </dd></dl>
 

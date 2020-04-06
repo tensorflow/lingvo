@@ -166,18 +166,18 @@
   <div class="section" id="module-lingvo.core.base_model">
 <span id="lingvo-core-base-model-module"></span><h1>lingvo.core.base_model module<a class="headerlink" href="#module-lingvo.core.base_model" title="Permalink to this headline">¶</a></h1>
 <p>Base model.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.DecodeFinalizeArgs">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">DecodeFinalizeArgs</code><a class="reference internal" href="_modules/lingvo/core/base_model.html#DecodeFinalizeArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="lingvo.core.base_model.DecodeFinalizeArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.DecodeFinalizeArgs</span></code></a></p>
 <p>Arguments to BaseTask.DecodeFinalize().</p>
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path">
 <code class="sig-name descname">decode_out_path</code><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs.decode_out_path" title="Permalink to this definition">¶</a></dt>
 <dd><p>Path to where decoder outputs can be written.</p>
 </dd></dl>
 
-<dl class="attribute">
+<dl class="py attribute">
 <dt id="lingvo.core.base_model.DecodeFinalizeArgs.decode_out">
 <code class="sig-name descname">decode_out</code><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs.decode_out" title="Permalink to this definition">¶</a></dt>
 <dd><p>A list of key value pairs aggregated from return values of.
@@ -186,28 +186,28 @@ PostProcessDecodeOut().</p>
 
 </dd></dl>
 
-<dl class="function">
+<dl class="py function">
 <dt id="lingvo.core.base_model.CreateTaskGlobalStep">
-<code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em class="sig-param">task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create if needed and return the global_step.</p>
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.BaseTask">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">BaseTask</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">BaseTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>A single encoder/decoder task.</p>
 <p>One task usually consists of one InputGenerator, one train_op,
 a list of eval_metrics, etc.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.UpdateTargetVocabSize">
-<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param">p</em>, <em class="sig-param">vocab_size</em>, <em class="sig-param">wpm_model=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">UpdateTargetVocabSize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">vocab_size</span></em>, <em class="sig-param"><span class="n">wpm_model</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.UpdateTargetVocabSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.UpdateTargetVocabSize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Updates params with the vocab size and wpm model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -223,15 +223,15 @@ a list of eval_metrics, etc.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">
-<code class="sig-name descname">_SetLearnerFromLegacyParams</code><span class="sig-paren">(</span><em class="sig-param">tp</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._SetLearnerFromLegacyParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_SetLearnerFromLegacyParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tp</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._SetLearnerFromLegacyParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sets tp.learner based on legacy params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <p>The output can be in the form of probablistic distributions, e.g., softmax
 logits for discrete outputs, mixture of logistics for continuous values, or
@@ -253,9 +253,9 @@ used to compute final outputs, perhaps with sampling.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -281,9 +281,9 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.FilterPerExampleTensors">
-<code class="sig-name descname">FilterPerExampleTensors</code><span class="sig-paren">(</span><em class="sig-param">per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FilterPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FilterPerExampleTensors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">per_example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FilterPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the per-example tensors ProcessFPropResults needs.</p>
 <p>By default we don’t send any per-example tensors to ProcessFPropResults
 because some may be expensive to compute. Implement this method to let
@@ -298,9 +298,9 @@ some of them pass through.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.ProcessFPropResults">
-<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param">sess</em>, <em class="sig-param">global_step</em>, <em class="sig-param">metrics</em>, <em class="sig-param">per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">per_example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called once for each train loop.</p>
 <p>BaseModel.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>
@@ -316,9 +316,9 @@ can put your implementation wherever it is most convenient for you.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.FPropTower">
-<code class="sig-name descname">FPropTower</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropTower" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FPropTower</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropTower"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropTower" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation through one tower of the model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -344,9 +344,9 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
 <p>This default <a class="reference internal" href="#lingvo.core.base_model.BaseTask.FProp" title="lingvo.core.base_model.BaseTask.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> implementation here supports batch splitting in
 synchronous and asynchronous training when sub-classes implement
@@ -376,53 +376,53 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._FPropTpu">
-<code class="sig-name descname">_FPropTpu</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropTpu" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropTpu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropTpu" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._FPropSplitInputBatch">
-<code class="sig-name descname">_FPropSplitInputBatch</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropSplitInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropSplitInputBatch" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropSplitInputBatch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropSplitInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropSplitInputBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>Splits the input batch on the input device.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._FPropResult">
-<code class="sig-name descname">_FPropResult</code><span class="sig-paren">(</span><em class="sig-param">metrics</em>, <em class="sig-param">per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropResult" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropResult</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">per_example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._FPropResult"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._FPropResult" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.FPropDefaultTheta">
-<code class="sig-name descname">FPropDefaultTheta</code><span class="sig-paren">(</span><em class="sig-param">input_batch=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FPropDefaultTheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.FPropDefaultTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.FPropDefaultTheta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Calls <a class="reference internal" href="#lingvo.core.base_model.BaseTask.FProp" title="lingvo.core.base_model.BaseTask.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> with this layer’s parameters.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.AdjustGradients">
-<code class="sig-name descname">AdjustGradients</code><span class="sig-paren">(</span><em class="sig-param">vars_gradients</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AdjustGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AdjustGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AdjustGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vars_gradients</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AdjustGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AdjustGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Allow for custom gradient manipulation prior to clipping.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.PostTrainingLoop">
 <code class="sig-name descname">PostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.PostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.PostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.BProp">
 <code class="sig-name descname">BProp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.BProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.BProp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._BPropForVariables">
-<code class="sig-name descname">_BPropForVariables</code><span class="sig-paren">(</span><em class="sig-param">vmap</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._BPropForVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._BPropForVariables" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_BPropForVariables</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">vmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._BPropForVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._BPropForVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the backward graph.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._ComputeGradientMask">
-<code class="sig-name descname">_ComputeGradientMask</code><span class="sig-paren">(</span><em class="sig-param">bprop_variable_filters</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._ComputeGradientMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._ComputeGradientMask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_ComputeGradientMask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">bprop_variable_filters</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._ComputeGradientMask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._ComputeGradientMask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute gradient mask for each variable and bprop_variable_filters.</p>
 <p>Note that per_input_gradient_mask[var][i] will be 1 if var matches
 bprop_variable_filter[i], 0 otherwise.</p>
@@ -434,15 +434,15 @@ file pattern.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">
-<code class="sig-name descname">ApplyExponentialMovingAverage</code><span class="sig-paren">(</span><em class="sig-param">ema</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ApplyExponentialMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ApplyExponentialMovingAverage</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">ema</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.ApplyExponentialMovingAverage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wraps <code class="xref py py-obj docutils literal notranslate"><span class="pre">self.train_op</span></code> with an op updating exponential moving average.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.Decode">
-<code class="sig-name descname">Decode</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Decode" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Decode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph for eval decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -455,9 +455,9 @@ spiltting is used, a list of <code class="xref py py-obj docutils literal notran
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.DecodeWithTheta">
-<code class="sig-name descname">DecodeWithTheta</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.DecodeWithTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.DecodeWithTheta" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DecodeWithTheta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.DecodeWithTheta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.DecodeWithTheta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph for eval decoding with theta.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -473,7 +473,7 @@ spiltting is used, a list of <code class="xref py py-obj docutils literal notran
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.Inference">
 <code class="sig-name descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.Inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph.</p>
@@ -491,16 +491,16 @@ case, the graph will be constructed with only those pieces.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.CreateDecoderMetrics">
 <code class="sig-name descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.core.base_model.BaseTask.PostProcessDecodeOut" title="lingvo.core.base_model.BaseTask.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
 <p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.PostProcessDecodeOut">
-<code class="sig-name descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em class="sig-param">decode_out_dict</em>, <em class="sig-param">decode_metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decode_out_dict</span></em>, <em class="sig-param"><span class="n">decode_metrics_dict</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -517,9 +517,9 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.DecodeFinalize">
-<code class="sig-name descname">DecodeFinalize</code><span class="sig-paren">(</span><em class="sig-param">decode_finalize_args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.DecodeFinalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.DecodeFinalize" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">DecodeFinalize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decode_finalize_args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.DecodeFinalize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.DecodeFinalize" title="Permalink to this definition">¶</a></dt>
 <dd><p>Finalize any work for decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -528,32 +528,32 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.loss">
 <em class="property">property </em><code class="sig-name descname">loss</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.loss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.train_op">
 <em class="property">property </em><code class="sig-name descname">train_op</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.train_op" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.post_training_loop_op">
 <em class="property">property </em><code class="sig-name descname">post_training_loop_op</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.post_training_loop_op" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.global_step">
 <em class="property">property </em><code class="sig-name descname">global_step</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.global_step" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.input_generator">
 <em class="property">property </em><code class="sig-name descname">input_generator</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.input_generator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.eval_metrics">
 <em class="property">property </em><code class="sig-name descname">eval_metrics</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.eval_metrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the evaluation metrics.</p>
@@ -565,7 +565,7 @@ Both value and weight are scalar Tensors.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.per_example_tensors">
 <em class="property">property </em><code class="sig-name descname">per_example_tensors</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.per_example_tensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns per-example outputs.</p>
@@ -578,9 +578,9 @@ to this output.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.AddEvalMetric">
-<code class="sig-name descname">AddEvalMetric</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">value</em>, <em class="sig-param">weight</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddEvalMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddEvalMetric" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddEvalMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">weight</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddEvalMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddEvalMetric" title="Permalink to this definition">¶</a></dt>
 <dd><p>Adds a metric to the eval metrics.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -596,20 +596,20 @@ to this output.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.AddPerExampleTensor">
-<code class="sig-name descname">AddPerExampleTensor</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddPerExampleTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddPerExampleTensor" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddPerExampleTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddPerExampleTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddPerExampleTensor" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.trainer_verbose_tensors">
 <em class="property">property </em><code class="sig-name descname">trainer_verbose_tensors</code><a class="headerlink" href="#lingvo.core.base_model.BaseTask.trainer_verbose_tensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the dict of verbose tensors to eval in the training loop.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask.AddTrainerVerboseTensor">
-<code class="sig-name descname">AddTrainerVerboseTensor</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">target</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddTrainerVerboseTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddTrainerVerboseTensor" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">AddTrainerVerboseTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">target</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask.AddTrainerVerboseTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask.AddTrainerVerboseTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Add a (set of) tensors to be evaluated in the training loop.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -624,13 +624,13 @@ to this output.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._UpdateVnConfig">
 <code class="sig-name descname">_UpdateVnConfig</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._UpdateVnConfig"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._UpdateVnConfig" title="Permalink to this definition">¶</a></dt>
 <dd><p>Update vn config from the various vn flags.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseTask._GetMaskUpdateOp">
 <code class="sig-name descname">_GetMaskUpdateOp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask._GetMaskUpdateOp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask._GetMaskUpdateOp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns op to update masks and threshold variables for model pruning.</p>
@@ -638,23 +638,23 @@ to this output.</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.DistillationTask">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">DistillationTask</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">DistillationTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
 <p>A task to distill knowledge from a teacher task to a student task.</p>
 <p>The training parameters (e.g., learning rate) are determined only by
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">DistillationTask.params.train</span></code>. Teacher and student task’s training and eval
 parameters must be set to None.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes predictions for <code class="xref py py-obj docutils literal notranslate"><span class="pre">input_batch</span></code>.</p>
 <p>The output can be in the form of probablistic distributions, e.g., softmax
 logits for discrete outputs, mixture of logistics for continuous values, or
@@ -676,9 +676,9 @@ used to compute final outputs, perhaps with sampling.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -704,19 +704,19 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.ComputeDistillationLoss">
-<code class="sig-name descname">ComputeDistillationLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predictions</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeDistillationLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeDistillationLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.ComputeDistillationLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.ComputeDistillationLoss" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.BProp">
 <code class="sig-name descname">BProp</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.BProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.BProp" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.Decode">
-<code class="sig-name descname">Decode</code><span class="sig-paren">(</span><em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Decode" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Decode</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Decode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Decode" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph for eval decoding.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -729,7 +729,7 @@ spiltting is used, a list of <code class="xref py py-obj docutils literal notran
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.Inference">
 <code class="sig-name descname">Inference</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.Inference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.Inference" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs the inference graph.</p>
@@ -747,16 +747,16 @@ case, the graph will be constructed with only those pieces.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.CreateDecoderMetrics">
 <code class="sig-name descname">CreateDecoderMetrics</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.CreateDecoderMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.CreateDecoderMetrics" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates a dict of decoder metrics for <a class="reference internal" href="#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut" title="lingvo.core.base_model.DistillationTask.PostProcessDecodeOut"><code class="xref py py-obj docutils literal notranslate"><span class="pre">PostProcessDecodeOut</span></code></a> to update.</p>
 <p>Returns a dict mapping from string keys to <a class="reference internal" href="lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric" title="lingvo.core.metrics.BaseMetric"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseMetric</span></code></a> objects.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.DistillationTask.PostProcessDecodeOut">
-<code class="sig-name descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em class="sig-param">dec_out_dict</em>, <em class="sig-param">dec_metrics_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">PostProcessDecodeOut</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">dec_out_dict</span></em>, <em class="sig-param"><span class="n">dec_metrics_dict</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DistillationTask.PostProcessDecodeOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DistillationTask.PostProcessDecodeOut" title="Permalink to this definition">¶</a></dt>
 <dd><p>Post-processes decoder out and updates contents of <code class="xref py py-obj docutils literal notranslate"><span class="pre">decode_metrics_dict</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -775,56 +775,56 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.BaseModel">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">BaseModel</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">BaseModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
 <p>The abstract model class. All models are sub-class of this class.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.global_step">
 <em class="property">property </em><code class="sig-name descname">global_step</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.global_step" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.ema">
 <em class="property">property </em><code class="sig-name descname">ema</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ema" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.variables_for_ema">
 <em class="property">property </em><code class="sig-name descname">variables_for_ema</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.variables_for_ema" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph">
 <code class="sig-name descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">
 <code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.ConstructFPropGraph">
 <code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.tasks">
 <em class="property">property </em><code class="sig-name descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.BaseModel.tasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of all tasks.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.GetTask">
-<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param">task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.GetTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the task associated with ‘task_name’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -836,9 +836,9 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.BaseModel.ProcessFPropResults">
-<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param">sess</em>, <em class="sig-param">global_step</em>, <em class="sig-param">metrics</em>, <em class="sig-param">per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">per_example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called once for each train loop.</p>
 <p>BaseTask.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>
@@ -858,26 +858,26 @@ per-example tensors in this method.</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.SingleTaskModel">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">SingleTaskModel</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">SingleTaskModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
 <p>Model that consists of a single task.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param">task_params=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.Params" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_params</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.tasks">
 <em class="property">property </em><code class="sig-name descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.tasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of all tasks.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.GetTask">
-<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param">task_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the task associated with ‘task_name’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -889,53 +889,53 @@ per-example tensors in this method.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.SampleTask">
-<code class="sig-name descname">SampleTask</code><span class="sig-paren">(</span><em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SampleTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph">
 <code class="sig-name descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.ConstructPostTrainingLoop">
 <code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph">
 <code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.base_model.MultiTaskModel">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">MultiTaskModel</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">MultiTaskModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.BaseModel" title="lingvo.core.base_model.BaseModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseModel</span></code></a></p>
 <p>Model that consists of multiple tasks.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.task_names">
 <em class="property">property </em><code class="sig-name descname">task_names</code><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.task_names" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.tasks">
 <em class="property">property </em><code class="sig-name descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.tasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of all tasks.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.GetTask">
-<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param">task_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">GetTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.GetTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.GetTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the task associated with ‘task_name’.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -947,9 +947,9 @@ per-example tensors in this method.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.SampleTask">
-<code class="sig-name descname">SampleTask</code><span class="sig-paren">(</span><em class="sig-param">global_step</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">SampleTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.SampleTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.SampleTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample a task according self.task_schedule.</p>
 <p><code class="xref py py-obj docutils literal notranslate"><span class="pre">self.task_schedule.cur_probs</span></code> will also be updated.</p>
 <dl class="field-list simple">
@@ -959,12 +959,12 @@ per-example tensors in this method.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph">
 <code class="sig-name descname">ConstructFPropBPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.ConstructFPropBPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.ConstructFPropBPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">
 <code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>

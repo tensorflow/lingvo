@@ -166,9 +166,9 @@
   <div class="section" id="module-lingvo.core.trainer_test_utils">
 <span id="lingvo-core-trainer-test-utils-module"></span><h1>lingvo.core.trainer_test_utils module<a class="headerlink" href="#module-lingvo.core.trainer_test_utils" title="Permalink to this headline">¶</a></h1>
 <p>Toy models and input generation tools for testing trainer code.</p>
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.trainer_test_utils.CountingInputGenerator">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">CountingInputGenerator</code><span class="sig-paren">(</span><em class="sig-param">params</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#CountingInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.CountingInputGenerator" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">CountingInputGenerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#CountingInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.CountingInputGenerator" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseInputGenerator</span></code></a></p>
 <p>Produces deterministic inputs for IdentityRegressionModel.</p>
 <dl class="simple">
@@ -183,13 +183,13 @@
 </dl>
 <p>Since <code class="xref py py-obj docutils literal notranslate"><span class="pre">sum(src_ids)</span> <span class="pre">=</span> <span class="pre">target</span></code>, we expect that the regression model of
 <code class="xref py py-obj docutils literal notranslate"><span class="pre">target</span> <span class="pre">=</span> <span class="pre">sum(m</span> <span class="pre">*</span> <span class="pre">src_ids)</span> <span class="pre">+</span> <span class="pre">b</span></code> will learn <code class="xref py py-obj docutils literal notranslate"><span class="pre">m</span> <span class="pre">=</span> <span class="pre">1</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">b</span> <span class="pre">=</span> <span class="pre">0</span></code>.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.CountingInputGenerator.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#CountingInputGenerator.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.CountingInputGenerator.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defaults params for input generators.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.CountingInputGenerator._InputBatch">
 <code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#CountingInputGenerator._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.CountingInputGenerator._InputBatch" title="Permalink to this definition">¶</a></dt>
 <dd><p>The current input batch, not preprocessed.</p>
@@ -205,20 +205,20 @@ and denotes the batch dimension.</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionTask">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">IdentityRegressionTask</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">IdentityRegressionTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.BaseTask" title="lingvo.core.base_model.BaseTask"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.BaseTask</span></code></a></p>
 <p>A simple regression task for testing.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputePredictions">
-<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd><p>sum(m * x) + b.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputeLoss">
-<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param">theta</em>, <em class="sig-param">predicted</em>, <em class="sig-param">input_batch</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predicted</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -244,9 +244,9 @@ index.</p></li>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionTask.FilterPerExampleTensors">
-<code class="sig-name descname">FilterPerExampleTensors</code><span class="sig-paren">(</span><em class="sig-param">per_example</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.FilterPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FilterPerExampleTensors</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">per_example</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.FilterPerExampleTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.FilterPerExampleTensors" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the per-example tensors ProcessFPropResults needs.</p>
 <p>By default we don’t send any per-example tensors to ProcessFPropResults
 because some may be expensive to compute. Implement this method to let
@@ -261,9 +261,9 @@ some of them pass through.</p>
 </dl>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionTask.ProcessFPropResults">
-<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param">sess</em>, <em class="sig-param">global_step</em>, <em class="sig-param">metrics</em>, <em class="sig-param">per_example_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">per_example_tensors</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionTask.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionTask.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called once for each train loop.</p>
 <p>BaseModel.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>
@@ -281,20 +281,20 @@ can put your implementation wherever it is most convenient for you.</p>
 
 </dd></dl>
 
-<dl class="class">
+<dl class="py class">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionModel">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">IdentityRegressionModel</code><span class="sig-paren">(</span><em class="sig-param">*args</em>, <em class="sig-param">**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionModel" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.trainer_test_utils.</code><code class="sig-name descname">IdentityRegressionModel</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionModel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionModel" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel" title="lingvo.core.base_model.SingleTaskModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.SingleTaskModel</span></code></a></p>
 <p>Simple regression model for testing.</p>
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionModel.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
-<dl class="method">
+<dl class="py method">
 <dt id="lingvo.core.trainer_test_utils.IdentityRegressionModel.ProcessFPropResults">
-<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param">sess</em>, <em class="sig-param">global_step</em>, <em class="sig-param">metrics</em>, <em class="sig-param">per_example_tensors</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionModel.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionModel.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ProcessFPropResults</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">per_example_tensors</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/trainer_test_utils.html#IdentityRegressionModel.ProcessFPropResults"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.trainer_test_utils.IdentityRegressionModel.ProcessFPropResults" title="Permalink to this definition">¶</a></dt>
 <dd><p>Called once for each train loop.</p>
 <p>BaseTask.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>
