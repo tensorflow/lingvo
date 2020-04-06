@@ -709,6 +709,22 @@
   <span class="k">return</span> <span class="n">session_config</span></div>
 
 
+<div class="viewcode-block" id="AssertIsCompatible"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AssertIsCompatible">[docs]</a><span class="k">def</span> <span class="nf">AssertIsCompatible</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+  <span class="k">assert</span> <span class="n">a</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">b</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="SetShapes"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SetShapes">[docs]</a><span class="k">def</span> <span class="nf">SetShapes</span><span class="p">(</span><span class="n">dst_nmap</span><span class="p">,</span> <span class="n">src_nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Set shapes in dst_nmap using those in src_nmap.&quot;&quot;&quot;</span>
+  <span class="n">AssertIsCompatible</span><span class="p">(</span><span class="n">src_nmap</span><span class="p">,</span> <span class="n">dst_nmap</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">src</span><span class="p">,</span> <span class="n">dst</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">src_nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">dst_nmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+    <span class="n">dst</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">src</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dtypes"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Dtypes">[docs]</a><span class="k">def</span> <span class="nf">Dtypes</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns all tensors&#39; data types in a list.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">dtype</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">nmap_list</span><span class="p">)]</span></div>
+
+
 <div class="viewcode-block" id="Flatten"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Flatten">[docs]</a><span class="k">def</span> <span class="nf">Flatten</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Flattens &#39;x&#39; by extracting tensors from nested structures to a list.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
