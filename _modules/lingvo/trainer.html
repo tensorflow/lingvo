@@ -593,7 +593,8 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
       <span class="k">return</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
@@ -948,7 +949,8 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training skipped (trial requested to stop).&#39;</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_DequeueThreadComplete</span><span class="p">()</span>
       <span class="k">return</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="n">config_proto</span> <span class="o">=</span> <span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="o">.</span><span class="n">config_proto</span>
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
@@ -1129,7 +1131,8 @@
 
 <div class="viewcode-block" id="Evaler._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The main loop.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
@@ -1156,7 +1159,8 @@
 
 <div class="viewcode-block" id="Evaler.EvalLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Evaler.EvalLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">EvalLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs eval once on the latest checkpoint.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
@@ -1331,8 +1335,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_RunLoop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_job_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Loop</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Decoder._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span><span class="n">inline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
+        <span class="n">inline</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
@@ -1446,7 +1450,8 @@
 
 <div class="viewcode-block" id="Decoder.DecodeLatestCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.DecodeLatestCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeLatestCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_path</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Runs decoder on the latest checkpoint.&quot;&quot;&quot;</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># This initializes local tables</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span><span class="p">)</span>
       <span class="c1"># This initializes local variables.</span>
