@@ -97,10 +97,6 @@ from six.moves import zip
 DevicePair = collections.namedtuple('DevicePair', ['send', 'recv'])
 
 
-def _AssertIsCompatible(a, b):
-  assert a.IsCompatible(b), ('%s vs %s' % (a, b))
-
-
 def _AssertSameTensors(list_a, list_b):
   """Asserts that two lists of tensors are the same tensors."""
   assert len(list_a) == len(list_b), (
@@ -206,13 +202,6 @@ def _SeqPaddingLength(inputs_nmap):
   return [padding_begin, padding_end]
 
 
-def _SetShapes(dst_nmap, src_nmap):
-  """Set shapes in dst_nmap using those in src_nmap."""
-  _AssertIsCompatible(src_nmap, dst_nmap)
-  for src, dst in zip(src_nmap.Flatten(), dst_nmap.Flatten()):
-    dst.set_shape(src.shape)
-
-
 def _EmptyAcc(slen, nmap):
   """Creates a set of accumulators for tensors in nmap.
 
@@ -274,11 +263,6 @@ def _Add(nmap_x, nmap_y):
     A `.NestedMap` of tensors. ret.key = nmap_x.key + nmap_y.key for every key.
   """
   return py_utils.Transform(tf.add, nmap_x, nmap_y)
-
-
-def Dtypes(nmap_list):
-  """Returns all tensors' data types in a list."""
-  return [v.dtype for v in py_utils.Flatten(nmap_list)]
 
 
 def _ConvertNoneGradientToZeros(xs, dxs):
@@ -375,13 +359,13 @@ class _Recurrent(object):
     noinline = not compiled
     t_type = tf.int32 if compiled else tf.int64
 
-    @tf.Defun(*Dtypes(fwd_sig))
+    @tf.Defun(*py_utils.Dtypes(fwd_sig))
     def Fwd(*args):
       (theta, state0, inputs) = py_utils.Pack(fwd_sig, args)
-      _SetShapes(theta, fwd_sig[0])
+      py_utils.SetShapes(theta, fwd_sig[0])
       state1, extras = self._cell_fn(theta, state0, inputs)
-      _AssertIsCompatible(state1, self._state)
-      _AssertIsCompatible(extras, self._extras)
+      py_utils.AssertIsCompatible(state1, self._state)
+      py_utils.AssertIsCompatible(extras, self._extras)
       return py_utils.Flatten([state1, extras])
 
     # Wraps cell_fn in a TF Function as a for-loop's body.
@@ -398,7 +382,7 @@ class _Recurrent(object):
         self._theta, self._state, self._inputs, self._state, self._extras
     ]
 
-    @tf.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
+    @tf.Defun(t_type, t_type, *py_utils.Dtypes(fwdloop_sig))
     def ForwardLoopCond(t, limit, *args):
       """The condition of forward loop."""
       should_continue = t < limit
@@ -409,7 +393,7 @@ class _Recurrent(object):
             tf.reduce_any(tf.logical_not(self._stop_fn(t, theta, state0))))
       return should_continue
 
-    @tf.Defun(t_type, t_type, *Dtypes(fwdloop_sig))
+    @tf.Defun(t_type, t_type, *py_utils.Dtypes(fwdloop_sig))
     def ForwardLoopBody(t, limit, *args):
       """The body of forward loop."""
       theta, state0, inputs, acc_state, acc_extras = py_utils.Pack(
@@ -545,7 +529,7 @@ class _Recurrent(object):
     forward_sig = [self._theta, self._state, self._inputs, self._extras]
 
     @tf.Defun(
-        *Dtypes(forward_sig),
+        *py_utils.Dtypes(forward_sig),
         python_grad_func=Grad,
         noinline=noinline,
         _implements=self._cell_type,
@@ -600,22 +584,22 @@ class _Recurrent(object):
         self._state,
     ]
 
-    @tf.Defun(*Dtypes(bak_sig))
+    @tf.Defun(*py_utils.Dtypes(bak_sig))
     def Bak(*args):
       """Backward step."""
       (theta, state0, inputs, extras, d_state1) = py_utils.Pack(bak_sig, args)
-      _SetShapes(theta, bak_sig[0])
+      py_utils.SetShapes(theta, bak_sig[0])
       (dtheta, dstate0, dinputs,
        dcaptures) = self._cell_grad(theta, state0, inputs, extras, d_state1)
-      _AssertIsCompatible(dtheta, self._theta)
-      _AssertIsCompatible(dstate0, self._state)
-      _AssertIsCompatible(dinputs, self._inputs)
+      py_utils.AssertIsCompatible(dtheta, self._theta)
+      py_utils.AssertIsCompatible(dstate0, self._state)
+      py_utils.AssertIsCompatible(dinputs, self._inputs)
       if dcaptures is None:
         # NOTE: Custom gradient fns can return None if they do not support
         # captured tensors. The return value is reserved for the future when
         # that may be supported.
         dcaptures = _EmptyLike(self._implicit_captures)
-      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      py_utils.AssertIsCompatible(dcaptures, self._implicit_captures)
 
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
@@ -630,13 +614,13 @@ class _Recurrent(object):
     # Define defuns used by a functional.if in BackwardLoopBody.
     state_if_sig = [self._state, self._state]
 
-    @tf.Defun(*Dtypes(state_if_sig))
+    @tf.Defun(*py_utils.Dtypes(state_if_sig))
     def ReturnOrigState0(*args):
       """Returns original state0 from inputs."""
       (_, orig_state0) = py_utils.Pack(state_if_sig, args)
       return orig_state0.Flatten()
 
-    @tf.Defun(*Dtypes(state_if_sig))
+    @tf.Defun(*py_utils.Dtypes(state_if_sig))
     def ReturnAccState(*args):
       """Returns acc_state[t-1] from inputs."""
       (acc_state, _) = py_utils.Pack(state_if_sig, args)
@@ -676,12 +660,12 @@ class _Recurrent(object):
         self._implicit_captures,
     ]
 
-    @tf.Defun(t_type, t_type, *Dtypes(bakloop_sig))
+    @tf.Defun(t_type, t_type, *py_utils.Dtypes(bakloop_sig))
     def BackwardLoopCond(t, limit, *unused_args):
       """Backward loop condition function."""
       return t >= limit
 
-    @tf.Defun(t_type, t_type, *Dtypes(bakloop_sig))
+    @tf.Defun(t_type, t_type, *py_utils.Dtypes(bakloop_sig))
     def BackwardLoopBody(t, limit, *args):
       """Backward loop body function."""
       (
@@ -756,7 +740,7 @@ class _Recurrent(object):
         self._state,
     ]
 
-    @tf.Defun(t_type, *Dtypes(backward_sig), noinline=noinline)
+    @tf.Defun(t_type, *py_utils.Dtypes(backward_sig), noinline=noinline)
     def Backward(start, *args):
       """Backward pass for the recurrent net."""
       # theta, state0, inputs are Forward's inputs.
@@ -865,10 +849,10 @@ def _ReflectOnCellFn(cell_fn,
 
   fwd_sig = [theta, state0, inputs]
 
-  @tf.Defun(*Dtypes(fwd_sig))
+  @tf.Defun(*py_utils.Dtypes(fwd_sig))
   def Fwd(*args):
     (theta, state0, inputs) = py_utils.Pack(fwd_sig, args)
-    _SetShapes(theta, fwd_sig[0])
+    py_utils.SetShapes(theta, fwd_sig[0])
     state1, extras = cell_fn(theta, state0, inputs)
     return py_utils.Flatten([state1, extras])
 
@@ -1251,7 +1235,7 @@ def Recurrent(theta,
     if not extras:
       # Forces the extras to be an empty map if an empty 'extras' is provided.
       extras = py_utils.NestedMap()
-    _AssertIsCompatible(extras, actual_extras)
+    py_utils.AssertIsCompatible(extras, actual_extras)
 
   # Enable accumulators. Note that this must happen prior to the initial
   # _AugmentState() below or it will initialize with defaults.
@@ -1341,8 +1325,8 @@ class _Input(object):
 
     def InputFn(theta, state0, inputs):
       state1, extras = self._cell_fn(theta, state0, inputs)
-      _AssertIsCompatible(state1, state0)
-      _AssertIsCompatible(extras, self._extras)
+      py_utils.AssertIsCompatible(state1, state0)
+      py_utils.AssertIsCompatible(extras, self._extras)
       out = self._cell_out(state1)
       sends = _Join(self._out_links, out, lambda l, x: l.fwd.Send(x))
       with tf.control_dependencies(sends):
@@ -1354,15 +1338,15 @@ class _Input(object):
       dstate1 = _Add(dstate1, self._cell_out_grad(recv_dout))
       dtheta, dstate0, dinputs, dcaptures = self._cell_grad(
           theta, state0, inputs, extras, dstate1)  # pylint: disable=unbalanced-tuple-unpacking
-      _AssertIsCompatible(dtheta, self._theta)
-      _AssertIsCompatible(dstate0, state0)
-      _AssertIsCompatible(dinputs, self._inputs)
+      py_utils.AssertIsCompatible(dtheta, self._theta)
+      py_utils.AssertIsCompatible(dstate0, state0)
+      py_utils.AssertIsCompatible(dinputs, self._inputs)
       if dcaptures is None:
         # NOTE: Custom gradient fns can return None if they do not support
         # captured tensors. The return value is reserved for the future when
         # that may be supported.
         dcaptures = _EmptyLike(self._implicit_captures)
-      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      py_utils.AssertIsCompatible(dcaptures, self._implicit_captures)
       return dtheta, dstate0, dinputs, dcaptures
 
     return _Recurrent(
@@ -1414,8 +1398,8 @@ class _Middle(object):
       del inputs
       inputs = self._in_links.Transform(lambda l: l.fwd.Recv())
       state1, extras = self._cell_fn(theta, state0, inputs)
-      _AssertIsCompatible(state1, state0)
-      _AssertIsCompatible(extras, self._extras)
+      py_utils.AssertIsCompatible(state1, state0)
+      py_utils.AssertIsCompatible(extras, self._extras)
       out = self._cell_out(state1)
       sends = _Join(self._out_links, out, lambda l, x: l.fwd.Send(x))
       with tf.control_dependencies(sends):
@@ -1430,15 +1414,15 @@ class _Middle(object):
       dstate1 = _Add(dstate1, self._cell_out_grad(recv_dout))
       dtheta, dstate0, dinputs, dcaptures = self._cell_grad(
           theta, state0, extras.inputs, extras.cell_fn_extras, dstate1)  # pylint: disable=unbalanced-tuple-unpacking
-      _AssertIsCompatible(dtheta, self._theta)
-      _AssertIsCompatible(dstate0, state0)
-      _AssertIsCompatible(dinputs, self._per_step_inputs)
+      py_utils.AssertIsCompatible(dtheta, self._theta)
+      py_utils.AssertIsCompatible(dstate0, state0)
+      py_utils.AssertIsCompatible(dinputs, self._per_step_inputs)
       if dcaptures is None:
         # NOTE: Custom gradient fns can return None if they do not support
         # captured tensors. The return value is reserved for the future when
         # that may be supported.
         dcaptures = _EmptyLike(self._implicit_captures)
-      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      py_utils.AssertIsCompatible(dcaptures, self._implicit_captures)
       sends = _Join(self._in_links, dinputs, lambda l, x: l.bak.Send(x))
       with tf.control_dependencies(sends):
         return (dtheta.Transform(tf.identity), dstate0.Transform(tf.identity),
@@ -1495,23 +1479,23 @@ class _Output(object):
       del inputs
       inputs = self._in_links.Transform(lambda l: l.fwd.Recv())
       state1, extras = self._cell_fn(theta, state0, inputs)
-      _AssertIsCompatible(state1, state0)
-      _AssertIsCompatible(extras, self._extras)
+      py_utils.AssertIsCompatible(state1, state0)
+      py_utils.AssertIsCompatible(extras, self._extras)
       return state1, py_utils.NestedMap(inputs=inputs, cell_fn_extras=extras)
 
     def OutputGrad(theta, state0, inputs, extras, dstate1):
       """Gradient function for OutputFn."""
       dtheta, dstate0, dinputs, dcaptures = self._cell_grad(
           theta, state0, extras.inputs, extras.cell_fn_extras, dstate1)  # pylint: disable=unbalanced-tuple-unpacking
-      _AssertIsCompatible(dtheta, self._theta)
-      _AssertIsCompatible(dstate0, state0)
-      _AssertIsCompatible(dinputs, self._per_step_inputs)
+      py_utils.AssertIsCompatible(dtheta, self._theta)
+      py_utils.AssertIsCompatible(dstate0, state0)
+      py_utils.AssertIsCompatible(dinputs, self._per_step_inputs)
       if dcaptures is None:
         # NOTE: Custom gradient fns can return None if they do not support
         # captured tensors. The return value is reserved for the future when
         # that may be supported.
         dcaptures = _EmptyLike(self._implicit_captures)
-      _AssertIsCompatible(dcaptures, self._implicit_captures)
+      py_utils.AssertIsCompatible(dcaptures, self._implicit_captures)
       sends = _Join(self._in_links, dinputs, lambda l, x: l.bak.Send(x))
       with tf.control_dependencies(sends):
         return (dtheta.Transform(tf.identity), dstate0.Transform(tf.identity),

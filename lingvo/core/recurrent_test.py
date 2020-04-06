@@ -677,7 +677,7 @@ class RecurrentTest(test_utils.TestCase):
         b=py_utils.NestedMap(
             b1=tf.constant(0, shape=[1, 3], dtype=tf.int32),
             b2=tf.constant(0, shape=[5, 8], dtype=tf.int32)))
-    recurrent._SetShapes(dst, src)
+    py_utils.SetShapes(dst, src)
     self.assertAllClose(
         [2, 4],
         py_utils.GetShape(dst.a, 2),

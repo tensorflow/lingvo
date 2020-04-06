@@ -564,6 +564,22 @@ def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
   return session_config
 
 
+def AssertIsCompatible(a, b):
+  assert a.IsCompatible(b), ('%s vs %s' % (a, b))
+
+
+def SetShapes(dst_nmap, src_nmap):
+  """Set shapes in dst_nmap using those in src_nmap."""
+  AssertIsCompatible(src_nmap, dst_nmap)
+  for src, dst in zip(src_nmap.Flatten(), dst_nmap.Flatten()):
+    dst.set_shape(src.shape)
+
+
+def Dtypes(nmap_list):
+  """Returns all tensors' data types in a list."""
+  return [v.dtype for v in Flatten(nmap_list)]
+
+
 def Flatten(x):
   """Flattens 'x' by extracting tensors from nested structures to a list."""
   return tf.nest.flatten(x)
