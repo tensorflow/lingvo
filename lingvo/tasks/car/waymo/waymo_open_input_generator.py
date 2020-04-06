@@ -71,8 +71,12 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
   # be checked for extra safety.
   VALIDATED_FILTER_OPTIONS = py_utils.NestedMap(
       time_of_day=['Day', 'Dawn/Dusk', 'Night'],
-      weather=['rain', 'sunny'],
-      location=['location_sf', 'location_phx', 'location_other'])
+      # Generated test data uses 'rain', so we keep the word 'rain' for
+      # backwards compatibility. Eventually we should converge on using 'rainy'.
+      weather=['rain', 'rainy', 'sunny', 'unknown'],
+      location=[
+          'location_sf', 'location_phx', 'location_kir', 'location_other'
+      ])
 
   @classmethod
   def Params(cls):
