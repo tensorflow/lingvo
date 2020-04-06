@@ -1684,3 +1684,139 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
 
     hidden = tf.squeeze(hidden, 0)
     return hidden, atten_prob, new_states
+
+
+class CCTFeedForwardLayer(base_layer.BaseLayer):
+  """Transformer FF layer with CCT gating.
+
+  https://arxiv.org/abs/2002.07106
+
+  Differences from standard Transformer FF layer:
+  1. Each feedforward layer is divided into num_blocks smaller layers (divided
+  along the hidden dimension).
+  2. Each block has its separate input layer norm.
+  3. Each block has its separate output layer norm.
+  4. Outputs from each block are gated with CCTGatingNetwork output - which is
+  between 0 and 1 for training and either 0 or 1 during inference.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CCTFeedForwardLayer, cls).Params()
+    # Transformer Feedforward params.
+    p.Define('input_dim', 0, 'Dimension of the layer input.')
+    p.Define('output_dim', 0, 'Dimension of the layer output.')  # Deprecated.
+    p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('activation', 'RELU', 'Non-linearity.')
+    p.Define('fflayer_tpl',
+             layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
+             'Feed forward layer default params')
+    p.Define(
+        'res_proj_tpl', layers.ProjectionLayer.Params(),
+        'Residual projection default params, used when input_dim != '
+        'output_dim.')
+    p.Define(
+        'residual_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the residual layers, '
+        'such that, residual(x, y) = (x + dropout(y)).')
+    p.Define(
+        'residual_dropout_tpl', layers.DropoutLayer.Params(),
+        'Residual dropout params template. keep_prop will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    p.Define(
+        'relu_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the hidden layer '
+        'of feed-forward network.')
+
+    # Expert params.
+    p.Define('num_blocks', 1, 'Number of separately gated ff blocks.')
+    p.Define('gating_tpl', layers.CCTGatingNetwork.Params(), 'gating template.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(CCTFeedForwardLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.input_dim
+    assert p.hidden_dim
+    assert not p.output_dim, 'output_dim should not be set.'
+
+    with tf.variable_scope(p.name):
+      # Initialize feed-forward layer
+      params = p.fflayer_tpl.Copy()
+      params.name = 'fflayer'
+      params.input_dim = p.input_dim
+      params.activation = [p.activation, 'NONE']
+      if p.output_dim == 0:
+        params.hidden_layer_dims = [p.hidden_dim, p.input_dim]
+      else:
+        params.hidden_layer_dims = [p.hidden_dim, p.output_dim]
+
+      params.dropout = [
+          params.dropout.cls.Params().Set(keep_prob=1.0 - p.relu_dropout_prob),
+          params.dropout.cls.Params().Set(keep_prob=1.0)
+      ]
+
+      ffs = []
+      ln_params = []
+      out_layer_norm = []  # Required for stabilizing CCT.
+      for i in range(p.num_blocks):
+        ff_p = params.Copy()
+        ff_p.name += '_%d' % i
+        ffs.append(ff_p)
+
+        ln_p = p.ln_tpl.Copy()
+        ln_p.name = 'fflayer_ln_%d' % i
+        ln_p.input_dim = p.input_dim
+        ln_params.append(ln_p)
+
+        ln_p = p.ln_tpl.Copy()
+        ln_p.name = 'fflayer_ln_out_%d' % i
+        ln_p.input_dim = p.input_dim
+        out_layer_norm.append(ln_p)
+      self.CreateChildren('fflayers', ffs)
+      self.CreateChildren('layer_norm', ln_params)
+      self.CreateChildren('out_layer_norm', out_layer_norm)
+
+      # Note: Set gating noise and warmup in parent layer.
+      ff_gating = p.gating_tpl.Copy()
+      ff_gating.input_dim = p.input_dim
+      ff_gating.num_outputs = p.num_blocks
+      ff_gating.name = 'gating_net'
+      self.CreateChild('ff_gating', ff_gating)
+
+      dropout_tpl = p.residual_dropout_tpl.Copy()
+      dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
+      self.CreateChild('residual_dropout', dropout_tpl)
+
+  def FProp(self, theta, inputs, paddings):
+    """Feed-forward, layer-norm, residual, gating and layer-norm.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: [time, batch, dim].
+      paddings: [time, batch]
+
+    Returns:
+      tensor of the same shape with inputs
+    """
+    p = self.params
+    ff_outputs = []
+    for i in range(p.num_blocks):
+      inputs_normalized = self.layer_norm[i].FProp(theta.layer_norm[i], inputs)
+      ff_output = self.fflayers[i].FProp(
+          theta.fflayers[i],
+          inputs_normalized,
+          paddings=tf.expand_dims(paddings, -1))
+      ff_output = self.out_layer_norm[i].FProp(theta.out_layer_norm[i],
+                                               ff_output)
+      ff_outputs.append(ff_output)
+    p_c = self.ff_gating.FProp(theta.ff_gating, inputs)
+    out = inputs + self.residual_dropout.FProp(
+        theta.residual_dropout,
+        tf.reduce_sum(
+            tf.expand_dims(p_c, -1) * tf.stack(ff_outputs, -2), axis=-2))
+    return out, p_c

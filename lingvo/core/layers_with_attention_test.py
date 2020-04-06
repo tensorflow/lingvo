@@ -1796,6 +1796,118 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
+  def testCCTFeedForwardLayerConstruction(self):
+    p = layers_with_attention.CCTFeedForwardLayer.Params()
+    p.name = 'cct_fflayer_1'
+    p.input_dim = 3
+    p.hidden_dim = 7
+    p.num_blocks = 2
+    p.gating_tpl.hidden_layer_dim = 2
+    p.gating_tpl.noise_std = 5.0
+    p.gating_tpl.noise_warmup_steps = 100
+    _ = layers_with_attention.CCTFeedForwardLayer(p)
+
+  def testCCTFeedForwardLayerTraining(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers_with_attention.CCTFeedForwardLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 7
+      p.num_blocks = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      cct_fflayer = layers_with_attention.CCTFeedForwardLayer(p)
+
+      h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output, p_c_val = sess.run([h, p_c])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[0.42715067, -1.1583825,   0.5488725],
+           [1.8654622,   1.2259548,   1.5535246]],
+          [[-0.01804674, -1.5219848,   0.7871489],
+           [1.8471594,   0.57059634,  0.8435328]],
+          [[-0.01121128, -0.7855443,  -0.84111285],
+           [0.31814185,  0.7107519,   0.13218479]],
+          [[0.16292389,  0.14500977, -0.3279708],
+           [0.05418712, -0.41232744, -1.5327752]],
+          [[-0.52026933,  0.26753289, -0.5844518],
+           [-0.06638837, -0.02407943, -0.22123742]]]
+      expected_p_c = [
+          [[0.5111345,  0.5052591],
+           [0.8574866,  0.32653052]],
+          [[0.54919845, 0.5232933],
+           [0.56108534, 0.37991753]],
+          [[0.5,        0.5],
+           [0.5497959,  0.45502025]],
+          [[0.5,        0.5 ],
+           [0.5,        0.5]],
+          [[0.5256961,  0.5121437],
+           [0.7153195,  0.515119]]
+      ]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      print(np.array_repr(p_c_val))
+      self.assertAllClose(actual_layer_output, expected_output)
+      self.assertAllClose(p_c_val, expected_p_c)
+
+  def testCCTFeedForwardLayerInference(self):
+    with self.session(use_gpu=True) as sess:
+      tf.set_random_seed(3980847392)
+      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      paddings = tf.zeros([5, 2])
+      p = layers_with_attention.CCTFeedForwardLayer.Params()
+      p.name = 'transformer_fflayer'
+      p.input_dim = 3
+      p.hidden_dim = 7
+      p.num_blocks = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      p.is_inference = True
+      cct_fflayer = layers_with_attention.CCTFeedForwardLayer(p)
+
+      h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
+      tf.global_variables_initializer().run()
+      actual_layer_output, p_c_val = sess.run([h, p_c])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_output = [
+          [[ 1.0098392,  -1.9131559,   0.7209573],
+           [1.853969,    0.8876595,   1.9033132]],
+          [[ 0.54020345, -2.289555,    0.9964691],
+           [2.8543897,   0.53420514, -0.12730598]],
+          [[0.12175596, -1.2262937,  -0.5333306],
+           [-0.94935167,  1.4773865,   0.6330439]],
+          [[0.16090931,  0.0672162,  -0.24816266],
+           [0.9799553,  -0.28615296, -2.5847178]],
+          [[-0.4871899,   0.18763694, -0.5376355],
+           [0.58863795,  0.21293162, -1.1132748 ]]]
+      expected_p_c = [
+          [[1., 1.],
+           [1., 0.]],
+          [[1., 1.],
+           [1., 0.]],
+          [[1., 1.],
+           [1., 0.]],
+          [[1., 1.],
+           [1., 1.]],
+          [[1., 1.],
+           [1., 1.]]
+      ]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      print(np.array_repr(actual_layer_output))
+      print(np.array_repr(p_c_val))
+      self.assertAllClose(actual_layer_output, expected_output)
+      self.assertAllClose(p_c_val, expected_p_c)
+
 
 if __name__ == '__main__':
   tf.test.main()
