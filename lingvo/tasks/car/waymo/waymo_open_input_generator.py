@@ -610,6 +610,9 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
 
       $LASERNAME_extrinsics: tf.float32 [4, 4] extrinsics matrix
 
+      $LASERNAME_pose: tf.float32 of ri_shape + [4, 4], which is the
+      per-pixel pose.
+
   On laser returns:
     ri1 and ri2 are the first and second returns of the sensors.
 
@@ -741,6 +744,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         pixel_pose = tf.reshape(
             _Dense(features['%s_pose' % laser]),
             shape=p.gbr_ri_shape[0:2] + [4, 4])
+        outputs['%s_pose' % laser] = pixel_pose
 
       for returns in p.returns:
         range_image = ri_outputs['%s_%s' % (laser, returns)]
@@ -887,6 +891,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         shapes['%s_%s' % (laser, returns)] = shape_dict
       shapes['%s_extrinsics' % laser] = tf.TensorShape([4, 4])
       shapes['%s_beam_inclinations' % laser] = tf.TensorShape([64])
+      shapes['%s_pose' % laser] = tf.TensorShape(gbr_shape + [4, 4])
 
     return py_utils.NestedMap(shapes)
 
@@ -904,6 +909,8 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         dtypes['%s_%s' % (laser, returns)] = dtype_dict
       dtypes['%s_extrinsics' % laser] = tf.float32
       dtypes['%s_beam_inclinations' % laser] = tf.float32
+    for laser in p.gbr_laser_names:
+      dtypes['%s_pose' % laser] = tf.float32
     return py_utils.NestedMap(dtypes)
 
 
