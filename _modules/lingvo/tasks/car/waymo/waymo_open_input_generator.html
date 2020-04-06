@@ -755,6 +755,9 @@
 
 <span class="sd">      $LASERNAME_extrinsics: tf.float32 [4, 4] extrinsics matrix</span>
 
+<span class="sd">      $LASERNAME_pose: tf.float32 of ri_shape + [4, 4], which is the</span>
+<span class="sd">      per-pixel pose.</span>
+
 <span class="sd">  On laser returns:</span>
 <span class="sd">    ri1 and ri2 are the first and second returns of the sensors.</span>
 
@@ -886,6 +889,7 @@
         <span class="n">pixel_pose</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">_Dense</span><span class="p">(</span><span class="n">features</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]),</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">gbr_ri_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
+        <span class="n">outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">pixel_pose</span>
 
       <span class="k">for</span> <span class="n">returns</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">returns</span><span class="p">:</span>
         <span class="n">range_image</span> <span class="o">=</span> <span class="n">ri_outputs</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span>
@@ -1032,6 +1036,7 @@
         <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">shape_dict</span>
       <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
       <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">([</span><span class="mi">64</span><span class="p">])</span>
+      <span class="n">shapes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">gbr_shape</span> <span class="o">+</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">shapes</span><span class="p">)</span></div>
 
@@ -1049,6 +1054,8 @@
         <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">laser</span><span class="p">,</span> <span class="n">returns</span><span class="p">)]</span> <span class="o">=</span> <span class="n">dtype_dict</span>
       <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_extrinsics&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
       <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_beam_inclinations&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
+    <span class="k">for</span> <span class="n">laser</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">gbr_laser_names</span><span class="p">:</span>
+      <span class="n">dtypes</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_pose&#39;</span> <span class="o">%</span> <span class="n">laser</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">dtypes</span><span class="p">)</span></div></div>
 
 
