@@ -216,8 +216,12 @@
   <span class="c1"># be checked for extra safety.</span>
   <span class="n">VALIDATED_FILTER_OPTIONS</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
       <span class="n">time_of_day</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;Day&#39;</span><span class="p">,</span> <span class="s1">&#39;Dawn/Dusk&#39;</span><span class="p">,</span> <span class="s1">&#39;Night&#39;</span><span class="p">],</span>
-      <span class="n">weather</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rain&#39;</span><span class="p">,</span> <span class="s1">&#39;sunny&#39;</span><span class="p">],</span>
-      <span class="n">location</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;location_sf&#39;</span><span class="p">,</span> <span class="s1">&#39;location_phx&#39;</span><span class="p">,</span> <span class="s1">&#39;location_other&#39;</span><span class="p">])</span>
+      <span class="c1"># Generated test data uses &#39;rain&#39;, so we keep the word &#39;rain&#39; for</span>
+      <span class="c1"># backwards compatibility. Eventually we should converge on using &#39;rainy&#39;.</span>
+      <span class="n">weather</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;rain&#39;</span><span class="p">,</span> <span class="s1">&#39;rainy&#39;</span><span class="p">,</span> <span class="s1">&#39;sunny&#39;</span><span class="p">,</span> <span class="s1">&#39;unknown&#39;</span><span class="p">],</span>
+      <span class="n">location</span><span class="o">=</span><span class="p">[</span>
+          <span class="s1">&#39;location_sf&#39;</span><span class="p">,</span> <span class="s1">&#39;location_phx&#39;</span><span class="p">,</span> <span class="s1">&#39;location_kir&#39;</span><span class="p">,</span> <span class="s1">&#39;location_other&#39;</span>
+      <span class="p">])</span>
 
 <div class="viewcode-block" id="WaymoFrameMetadataExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
