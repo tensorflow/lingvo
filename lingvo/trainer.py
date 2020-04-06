@@ -448,7 +448,8 @@ class Trainer(base_runner.BaseRunner):
     if self._trial.ShouldStop():
       tf.logging.info('Training skipped (trial requested to stop).')
       return
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(
+        self._container_id), self._cluster, self._GetSession() as sess:
       # This initializes local tables
       sess.run(self._initialize_tables)
       # This initializes local variables.
@@ -803,7 +804,8 @@ class TrainerTpu(base_runner.BaseRunner):
       tf.logging.info('Training skipped (trial requested to stop).')
       self._DequeueThreadComplete()
       return
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(
+        self._container_id), self._cluster, self._GetSession() as sess:
       config_proto = (
           self._tpu_embedding.config_proto
           if self._tpu_embedding is not None else None)
@@ -984,7 +986,8 @@ class Evaler(base_runner.BaseRunner):
 
   def _Loop(self):
     """The main loop."""
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(
+        self._container_id), self._cluster, self._GetSession() as sess:
       # This initializes local tables
       sess.run(self._initialize_tables)
       # This initializes local variables.
@@ -1011,7 +1014,8 @@ class Evaler(base_runner.BaseRunner):
 
   def EvalLatestCheckpoint(self, last_path=None):
     """Runs eval once on the latest checkpoint."""
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(
+        self._container_id), self._cluster, self._GetSession() as sess:
       # This initializes local tables
       sess.run(self._initialize_tables)
       # This initializes local variables.
@@ -1186,8 +1190,8 @@ class Decoder(base_runner.BaseRunner):
     self._RunLoop(self._job_name, self._Loop)
 
   def _Loop(self):
-    with tf.container(
-        self._container_id), self._GetSession(inline=False) as sess:
+    with tf.container(self._container_id), self._cluster, self._GetSession(
+        inline=False) as sess:
       # This initializes local tables
       sess.run(self._initialize_tables)
       # This initializes local variables.
@@ -1301,7 +1305,8 @@ class Decoder(base_runner.BaseRunner):
 
   def DecodeLatestCheckpoint(self, last_path=None):
     """Runs decoder on the latest checkpoint."""
-    with tf.container(self._container_id), self._GetSession() as sess:
+    with tf.container(
+        self._container_id), self._cluster, self._GetSession() as sess:
       # This initializes local tables
       sess.run(self._initialize_tables)
       # This initializes local variables.
