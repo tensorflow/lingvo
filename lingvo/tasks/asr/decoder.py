@@ -366,8 +366,9 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         p.softmax.input_dim += atten_context_dim
       self.CreateChild('softmax', p.softmax)
 
-      p.fusion.base_model_logits_dim = p.softmax.input_dim
-      self.CreateChild('fusion', p.fusion)
+      if p.fusion:
+        p.fusion.base_model_logits_dim = p.softmax.input_dim
+        self.CreateChild('fusion', p.fusion)
 
       self._CreateAtten()
 
