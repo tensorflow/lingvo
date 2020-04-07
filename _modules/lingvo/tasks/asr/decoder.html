@@ -511,8 +511,9 @@
         <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">+=</span> <span class="n">atten_context_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
 
-      <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">base_model_logits_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fusion&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="o">.</span><span class="n">base_model_logits_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">input_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fusion&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fusion</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_CreateAtten</span><span class="p">()</span>
 
