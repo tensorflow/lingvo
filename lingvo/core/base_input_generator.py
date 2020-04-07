@@ -104,6 +104,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def GlobalBatchSize(self):
     """Returns the number of samples for the current step, used for stats."""
+    tf.logging.info('GlobalBatchSize {}'.format(
+        self.params.batch_size * self.cluster.num_splits_per_client))
     return self.params.batch_size * self.cluster.num_splits_per_client
 
   def InfeedBatchSize(self):
@@ -162,9 +164,11 @@ class BaseInputGenerator(base_layer.BaseLayer):
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
     num_cores_per_host = cluster.total_worker_devices // num_tpu_hosts
-    tf.logging.info('num_cores_per_host {}'.format(num_cores_per_host))
-    tf.logging.info('num_devices_per_split {}'.format(
-        cluster.num_devices_per_split))
+    tf.logging.info(
+        'CreateTPUFeeds num_splits_per_client={} '
+        'num_devices_per_split={} num_tpu_hosts={} use_per_host_infeed={}'
+        .format(cluster.num_splits_per_client, cluster.num_devices_per_split,
+                num_tpu_hosts, p.use_per_host_infeed))
 
     assert num_tpu_hosts > 0, ('num_tpu_hosts: %d' % num_tpu_hosts)
     if (cluster.num_devices_per_split > num_cores_per_host and
@@ -181,6 +185,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
       shards = tpu_function.get_tpu_context(
       ).number_of_shards // num_infeed_hosts
+      tf.logging.info('shards {}'.format(shards))
+
       input_ops_list = []
       queues = []
       tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
@@ -658,13 +664,21 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         self._scaled_bucket_batch_limit = [
             x // cluster.num_tpu_hosts for x in self._scaled_bucket_batch_limit
         ]
+      tf.logging.info('scaled_bucket_back_limit {}'.format(
+          self._scaled_bucket_batch_limit))
     return self._scaled_bucket_batch_limit
 
   def GlobalBatchSize(self):
+    p = self.params
     # TODO(rpang): rename self._input_batch_size to _global_input_batch_size.
     if self._input_batch_size is None:
       raise ValueError('No input batch size is defined.')
-    return self._input_batch_size
+    global_batch_size = self._input_batch_size
+    cluster = self.cluster
+    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
+      global_batch_size *= cluster.num_tpu_hosts
+    tf.logging.info('GlobalBatchSize {}'.format(global_batch_size))
+    return global_batch_size
 
   def InfeedBatchSize(self):
     p = self.params
