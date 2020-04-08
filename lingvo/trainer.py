@@ -1674,6 +1674,8 @@ class RunnerManager(object):
     if not FLAGS.job:
       if FLAGS.run_locally == 'tpu':
         FLAGS.job = 'trainer_client'
+      elif FLAGS.mode == 'async':
+        FLAGS.job = 'controller,trainer'
       else:
         FLAGS.job = 'controller,trainer_client'
 
