@@ -1,0 +1,24 @@
+syntax = "proto2";
+
+package tensorflow.lingvo;
+option cc_enable_arenas = true;
+
+// Protocol buffer representing the data version.
+message VersionedFileSet {
+  // The latest version of this fileset.
+  optional FileSet current = 1;
+
+  // A list of recent past versions of this fileset.
+  repeated FileSet history = 2;
+}
+
+message FileSet {
+  // Each file_pattern is a file glob pattern or a sharded file spec
+  // file_pattern is intended to store a relative path, to enable moving
+  // datasets around without having to update the pbtxt file storing the
+  // VersionedFileSet information.
+  repeated string file_pattern = 1;
+
+  // Seconds since epoch indicating when this version of fileset is created.
+  optional double create_timestamp = 2;
+}

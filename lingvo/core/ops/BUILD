@@ -137,6 +137,7 @@ lingvo_cc_library(
     deps = [
         ":mutex",
         ":rope",
+        ":versioned_file_set_proto_cc",
     ],
 )
 
@@ -443,6 +444,11 @@ lingvo_proto_cc(
     deps = [
         # Implicit tensorflow proto dependency.
     ],
+)
+
+lingvo_proto_cc(
+    name = "versioned_file_set_proto",
+    src = "versioned_file_set.proto",
 )
 
 lingvo_proto_py(

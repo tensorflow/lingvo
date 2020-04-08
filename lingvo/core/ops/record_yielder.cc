@@ -22,10 +22,12 @@ limitations under the License.
 #include <unordered_map>
 
 #include "lingvo/core/ops/mutex.h"
+#include "lingvo/core/ops/versioned_file_set.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/hash/hash.h"
 #include "tensorflow/core/lib/io/buffered_inputstream.h"
 #include "tensorflow/core/lib/io/compression.h"
+#include "tensorflow/core/lib/io/path.h"
 #include "tensorflow/core/lib/io/random_inputstream.h"
 #include "tensorflow/core/lib/io/record_reader.h"
 #include "tensorflow/core/lib/strings/numbers.h"
@@ -125,6 +127,29 @@ Status MatchParallelFilePattern(const string& parallel_file_pattern,
                     std::make_move_iterator(parallel_filenames.begin()),
                     std::make_move_iterator(parallel_filenames.end()));
 
+  return Status::OK();
+}
+
+// Input to CkptFilePattern should look like <path_to_ckpt_file>/ckpt
+// This pattern parser will read the ckpt file, decode it into a
+// tensorflow::CheckpointState proto and use the latest model_checkpoint_path
+// as the actual file-pattern.
+// model_checkpoint_path should be a legitimate file-pattern, for eg.
+// <path>/a@* or <path>/a or <path>/a-?????-of-????? etc.
+Status GetFilePatternsFromCkptFile(const string& fileset_file,
+                                   std::vector<string>* filenames) {
+  string fileset_str;
+  VersionedFileSet fileset;
+  TF_RETURN_IF_ERROR(
+      ReadFileToString(Env::Default(), fileset_file, &fileset_str));
+
+  CHECK(google::protobuf::TextFormat::ParseFromString(fileset_str, &fileset));
+
+  string prefix = std::string(io::Dirname(fileset_file));
+  for (const auto& file_pattern : fileset.current().file_pattern()) {
+    TF_RETURN_IF_ERROR(MatchParallelFilePattern(
+      io::JoinPath(prefix, file_pattern), filenames));
+  }
   return Status::OK();
 }
 
@@ -288,6 +313,20 @@ namespace {
 bool register_text_iterator = RecordIterator::Register(
     "text",
     [](const string& filename) { return new PlainTextIterator(filename); });
+
+// Iterator for plain text files that checks indirect "ckpt" file for latest
+// pointer to data files.
+// For example, if filename is .../checkpoint, the pattern parser will open the
+// checkpoint file and read file-patterns that it points to. If empty, it will
+// return error and die.
+bool register_indirect_text_iterator =
+    RecordIterator::RegisterWithPatternParser(
+        "text_indirect",
+        [](const string& filename) { return new PlainTextIterator(filename); },
+        [](const string& pattern, std::vector<string>* outs) {
+          TF_RETURN_IF_ERROR(GetFilePatternsFromCkptFile(pattern, outs));
+          return Status::OK();
+        });
 
 bool register_tf_record_iterator =
     RecordIterator::Register("tfrecord", [](const string& filename) {

@@ -381,6 +381,44 @@ TEST(RecordYielder, MatchWildcardShardedFilePattern) {
   yielder->Close();
 }
 
+TEST(RecordYielder, MatchIndirectFilePattern) {
+  const int records_per_shard = 100;
+  GenerateCheckpointPlainTextTestData("checkpoint", records_per_shard);
+
+  BasicRecordYielder::Options opts;
+  opts.file_pattern = strings::StrCat(
+      "text_indirect:", io::JoinPath("/tmp", "checkpoint"));
+  opts.bufsize = records_per_shard;
+  opts.parallelism = 1;
+  std::vector<Rope> epoch;
+  auto yielder = BasicRecordYielder::New(opts);
+  Record record;
+  record.source_id = kDefaultSourceId;
+
+  // Iterate over all but 1 record in the entire data file.
+  for (int i = 0; i < records_per_shard - 1; ++i) {
+    TF_CHECK_OK(yielder->Yield(&record));
+    epoch.emplace_back(string(record.value));
+  }
+  // Update checkpoint file to point to new data and iterate over final file.
+  UpdateCheckpointPlainTextTestData("checkpoint", records_per_shard);
+  TF_CHECK_OK(yielder->Yield(&record));
+  epoch.emplace_back(string(record.value));
+  auto new_end = std::unique(epoch.begin(), epoch.end());
+  // If we iterated through only the first version of the file, there
+  // should be no duplicates, and we should be at the end of the first epoch.
+  EXPECT_EQ(new_end, epoch.end());
+  // End of the 1st epoch | start of the 2nd epoch.
+  EXPECT_TRUE(yielder->current_epoch() == 1 || yielder->current_epoch() == 2);
+
+  // Now we should be iterating over the new file.
+  TF_CHECK_OK(yielder->Yield(&record));
+  epoch.emplace_back(string(record.value));
+  new_end = std::unique(epoch.begin(), epoch.end());
+  EXPECT_EQ(new_end, epoch.end());
+  yielder->Close();
+}
+
 namespace {
 
 class FakeIterator : public RecordIterator {
