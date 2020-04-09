@@ -322,55 +322,64 @@ class BaseBeamSearchDecoder(BaseDecoder):
       bs_results, out_states = self._PreBeamSearchStepCallback(
           theta, encoder_outputs, step_ids, states, num_hyps_per_beam, *args,
           **kwargs)
-
       labels = encoder_outputs.targets.labels
       weights = encoder_outputs.targets.weights
 
-      def TileForBeamAndFlatten(tensor):
-        tensor = tf.reshape(tensor, [1, -1])  # [1, src_batch]
-        tensor = tf.tile(
-            tensor, [num_hyps_per_beam, 1])  # [num_hyps_per_beam, src_batch]
-        tgt_batch = tf.shape(step_ids)[0]  # num_hyps_per_beam*src_batch
-        return tf.reshape(tensor, [tgt_batch])
+      def ApplyBias():
+        """Bias and update log_probs and consistent."""
 
-      # Consistent if step_ids == labels from previous step
-      # TODO(navari): Consider updating consistent only if weights > 0. Then
-      # re-evaluate the need for bias_only_if_consistent=True.
-      # Note that prev_label is incorrrect for step 0 but is overridden later
-      prev_label = TileForBeamAndFlatten(
-          tf.gather(labels, tf.maximum(time_step - 1, 0), axis=1))
-      is_step0 = tf.equal(time_step, 0)
-      local_consistence = tf.logical_or(
-          is_step0, tf.equal(prev_label, tf.squeeze(step_ids, 1)))
-      out_states.consistent = tf.logical_and(states.consistent,
-                                             local_consistence)
+        def TileForBeamAndFlatten(tensor):
+          tensor = tf.reshape(tensor, [1, -1])  # [1, src_batch]
+          tensor = tf.tile(
+              tensor, [num_hyps_per_beam, 1])  # [num_hyps_per_beam, src_batch]
+          tgt_batch = tf.shape(step_ids)[0]  # num_hyps_per_beam*src_batch
+          return tf.reshape(tensor, [tgt_batch])
 
-      # get label, weight slices corresponding to current time_step
-      label = TileForBeamAndFlatten(tf.gather(labels, time_step, axis=1))
-      weight = TileForBeamAndFlatten(tf.gather(weights, time_step, axis=1))
-      if p.bias_only_if_consistent:
-        weight = weight * tf.cast(out_states.consistent, p.dtype)
+        # Consistent if step_ids == labels from previous step
+        # TODO(navari): Consider updating consistent only if weights > 0. Then
+        # re-evaluate the need for bias_only_if_consistent=True.
+        # Note that prev_label is incorrrect for step 0 but is overridden later
+        prev_label = TileForBeamAndFlatten(
+            tf.gather(labels, tf.maximum(time_step - 1, 0), axis=1))
+        is_step0 = tf.equal(time_step, 0)
+        local_consistence = tf.logical_or(
+            is_step0, tf.equal(prev_label, tf.squeeze(step_ids, 1)))
+        consistent = tf.logical_and(states.consistent, local_consistence)
 
-      # convert from dense label to sparse label probs
-      vocab_size = tf.shape(bs_results.log_probs)[1]
-      uncertainty = tf.constant(
-          1e-10, p.dtype)  # avoid 0 probs which may cause issues with log
-      label_probs = tf.one_hot(
-          label,
-          vocab_size,
-          on_value=1 - uncertainty,
-          off_value=uncertainty / tf.cast(vocab_size - 1, p.dtype),
-          dtype=p.dtype)  # [tgt_batch, vocab_size]
-      pred_probs = tf.exp(bs_results.log_probs)
+        # get label, weight slices corresponding to current time_step
+        label = TileForBeamAndFlatten(tf.gather(labels, time_step, axis=1))
+        weight = TileForBeamAndFlatten(tf.gather(weights, time_step, axis=1))
+        if p.bias_only_if_consistent:
+          weight = weight * tf.cast(consistent, p.dtype)
 
-      # interpolate predicted probs and label probs
-      weight = tf.expand_dims(weight, 1)
-      probs = py_utils.with_dependencies([
-          py_utils.assert_less_equal(weight, 1.),
-          py_utils.assert_greater_equal(weight, 0.)
-      ], (1.0 - weight) * pred_probs + weight * label_probs)
+        # convert from dense label to sparse label probs
+        vocab_size = tf.shape(bs_results.log_probs)[1]
+        uncertainty = tf.constant(
+            1e-10, p.dtype)  # avoid 0 probs which may cause issues with log
+        label_probs = tf.one_hot(
+            label,
+            vocab_size,
+            on_value=1 - uncertainty,
+            off_value=uncertainty / tf.cast(vocab_size - 1, p.dtype),
+            dtype=p.dtype)  # [tgt_batch, vocab_size]
+        pred_probs = tf.exp(bs_results.log_probs)
 
-      bs_results.log_probs = tf.log(probs)
+        # interpolate predicted probs and label probs
+        weight = tf.expand_dims(weight, 1)
+        probs = py_utils.with_dependencies([
+            py_utils.assert_less_equal(weight, 1.),
+            py_utils.assert_greater_equal(weight, 0.)
+        ], (1.0 - weight) * pred_probs + weight * label_probs)
+        return tf.log(probs), consistent
+
+      def NoApplyBias():
+        """No-op. Return original log_probs and consistent."""
+        return bs_results.log_probs, states.consistent
+
+      log_probs, consistent = tf.cond(
+          tf.reduce_all(tf.equal(weights, 0.0)), NoApplyBias, ApplyBias)
+      bs_results.log_probs = log_probs
+      out_states.consistent = consistent
 
       return bs_results, out_states
 
