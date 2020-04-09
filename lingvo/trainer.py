@@ -33,7 +33,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import inspect
 import os
 import re
 import sys
@@ -41,6 +40,7 @@ import threading
 import time
 
 from lingvo import base_trial
+from lingvo import datasets
 from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
@@ -1732,13 +1732,7 @@ class RunnerManager(object):
   def InspectDatasets(self):
     """Prints out datasets configured for the model."""
     cls = self.model_registry.GetClass(self._model_name)
-    datasets = []
-    for name, _ in inspect.getmembers(
-        cls, lambda x: inspect.isfunction(x) or inspect.ismethod(x)):
-      if name not in ['GetDatasetParams', 'Model', 'Task', 'ProgramSchedule'
-                     ] and not name.startswith('_'):
-        datasets += [name]
-    print(','.join([_.lower() for _ in datasets]))
+    print(','.join([dataset.lower() for dataset in datasets.GetDatasets(cls)]))
 
   def InspectDecoder(self):
     """Prints out datasets configured for the decoder."""

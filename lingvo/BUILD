@@ -155,12 +155,19 @@ py_library(
 )
 
 py_library(
+    name = "datasets_lib",
+    srcs = ["datasets.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":base_trial",
         ":compat",
+        ":datasets_lib",
         ":executor_lib",
         ":model_imports_no_params",
         ":model_registry",
