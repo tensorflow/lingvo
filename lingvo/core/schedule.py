@@ -144,7 +144,7 @@ class PolynomialSchedule(BaseSchedule):
   def __init__(self, params):
     super(PolynomialSchedule, self).__init__(params)
 
-    @tf.Defun()
+    @tf.Defun(shape_func=lambda op: [op.inputs[0].shape])
     def Polynomial(x):
       """Polynomial function of x."""
       p = self.params

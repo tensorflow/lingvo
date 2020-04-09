@@ -206,6 +206,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [10000, 0.5],  # 2 * (0.5 ** 2)
               [20000, 2.0],
           ])
+      self.assertEqual(len(lrs.Value(42).shape), 0)
 
   def testCombinedLRSchedule(self):
     p = schedule.CombinedMinimumSchedule.Params().Set(schedules=[
