@@ -90,6 +90,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # Each entry is a regular expression specifying the set of variables
     # to bprop per data source.
     self._bprop_variable_filters = ['']
+    # For executor-driven multiple programs, we need more fine-grained
+    # access rather than using a single global graph collection.
+    self._tpu_infeed_op = None
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -300,13 +303,18 @@ class BaseInputGenerator(base_layer.BaseLayer):
     for _ in range(p.tpu_infeed_parallelism):
       tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
 
-    # For executor-driven multiple programs, we need more fine-grained
-    # access rather than using a single global graph collection.
-    self.tpu_infeed_op = tpu_infeed_op
+    self._tpu_infeed_op = tpu_infeed_op
 
     with tf.device(tf.tpu.core(0)):
       tensors = queues[0].generate_dequeue_op()
     return batch.Pack(tensors)
+
+  @property
+  def tpu_infeed_op(self):
+    if self._tpu_infeed_op is not None:
+      return self._tpu_infeed_op
+    else:
+      raise ValueError('TPU infeed not found. Call CreateTpuFeeds first.')
 
   def SplitInputBatch(self, num_splits):
     """Splits the current InputBatch into num_splits ways.
