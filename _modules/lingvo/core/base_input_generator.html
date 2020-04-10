@@ -814,16 +814,10 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scaled_bucket_batch_limit</span>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># TODO(rpang): rename self._input_batch_size to _global_input_batch_size.</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No input batch size is defined.&#39;</span><span class="p">)</span>
-    <span class="n">global_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">global_batch_size</span> <span class="o">*=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;GlobalBatchSize </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_batch_size</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">global_batch_size</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span></div>
 
 <div class="viewcode-block" id="BaseSequenceInputGenerator.InfeedBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
