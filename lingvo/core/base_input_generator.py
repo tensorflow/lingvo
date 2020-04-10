@@ -669,16 +669,10 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     return self._scaled_bucket_batch_limit
 
   def GlobalBatchSize(self):
-    p = self.params
     # TODO(rpang): rename self._input_batch_size to _global_input_batch_size.
     if self._input_batch_size is None:
       raise ValueError('No input batch size is defined.')
-    global_batch_size = self._input_batch_size
-    cluster = self.cluster
-    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      global_batch_size *= cluster.num_tpu_hosts
-    tf.logging.info('GlobalBatchSize {}'.format(global_batch_size))
-    return global_batch_size
+    return self._input_batch_size
 
   def InfeedBatchSize(self):
     p = self.params
