@@ -235,6 +235,9 @@
     <span class="c1"># Each entry is a regular expression specifying the set of variables</span>
     <span class="c1"># to bprop per data source.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
+    <span class="c1"># For executor-driven multiple programs, we need more fine-grained</span>
+    <span class="c1"># access rather than using a single global graph collection.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.CommonInputOpArgs"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CommonInputOpArgs">[docs]</a>  <span class="k">def</span> <span class="nf">CommonInputOpArgs</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Common input params.&quot;&quot;&quot;</span>
@@ -445,13 +448,18 @@
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">,</span> <span class="n">tpu_infeed_op</span><span class="p">)</span>
 
-    <span class="c1"># For executor-driven multiple programs, we need more fine-grained</span>
-    <span class="c1"># access rather than using a single global graph collection.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">tpu_infeed_op</span> <span class="o">=</span> <span class="n">tpu_infeed_op</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="n">tpu_infeed_op</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)):</span>
       <span class="n">tensors</span> <span class="o">=</span> <span class="n">queues</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">generate_dequeue_op</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">batch</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">tensors</span><span class="p">)</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tpu_infeed_op</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;TPU infeed not found. Call CreateTpuFeeds first.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.SplitInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.SplitInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">SplitInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Splits the current InputBatch into num_splits ways.</span>
