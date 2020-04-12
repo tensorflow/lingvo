@@ -190,7 +190,6 @@
 
     <span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_word_count</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_bucket_keys</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BuildDataSource</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_labels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_input_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;examples/sequence_length&#39;</span><span class="p">,</span>
                          <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_weights</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span>
@@ -200,11 +199,11 @@
         <span class="c1"># generator can generate a batch smaller than</span>
         <span class="c1"># bucket_batch_limit</span>
         <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">flush_every_n</span><span class="p">,</span> <span class="s1">&#39;flush_every_n is not allowed on TPU.&#39;</span>
-        <span class="k">assert</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">)</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">)</span>
-        <span class="n">bs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">)</span>
+        <span class="k">assert</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span><span class="p">)</span> <span class="o">==</span> <span class="nb">max</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span><span class="p">)</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">bs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scaled_bucket_batch_limit</span><span class="p">)</span>
+        <span class="n">bs</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">SetShape</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
         <span class="n">x</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_max_length</span><span class="p">])</span>
@@ -214,6 +213,10 @@
       <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_paddings</span><span class="p">)</span>
       <span class="n">SetShape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_weights</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_word_count</span><span class="o">.</span><span class="n">set_shape</span><span class="p">([</span><span class="n">bs</span><span class="p">])</span>
+
+<div class="viewcode-block" id="LmInput.InfeedBatchSize"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Override BaseSequenceInputGenerator.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="LmInput._DataSourceFromFilePattern"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.input_generator.html#lingvo.tasks.lm.input_generator.LmInput._DataSourceFromFilePattern">[docs]</a>  <span class="k">def</span> <span class="nf">_DataSourceFromFilePattern</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_pattern</span><span class="p">):</span>
 

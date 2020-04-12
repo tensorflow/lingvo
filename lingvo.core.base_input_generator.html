@@ -166,6 +166,18 @@
   <div class="section" id="module-lingvo.core.base_input_generator">
 <span id="lingvo-core-base-input-generator-module"></span><h1>lingvo.core.base_input_generator module<a class="headerlink" href="#module-lingvo.core.base_input_generator" title="Permalink to this headline">¶</a></h1>
 <p>Input generators.</p>
+<p>There are three types of batch sizes:</p>
+<ul class="simple">
+<li><p>Device split batch size: Defined by Params() and is the batch size
+on each device/TPU core. BaseInputGenerator.params.batch_size and
+BaseSequenceInputGenerator.params.bucket_batch_limit specify per-split batch
+size.</p></li>
+<li><p>GlobalBatchSize: number of examples in a global batch.</p></li>
+<li><p>InfeedBatchSize: global_batch_size // num_infeed_hosts, where
+num_infeed_hosts is cluster.num_tpu_hosts if using per-host infeed with TPU,
+otherwise num_infeed_hosts is 1.</p></li>
+</ul>
+<p>TODO(rpang): Deal with on packed_inputs.</p>
 <dl class="py class">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">BaseInputGenerator</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="Permalink to this definition">¶</a></dt>
@@ -197,13 +209,13 @@
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">
 <code class="sig-name descname">GlobalBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.GlobalBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the number of samples for the current step, used for stats.</p>
+<dd><p>Returns the total batch size (for stats), int or dynamic int tensor.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize">
 <code class="sig-name descname">InfeedBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.InfeedBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the number of samples in InputBatch.</p>
+<dd><p>Returns the batch size of the input batch: int or dynamic int tensor.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -374,20 +386,18 @@ or None.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.scaled_bucket_batch_limit">
-<em class="property">property </em><code class="sig-name descname">scaled_bucket_batch_limit</code><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.scaled_bucket_batch_limit" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize">
-<code class="sig-name descname">GlobalBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.GlobalBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the number of samples for the current step, used for stats.</p>
+<dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.infeed_bucket_batch_limit">
+<em class="property">property </em><code class="sig-name descname">infeed_bucket_batch_limit</code><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.infeed_bucket_batch_limit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the bucket batch limit for one infeed host.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize">
 <code class="sig-name descname">InfeedBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseSequenceInputGenerator.InfeedBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseSequenceInputGenerator.InfeedBatchSize" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the number of samples in InputBatch.</p>
+<dd><p>Returns the batch size of one infeed pipeline.</p>
+<p>Override in subclass to provide dynamically shaped infeed batch size.</p>
+<p>If use_per_host_infeed is False then there is only one infeed pipeline and
+then the GlobalBatchSize() and the InfeedBatchSize() is the same.</p>
 </dd></dl>
 
 <dl class="py method">
