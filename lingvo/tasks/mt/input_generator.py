@@ -87,13 +87,13 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     if p.pad_to_max_seq_length:
       assert p.source_max_length
 
-      if min(self.scaled_bucket_batch_limit) == max(
-          self.scaled_bucket_batch_limit):
+      if min(self.infeed_bucket_batch_limit) == max(
+          self.infeed_bucket_batch_limit):
         source_shape = [
-            min(self.scaled_bucket_batch_limit), p.source_max_length
+            min(self.infeed_bucket_batch_limit), p.source_max_length
         ]
         target_shape = [
-            min(self.scaled_bucket_batch_limit), p.target_max_length
+            min(self.infeed_bucket_batch_limit), p.target_max_length
         ]
       else:
         source_shape = None
@@ -112,8 +112,11 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
           self._tgt_weights, p.target_max_length, 0, target_shape)
 
     # TODO(zhifengc): come up more meaningful training sample ids here.
-    self._input_batch_size = tf.shape(self._src_ids)[0]
-    self._sample_ids = tf.range(0, self._input_batch_size, 1)
+    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
+
+  def InfeedBatchSize(self):
+    """Override BaseSequenceInputGenerator."""
+    return tf.shape(self._src_ids)[0]
 
   def _InputBatch(self):
     ret = py_utils.NestedMap()
@@ -185,13 +188,13 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     if p.pad_to_max_seq_length:
       assert p.source_max_length
 
-      if min(self.scaled_bucket_batch_limit) == max(
-          self.scaled_bucket_batch_limit):
+      if min(self.infeed_bucket_batch_limit) == max(
+          self.infeed_bucket_batch_limit):
         source_shape = [
-            min(self.scaled_bucket_batch_limit), p.source_max_length
+            min(self.infeed_bucket_batch_limit), p.source_max_length
         ]
         target_shape = [
-            min(self.scaled_bucket_batch_limit), p.target_max_length
+            min(self.infeed_bucket_batch_limit), p.target_max_length
         ]
       else:
         source_shape = None
@@ -226,8 +229,11 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
                                                         p.target_max_length, 0,
                                                         target_shape)
 
-    self._input_batch_size = tf.shape(self._src_ids)[0]
-    self._sample_ids = tf.range(0, self._input_batch_size, 1)
+    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
+
+  def InfeedBatchSize(self):
+    """Override BaseSequenceInputGenerator."""
+    return tf.shape(self._src_ids)[0]
 
   def _DataSourceFromFilePattern(self, file_pattern):
     p = self._params

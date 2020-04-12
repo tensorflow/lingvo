@@ -113,8 +113,11 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
      self._tgt_labels,
      self._tgt_weights), self._bucket_keys = self._BuildDataSource()
 
-    self._input_batch_size = tf.shape(self._src_ids)[0]
-    self._sample_ids = tf.range(0, self._input_batch_size, 1)
+    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
+
+  def InfeedBatchSize(self):
+    """Override BaseSequenceInputGenerator."""
+    return tf.shape(self._src_ids)[0]
 
   def _InputBatch(self):
     """Returns a single batch as a `.NestedMap` to be passed to the model."""

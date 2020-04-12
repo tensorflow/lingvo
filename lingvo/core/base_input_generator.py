@@ -13,7 +13,23 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Input generators."""
+"""Input generators.
+
+There are three types of batch sizes:
+
+* Device split batch size: Defined by Params() and is the batch size
+  on each device/TPU core. BaseInputGenerator.params.batch_size and
+  BaseSequenceInputGenerator.params.bucket_batch_limit specify per-split batch
+  size.
+
+* GlobalBatchSize: number of examples in a global batch.
+
+* InfeedBatchSize: global_batch_size // num_infeed_hosts, where
+  num_infeed_hosts is cluster.num_tpu_hosts if using per-host infeed with TPU,
+  otherwise num_infeed_hosts is 1.
+
+TODO(rpang): Deal with on packed_inputs.
+"""
 
 from __future__ import absolute_import
 from __future__ import division
@@ -39,7 +55,6 @@ from tensorflow.python.tpu import tpu_feed
 from tensorflow.python.tpu import tpu_function
 # pylint: enable=g-direct-tensorflow-import
 
-
 DEFAULT_TOKENIZER_KEY = 'default'
 
 
@@ -51,7 +66,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """Defaults params for input generators."""
     p = super(BaseInputGenerator, cls).Params()
     p.name = 'input'
-    p.Define('batch_size', 0, 'Batch size.')
+    p.Define(
+        'batch_size', 0, 'Batch size for a device split. This will be '
+        'scaled to match the accelarator hardware topology.')
     p.Define(
         'num_samples', 0,
         'If non-zero, the dataset contains these many samples. '
@@ -106,13 +123,20 @@ class BaseInputGenerator(base_layer.BaseLayer):
     return self._bprop_onehot
 
   def GlobalBatchSize(self):
-    """Returns the number of samples for the current step, used for stats."""
-    tf.logging.info('GlobalBatchSize {}'.format(
-        self.params.batch_size * self.cluster.num_splits_per_client))
-    return self.params.batch_size * self.cluster.num_splits_per_client
+    """Returns the total batch size (for stats), int or dynamic int tensor."""
+    p = self.params
+    global_batch_size = self.InfeedBatchSize()
+    cluster = self.cluster
+    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
+      if not py_utils.use_tpu():
+        raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
+            cluster.num_tpu_hosts))
+      global_batch_size *= cluster.num_tpu_hosts
+    tf.logging.info('GlobalBatchSize {}'.format(global_batch_size))
+    return global_batch_size
 
   def InfeedBatchSize(self):
-    """Returns the number of samples in InputBatch."""
+    """Returns the batch size of the input batch: int or dynamic int tensor."""
     p = self.params
     cluster = self.cluster
     # Here we do not call self.GlobalBatchSize() since it can be overridden,
@@ -621,7 +645,9 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         'a sorted list of integers. Examples that are longer than all bucket'
         'upper bounds are skipped.')
     p.Define(
-        'bucket_batch_limit', [8], 'For each bucket, desired batch size. '
+        'bucket_batch_limit', [8],
+        'Desired per-split batch size per bucket. Scaled in '
+        'infeed_bucket_batch_size to the infeed size.'
         'Must be the same length as bucket_upper_bound.')
     p.Define('source_max_length', None,
              'The maximum length of the source sequence.')
@@ -642,7 +668,6 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     super(BaseSequenceInputGenerator, self).__init__(params)
 
     p = self.params
-    self._input_batch_size = None
 
     if p.tokenizer:
       assert DEFAULT_TOKENIZER_KEY not in p.tokenizer_dict
@@ -661,46 +686,49 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
       self.tokenizer = self.tokenizer_dict[DEFAULT_TOKENIZER_KEY]
 
   @property  # Adjust batch size according to the cluster spec.
-  def scaled_bucket_batch_limit(self):
-    p = self.params
-    if not hasattr(self, '_scaled_bucket_batch_limit'):
-      cluster = self.cluster
-      self._scaled_bucket_batch_limit = [
-          b * cluster.num_splits_per_client for b in p.bucket_batch_limit
-      ]
-      if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-        self._scaled_bucket_batch_limit = [
-            x // cluster.num_tpu_hosts for x in self._scaled_bucket_batch_limit
-        ]
-      tf.logging.info('scaled_bucket_back_limit {}'.format(
-          self._scaled_bucket_batch_limit))
-    return self._scaled_bucket_batch_limit
-
-  def GlobalBatchSize(self):
-    # TODO(rpang): rename self._input_batch_size to _global_input_batch_size.
-    if self._input_batch_size is None:
-      raise ValueError('No input batch size is defined.')
-    return self._input_batch_size
-
-  def InfeedBatchSize(self):
+  def infeed_bucket_batch_limit(self):
+    """Returns the bucket batch limit for one infeed host."""
     p = self.params
     cluster = self.cluster
-    if self._input_batch_size is None:
-      raise ValueError('No input batch size is defined.')
-    batch_per_input = self._input_batch_size
-    # If use_per_host_infeed, each input op is only responsible
-    # for generating a subset of the whole batch.
+    infeed_bucket_batch_limit = [
+        b * cluster.num_splits_per_client for b in p.bucket_batch_limit
+    ]
     if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
-                      cluster.num_tpu_hosts)
-      batch_per_input //= cluster.num_tpu_hosts
-    tf.logging.info('batch_per_input: %d', batch_per_input)
-    return batch_per_input
+      if not py_utils.use_tpu():
+        raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
+            cluster.num_tpu_hosts))
+      tf.logging.info(
+          'scaling infeed_bucket_back_limit num_tpu_hosts={}'.format(
+              cluster.num_tpu_hosts))
+      infeed_bucket_batch_limit = [
+          x // cluster.num_tpu_hosts for x in infeed_bucket_batch_limit
+      ]
+    tf.logging.info(
+        'infeed_bucket_back_limit={} num_splits_per_client={} bucket_batch_limit={}'
+        .format(infeed_bucket_batch_limit, cluster.num_splits_per_client,
+                p.bucket_batch_limit))
+    return infeed_bucket_batch_limit
+
+  def InfeedBatchSize(self):
+    """Returns the batch size of one infeed pipeline.
+
+    Override in subclass to provide dynamically shaped infeed batch size.
+
+    If use_per_host_infeed is False then there is only one infeed pipeline and
+    then the GlobalBatchSize() and the InfeedBatchSize() is the same.
+    """
+    buckets = self.infeed_bucket_batch_limit
+    if any(x != buckets[0] for x in buckets):
+      tf.logging.warning('Using max bucket batch limit but not all limits are '
+                         'the same {}'.format(buckets))
+    infeed_size = max(buckets)
+    tf.logging.info('InfeedBatchSize: %d', infeed_size)
+    return infeed_size
 
   def _InputOpBucketingArgs(self):
     p = self.params
-    bucket_batch_limit = self.scaled_bucket_batch_limit
-    tf.logging.info('bucket_batch_limit %r', bucket_batch_limit)
+    bucket_batch_limit = self.infeed_bucket_batch_limit
+    tf.logging.info('infeed_bucket_batch_limit %r', bucket_batch_limit)
     return {
         'bucket_upper_bound': p.bucket_upper_bound,
         'bucket_batch_limit': bucket_batch_limit,

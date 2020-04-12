@@ -103,7 +103,6 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     (utt_ids, tgt_ids, tgt_labels, tgt_paddings, src_frames,
      src_paddings), self._bucket_keys = self._BuildDataSource()
 
-    self._input_batch_size = tf.shape(utt_ids)[0]
     self._sample_ids = utt_ids
 
     src_frames, src_paddings = self._MaybePadSourceInputs(
@@ -125,11 +124,10 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
 
       if all(x == p.bucket_batch_limit[0] for x in p.bucket_batch_limit):
         # Set the input batch size as an int rather than a tensor.
-        self._input_batch_size = self.scaled_bucket_batch_limit[0]
-        src_frames_shape = (self._input_batch_size, p.source_max_length,
+        src_frames_shape = (self.InfeedBatchSize(), p.source_max_length,
                             p.frame_size, 1)
-        src_paddings_shape = (self._input_batch_size, p.source_max_length)
-        tgt_shape = (self._input_batch_size, p.target_max_length)
+        src_paddings_shape = (self.InfeedBatchSize(), p.source_max_length)
+        tgt_shape = (self.InfeedBatchSize(), p.target_max_length)
       else:
         tf.logging.warning(
             'Could not set static input shape since not all bucket batch sizes '

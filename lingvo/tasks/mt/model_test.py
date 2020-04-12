@@ -54,7 +54,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     super(TestInputGenerator, self).__init__(params)
     self._step = 0
 
-  def GlobalBatchSize(self):
+  def InfeedBatchSize(self):
     if self.params.split:
       return 10 / 2
 
@@ -345,10 +345,10 @@ class TransformerModelTest(test_utils.TestCase):
           mode='sync', job='trainer_client', gpus=5):
         mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
-      loss = mdl.loss
-      tf.global_variables_initializer().run()
-      _ = sess.run(loss)
-      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [40])
+        loss = mdl.loss
+        tf.global_variables_initializer().run()
+        _ = sess.run(loss)
+        self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess:
@@ -551,10 +551,10 @@ class RNMTModelTest(test_utils.TestCase):
       with cluster_params.Instantiate():
         mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
-      loss = mdl.loss
-      tf.global_variables_initializer().run()
-      _ = sess.run(loss)
-      self.assertEqual(mdl.input_generator.scaled_bucket_batch_limit, [40])
+        loss = mdl.loss
+        tf.global_variables_initializer().run()
+        _ = sess.run(loss)
+        self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
 
 class InsertionModelTest(test_utils.TestCase):

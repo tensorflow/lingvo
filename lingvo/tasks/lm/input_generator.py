@@ -45,7 +45,6 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
 
     (text, self._word_count), self._bucket_keys = self._BuildDataSource()
     self._ids, self._labels, self._paddings = self.StringsToIds(text)
-    self._input_batch_size = tf.shape(self._ids)[0]
     tf.summary.histogram('examples/sequence_length',
                          tf.reduce_sum(1.0 - self._paddings, axis=1))
     self._weights = 1.0 - self._paddings
@@ -55,11 +54,11 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
         # generator can generate a batch smaller than
         # bucket_batch_limit
         assert not p.flush_every_n, 'flush_every_n is not allowed on TPU.'
-        assert min(self.scaled_bucket_batch_limit) == max(
-            self.scaled_bucket_batch_limit)
-        bs = min(self.scaled_bucket_batch_limit)
+        assert min(self.infeed_bucket_batch_limit) == max(
+            self.infeed_bucket_batch_limit)
+        bs = min(self.infeed_bucket_batch_limit)
       else:
-        bs = max(self.scaled_bucket_batch_limit)
+        bs = max(self.infeed_bucket_batch_limit)
 
       def SetShape(x):
         x.set_shape([bs, p.target_max_length])
@@ -69,6 +68,10 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
       SetShape(self._paddings)
       SetShape(self._weights)
       self._word_count.set_shape([bs])
+
+  def InfeedBatchSize(self):
+    """Override BaseSequenceInputGenerator."""
+    return tf.shape(self._ids)[0]
 
   def _DataSourceFromFilePattern(self, file_pattern):
 

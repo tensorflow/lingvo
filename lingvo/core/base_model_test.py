@@ -220,9 +220,9 @@ class StudentTask(base_model.BaseTask):
 
 class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
-  def __init__(self, params):
-    super(TestInputGenerator, self).__init__(params)
-    self._input_batch_size = tf.constant(1)
+  def InfeedBatchSize(self):
+    """Override BaseSequenceInputGenerator."""
+    return 1
 
   def _InputBatch(self):
     return 0
