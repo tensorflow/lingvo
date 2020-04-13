@@ -74,6 +74,12 @@ class MetricsTest(test_utils.TestCase):
         tf.Summary(value=[tf.Summary.Value(tag=name, simple_value=1.0)]),
         m.Summary(name))
 
+  def testCorrelationMetric(self):
+    m = metrics.CorrelationMetric()
+    m.Update([1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
+    m.Update([1.0, 2.0, 3.0], [0.1, 0.2, 0.3])
+    self.assertEqual(1.0, m.value)
+
 
 if __name__ == '__main__':
   tf.test.main()

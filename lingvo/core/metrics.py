@@ -31,6 +31,11 @@ try:
   HAS_SKLEARN = True
 except ImportError:
   HAS_SKLEARN = False
+try:
+  import scipy.stats  # pylint: disable=g-import-not-at-top
+  HAS_SCIPY_STATS = True
+except ImportError:
+  HAS_SCIPY_STATS = False
 
 
 def CreateScalarSummary(name, simple_value):
@@ -270,7 +275,7 @@ class AUCMetric(BaseMetric):
         all points seen thus far.
 
     Raises:
-      ImportError: If user has installed sklearn, raise an ImportError.
+      ImportError: If user has not installed sklearn, raise an ImportError.
     """
     if not HAS_SKLEARN:
       raise ImportError('AUCMetric depends on sklearn.')
@@ -336,3 +341,51 @@ class AUCMetric(BaseMetric):
     ret = plot.Curve(name=name, figsize=(12, 12), xs=xs, ys=ys, setter=_Setter)
     ret.value.add(tag=name, simple_value=self.value)
     return ret
+
+
+class CorrelationMetric(BaseMetric):
+  """Class to compute correlation."""
+
+  def __init__(self, mode='pearson', samples=-1):
+    """Constructor of the class.
+
+    Args:
+      mode: Possible values: 'pearson', 'spearman', 'kendalltau'.
+      samples: The number of sample points to compute the correlation. If -1,
+        include all points seen thus far.
+
+    Raises:
+      ImportError: If user has not installed scipy.stats, raise an ImportError.
+    """
+    if not HAS_SCIPY_STATS:
+      raise ImportError('CorrelationMetric depends on scipy.stats.')
+
+    assert mode in ['pearson', 'spearman', 'kendalltau']
+    self._mode = mode
+    self._samples = samples
+    self._target = []
+    self._pred = []
+
+  def Update(self, target, pred):
+    """Updates the metrics.
+
+    Args:
+      target: An array to specify the groundtruth float target.
+      pred: An array to specify the prediction.
+    """
+    self._target += target
+    self._pred += pred
+
+    if self._samples > 0:
+      self._target = self._target[-self._samples:]
+      self._pred = self._pred[-self._samples:]
+
+  @property
+  def value(self):
+    # only use the correlation, p-value is ignored.
+    if self._mode == 'pearson':
+      return scipy.stats.pearsonr(self._target, self._pred)[0]
+    elif self._mode == 'spearman':
+      return scipy.stats.spearmanr(self._target, self._pred)[0]
+    else:
+      return scipy.stats.kendalltau(self._target, self._pred)[0]
