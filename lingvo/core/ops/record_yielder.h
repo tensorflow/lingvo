@@ -65,6 +65,13 @@ class RecordIterator {
   // fills in 'key' and 'value'.
   virtual bool Next(string* key, Rope* value) = 0;
 
+  // Resets this iterator, if possible. Sub-classes should return true on a
+  // successful reset. If 'randomize_location' is true, then the iterator is
+  // moved to point to a random record (if supported).
+  virtual bool ResetIterator(bool randomize_location) {
+    return false;
+  }
+
   // Register a method to create a RecordIterator for the 'type_name'.
   typedef std::function<RecordIterator*(const string&)> FactoryMethod;
   static bool Register(const string& type_name, FactoryMethod method);
