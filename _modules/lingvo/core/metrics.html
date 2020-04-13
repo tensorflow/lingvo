@@ -176,6 +176,11 @@
   <span class="n">HAS_SKLEARN</span> <span class="o">=</span> <span class="kc">True</span>
 <span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
   <span class="n">HAS_SKLEARN</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="k">try</span><span class="p">:</span>
+  <span class="kn">import</span> <span class="nn">scipy.stats</span>  <span class="c1"># pylint: disable=g-import-not-at-top</span>
+  <span class="n">HAS_SCIPY_STATS</span> <span class="o">=</span> <span class="kc">True</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+  <span class="n">HAS_SCIPY_STATS</span> <span class="o">=</span> <span class="kc">False</span>
 
 
 <div class="viewcode-block" id="CreateScalarSummary"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CreateScalarSummary">[docs]</a><span class="k">def</span> <span class="nf">CreateScalarSummary</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">simple_value</span><span class="p">):</span>
@@ -415,7 +420,7 @@
 <span class="sd">        all points seen thus far.</span>
 
 <span class="sd">    Raises:</span>
-<span class="sd">      ImportError: If user has installed sklearn, raise an ImportError.</span>
+<span class="sd">      ImportError: If user has not installed sklearn, raise an ImportError.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_SKLEARN</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;AUCMetric depends on sklearn.&#39;</span><span class="p">)</span>
@@ -481,6 +486,54 @@
     <span class="n">ret</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">12</span><span class="p">),</span> <span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">setter</span><span class="o">=</span><span class="n">_Setter</span><span class="p">)</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">value</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
+
+
+<div class="viewcode-block" id="CorrelationMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CorrelationMetric">[docs]</a><span class="k">class</span> <span class="nc">CorrelationMetric</span><span class="p">(</span><span class="n">BaseMetric</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Class to compute correlation.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;pearson&#39;</span><span class="p">,</span> <span class="n">samples</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructor of the class.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      mode: Possible values: &#39;pearson&#39;, &#39;spearman&#39;, &#39;kendalltau&#39;.</span>
+<span class="sd">      samples: The number of sample points to compute the correlation. If -1,</span>
+<span class="sd">        include all points seen thus far.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ImportError: If user has not installed scipy.stats, raise an ImportError.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">HAS_SCIPY_STATS</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ImportError</span><span class="p">(</span><span class="s1">&#39;CorrelationMetric depends on scipy.stats.&#39;</span><span class="p">)</span>
+
+    <span class="k">assert</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;pearson&#39;</span><span class="p">,</span> <span class="s1">&#39;spearman&#39;</span><span class="p">,</span> <span class="s1">&#39;kendalltau&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">=</span> <span class="n">mode</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span> <span class="o">=</span> <span class="n">samples</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="CorrelationMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.CorrelationMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target</span><span class="p">,</span> <span class="n">pred</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the metrics.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      target: An array to specify the groundtruth float target.</span>
+<span class="sd">      pred: An array to specify the prediction.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">+=</span> <span class="n">target</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span> <span class="o">+=</span> <span class="n">pred</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_target</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">:]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">[</span><span class="o">-</span><span class="bp">self</span><span class="o">.</span><span class="n">_samples</span><span class="p">:]</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">value</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># only use the correlation, p-value is ignored.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;pearson&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">pearsonr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_mode</span> <span class="o">==</span> <span class="s1">&#39;spearman&#39;</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">spearmanr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">scipy</span><span class="o">.</span><span class="n">stats</span><span class="o">.</span><span class="n">kendalltau</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_target</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pred</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
 </pre></div>
 
            </div>
