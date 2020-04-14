@@ -887,6 +887,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
              'Default params for batch norm layer.')
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
+    p.Define(
+        'use_einsum', False, 'Whether to use tf.einsum for optimizing '
+        'computations. Might cause problems with model quantization for on '
+        'device inference b/146421936.')
     return p
 
   @base_layer.initializer
@@ -1132,7 +1136,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
 
-    out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+    if p.use_einsum:
+      out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+    else:
+      out = py_utils.Matmul(
+          tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
@@ -1145,7 +1153,14 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       out = _ACTIVATIONS[p.activation](out)
     if quant:
       out = self.QTensor(self._output_qt_name, out)
-
+    if not p.use_einsum:
+      out = tf.reshape(
+          out,
+          tf.concat([
+              py_utils.GetShape(inputs)[:-1],
+              py_utils.ToStaticShape([p.output_dim])
+          ],
+                    axis=0))
     return out
 
 

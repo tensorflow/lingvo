@@ -1510,7 +1510,8 @@ class ProjectionLayerTest(test_utils.TestCase):
                            is_eval=False,
                            layer_callback=None,
                            bn_decay=0.999,
-                           bn_use_moving_avg_in_training=False):
+                           bn_use_moving_avg_in_training=False,
+                           use_einsum=False):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
@@ -1531,6 +1532,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       params.bn_fold_weights = bn_fold_weights
       params.bn_params.decay = bn_decay
       params.bn_params.use_moving_avg_in_training = bn_use_moving_avg_in_training
+      params.use_einsum = use_einsum
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
             clip_end_step=1, quant_start_step=1)
@@ -1947,6 +1949,11 @@ class ProjectionLayerTest(test_utils.TestCase):
       tf.logging.info('expected = %s', expected_output)
       tf.logging.info('actual = %s', np.array_repr(actual))
       self.assertAllClose(expected_output, actual)
+
+  def testProjectionLayerFPropEinsum(self):
+    output_with_einsum = self._evalProjectionLayer(use_einsum=True)
+    output_without_einsum = self._evalProjectionLayer(use_einsum=False)
+    self.assertAllClose(output_with_einsum, output_without_einsum)
 
 
 class StackingOverTimeLayerTest(test_utils.TestCase):
