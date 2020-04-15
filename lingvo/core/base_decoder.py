@@ -244,7 +244,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
 
     def PadToTargetSeqLen(tensor, constant):
       length = tf.shape(tensor)[1]
-      pad = p.target_seq_len - length
+      pad = tf.maximum(0, p.beam_search.target_seq_len - length)
       return tf.pad(tensor, [[0, 0], [0, pad]], constant_values=constant)
 
     targets.labels = PadToTargetSeqLen(targets.labels, 0)
