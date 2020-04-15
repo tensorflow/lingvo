@@ -266,7 +266,7 @@ def _RenderOneMatplotlibFigure(fig, plot_func, *numpy_data_list):
   plot_func(fig, *numpy_data_list)
   fig.canvas.draw()
   ncols, nrows = fig.canvas.get_width_height()
-  image = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8)
+  image = np.frombuffer(fig.canvas.tostring_rgb(), dtype=np.uint8)
   return image.reshape(nrows, ncols, 3)
 
 
