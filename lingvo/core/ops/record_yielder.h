@@ -91,6 +91,10 @@ class RecordIterator {
   // Example: "tfrecord:data_dir/data.tfrecord" => "tfrecord"
   static string GetFilePatternPrefix(const string& file_pattern);
 
+  // Similar to the function above, but in addition to returning the prefix also
+  // modifies the file_pattern by stripping away the prefix portion.
+  static string StripPrefixFromFilePattern(string* file_pattern);
+
   // Parse a file pattern into a list of matching files.
   static Status ParsePattern(const string& type_name,
                              const string& file_pattern_list,

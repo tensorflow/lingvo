@@ -202,6 +202,12 @@ string RecordIterator::GetFilePatternPrefix(const string& file_pattern) {
   return file_pattern.substr(0, prefix_end);
 }
 
+string RecordIterator::StripPrefixFromFilePattern(string* file_pattern) {
+  const string prefix = RecordIterator::GetFilePatternPrefix(*file_pattern);
+  if (!prefix.empty()) file_pattern->erase(0, prefix.size() + 1);
+  return prefix;
+}
+
 Status RecordIterator::ParsePattern(const string& type_name,
                                     const string& file_pattern_list,
                                     std::vector<string>* filenames) {
@@ -372,10 +378,7 @@ BasicRecordYielder::BasicRecordYielder(const Options& opts)
     LOG(INFO) << "Randomly seed RecordYielder.";
     rnd_.seed(std::random_device{}());
   }
-  file_type_ = RecordIterator::GetFilePatternPrefix(opts_.file_pattern);
-  if (!file_type_.empty()) {
-    opts_.file_pattern.erase(0, file_type_.size() + 1);
-  }
+  file_type_ = RecordIterator::StripPrefixFromFilePattern(&opts_.file_pattern);
   if (opts_.bufsize_in_seconds > 0) {
     bufsize_ = kRecordsPerAdd * opts_.parallelism;
   } else {

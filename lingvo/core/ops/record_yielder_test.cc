@@ -519,5 +519,20 @@ TEST(RecordYielder, AdjustUp) {
   yielder->Close();
 }
 
+TEST(RecordIterator, GetFilePatternPrefix) {
+  EXPECT_EQ("", RecordIterator::GetFilePatternPrefix("/foo/bar/*"));
+  EXPECT_EQ("baz", RecordIterator::GetFilePatternPrefix("baz:/foo/bar/*"));
+
+  string file_pattern;
+
+  file_pattern = "/foo/bar/*";
+  EXPECT_EQ("", RecordIterator::StripPrefixFromFilePattern(&file_pattern));
+  EXPECT_EQ("/foo/bar/*", file_pattern);
+
+  file_pattern = "baz:/foo/bar/*";
+  EXPECT_EQ("baz", RecordIterator::StripPrefixFromFilePattern(&file_pattern));
+  EXPECT_EQ("/foo/bar/*", file_pattern);
+}
+
 }  // namespace lingvo
 }  // namespace tensorflow
