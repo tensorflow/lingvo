@@ -173,8 +173,13 @@
 <span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">logging</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
+<span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.data.ops</span> <span class="kn">import</span> <span class="n">dataset_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span> <span class="k">as</span> <span class="n">_function_lib</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">check_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">math_ops</span>
@@ -225,12 +230,10 @@
 <span class="n">data</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
 <span class="n">graph_util</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">graph_util</span><span class="p">)</span>
 <span class="n">image</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
-<span class="n">initializers</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">initializers</span><span class="p">)</span>
 <span class="n">io</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">io</span><span class="p">)</span>
 <span class="n">losses</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">losses</span><span class="p">)</span>
 <span class="n">metrics</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">keras</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
 <span class="n">nn</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">nn</span><span class="p">)</span>
-<span class="n">random</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">random</span><span class="p">)</span>
 <span class="n">saved_model</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">saved_model</span><span class="p">)</span>
 <span class="n">strings</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">strings</span><span class="p">)</span>
 <span class="n">summary</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
@@ -244,6 +247,8 @@
 <span class="c1"># pylint: disable=undefined-variable</span>
 <span class="n">add_to_collection</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">add_to_collection</span>
 <span class="n">all_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">global_variables</span>
+<span class="c1"># The following asserts can be directly replaced with TF2 `tf.debugging.*`</span>
+<span class="c1"># after TF2/eager is enabled.</span>
 <span class="n">assert_integer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_integer</span>
 <span class="n">assert_positive</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_positive</span>
 <span class="n">assert_type</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assert_type</span>
@@ -252,14 +257,7 @@
 <span class="n">assign_add</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assign_add</span>
 <span class="n">assign_sub</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">assign_sub</span>
 <span class="n">AUTO_REUSE</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
-<span class="n">batch_gather</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">batch_gather</span>
-<span class="n">colocate_with</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">colocate_with</span>
-<span class="n">ConfigProto</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">ConfigProto</span>
-<span class="n">constant</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">constant</span>
-<span class="n">constant_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">constant_initializer</span>
 <span class="n">container</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">container</span>
-<span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span>
-<span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span>
 <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span>
 <span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">TFRecordDataset</span>
 <span class="n">device</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">device</span>
@@ -284,15 +282,10 @@
 <span class="n">GraphDef</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphDef</span>
 <span class="n">GraphKeys</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphKeys</span>
 <span class="n">GraphOptions</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">GraphOptions</span>
-<span class="n">HistogramProto</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">HistogramProto</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_bilinear</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_bilinear</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_images</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_images</span>
 <span class="n">image</span><span class="o">.</span><span class="n">resize_nearest_neighbor</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">image</span><span class="o">.</span><span class="n">resize_nearest_neighbor</span>
 <span class="n">initialize_all_tables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">initialize_all_tables</span>
-<span class="n">initialize_all_variables</span> <span class="o">=</span> <span class="n">global_variables_initializer</span>
-<span class="n">initializers</span><span class="o">.</span><span class="n">constant</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">constant</span>
-<span class="n">initializers</span><span class="o">.</span><span class="n">global_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">global_variables</span>
-<span class="n">initializers</span><span class="o">.</span><span class="n">variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">initializers</span><span class="o">.</span><span class="n">variables</span>
 <span class="n">InteractiveSession</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">InteractiveSession</span>
 <span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">tf_record_iterator</span>
 <span class="n">layers</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">layers</span>
@@ -316,21 +309,12 @@
 <span class="n">moving_average_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">moving_average_variables</span>
 <span class="n">multinomial</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">multinomial</span>
 <span class="n">name_scope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">name_scope</span>
-
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>  <span class="c1"># pylint: disable=g-import-not-at-top, g-direct-tensorflow-import</span>
-<span class="c1"># v2 doesn&#39;t have the arg &#39;partition_strategy&#39; in the API, and</span>
-<span class="c1"># uses &#39;partition_strategy=&quot;div&quot;&#39; by default;</span>
-<span class="c1"># while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default. Keep this for now.</span>
-<span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
 <span class="n">OptimizerOptions</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">OptimizerOptions</span>
 <span class="n">placeholder</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">placeholder</span>
 <span class="n">placeholder_with_default</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">placeholder_with_default</span>
 <span class="n">Print</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">Print</span>
 <span class="n">py_func</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">py_func</span>
 <span class="n">python_io</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">python_io</span>
-<span class="n">random_normal_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">random_normal_initializer</span>
-<span class="n">random</span><span class="o">.</span><span class="n">stateless_multinomial</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">stateless_multinomial</span>
-<span class="n">random_uniform_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">random_uniform_initializer</span>
 <span class="n">report_uninitialized_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">report_uninitialized_variables</span>
 <span class="n">reset_default_graph</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">reset_default_graph</span>
 <span class="n">resource_loader</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">resource_loader</span>
@@ -384,8 +368,6 @@
 <span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">SaverDef</span>
 <span class="n">train</span><span class="o">.</span><span class="n">summary_iterator</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">summary_iterator</span>
 <span class="n">trainable_variables</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">trainable_variables</span>
-<span class="n">truncated_normal_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">truncated_normal_initializer</span>
-<span class="n">uniform_unit_scaling_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">uniform_unit_scaling_initializer</span>
 <span class="n">Variable</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">Variable</span>
 <span class="n">variables_initializer</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">variables_initializer</span>
 <span class="n">VariableScope</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">VariableScope</span>
@@ -394,11 +376,22 @@
 <span class="n">while_loop</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">while_loop</span>
 <span class="n">wrap_function</span> <span class="o">=</span> <span class="n">tf1</span><span class="o">.</span><span class="n">wrap_function</span>
 
+<span class="c1"># Explicit 1.x symbol import.</span>
+<span class="n">data</span><span class="o">.</span><span class="n">make_initializable_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_initializable_iterator</span>
+<span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">make_one_shot_iterator</span>
+<span class="c1"># For `nn.embedding_lookup`, v2 doesn&#39;t have the arg &#39;partition_strategy&#39; in</span>
+<span class="c1"># the API, and uses &#39;partition_strategy=&quot;div&quot;&#39; by default;</span>
+<span class="c1"># while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default. Keep this for now.</span>
+<span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
+
 <span class="c1"># TF 2.x symbols.</span>
 <span class="c1"># Please keep this list short by using TF 2.x API in-place in the codebase.</span>
 <span class="n">assert_greater_equal</span> <span class="o">=</span> <span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span>
 <span class="n">assert_less_equal</span> <span class="o">=</span> <span class="n">debugging</span><span class="o">.</span><span class="n">assert_less_equal</span>
+<span class="n">batch_gather</span> <span class="o">=</span> <span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span>
 <span class="n">ceil</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">ceil</span>
+<span class="n">colocate_with</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span>
+<span class="n">ConfigProto</span> <span class="o">=</span> <span class="n">config_pb2</span><span class="o">.</span><span class="n">ConfigProto</span>
 <span class="n">count_nonzero</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">count_nonzero</span>
 <span class="n">extract_image_patches</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">extract_patches</span>
 <span class="n">check_numerics</span> <span class="o">=</span> <span class="n">debugging</span><span class="o">.</span><span class="n">check_numerics</span>
