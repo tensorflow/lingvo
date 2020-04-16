@@ -47,6 +47,7 @@ from model_pruning.python import pruning
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import function
+from tensorflow.python.ops import init_ops
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
@@ -1487,25 +1488,25 @@ def CreateVariable(name,
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
       'gaussian_sqrt_fanout'
   ]:
-    v_init = tf.random_normal_initializer(
+    v_init = init_ops.random_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform', 'uniform_sqrt_dim']:
-    v_init = tf.random_uniform_initializer(
+    v_init = init_ops.random_uniform_initializer(
         minval=-scale, maxval=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform_positive']:
-    v_init = tf.random_uniform_initializer(
+    v_init = init_ops.random_uniform_initializer(
         minval=0.0, maxval=scale, seed=seed, dtype=init_dtype)
   elif method in ['uniform_unit_scaling']:
-    v_init = tf.uniform_unit_scaling_initializer(
+    v_init = init_ops.uniform_unit_scaling_initializer(
         factor=scale, seed=seed, dtype=init_dtype)
   elif method in [
       'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
       'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
   ]:
-    v_init = tf.truncated_normal_initializer(
+    v_init = init_ops.truncated_normal_initializer(
         mean=0.0, stddev=scale, seed=seed, dtype=init_dtype)
   elif method in ['constant']:
-    v_init = tf.constant_initializer(value=scale, dtype=init_dtype)
+    v_init = init_ops.constant_initializer(value=scale, dtype=init_dtype)
   elif method in ['xavier', 'geo_mean_xavier']:
     # pylint: disable=unused-argument
     def XavierUniform(shape, dtype, partition_info):
@@ -1533,7 +1534,7 @@ def CreateVariable(name,
       gain = np.sqrt(2.)
     std_dev = gain / np.sqrt(fan_in)
     bound = np.sqrt(3.0) * std_dev
-    v_init = tf.random_uniform_initializer(
+    v_init = init_ops.random_uniform_initializer(
         minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
   else:
     assert False, 'init_type not supported.'

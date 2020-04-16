@@ -37,7 +37,7 @@ class BuilderLibTest(test_utils.TestCase):
         self.assertEqual(len(y), 1)
         y = y[0]
     with self.session(graph=g) as sess:
-      sess.run(tf.initialize_all_variables())
+      sess.run(tf.global_variables_initializer())
       val = sess.run(y)
     self.assertEqual(val.shape, expected_out_shape)
 

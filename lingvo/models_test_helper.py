@@ -55,7 +55,7 @@ def _StubOutCreateVariable(variable_cache):
           name,
           shape,
           dtype,
-          tf.constant_initializer(0, dtype=dtype),
+          tf.constant_initializer(0),
           collections=collections,
           trainable=trainable,
           validate_shape=True)

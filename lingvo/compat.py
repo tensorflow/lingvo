@@ -28,8 +28,13 @@ from absl import flags
 from absl import logging
 # pylint: disable=g-direct-tensorflow-import
 
+from tensorflow.core.protobuf import config_pb2
+from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.framework import function as _function_lib
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
+from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import math_ops
@@ -80,12 +85,10 @@ where_v2 = where
 data = _clone_module(data)
 graph_util = _clone_module(graph_util)
 image = _clone_module(image)
-initializers = _clone_module(keras.initializers)
 io = _clone_module(io)
 losses = _clone_module(keras.losses)
 metrics = _clone_module(keras.metrics)
 nn = _clone_module(nn)
-random = _clone_module(random)
 saved_model = _clone_module(saved_model)
 strings = _clone_module(strings)
 summary = _clone_module(summary)
@@ -99,6 +102,8 @@ train = _clone_module(train)
 # pylint: disable=undefined-variable
 add_to_collection = tf1.add_to_collection
 all_variables = tf1.global_variables
+# The following asserts can be directly replaced with TF2 `tf.debugging.*`
+# after TF2/eager is enabled.
 assert_integer = tf1.assert_integer
 assert_positive = tf1.assert_positive
 assert_type = tf1.assert_type
@@ -107,14 +112,7 @@ assign = tf1.assign
 assign_add = tf1.assign_add
 assign_sub = tf1.assign_sub
 AUTO_REUSE = tf1.AUTO_REUSE
-batch_gather = tf1.batch_gather
-colocate_with = tf1.colocate_with
-ConfigProto = tf1.ConfigProto
-constant = tf1.constant
-constant_initializer = tf1.constant_initializer
 container = tf1.container
-data.make_initializable_iterator = tf1.data.make_initializable_iterator
-data.make_one_shot_iterator = tf1.data.make_one_shot_iterator
 data.Dataset = tf1.data.Dataset
 data.TFRecordDataset = tf1.data.TFRecordDataset
 device = tf1.device
@@ -139,15 +137,10 @@ graph_util.extract_sub_graph = tf1.graph_util.extract_sub_graph
 GraphDef = tf1.GraphDef
 GraphKeys = tf1.GraphKeys
 GraphOptions = tf1.GraphOptions
-HistogramProto = tf1.HistogramProto
 image.resize_bilinear = tf1.image.resize_bilinear
 image.resize_images = tf1.image.resize_images
 image.resize_nearest_neighbor = tf1.image.resize_nearest_neighbor
 initialize_all_tables = tf1.initialize_all_tables
-initialize_all_variables = global_variables_initializer
-initializers.constant = tf1.initializers.constant
-initializers.global_variables = tf1.initializers.global_variables
-initializers.variables = tf1.initializers.variables
 InteractiveSession = tf1.InteractiveSession
 io.tf_record_iterator = tf1.io.tf_record_iterator
 layers = tf1.layers
@@ -171,21 +164,12 @@ metrics.recall = tf1.metrics.recall
 moving_average_variables = tf1.moving_average_variables
 multinomial = tf1.multinomial
 name_scope = tf1.name_scope
-
-from tensorflow.python.ops import embedding_ops  # pylint: disable=g-import-not-at-top, g-direct-tensorflow-import
-# v2 doesn't have the arg 'partition_strategy' in the API, and
-# uses 'partition_strategy="div"' by default;
-# while v1 uses 'partition_strategy="mod"' by default. Keep this for now.
-nn.embedding_lookup = embedding_ops.embedding_lookup
 OptimizerOptions = tf1.OptimizerOptions
 placeholder = tf1.placeholder
 placeholder_with_default = tf1.placeholder_with_default
 Print = tf1.Print
 py_func = tf1.py_func
 python_io = tf1.python_io
-random_normal_initializer = tf1.random_normal_initializer
-random.stateless_multinomial = tf1.random.stateless_multinomial
-random_uniform_initializer = tf1.random_uniform_initializer
 report_uninitialized_variables = tf1.report_uninitialized_variables
 reset_default_graph = tf1.reset_default_graph
 resource_loader = tf1.resource_loader
@@ -239,8 +223,6 @@ train.Saver = tf1.train.Saver
 train.SaverDef = tf1.train.SaverDef
 train.summary_iterator = tf1.train.summary_iterator
 trainable_variables = tf1.trainable_variables
-truncated_normal_initializer = tf1.truncated_normal_initializer
-uniform_unit_scaling_initializer = tf1.uniform_unit_scaling_initializer
 Variable = tf1.Variable
 variables_initializer = tf1.variables_initializer
 VariableScope = tf1.VariableScope
@@ -249,11 +231,22 @@ where = tf1.where
 while_loop = tf1.while_loop
 wrap_function = tf1.wrap_function
 
+# Explicit 1.x symbol import.
+data.make_initializable_iterator = dataset_ops.make_initializable_iterator
+data.make_one_shot_iterator = dataset_ops.make_one_shot_iterator
+# For `nn.embedding_lookup`, v2 doesn't have the arg 'partition_strategy' in
+# the API, and uses 'partition_strategy="div"' by default;
+# while v1 uses 'partition_strategy="mod"' by default. Keep this for now.
+nn.embedding_lookup = embedding_ops.embedding_lookup
+
 # TF 2.x symbols.
 # Please keep this list short by using TF 2.x API in-place in the codebase.
 assert_greater_equal = debugging.assert_greater_equal
 assert_less_equal = debugging.assert_less_equal
+batch_gather = array_ops.batch_gather
 ceil = math.ceil
+colocate_with = ops.colocate_with
+ConfigProto = config_pb2.ConfigProto
 count_nonzero = math.count_nonzero
 extract_image_patches = image.extract_patches
 check_numerics = debugging.check_numerics

@@ -121,11 +121,11 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         state1.logits = bs_result.log_probs
         # Sample ids from logits. [batch].
         state1.ids = tf.reshape(
-            tf.random.stateless_multinomial(
+            tf.random.stateless_categorical(
                 state1.logits / p.temperature,
                 num_samples=1,
                 seed=tf.stack([recurrent_theta.random_seed, state0.timestep]),
-                output_dtype=state0.ids.dtype,
+                dtype=state0.ids.dtype,
                 name='sample_next_id'), [batch])
         if 'is_last_chunk' in bs_result and p.target_eoc_id >= 0:
           state1.ids = tf.where(
