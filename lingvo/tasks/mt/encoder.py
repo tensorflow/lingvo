@@ -729,3 +729,7 @@ class TransformerEncoder(base_layer.BaseLayer):
         padding=padding,
         segment_id=segment_id,
         embedded_inputs=orig_input_embs)
+
+  def FPropFullSequence(self, theta, ids, paddings):
+    return self.FProp(theta, py_utils.NestedMap(ids=ids,
+                                                paddings=paddings))['encoded']
