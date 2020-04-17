@@ -149,13 +149,17 @@ class AsrModel(base_model.BaseTask):
     decoder_theta = self._MakeDecoderTheta(theta, input_batch)
     return self.decoder.ComputeLoss(decoder_theta, predictions, tgt)
 
-  def _FrontendAndEncoderFProp(self, theta, input_batch_src):
+  def _FrontendAndEncoderFProp(self,
+                               theta,
+                               input_batch_src,
+                               initial_state=None):
     """FProps through the frontend and encoder.
 
     Args:
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
       input_batch_src: An input NestedMap as per `BaseAsrFrontend.FProp`.
+      initial_state: None or a NestedMap object containing the initial states.
 
     Returns:
       A NestedMap as from `AsrEncoder.FProp`.
@@ -163,7 +167,11 @@ class AsrModel(base_model.BaseTask):
     p = self.params
     if p.frontend:
       input_batch_src = self.frontend.FProp(theta.frontend, input_batch_src)
-    return self.encoder.FProp(theta.encoder, input_batch_src)
+    if initial_state:
+      return self.encoder.FProp(
+          theta.encoder, input_batch_src, state0=initial_state)
+    else:
+      return self.encoder.FProp(theta.encoder, input_batch_src)
 
   def _GetTopK(self, decoder_outs, tag=''):
     hyps = decoder_outs.topk_hyps
