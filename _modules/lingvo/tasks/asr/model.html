@@ -294,13 +294,17 @@
     <span class="n">decoder_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MakeDecoderTheta</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">ComputeLoss</span><span class="p">(</span><span class="n">decoder_theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="AsrModel._FrontendAndEncoderFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._FrontendAndEncoderFProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FrontendAndEncoderFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">):</span>
+<div class="viewcode-block" id="AsrModel._FrontendAndEncoderFProp"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._FrontendAndEncoderFProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FrontendAndEncoderFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">theta</span><span class="p">,</span>
+                               <span class="n">input_batch_src</span><span class="p">,</span>
+                               <span class="n">initial_state</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;FProps through the frontend and encoder.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
 <span class="sd">        children layers.</span>
 <span class="sd">      input_batch_src: An input NestedMap as per `BaseAsrFrontend.FProp`.</span>
+<span class="sd">      initial_state: None or a NestedMap object containing the initial states.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A NestedMap as from `AsrEncoder.FProp`.</span>
@@ -308,7 +312,11 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">frontend</span><span class="p">:</span>
       <span class="n">input_batch_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">frontend</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">frontend</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span></div>
+    <span class="k">if</span> <span class="n">initial_state</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">,</span> <span class="n">state0</span><span class="o">=</span><span class="n">initial_state</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">encoder</span><span class="p">,</span> <span class="n">input_batch_src</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="AsrModel._GetTopK"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.model.html#lingvo.tasks.asr.model.AsrModel._GetTopK">[docs]</a>  <span class="k">def</span> <span class="nf">_GetTopK</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">decoder_outs</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>
     <span class="n">hyps</span> <span class="o">=</span> <span class="n">decoder_outs</span><span class="o">.</span><span class="n">topk_hyps</span>
