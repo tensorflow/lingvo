@@ -3143,6 +3143,28 @@
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="SimpleFullSoftmax.SimpleLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.SimpleLogits">[docs]</a>  <span class="k">def</span> <span class="nf">SimpleLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the simple logits computed before the softmax.</span>
+
+<span class="sd">    Compared to the Logits function, this one has only weights, no bias for the</span>
+<span class="sd">    linear projection.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: A tensor with the shape [N, input_dim].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      logits: [N, num_classes]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+    <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="n">wm</span><span class="p">,</span> <span class="n">transpose_b</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="SimpleFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
 
@@ -3678,6 +3700,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input to the network.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard rsqrt.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -3709,6 +3732,14 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)],</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">:</span>
+      <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
+          <span class="n">inputs</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
+                                               <span class="kc">None</span><span class="p">)</span>
+      <span class="n">inputs_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
         <span class="o">*</span><span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>

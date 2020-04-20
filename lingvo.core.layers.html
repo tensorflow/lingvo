@@ -1580,6 +1580,29 @@ this layer’s dtype.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers.SimpleFullSoftmax.SimpleLogits">
+<code class="sig-name descname">SimpleLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax.SimpleLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax.SimpleLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the simple logits computed before the softmax.</p>
+<p>Compared to the Logits function, this one has only weights, no bias for the
+linear projection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – A tensor with the shape [N, input_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>[N, num_classes]</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>logits</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers.SimpleFullSoftmax.Logits">
 <code class="sig-name descname">Logits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax.Logits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax.Logits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the logits computed before the softmax.</p>
