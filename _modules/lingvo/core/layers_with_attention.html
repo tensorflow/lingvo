@@ -340,6 +340,7 @@
     <span class="k">if</span> <span class="n">context_vecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># Inter/self-attention: keys = values/contexts.</span>
       <span class="n">context_vecs</span> <span class="o">=</span> <span class="n">source_vecs</span>
 
+    <span class="n">target_time</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span> <span class="n">query_dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">source_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">query_vec</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
@@ -347,10 +348,6 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
       <span class="p">],</span> <span class="n">query_vec</span><span class="p">)</span>
       <span class="c1"># Prepares mask for self-attention</span>
-      <span class="c1"># [time, time]</span>
-      <span class="n">target_time</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">target_bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-
       <span class="c1"># Padding is complemented, so time indexes that we want to mask out</span>
       <span class="c1"># receive padding weight 1.0.</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_type</span> <span class="o">==</span> <span class="s1">&#39;future&#39;</span><span class="p">:</span>
@@ -371,8 +368,6 @@
       <span class="n">causal_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">causal_padding</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_time</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">causal_padding</span> <span class="o">=</span> <span class="kc">None</span>
-
-    <span class="n">query_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
 
     <span class="c1"># Projects keys and values.</span>
     <span class="n">packed_src</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">PackSource</span><span class="p">(</span>
@@ -399,15 +394,14 @@
     <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">ctx_vec</span><span class="p">,</span>
         <span class="p">[</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+            <span class="n">target_time</span><span class="p">,</span>
+            <span class="n">target_bs</span><span class="p">,</span>
             <span class="o">-</span><span class="mi">1</span>  <span class="c1"># Either projected or not.</span>
         <span class="p">])</span>
-    <span class="n">atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_prob</span><span class="p">,</span> <span class="p">[</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="p">])</span>
+    <span class="n">atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">atten_prob</span><span class="p">,</span>
+        <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span>
+         <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]])</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
 
 <div class="viewcode-block" id="TransformerAttentionLayer._FinishExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer._FinishExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">_FinishExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -439,8 +433,8 @@
 
     <span class="c1"># Compute per_step_source_padding. Padding is complemented, so time indexes</span>
     <span class="c1"># that we want to mask out receive padding weight 1.0.</span>
-    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">query_batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_seq_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">zero_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">fill</span><span class="p">([</span><span class="n">source_seq_len</span><span class="p">],</span>
                            <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="n">ones_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">zero_padding</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
@@ -478,7 +472,7 @@
     <span class="n">ctx_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_dropout</span><span class="p">,</span> <span class="n">ctx_vec</span><span class="p">)</span>
     <span class="n">input_to_add</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">unnormalized_query_vec</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">add_unnormalized_input</span> <span class="k">else</span> <span class="n">query_vec</span><span class="p">)</span>
-    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">input_to_add</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ctx_vec</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">))</span>
 
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">key</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">,</span>
@@ -790,10 +784,6 @@
       <span class="k">assert</span> <span class="n">source_segment_id</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Need to specify segment id for &#39;</span>
                                              <span class="s1">&#39;packed input.&#39;</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">aux_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="k">assert</span> <span class="n">aux_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">):</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
@@ -802,6 +792,8 @@
           <span class="n">query_segment_id</span><span class="o">=</span><span class="n">source_segment_id</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">aux_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">aux_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_atten&#39;</span><span class="p">):</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
                                                  <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span>
@@ -851,7 +843,7 @@
       <span class="k">assert</span> <span class="n">aux_vecs</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="k">assert</span> <span class="n">aux_paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
-    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
     <span class="c1"># First the self-attention layer.</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span><span class="p">,</span> <span class="n">new_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>

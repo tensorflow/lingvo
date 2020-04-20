@@ -1035,6 +1035,8 @@
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
       <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+          <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concated_source_vecs&#39;</span><span class="p">)</span>
 
       <span class="n">logit_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span>
@@ -1135,6 +1137,8 @@
       <span class="c1"># Weight each frame with the probability and sum them.</span>
       <span class="c1"># [source_batch, n, time] * [source_batch, time, context_dim]</span>
       <span class="c1"># =&gt; [source_batch, n, context_dim].</span>
+      <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+          <span class="n">concated_source_contexts</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concated_source_contexts&#39;</span><span class="p">)</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">)</span>
       <span class="c1"># =&gt; [n, source_batch, context_dim].</span>
       <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
@@ -1225,12 +1229,7 @@
 <span class="sd">        with dimensions [target_batch, ...]</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_vecs</span>
-    <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span>
-                                       <span class="s1">&#39;concated_source_vecs&#39;</span><span class="p">)</span>
-
     <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_contexts</span>
-    <span class="n">concated_source_contexts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">concated_source_contexts</span><span class="p">,</span>
-                                           <span class="s1">&#39;concated_source_contexts&#39;</span><span class="p">)</span>
 
     <span class="n">source_padding</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_padding</span>
     <span class="n">source_segment_id</span> <span class="o">=</span> <span class="n">packed_src</span><span class="o">.</span><span class="n">source_segment_id</span>
@@ -1481,8 +1480,7 @@
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_source_vec_as_attention_value</span><span class="p">:</span>
         <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span>
                                         <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">))</span>
-      <span class="n">time_steps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
       <span class="c1"># source_projected shape [time * source_batch, hidden]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;init__0a&#39;</span><span class="p">):</span>
         <span class="n">source_vec_depth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_vecs</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
@@ -1512,9 +1510,9 @@
         <span class="n">source_contexts_reshaped</span> <span class="o">=</span> <span class="n">source_projected</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ctx_pre_proj</span><span class="p">:</span>
-          <span class="n">source_context_depth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qbatchmatmul</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_context_depth</span><span class="p">]),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">,</span>
+                         <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_contexts</span><span class="p">)[</span><span class="mi">2</span><span class="p">]]),</span>
               <span class="n">fns</span><span class="o">.</span><span class="n">qweight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ctx_proj</span><span class="p">),</span>
               <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">)</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">fns</span><span class="o">.</span><span class="n">qadd</span><span class="p">(</span>
@@ -1523,8 +1521,12 @@
               <span class="n">qt</span><span class="o">=</span><span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="n">source_contexts</span>
-        <span class="n">source_contexts_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-            <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="p">[</span><span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">source_context_depth</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">source_contexts_projected</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">source_contexts_reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">source_contexts_projected</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">time_steps</span><span class="p">,</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">num_heads</span><span class="p">,</span>
+            <span class="n">source_context_depth</span> <span class="o">//</span> <span class="n">num_heads</span>
+        <span class="p">])</span>
         <span class="n">source_contexts_projected</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ProcessProjectionVec</span><span class="p">(</span>
             <span class="n">theta</span><span class="p">,</span> <span class="n">source_contexts_projected</span><span class="p">,</span> <span class="s1">&#39;ctx&#39;</span><span class="p">)</span>
 
