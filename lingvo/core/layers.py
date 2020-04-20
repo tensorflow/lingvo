@@ -2998,6 +2998,28 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
     return self.QTensor('logits', logits)
 
+  def SimpleLogits(self, theta, inputs):
+    """Returns the simple logits computed before the softmax.
+
+    Compared to the Logits function, this one has only weights, no bias for the
+    linear projection.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: A tensor with the shape [N, input_dim].
+
+    Returns:
+      logits: [N, num_classes]
+    """
+    inputs = self.QTensor('inputs', inputs)
+    theta = self._ConcatWeights(theta)
+    wm = self.QWeight(theta.wm)
+    logits = py_utils.Matmul(
+        inputs, wm, transpose_b=self._transpose_weight_params)
+
+    return self.QTensor('logits', logits)
+
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.
 
@@ -3533,6 +3555,7 @@ class LayerNorm(base_layer.BaseLayer):
     p = super(LayerNorm, cls).Params()
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('epsilon', 1e-6, 'Tiny value to guard rsqrt.')
+    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
 
   @base_layer.initializer
@@ -3564,6 +3587,14 @@ class LayerNorm(base_layer.BaseLayer):
     p = self.params
     inputs = py_utils.with_dependencies(
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
+
+    if p.use_fused_layernorm:
+      counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+          inputs, axes=[-1], keepdims=True)
+      mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
+                                               None)
+      inputs_norm = (inputs - mean) * tf.rsqrt(variance + p.epsilon)
+      return inputs_norm * (1.0 + theta.scale) + theta.bias
 
     @tf.Defun(
         *[py_utils.FPropDtype(p)] * 3,
