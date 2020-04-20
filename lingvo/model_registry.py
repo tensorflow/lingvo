@@ -68,6 +68,8 @@ def _MaybeUpdateParamsFromFlags(cfg):
 
 
 class _ModelRegistryHelper(object):
+  _MODEL_PARAMS_ALLOW_REDEF = False
+
   # Global dictionary mapping subclass name to registered ModelParam subclass.
   _MODEL_PARAMS = {}
   # Global set of modules from which ModelParam subclasses have been registered.
@@ -112,7 +114,7 @@ class _ModelRegistryHelper(object):
     """Registers a ModelParams subclass in the global registry."""
     key = cls._ModelParamsClassKey(src_cls)
     module = src_cls.__module__
-    if key in cls._MODEL_PARAMS:
+    if not cls._MODEL_PARAMS_ALLOW_REDEF and key in cls._MODEL_PARAMS:
       raise ValueError('Duplicate model registered for key {}: {}.{}'.format(
           key, module, src_cls.__name__))
 
