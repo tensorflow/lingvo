@@ -213,6 +213,8 @@
 
 
 <div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="n">_MODEL_PARAMS_ALLOW_REDEF</span> <span class="o">=</span> <span class="kc">False</span>
+
   <span class="c1"># Global dictionary mapping subclass name to registered ModelParam subclass.</span>
   <span class="n">_MODEL_PARAMS</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="c1"># Global set of modules from which ModelParam subclasses have been registered.</span>
@@ -257,7 +259,7 @@
     <span class="sd">&quot;&quot;&quot;Registers a ModelParams subclass in the global registry.&quot;&quot;&quot;</span>
     <span class="n">key</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_ModelParamsClassKey</span><span class="p">(</span><span class="n">src_cls</span><span class="p">)</span>
     <span class="n">module</span> <span class="o">=</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__module__</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">:</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS_ALLOW_REDEF</span> <span class="ow">and</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">_MODEL_PARAMS</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Duplicate model registered for key </span><span class="si">{}</span><span class="s1">: </span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="n">key</span><span class="p">,</span> <span class="n">module</span><span class="p">,</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span><span class="p">))</span>
 
