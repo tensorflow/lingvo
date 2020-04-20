@@ -890,6 +890,8 @@ class DotProductAttention(BaseAttentionLayer):
       """
       source_padding = tf.transpose(source_padding)
       concated_source_vecs = tf.transpose(concated_source_vecs, [1, 0, 2])
+      concated_source_vecs = tf.identity(
+          concated_source_vecs, name='concated_source_vecs')
 
       logit_scale = tf.stop_gradient(
           tf.rsqrt(
@@ -990,6 +992,8 @@ class DotProductAttention(BaseAttentionLayer):
       # Weight each frame with the probability and sum them.
       # [source_batch, n, time] * [source_batch, time, context_dim]
       # => [source_batch, n, context_dim].
+      concated_source_contexts = tf.identity(
+          concated_source_contexts, name='concated_source_contexts')
       context_vector = tf.matmul(probs, concated_source_contexts)
       # => [n, source_batch, context_dim].
       context_vector = tf.transpose(context_vector, [1, 0, 2])
@@ -1080,12 +1084,7 @@ class DotProductAttention(BaseAttentionLayer):
         with dimensions [target_batch, ...]
     """
     concated_source_vecs = packed_src.source_vecs
-    concated_source_vecs = tf.identity(concated_source_vecs,
-                                       'concated_source_vecs')
-
     concated_source_contexts = packed_src.source_contexts
-    concated_source_contexts = tf.identity(concated_source_contexts,
-                                           'concated_source_contexts')
 
     source_padding = packed_src.source_padding
     source_segment_id = packed_src.source_segment_id
@@ -1336,8 +1335,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if p.use_source_vec_as_attention_value:
         source_vecs = py_utils.HasShape(source_vecs,
                                         py_utils.GetShape(source_contexts))
-      time_steps = py_utils.GetShape(source_vecs)[0]
-      batch_size = py_utils.GetShape(source_vecs)[1]
+      time_steps, batch_size = py_utils.GetShape(source_padding, 2)
       # source_projected shape [time * source_batch, hidden]
       with tf.name_scope('init__0a'):
         source_vec_depth = py_utils.GetShape(source_vecs)[2]
@@ -1367,9 +1365,9 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
         source_contexts_reshaped = source_projected
       else:
         if p.enable_ctx_pre_proj:
-          source_context_depth = py_utils.GetShape(source_contexts)[2]
           source_contexts_projected = fns.qbatchmatmul(
-              tf.reshape(source_contexts, [-1, source_context_depth]),
+              tf.reshape(source_contexts,
+                         [-1, py_utils.GetShape(source_contexts)[2]]),
               fns.qweight(theta.ctx_proj),
               qt='ctx_pre_proj_matmul')
           source_contexts_projected = fns.qadd(
@@ -1378,8 +1376,12 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
               qt='ctx_pre_proj_add')
         else:
           source_contexts_projected = source_contexts
-        source_contexts_reshaped = tf.reshape(
-            source_contexts_projected, [time_steps, batch_size * num_heads, -1])
+
+        source_context_depth = py_utils.GetShape(source_contexts_projected)[-1]
+        source_contexts_reshaped = tf.reshape(source_contexts_projected, [
+            time_steps, batch_size * num_heads,
+            source_context_depth // num_heads
+        ])
         source_contexts_projected = self.ProcessProjectionVec(
             theta, source_contexts_projected, 'ctx')
 

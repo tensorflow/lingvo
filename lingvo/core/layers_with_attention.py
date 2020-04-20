@@ -195,6 +195,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if context_vecs is None:  # Inter/self-attention: keys = values/contexts.
       context_vecs = source_vecs
 
+    target_time, target_bs, query_dim = py_utils.GetShape(query_vec, 3)
     if p.is_masked:
       assert source_vecs is not None
       query_vec = py_utils.with_dependencies([
@@ -202,10 +203,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
               tf.shape(source_vecs), tf.shape(query_vec))
       ], query_vec)
       # Prepares mask for self-attention
-      # [time, time]
-      target_time = tf.shape(query_vec)[0]
-      target_bs = tf.shape(query_vec)[1]
-
       # Padding is complemented, so time indexes that we want to mask out
       # receive padding weight 1.0.
       if p.mask_type == 'future':
@@ -226,8 +223,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       causal_padding = tf.reshape(causal_padding, [-1, target_time])
     else:
       causal_padding = None
-
-    query_dim = tf.shape(query_vec)[-1]
 
     # Projects keys and values.
     packed_src = self.atten.PackSource(
@@ -254,15 +249,14 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     h = input_to_add + tf.reshape(
         ctx_vec,
         [
-            tf.shape(query_vec)[0],
-            tf.shape(query_vec)[1],
+            target_time,
+            target_bs,
             -1  # Either projected or not.
         ])
-    atten_prob = tf.reshape(atten_prob, [
-        tf.shape(query_vec)[0],
-        tf.shape(query_vec)[1],
-        tf.shape(source_vecs)[0]
-    ])
+    atten_prob = tf.reshape(
+        atten_prob,
+        [target_time, target_bs,
+         py_utils.GetShape(source_paddings)[0]])
     return h, atten_prob
 
   def _FinishExtendStep(self,
@@ -294,8 +288,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Compute per_step_source_padding. Padding is complemented, so time indexes
     # that we want to mask out receive padding weight 1.0.
-    query_batch_size = tf.shape(query_vec)[0]
-    source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
+    query_batch_size = py_utils.GetShape(query_vec)[0]
+    source_seq_len = py_utils.GetShape(extended_packed_src.source_vecs)[0]
     zero_padding = tf.fill([source_seq_len],
                            tf.constant(0.0, dtype=query_vec.dtype))
     ones_padding = tf.ones_like(zero_padding, dtype=query_vec.dtype)
@@ -333,7 +327,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-    h = input_to_add + tf.reshape(ctx_vec, tf.shape(query_vec))
+    h = input_to_add + tf.reshape(ctx_vec, py_utils.GetShape(query_vec))
 
     new_states = py_utils.NestedMap(
         key=extended_packed_src.source_vecs,
@@ -645,10 +639,6 @@ class TransformerLayer(base_layer.BaseLayer):
       assert source_segment_id is not None, ('Need to specify segment id for '
                                              'packed input.')
 
-    if p.has_aux_atten:
-      assert aux_vecs is not None
-      assert aux_paddings is not None
-
     with tf.name_scope('self_atten'):
       atten_vec, atten_prob = self.self_atten.FProp(
           theta.self_atten,
@@ -657,6 +647,8 @@ class TransformerLayer(base_layer.BaseLayer):
           query_segment_id=source_segment_id)
 
     if p.has_aux_atten:
+      assert aux_vecs is not None
+      assert aux_paddings is not None
       with tf.name_scope('aux_atten'):
         atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
                                                  aux_paddings, aux_vecs,
@@ -706,7 +698,7 @@ class TransformerLayer(base_layer.BaseLayer):
       assert aux_vecs is not None
       assert aux_paddings is not None
 
-    batch_size = tf.shape(source_vecs)[0]
+    batch_size = py_utils.GetShape(source_vecs)[0]
 
     # First the self-attention layer.
     atten_vec, atten_prob, new_states = self.self_atten.ExtendStep(

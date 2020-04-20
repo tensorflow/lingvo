@@ -427,13 +427,10 @@ def GetShape(tensor, ndims=None):
 
 def GetSize(tensor):
   shape = GetShape(tensor)
-  if isinstance(shape, tf.Tensor):
+  if (isinstance(shape, tf.Tensor) or
+      any([isinstance(x, tf.Tensor) for x in shape])):
     return tf.size(tensor)
-
-  prod = 1
-  for d in shape:
-    prod = prod * d
-  return prod
+  return np.prod(shape)
 
 
 def use_xla():  # pylint: disable=invalid-name
