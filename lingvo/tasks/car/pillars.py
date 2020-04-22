@@ -238,13 +238,15 @@ class Builder(builder_lib.ModelBuilderBase):
         self.Contract(down_strides),
         self.Expand(odims))
 
-  def Detector(self, name, idims, odims, bias_params_init=None):
+  def Detector(self, name, idims, odims, conv_init_method=None,
+               bias_params_init=None):
     # Implemented according to VoxelNet
     # https://arxiv.org/pdf/1711.06396.pdf
     # May add more Conv2D layers before predictor for better performance.
     return self._Seq(
         name,
-        self._ConvPlain('predict', (3, 3, idims, odims)),
+        self._ConvPlain('predict', (3, 3, idims, odims),
+                        conv_init_method=conv_init_method),
         self._Bias('predict_bias', odims, bias_params_init))
 
 # pyformat: enable

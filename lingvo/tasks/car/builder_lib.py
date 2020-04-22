@@ -293,13 +293,14 @@ class ModelBuilderBase(object):
     return self._ApplyFn(name, fn=_SqueezeFn)
 
   def _ConvPlain(self, name, filter_shape, filter_stride=(1, 1),
-                 padding='SAME'):
+                 padding='SAME', conv_init_method=None):
+    conv_init_method = conv_init_method or self.conv_init_method(filter_shape)
     return layers.Conv2DLayerNoPadding.Params().Set(
         name=name,
         filter_shape=filter_shape,
         filter_stride=filter_stride,
         padding=padding,
-        params_init=self.conv_init_method(filter_shape))
+        params_init=conv_init_method)
 
   def _DeconvPlain(self, name, filter_shape, filter_stride=(1, 1)):
     return layers.DeconvLayer.Params().Set(
