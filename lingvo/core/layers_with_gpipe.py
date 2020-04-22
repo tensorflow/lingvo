@@ -577,8 +577,11 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     if p.add_tgt_embedding_layer:
       tgt_dim_0, tgt_dim_1 = args[1]
       new_args[1] = tshape.Shape([tgt_dim_0, tgt_dim_1, dim])
-    new_args = new_args[:5] + [None, None] + new_args[5:]
-    new_args = tuple(new_args[:7])
+    if p.ret_task_ids:
+      new_args = new_args[:5] + [None, None] + new_args[7:]
+    else:
+      new_args = new_args[:5] + [None, None]
+    new_args = tuple(new_args)
     return py_utils.NestedMap(flops=flops, out_shapes=(new_inputs,) + new_args)
 
 
