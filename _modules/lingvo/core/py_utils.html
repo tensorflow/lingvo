@@ -169,8 +169,10 @@
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">hashlib</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">numbers</span>
+<span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">pkgutil</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
@@ -430,6 +432,73 @@
       <span class="n">last</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span><span class="n">_Print</span><span class="p">,</span> <span class="p">[</span><span class="n">prefix</span> <span class="o">+</span> <span class="s1">&#39; : &#39;</span> <span class="o">+</span> <span class="n">k</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">k</span><span class="p">]],</span> <span class="p">[])</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">last</span><span class="p">]):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">value</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Debug"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.Debug">[docs]</a><span class="k">def</span> <span class="nf">Debug</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">more</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrapper around tf.Print() and tf.logging.info() to simplify debug printing.</span>
+
+<span class="sd">  x = py_utils.Debug(x)</span>
+
+<span class="sd">  When the graph is built a regular log info line will be printed:</span>
+<span class="sd">  -DBG- py_utils_test.py:429 x=Tensor(...</span>
+
+<span class="sd">  Then when the tensor node is evaluated it will print lines like:</span>
+<span class="sd">  -DBG- py_utils_test.py:429 x Const:0[shape=][2 2][x=][[1 2][3 4]]</span>
+
+<span class="sd">  WARNING: The code that parses local variable names can fail. E.g. don&#39;t write</span>
+<span class="sd">  two Debug() calls on one line.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">     tensor: A tensor to print.</span>
+<span class="sd">     message: A message to print.</span>
+<span class="sd">     enabled: To enable the debugging.</span>
+<span class="sd">     summarize: Integer with number of tensor values to print.</span>
+<span class="sd">     more: An optional list of additional tensors.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The tensor.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">tensor</span>
+
+  <span class="k">if</span> <span class="n">more</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">more</span> <span class="o">=</span> <span class="p">[]</span>
+
+  <span class="n">caller</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getframeinfo</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+
+  <span class="n">caller_var</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">if</span> <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">:</span>
+    <span class="c1"># Rough and likely to fail. But better than nothing.</span>
+    <span class="n">caller_var</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;Debug\((.*?)(\)|,).*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+        <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">more</span><span class="p">:</span>
+      <span class="n">more_vars</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;more=\[(.*?)\].*$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">search</span><span class="p">(</span>
+          <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="n">more_vars</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+  <span class="n">header</span> <span class="o">=</span> <span class="s1">&#39;-DBG- </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">filename</span><span class="p">),</span> <span class="n">caller</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+
+  <span class="n">info</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">caller_var</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">caller_more_vars</span><span class="p">,</span> <span class="n">more</span><span class="p">):</span>
+    <span class="n">info</span> <span class="o">+=</span> <span class="s1">&#39; </span><span class="si">{}</span><span class="s1">=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span> <span class="n">val</span><span class="p">)</span>
+  <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;shape=&#39;</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caller_var</span><span class="p">)),</span> <span class="n">tensor</span>
+    <span class="p">]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">caller_more_vars</span><span class="p">,</span> <span class="n">more</span><span class="p">):</span>
+      <span class="n">tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())))</span>
+      <span class="n">tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+
+    <span class="n">info</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">caller_var</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensors</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">summarize</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">tensor</span></div>
 
 
 <div class="viewcode-block" id="_Save"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Save">[docs]</a><span class="k">def</span> <span class="nf">_Save</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
@@ -835,7 +904,8 @@
 <div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">),</span> <span class="n">key</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid NestedMap key </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="NestedMap.GetItem"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.GetItem">[docs]</a>  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Gets the value for the nested `key`.</span>

@@ -286,6 +286,33 @@ these keywards.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.Debug">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">Debug</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em>, <em class="sig-param"><span class="n">message</span><span class="o">=</span><span class="default_value">''</span></em>, <em class="sig-param"><span class="n">enabled</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">summarize</span><span class="o">=</span><span class="default_value">100</span></em>, <em class="sig-param"><span class="n">more</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#Debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.Debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper around tf.Print() and tf.logging.info() to simplify debug printing.</p>
+<p>x = py_utils.Debug(x)</p>
+<p>When the graph is built a regular log info line will be printed:
+-DBG- py_utils_test.py:429 x=Tensor(…</p>
+<p>Then when the tensor node is evaluated it will print lines like:
+-DBG- py_utils_test.py:429 x Const:0[shape=][2 2][x=][[1 2][3 4]]</p>
+<p>WARNING: The code that parses local variable names can fail. E.g. don’t write
+two Debug() calls on one line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> – A tensor to print.</p></li>
+<li><p><strong>message</strong> – A message to print.</p></li>
+<li><p><strong>enabled</strong> – To enable the debugging.</p></li>
+<li><p><strong>summarize</strong> – Integer with number of tensor values to print.</p></li>
+<li><p><strong>more</strong> – An optional list of additional tensors.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The tensor.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils._Save">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_Save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">steps</span></em>, <em class="sig-param"><span class="n">prefix</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">val</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._Save" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
