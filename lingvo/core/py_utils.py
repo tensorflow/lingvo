@@ -1950,7 +1950,8 @@ def _ComputeGradientsTpu(loss,
                          grad_aggregation_method,
                          colocate_gradients_with_ops,
                          gate_gradients,
-                         skip_zero_gradients=None):
+                         skip_zero_gradients=None,
+                         use_bf16_gradients_ar=False):
   """Computes gradients for local loss across whole TPU cluster.
 
   This implementation specializes for the case where weight params maybe used
@@ -1969,6 +1970,8 @@ def _ComputeGradientsTpu(loss,
       with the original op.
     gate_gradients: boolean, flag to be passed to tf.gradients.
     skip_zero_gradients: whether to skip zero gradients during aggregation.
+    use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
+      all-reduce.
 
   Returns:
     Gradients to be passed back.
@@ -2002,6 +2005,8 @@ def _ComputeGradientsTpu(loss,
     if g is None:
       aggregated_grads.append(None)
       continue
+    if use_bf16_gradients_ar:
+      g = tf.cast(g, tf.bfloat16)
     with tf.colocate_with(g):
       if skip_zero_gradients is None:
         # loss is already scaled by 1/shards.
@@ -2058,7 +2063,8 @@ def ComputeGradients(
     colocate_gradients_with_ops=True,
     gate_gradients=False,
     compute_gradients_fn=None,
-    skip_zero_gradients=None):
+    skip_zero_gradients=None,
+    use_bf16_gradients_ar=False):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -2085,6 +2091,8 @@ def ComputeGradients(
           reduce_sum(abs(grads)) < 1e-8.
         * `weight`: skip if the individual weight's gradients are almost zero:
           abs(grad) < 1e-8.
+    use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
+      all-reduce. This applies to TPU only.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -2126,7 +2134,9 @@ def ComputeGradients(
     # tpu vs non-tpu is slightly different.
     if use_tpu():
       take_grad = functools.partial(
-          _ComputeGradientsTpu, skip_zero_gradients=skip_zero_gradients)
+          _ComputeGradientsTpu,
+          skip_zero_gradients=skip_zero_gradients,
+          use_bf16_gradients_ar=use_bf16_gradients_ar)
     else:
       take_grad = ComputeGradientsSimple
 

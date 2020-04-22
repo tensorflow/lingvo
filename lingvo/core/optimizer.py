@@ -34,6 +34,10 @@ class Base(base_layer.BaseLayer):
   def Params(cls):
     p = super(Base, cls).Params()
     p.name = cls.__name__
+    p.Define(
+        'use_bf16_gradients_ar', False,
+        'Whether to use bfloat16 dtype for gradients all-reduce. '
+        'This applies to TPU only.')
     return p
 
   def GetOptimizer(self, lr):
@@ -46,6 +50,7 @@ class Base(base_layer.BaseLayer):
 
   def ComputeGradients(self, loss, vmap, *args, **kwargs):
     """Allows subclasses control computation of gradients."""
+    kwargs['use_bf16_gradients_ar'] = self.params.use_bf16_gradients_ar
     return py_utils.ComputeGradients(loss, vmap, *args, **kwargs)
 
   def VarReuseForSlotVars(self):
@@ -68,8 +73,13 @@ class Base(base_layer.BaseLayer):
     optimizer = self.GetOptimizer(lr)
 
     def _Apply():
-      return optimizer.apply_gradients(
-          [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
+      if self.params.use_bf16_gradients_ar:
+        return optimizer.apply_gradients(
+            [(tf.cast(g, tf.float32), v) for (v, g) in var_grad.Flatten()],
+            name='meta_backprop')
+      else:
+        return optimizer.apply_gradients(
+            [(g, v) for (v, g) in var_grad.Flatten()], name='meta_backprop')
 
     if not py_utils.use_resource_variables():
       var_update_op = _Apply()

@@ -203,6 +203,8 @@ class BaseTask(base_layer.BaseLayer):
         'operations. This avoids some race conditions.')
     tp.Define('colocate_gradients_with_ops', True,
               'If True, try colocating gradients with the corresponding op.')
+    tp.Define('scale_gradients', True,
+              'Whether to apply gradients adjustment and scaling.')
     # LINT.ThenChange(learner.py)
     p.Define('eval', hyperparams.Params(),
              'Params to control how this task should be evaled.')

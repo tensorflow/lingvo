@@ -95,6 +95,8 @@ class Learner(base_layer.BaseLayer):
         'None: do not skip zero gradients; '
         '"variable": skip if the entire variable gradients are almost zero; '
         '"weight": skip if the individual weight gradients are almost zero.')
+    p.Define('scale_gradients', True,
+             'Whether to apply gradients adjustment and scaling.')
     return p
 
   @base_layer.initializer
@@ -229,10 +231,11 @@ class Learner(base_layer.BaseLayer):
     if gradient_mask:
       var_grads = py_utils.MaskGradients(var_grads, gradient_mask)
 
-    # Apply gradient clipping.
-    scaled_vars = self.ScaleGradients(
-        var_grads, gradient_adjuster=gradient_adjuster)
-    var_grads = scaled_vars.final_var_grads
+    # Scale gradients, e.g., gradient clipping.
+    if p.scale_gradients:
+      scaled_vars = self.ScaleGradients(
+          var_grads, gradient_adjuster=gradient_adjuster)
+      var_grads = scaled_vars.final_var_grads
 
     # Histogram summary.
     summary_utils.CollectVarHistogram(var_grads)
@@ -352,6 +355,7 @@ _LEGACY_LEARNER_PARAMS = [
     'clip_gradient_single_norm_to_value',
     'colocate_gradients_with_ops',
     'gate_gradients',
+    'scale_gradients',
     'grad_aggregation_method',
     'grad_norm_to_clip_to_zero',
     'grad_norm_tracker',
