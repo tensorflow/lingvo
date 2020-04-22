@@ -1,7 +1,6 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
 load(
     "//lingvo:lingvo.bzl",
-    "lingvo_cuda_py2and3_test",
+    "lingvo_cuda_py_test",
     "lingvo_proto_cc",
     "lingvo_proto_py",
     "lingvo_py_binary",
@@ -29,9 +28,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "attention_test",
     srcs = ["attention_test.py"],
+    python_version = "PY3",
     shard_count = 5,
     deps = [
         ":attention",
@@ -75,6 +75,7 @@ py_library(
 py_test(
     name = "beam_search_helper_test",
     srcs = ["beam_search_helper_test.py"],
+    python_version = "PY3",
     deps = [
         ":beam_search_helper",
         ":py_utils",
@@ -96,6 +97,7 @@ py_library(
 py_test(
     name = "bfloat16_variables_test",
     srcs = ["bfloat16_variables_test.py"],
+    python_version = "PY3",
     deps = [
         ":bfloat16_variables",
         ":test_utils",
@@ -126,6 +128,7 @@ py_library(
 py_test(
     name = "target_sequence_sampler_test",
     srcs = ["target_sequence_sampler_test.py"],
+    python_version = "PY3",
     deps = [
         ":py_utils",
         ":target_sequence_sampler",
@@ -155,6 +158,7 @@ py_library(
 py_test(
     name = "base_input_generator_test",
     srcs = ["base_input_generator_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_input_generator",
         ":test_utils",
@@ -195,6 +199,7 @@ py_test(
     name = "base_layer_test",
     size = "small",
     srcs = ["base_layer_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -219,6 +224,7 @@ py_library(
 py_test(
     name = "reversible_layers_test",
     srcs = ["reversible_layers_test.py"],
+    python_version = "PY3",
     deps = [
         ":layers",
         ":py_utils",
@@ -263,6 +269,7 @@ py_library(
 py_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -295,6 +302,7 @@ py_library(
 py_test(
     name = "base_model_params_test",
     srcs = ["base_model_params_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_model_params",
         ":test_utils",
@@ -332,6 +340,7 @@ py_library(
 py_test(
     name = "builder_layers_test",
     srcs = ["builder_layers_test.py"],
+    python_version = "PY3",
     deps = [
         ":builder_layers",
         ":layers",
@@ -369,6 +378,7 @@ py_test(
     name = "cluster_test",
     size = "small",
     srcs = ["cluster_test.py"],
+    python_version = "PY3",
     deps = [
         ":cluster_factory",
         ":test_utils",
@@ -394,6 +404,7 @@ py_test(
     name = "datasource_test",
     size = "small",
     srcs = ["datasource_test.py"],
+    python_version = "PY3",
     deps = [
         ":datasource",
         ":py_utils",
@@ -418,6 +429,7 @@ py_test(
     name = "matrix_functions_test",
     size = "small",
     srcs = ["matrix_functions_test.py"],
+    python_version = "PY3",
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -442,6 +454,7 @@ py_test(
     name = "distributed_shampoo_test",
     size = "small",
     srcs = ["distributed_shampoo_test.py"],
+    python_version = "PY3",
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -467,6 +480,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
+    python_version = "PY3",
     deps = [
         ":early_stop",
         ":hyperparams",
@@ -514,6 +528,7 @@ lingvo_proto_py(
 py_test(
     name = "hyperparams_test",
     srcs = ["hyperparams_test.py"],
+    python_version = "PY3",
     deps = [
         ":hyperparams",
         ":hyperparams_py_pb2",
@@ -542,6 +557,7 @@ py_library(
 py_test(
     name = "inference_graph_exporter_test",
     srcs = ["inference_graph_exporter_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -570,6 +586,7 @@ py_library(
 py_test(
     name = "input_generator_helper_test",
     srcs = ["input_generator_helper_test.py"],
+    python_version = "PY3",
     deps = [
         ":input_generator_helper",
         ":test_utils",
@@ -621,6 +638,7 @@ py_library(
 py_test(
     name = "learner_test",
     srcs = ["learner_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":learner",
@@ -645,9 +663,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
+    python_version = "PY3",
     shard_count = 20,
     deps = [
         ":layers_test_lib",
@@ -655,9 +674,10 @@ lingvo_cuda_py2and3_test(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "conv_layers_with_time_padding_test",
     srcs = ["conv_layers_with_time_padding_test.py"],
+    python_version = "PY3",
     deps = [
         ":layers_test_lib",
         # Implicit six dependency.
@@ -702,6 +722,7 @@ py_test(
     size = "small",
     timeout = "moderate",
     srcs = ["schedule_test.py"],
+    python_version = "PY3",
     deps = [
         ":cluster_factory",
         ":early_stop",
@@ -734,6 +755,7 @@ py_library(
 py_test(
     name = "metrics_test",
     srcs = ["metrics_test.py"],
+    python_version = "PY3",
     deps = [
         ":metrics",
         ":test_utils",
@@ -756,6 +778,7 @@ py_library(
 py_test(
     name = "multitask_model_test",
     srcs = ["multitask_model_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_layer",
@@ -813,6 +836,7 @@ py_test(
     name = "optimizer_test",
     size = "small",
     srcs = ["optimizer_test.py"],
+    python_version = "PY3",
     deps = [
         ":layers",
         ":optimizer",
@@ -840,6 +864,7 @@ py_library(
 py_test(
     name = "plot_test",
     srcs = ["plot_test.py"],
+    python_version = "PY3",
     deps = [
         ":plot",
         ":test_utils",
@@ -882,6 +907,7 @@ py_test(
     name = "predictor_test",
     size = "medium",
     srcs = ["predictor_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -932,6 +958,7 @@ py_test(
     data = [
         "//lingvo/core/testdata:lenet_test_model",
     ],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -968,6 +995,7 @@ py_test(
     name = "quant_utils_test",
     size = "small",
     srcs = ["quant_utils_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -998,6 +1026,7 @@ py_test(
     name = "layers_with_gpipe_test",
     size = "large",
     srcs = ["layers_with_gpipe_test.py"],
+    python_version = "PY3",
     shard_count = 15,
     deps = [
         ":layers_with_gpipe",
@@ -1024,6 +1053,7 @@ py_library(
 py_test(
     name = "spectrum_augmenter_test",
     srcs = ["spectrum_augmenter_test.py"],
+    python_version = "PY3",
     shard_count = 1,
     deps = [
         ":spectrum_augmenter",
@@ -1049,6 +1079,7 @@ py_library(
 py_test(
     name = "spectrum_augmenter_on_device_test",
     srcs = ["spectrum_augmenter_on_device_test.py"],
+    python_version = "PY3",
     shard_count = 1,
     deps = [
         ":spectrum_augmenter",
@@ -1090,6 +1121,7 @@ py_library(
 py_test(
     name = "gpipe_test",
     srcs = ["gpipe_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":gpipe",
@@ -1120,6 +1152,7 @@ py_library(
 py_test(
     name = "recurrent_test",
     srcs = ["recurrent_test.py"],
+    python_version = "PY3",
     shard_count = 6,
     deps = [
         ":recurrent_test_lib",
@@ -1144,9 +1177,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "recurrent_gpu_test",
     srcs = ["recurrent_gpu_test.py"],
+    python_version = "PY3",
     shard_count = 6,
     deps = [
         ":py_utils",
@@ -1168,6 +1202,7 @@ py_library(
 py_test(
     name = "retry_test",
     srcs = ["retry_test.py"],
+    python_version = "PY3",
     deps = [
         ":retry",
         ":test_utils",
@@ -1187,6 +1222,7 @@ py_library(
 py_test(
     name = "sendrecv_test",
     srcs = ["sendrecv_test.py"],
+    python_version = "PY3",
     deps = [
         ":sendrecv",
         ":test_utils",
@@ -1223,6 +1259,7 @@ py_library(
 py_test(
     name = "task_scheduler_test",
     srcs = ["task_scheduler_test.py"],
+    python_version = "PY3",
     deps = [
         ":early_stop",
         ":task_scheduler",
@@ -1258,6 +1295,7 @@ py_library(
 py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
+    python_version = "PY3",
     deps = [
         ":test_utils",
         "//lingvo:compat",
@@ -1305,6 +1343,7 @@ py_library(
 py_test(
     name = "wpm_encoder_test",
     srcs = ["wpm_encoder_test.py"],
+    python_version = "PY3",
     deps = [
         ":test_utils",
         ":wpm_encoder",
@@ -1332,6 +1371,7 @@ py_test(
     data = [
         "//lingvo/tasks/mt:wpm_ende",
     ],
+    python_version = "PY3",
     deps = [
         ":test_helper",
         ":test_utils",
@@ -1356,9 +1396,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "rnn_cell_test",
     srcs = ["rnn_cell_test.py"],
+    python_version = "PY3",
     deps = [
         ":py_utils",
         ":quant_utils",
@@ -1389,6 +1430,7 @@ py_test(
     name = "layers_with_attention_test",
     size = "large",
     srcs = ["layers_with_attention_test.py"],
+    python_version = "PY3",
     deps = [
         ":attention",
         ":layers",
@@ -1419,10 +1461,11 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "rnn_layers_test",
     size = "large",
     srcs = ["rnn_layers_test.py"],
+    python_version = "PY3",
     shard_count = 15,
     deps = [
         ":rnn_layers_test_lib",
@@ -1468,6 +1511,7 @@ py_library(
 py_test(
     name = "lstm_frnn_layer_test",
     srcs = ["lstm_frnn_layer_test.py"],
+    python_version = "PY3",
     srcs_version = "PY2AND3",
     deps = [
         ":lstm_frnn_layer",
@@ -1491,6 +1535,7 @@ py_test(
     name = "scorers_test",
     srcs = ["scorers_test.py"],
     data = ["//lingvo/core/ops/testdata:wmt"],
+    python_version = "PY3",
     deps = [
         ":scorers",
         ":test_helper",
@@ -1523,6 +1568,7 @@ py_library(
 py_test(
     name = "tshape_test",
     srcs = ["tshape_test.py"],
+    python_version = "PY3",
     deps = [
         ":test_utils",
         ":tshape",
@@ -1543,6 +1589,7 @@ py_library(
 py_test(
     name = "symbolic_test",
     srcs = ["symbolic_test.py"],
+    python_version = "PY3",
     deps = [
         ":symbolic",
         ":test_utils",
@@ -1562,9 +1609,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "insertion_test",
     srcs = ["insertion_test.py"],
+    python_version = "PY3",
     deps = [
         ":insertion",
         ":test_utils",
@@ -1631,6 +1679,7 @@ py_test(
     name = "step_test",
     size = "small",
     srcs = ["step_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1645,6 +1694,7 @@ py_test(
 py_test(
     name = "summary_utils_test",
     srcs = ["summary_utils_test.py"],
+    python_version = "PY3",
     deps = [
         ":cluster_factory",
         ":summary_utils",
@@ -1656,6 +1706,7 @@ py_test(
 py_test(
     name = "checkpointer_test",
     srcs = ["checkpointer_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1669,6 +1720,7 @@ py_test(
 py_test(
     name = "ema_test",
     srcs = ["ema_test.py"],
+    python_version = "PY3",
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -1705,6 +1757,7 @@ py_library(
 py_test(
     name = "ml_perf_log_test",
     srcs = ["ml_perf_log_test.py"],
+    python_version = "PY3",
     deps = [
         ":ml_perf_log",
         "//lingvo:compat",

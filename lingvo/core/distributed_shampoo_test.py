@@ -15,9 +15,6 @@
 # ==============================================================================
 """Tests for lingvo.distributed_shampoo."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from lingvo.core import distributed_shampoo
 from lingvo.core import test_utils
