@@ -1,5 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -22,6 +20,7 @@ py_library(
 py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
+    python_version = "PY3",
     shard_count = 2,
     deps = [
         ":layers_test_lib",
@@ -65,6 +64,7 @@ py_library(
 py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
+    python_version = "PY3",
     shard_count = 12,
     deps = [
         ":encoder",
@@ -100,6 +100,7 @@ py_library(
 py_test(
     name = "decoder_test",
     srcs = ["decoder_test.py"],
+    python_version = "PY3",
     shard_count = 20,
     deps = [
         ":decoder_test_lib",
@@ -149,6 +150,7 @@ py_test(
         "//lingvo/tasks/mt/testdata:mlperf_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
+    python_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -181,6 +183,7 @@ py_test(
     name = "model_test",
     size = "large",
     srcs = ["model_test.py"],
+    python_version = "PY3",
     shard_count = 20,
     deps = [
         ":model_test_lib",

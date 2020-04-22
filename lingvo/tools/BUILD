@@ -1,4 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_cc_binary",
@@ -112,6 +111,7 @@ py_test(
     name = "beam_utils_test",
     srcs = ["beam_utils_test.py"],
     data = ["//lingvo/tasks/mt/testdata:wmt14_ende_tfexample"],
+    python_version = "PY3",
     deps = [
         ":beam_utils",
         # Implicit apache_beam dependency.
@@ -127,6 +127,7 @@ py_test(
     data = [
         "//lingvo/tools/testdata:audio_data",
     ],
+    python_version = "PY3",
     deps = [
         ":audio_lib",
         "//lingvo:compat",
@@ -149,6 +150,7 @@ py_library(
 py_test(
     name = "compare_params_test",
     srcs = ["compare_params_test.py"],
+    python_version = "PY3",
     deps = [
         ":compare_params_lib",
         "//lingvo:compat",
