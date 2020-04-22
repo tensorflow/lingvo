@@ -703,7 +703,8 @@ class ByDifficulty(BreakdownMetric):
       image_summaries.append(image_summary)
 
     for difficulty, c in self._calibration.items():
-      calibration_summaries = c.Summary(difficulty)
+      # Note that we only generate a calibration for a single difficulty level.
+      calibration_summaries = c.Summary(name)
       for calibration_summary in calibration_summaries:
         image_summaries.append(calibration_summary)
 

@@ -26,15 +26,26 @@ import numpy as np
 
 class CalibrationProcessingTest(test_utils.TestCase):
 
+  def testExpectedCalibrationError(self):
+    confidence = np.array([0.05, 0.15, 0.2, 0.3])
+    accuracies = np.array([0.25, 0.15, 0.2, 0.3])
+    num_examples = np.array([1000, 10, 10, 10])
+    ece = calibration_processing.ExpectedCalibrationError(
+        confidence, accuracies, num_examples, min_confidence=0.1)
+    self.assertNear(ece, 0.0, 1e-4)
+    ece = calibration_processing.ExpectedCalibrationError(
+        confidence, accuracies, num_examples)
+    self.assertNear(ece, 0.1942, 1e-4)
+
   def testCalibrationCurveEqualScoresAndHits(self):
     # Test calibration curve data when scores are equal to hits.
     # This is an edge case where scores are either 0 or 1.
     num_bins = 2
     scores = np.array([0, 1, 0])
     hits = scores
-    mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece = \
+    mean_predicted_accuracies, mean_empirical_accuracies, num_examples = \
         calibration_processing.CalibrationCurve(scores, hits, num_bins)
-    expected_mean_predicted_accuracies = np.array([0.25, 0.75])
+    expected_mean_predicted_accuracies = np.array([0.0, 1.0])
     self.assertAllEqual(expected_mean_predicted_accuracies,
                         mean_predicted_accuracies)
     expected_mean_empirical_accuracies = np.array([0, 1])
@@ -44,7 +55,9 @@ class CalibrationProcessingTest(test_utils.TestCase):
     expected_num_examples[0] = 2
     expected_num_examples[num_bins - 1] = 1
     self.assertAllEqual(expected_num_examples, num_examples)
-    self.assertEqual(ece, 0.25)
+    ece = calibration_processing.ExpectedCalibrationError(
+        mean_predicted_accuracies, mean_empirical_accuracies, num_examples)
+    self.assertEqual(ece, 0.0)
 
   def testCalibrationCurvePerfectCalibration(self):
     # Test calibration curve data when empirical accuracy corresponds to mean
@@ -52,7 +65,7 @@ class CalibrationProcessingTest(test_utils.TestCase):
     num_bins = 2
     scores = np.array([0.25, 0.25, 0.25, 0.25, 0.75, 0.75, 0.75, 0.75])
     hits = np.array([1, 0, 0, 0, 1, 1, 1, 0])
-    mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece = \
+    mean_predicted_accuracies, mean_empirical_accuracies, num_examples = \
         calibration_processing.CalibrationCurve(scores, hits, num_bins)
     expected_mean_predicted_accuracies = np.array([0.25, 0.75])
     self.assertAllEqual(expected_mean_predicted_accuracies,
@@ -64,6 +77,8 @@ class CalibrationProcessingTest(test_utils.TestCase):
     expected_num_examples[0] = 4
     expected_num_examples[num_bins - 1] = 4
     self.assertAllEqual(expected_num_examples, num_examples)
+    ece = calibration_processing.ExpectedCalibrationError(
+        mean_predicted_accuracies, mean_empirical_accuracies, num_examples)
     self.assertEqual(ece, 0.0)
 
   def testAllDataInOneBin(self):
@@ -71,9 +86,9 @@ class CalibrationProcessingTest(test_utils.TestCase):
     num_bins = 2
     scores = np.array([1, 1, 1])
     hits = np.array([0, 0, 0])
-    mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece = \
+    mean_predicted_accuracies, mean_empirical_accuracies, num_examples = \
         calibration_processing.CalibrationCurve(scores, hits, num_bins)
-    expected_mean_predicted_accuracies = np.array([0.25, 0.75])
+    expected_mean_predicted_accuracies = np.array([0.25, 1.0])
     self.assertAllEqual(expected_mean_predicted_accuracies,
                         mean_predicted_accuracies)
     expected_mean_empirical_accuracies = np.array([0, 0])
@@ -83,14 +98,16 @@ class CalibrationProcessingTest(test_utils.TestCase):
     expected_num_examples[0] = 0
     expected_num_examples[num_bins - 1] = 3
     self.assertAllEqual(expected_num_examples, num_examples)
-    self.assertEqual(ece, 0.75)
+    ece = calibration_processing.ExpectedCalibrationError(
+        mean_predicted_accuracies, mean_empirical_accuracies, num_examples)
+    self.assertEqual(ece, 1.0)
 
   def testEmptyBins(self):
     # Test calibration curve data when there are no examples.
     num_bins = 2
     scores = np.array([])
     hits = np.array([])
-    mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece = \
+    mean_predicted_accuracies, mean_empirical_accuracies, num_examples = \
         calibration_processing.CalibrationCurve(scores, hits, num_bins)
     expected_mean_predicted_accuracies = np.array([0.25, 0.75])
     self.assertAllEqual(expected_mean_predicted_accuracies,
@@ -100,6 +117,8 @@ class CalibrationProcessingTest(test_utils.TestCase):
                         mean_empirical_accuracies)
     expected_num_examples = np.zeros(shape=num_bins)
     self.assertAllEqual(expected_num_examples, num_examples)
+    ece = calibration_processing.ExpectedCalibrationError(
+        mean_predicted_accuracies, mean_empirical_accuracies, num_examples)
     self.assertEqual(ece, 0.0)
 
   def testCalibrationCalculator(self):

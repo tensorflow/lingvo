@@ -24,8 +24,45 @@ import numpy as np
 from six.moves import range
 
 
+def ExpectedCalibrationError(confidence,
+                             empirical_accuracy,
+                             num_examples,
+                             min_confidence=None):
+  """Calculate the expected calibration error.
+
+  Args:
+    confidence: 1-D np.array of float32 binned confidence scores with one number
+      per bin
+    empirical_accuracy: 1-D np.array of float32 binned empirical accuracies with
+      one number per bin
+    num_examples: 1-D np.array of int for the number of examples within a bin.
+    min_confidence: float32 of minimum confidence score to use in the
+      calculation. If None, no filtering is applied.
+
+  Returns:
+    float32 of expected calibration error
+  """
+  assert confidence.shape[0] == empirical_accuracy.shape[0]
+  assert empirical_accuracy.shape[0] == num_examples.shape[0]
+
+  ece = np.abs(empirical_accuracy - confidence) * num_examples
+
+  if min_confidence:
+    bin_indices = np.where(confidence > min_confidence)
+    ece = ece[bin_indices]
+    num_examples = num_examples[bin_indices]
+
+  ece = np.sum(ece)
+  total_num_examples = np.sum(num_examples)
+  if total_num_examples != 0:
+    ece /= total_num_examples
+  else:
+    ece = 0.0
+  return ece
+
+
 def CalibrationCurve(scores, hits, num_bins):
-  """Compute data for calibration reliability diagrams and ece.
+  """Compute data for calibration reliability diagrams.
 
   Args:
     scores: 1-D np.array of float32 confidence scores
@@ -35,12 +72,12 @@ def CalibrationCurve(scores, hits, num_bins):
 
   Returns:
     A tuple containing:
-      - mean_predicted_accuracies: list of mean predicted accuracy for each bin
-      - mean_empirical_accuracies: list of mean empirical accuracy for each bin
-      - num_examples: list of the number of examples in each bin
-      - ece: float for the expected calibration error
+      - mean_predicted_accuracies: np.array of mean predicted accuracy for each
+          bin
+      - mean_empirical_accuracies: np.array of mean empirical accuracy for each
+          bin
+      - num_examples: np.array of the number of examples in each bin
   """
-  ece = 0.0
   mean_predicted_accuracies = []
   mean_empirical_accuracies = []
   num_examples = []
@@ -55,12 +92,13 @@ def CalibrationCurve(scores, hits, num_bins):
     if j == 0:
       continue
     indices = np.where(bin_indices == j)[0]
-    mean_predicted_accuracy = (edges[j - 1] + edges[j]) / 2.0
     # pylint: disable=g-explicit-length-test
     if len(indices) > 0:
+      mean_predicted_accuracy = np.mean(scores[indices])
       mean_empirical_accuracy = np.mean(hits[indices])
       num_example = len(indices)
     else:
+      mean_predicted_accuracy = (edges[j - 1] + edges[j]) / 2.0
       mean_empirical_accuracy = 0.0
       num_example = 0
     # pylint: enable=g-explicit-length-test
@@ -68,15 +106,11 @@ def CalibrationCurve(scores, hits, num_bins):
     mean_predicted_accuracies.append(mean_predicted_accuracy)
     mean_empirical_accuracies.append(mean_empirical_accuracy)
     num_examples.append(num_example)
-    ece += np.abs(mean_empirical_accuracy - \
-                  mean_predicted_accuracy) * num_example
 
-  total_num_examples = np.sum(num_examples)
-  if total_num_examples != 0:
-    ece /= total_num_examples
-  else:
-    ece = 0.0
-  return mean_predicted_accuracies, mean_empirical_accuracies, num_examples, ece
+  mean_predicted_accuracies = np.array(mean_predicted_accuracies)
+  mean_empirical_accuracies = np.array(mean_empirical_accuracies)
+  num_examples = np.array(num_examples)
+  return mean_predicted_accuracies, mean_empirical_accuracies, num_examples
 
 
 class CalibrationCalculator(object):
@@ -86,7 +120,6 @@ class CalibrationCalculator(object):
     self._metadata = metadata
     self._num_calibration_bins = self._metadata.NumberOfCalibrationBins()
     self._calibration_by_class = None
-    self._ece_by_class = None
     self._classnames = self._metadata.ClassNames()
     self._classids = self._metadata.EvalClassIndices()
 
@@ -116,7 +149,6 @@ class CalibrationCalculator(object):
       return
 
     self._calibration_by_class = {}
-    self._ece_by_class = {}
     for i, c in enumerate(metrics['calibrations']):
       classid = self._classids[i]
       classname = self._classnames[classid]
@@ -135,10 +167,6 @@ class CalibrationCalculator(object):
       hits = scores_and_hits[:, 1]
       curve_data = CalibrationCurve(scores, hits, self._num_calibration_bins)
       self._calibration_by_class[classname] = np.array(curve_data[0:3])
-      self._ece_by_class[classname] = curve_data[3]
-
-      tf.logging.info('ECE[{}] = {}'.format(classname,
-                                            self._ece_by_class[classname]))
       tf.logging.info('Finished calculating calibration for %s.' % classname)
 
   def Summary(self, name):
@@ -187,10 +215,15 @@ class CalibrationCalculator(object):
           linestyle='-',
           linewidth=2,
           alpha=0.5)
+
+      ece = ExpectedCalibrationError(mean_predicted_accuracy,
+                                     mean_empirical_accuracy,
+                                     num_examples_per_bin)
+
       ece_summary = tf.Summary(value=[
           tf.Summary.Value(
               tag='{}/{}/calibration_ece'.format(name, classname),
-              simple_value=self._ece_by_class[classname])
+              simple_value=ece)
       ])
       summaries.extend([calibration_curve_summary, ece_summary])
     return summaries
