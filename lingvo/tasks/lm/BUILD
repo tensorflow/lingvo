@@ -1,4 +1,7 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_cuda_py_test",
+)
 
 # Language modelling related tasks.
 package(
@@ -6,11 +9,6 @@ package(
 )
 
 licenses(["notice"])  # Apache 2.0
-
-load(
-    "//lingvo:lingvo.bzl",
-    "lingvo_cuda_py2and3_test",
-)
 
 py_library(
     name = "input_generator",
@@ -31,6 +29,7 @@ py_test(
     data = [
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
+    python_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -56,9 +55,10 @@ py_library(
     ],
 )
 
-lingvo_cuda_py2and3_test(
+lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
+    python_version = "PY3",
     shard_count = 10,
     tags = ["noasan"],
     deps = [
@@ -93,6 +93,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
+    python_version = "PY3",
     deps = [
         ":input_generator",
         ":model",

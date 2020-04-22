@@ -1,5 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 # Punctuator tutorial task.
 package(
     default_visibility = ["//visibility:public"],
@@ -28,6 +26,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
+    python_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -58,6 +57,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
+    python_version = "PY3",
     shard_count = 4,
     deps = [
         ":input_generator",

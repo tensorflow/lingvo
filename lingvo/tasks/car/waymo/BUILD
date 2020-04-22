@@ -1,5 +1,4 @@
 # Car related tasks.
-load("//lingvo:lingvo.bzl", "py2and3_test")
 
 package(default_visibility = [
     "//visibility:public",
@@ -10,6 +9,7 @@ licenses(["notice"])  # Apache 2.0
 py_test(
     name = "waymo_ap_metric_test",
     srcs = ["waymo_ap_metric_test.py"],
+    python_version = "PY3",
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",
@@ -25,6 +25,7 @@ py_test(
 py_test(
     name = "waymo_open_input_generator_test",
     srcs = ["waymo_open_input_generator_test.py"],
+    python_version = "PY3",
     deps = [
         ":waymo_open_input_generator",
         "//lingvo:compat",

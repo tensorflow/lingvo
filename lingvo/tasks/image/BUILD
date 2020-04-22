@@ -1,5 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 # Image related tasks.
 package(
     default_visibility = ["//visibility:public"],
@@ -28,6 +26,7 @@ py_library(
 py_test(
     name = "classifier_test",
     srcs = ["classifier_test.py"],
+    python_version = "PY3",
     deps = [
         ":classifier",
         ":input_generator",
@@ -55,6 +54,7 @@ py_library(
 py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
+    python_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",

@@ -1,5 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -24,6 +22,7 @@ py_test(
     name = "attention_steps_test",
     size = "small",
     srcs = ["attention_steps_test.py"],
+    python_version = "PY3",
     deps = [
         ":attention_steps",
         "//lingvo:compat",
@@ -49,6 +48,7 @@ py_test(
     name = "embedding_steps_test",
     size = "small",
     srcs = ["embedding_steps_test.py"],
+    python_version = "PY3",
     deps = [
         ":embedding_steps",
         "//lingvo:compat",
@@ -75,6 +75,7 @@ py_test(
     name = "rnn_steps_test",
     size = "small",
     srcs = ["rnn_steps_test.py"],
+    python_version = "PY3",
     deps = [
         ":rnn_steps",
         "//lingvo:compat",

@@ -1,5 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 package(default_visibility = [
     "//visibility:public",
 ])
@@ -64,6 +62,7 @@ py_test(
     data = [
         "//lingvo/tasks/car/testdata:kitti_raw",
     ],
+    python_version = "PY3",
     deps = [
         ":kitti_data",
         "//lingvo:compat",

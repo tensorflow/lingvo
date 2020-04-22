@@ -1,7 +1,5 @@
 # tools for ASR task, including WER computation and breakdown analytics
 
-load("//lingvo:lingvo.bzl", "py2and3_test")
-
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -20,6 +18,7 @@ py_library(
 py_test(
     name = "simple_wer_test",
     srcs = ["simple_wer_test.py"],
+    python_version = "PY3",
     deps = [
         ":simple_wer",
         "//lingvo:compat",
@@ -39,6 +38,7 @@ py_library(
 py_test(
     name = "simple_wer_v2_test",
     srcs = ["simple_wer_v2_test.py"],
+    python_version = "PY3",
     deps = [
         ":simple_wer_v2",
         "//lingvo:compat",
