@@ -1,4 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
 load(
     "//lingvo:lingvo.bzl",
     "custom_kernel_library",
@@ -110,6 +109,7 @@ custom_kernel_library(
 py_test(
     name = "simple_vocab_test",
     srcs = ["simple_vocab_test.py"],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo/core:test_utils",
@@ -213,6 +213,7 @@ custom_kernel_library(
 py_test(
     name = "static_map_op_test",
     srcs = ["static_map_op_test.py"],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -229,6 +230,7 @@ custom_kernel_library(
 py_test(
     name = "assert_ops_test",
     srcs = ["assert_ops_test.py"],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo/core:test_utils",
@@ -258,6 +260,7 @@ lingvo_cc_test(
 py_test(
     name = "beam_search_step_op_test",
     srcs = ["beam_search_step_op_test.py"],
+    python_version = "PY3",
     deps = [
         ":hyps_py_pb2",
         ":ops",
@@ -285,6 +288,7 @@ py_test(
     data = [
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -306,6 +310,7 @@ custom_kernel_library(
 py_test(
     name = "functional_ops_test",
     srcs = ["functional_ops_test.py"],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -327,6 +332,7 @@ custom_kernel_library(
 py_test(
     name = "generic_input_op_test",
     srcs = ["generic_input_op_test.py"],
+    python_version = "PY3",
     deps = [
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
@@ -351,6 +357,7 @@ custom_kernel_library(
 py_test(
     name = "random_ops_test",
     srcs = ["random_ops_test.py"],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -419,6 +426,7 @@ py_test(
         "//lingvo/core/ops/testdata:test_ngrams",
         "//lingvo/core/ops/testdata:test_vocab",
     ],
+    python_version = "PY3",
     deps = [
         ":ops",
         "//lingvo/core:test_helper",
