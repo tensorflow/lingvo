@@ -2095,7 +2095,8 @@
                          <span class="n">grad_aggregation_method</span><span class="p">,</span>
                          <span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
                          <span class="n">gate_gradients</span><span class="p">,</span>
-                         <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                         <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                         <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients for local loss across whole TPU cluster.</span>
 
 <span class="sd">  This implementation specializes for the case where weight params maybe used</span>
@@ -2114,6 +2115,8 @@
 <span class="sd">      with the original op.</span>
 <span class="sd">    gate_gradients: boolean, flag to be passed to tf.gradients.</span>
 <span class="sd">    skip_zero_gradients: whether to skip zero gradients during aggregation.</span>
+<span class="sd">    use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients</span>
+<span class="sd">      all-reduce.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    Gradients to be passed back.</span>
@@ -2147,6 +2150,8 @@
     <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">aggregated_grads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
       <span class="k">continue</span>
+    <span class="k">if</span> <span class="n">use_bf16_gradients_ar</span><span class="p">:</span>
+      <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">skip_zero_gradients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># loss is already scaled by 1/shards.</span>
@@ -2203,7 +2208,8 @@
     <span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
     <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -2230,6 +2236,8 @@
 <span class="sd">          reduce_sum(abs(grads)) &lt; 1e-8.</span>
 <span class="sd">        * `weight`: skip if the individual weight&#39;s gradients are almost zero:</span>
 <span class="sd">          abs(grad) &lt; 1e-8.</span>
+<span class="sd">    use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients</span>
+<span class="sd">      all-reduce. This applies to TPU only.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
@@ -2271,7 +2279,9 @@
     <span class="c1"># tpu vs non-tpu is slightly different.</span>
     <span class="k">if</span> <span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">take_grad</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span>
-          <span class="n">_ComputeGradientsTpu</span><span class="p">,</span> <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">skip_zero_gradients</span><span class="p">)</span>
+          <span class="n">_ComputeGradientsTpu</span><span class="p">,</span>
+          <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">skip_zero_gradients</span><span class="p">,</span>
+          <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="n">use_bf16_gradients_ar</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">take_grad</span> <span class="o">=</span> <span class="n">ComputeGradientsSimple</span>
 

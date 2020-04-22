@@ -240,6 +240,8 @@
         <span class="s1">&#39;None: do not skip zero gradients; &#39;</span>
         <span class="s1">&#39;&quot;variable&quot;: skip if the entire variable gradients are almost zero; &#39;</span>
         <span class="s1">&#39;&quot;weight&quot;: skip if the individual weight gradients are almost zero.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_gradients&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to apply gradients adjustment and scaling.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -374,10 +376,11 @@
     <span class="k">if</span> <span class="n">gradient_mask</span><span class="p">:</span>
       <span class="n">var_grads</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">MaskGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="p">)</span>
 
-    <span class="c1"># Apply gradient clipping.</span>
-    <span class="n">scaled_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span>
-        <span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
-    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">final_var_grads</span>
+    <span class="c1"># Scale gradients, e.g., gradient clipping.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_gradients</span><span class="p">:</span>
+      <span class="n">scaled_vars</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ScaleGradients</span><span class="p">(</span>
+          <span class="n">var_grads</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="n">gradient_adjuster</span><span class="p">)</span>
+      <span class="n">var_grads</span> <span class="o">=</span> <span class="n">scaled_vars</span><span class="o">.</span><span class="n">final_var_grads</span>
 
     <span class="c1"># Histogram summary.</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">CollectVarHistogram</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
@@ -497,6 +500,7 @@
     <span class="s1">&#39;clip_gradient_single_norm_to_value&#39;</span><span class="p">,</span>
     <span class="s1">&#39;colocate_gradients_with_ops&#39;</span><span class="p">,</span>
     <span class="s1">&#39;gate_gradients&#39;</span><span class="p">,</span>
+    <span class="s1">&#39;scale_gradients&#39;</span><span class="p">,</span>
     <span class="s1">&#39;grad_aggregation_method&#39;</span><span class="p">,</span>
     <span class="s1">&#39;grad_norm_to_clip_to_zero&#39;</span><span class="p">,</span>
     <span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span>

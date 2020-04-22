@@ -168,9 +168,31 @@
 <span id="lingvo-tasks-car-calibration-processing-module"></span><h1>lingvo.tasks.car.calibration_processing module<a class="headerlink" href="#module-lingvo.tasks.car.calibration_processing" title="Permalink to this headline">¶</a></h1>
 <p>Library for calculating calibration on a prediction.</p>
 <dl class="py function">
+<dt id="lingvo.tasks.car.calibration_processing.ExpectedCalibrationError">
+<code class="sig-prename descclassname">lingvo.tasks.car.calibration_processing.</code><code class="sig-name descname">ExpectedCalibrationError</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">confidence</span></em>, <em class="sig-param"><span class="n">empirical_accuracy</span></em>, <em class="sig-param"><span class="n">num_examples</span></em>, <em class="sig-param"><span class="n">min_confidence</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#ExpectedCalibrationError"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.ExpectedCalibrationError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the expected calibration error.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>confidence</strong> – 1-D np.array of float32 binned confidence scores with one number
+per bin</p></li>
+<li><p><strong>empirical_accuracy</strong> – 1-D np.array of float32 binned empirical accuracies with
+one number per bin</p></li>
+<li><p><strong>num_examples</strong> – 1-D np.array of int for the number of examples within a bin.</p></li>
+<li><p><strong>min_confidence</strong> – float32 of minimum confidence score to use in the
+calculation. If None, no filtering is applied.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>float32 of expected calibration error</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.tasks.car.calibration_processing.CalibrationCurve">
 <code class="sig-prename descclassname">lingvo.tasks.car.calibration_processing.</code><code class="sig-name descname">CalibrationCurve</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scores</span></em>, <em class="sig-param"><span class="n">hits</span></em>, <em class="sig-param"><span class="n">num_bins</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/calibration_processing.html#CalibrationCurve"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.calibration_processing.CalibrationCurve" title="Permalink to this definition">¶</a></dt>
-<dd><p>Compute data for calibration reliability diagrams and ece.</p>
+<dd><p>Compute data for calibration reliability diagrams.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -182,10 +204,17 @@ label matches the ground truth label</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p>mean_predicted_accuracies: list of mean predicted accuracy for each bin</p></li>
-<li><p>mean_empirical_accuracies: list of mean empirical accuracy for each bin</p></li>
-<li><p>num_examples: list of the number of examples in each bin</p></li>
-<li><p>ece: float for the expected calibration error</p></li>
+<li><dl class="simple">
+<dt>mean_predicted_accuracies: np.array of mean predicted accuracy for each</dt><dd><p>bin</p>
+</dd>
+</dl>
+</li>
+<li><dl class="simple">
+<dt>mean_empirical_accuracies: np.array of mean empirical accuracy for each</dt><dd><p>bin</p>
+</dd>
+</dl>
+</li>
+<li><p>num_examples: np.array of the number of examples in each bin</p></li>
 </ul>
 </p>
 </dd>

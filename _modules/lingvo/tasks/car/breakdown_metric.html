@@ -848,7 +848,8 @@
       <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-      <span class="n">calibration_summaries</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">difficulty</span><span class="p">)</span>
+      <span class="c1"># Note that we only generate a calibration for a single difficulty level.</span>
+      <span class="n">calibration_summaries</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">calibration_summary</span> <span class="ow">in</span> <span class="n">calibration_summaries</span><span class="p">:</span>
         <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calibration_summary</span><span class="p">)</span>
 
