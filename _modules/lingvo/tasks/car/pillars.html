@@ -383,13 +383,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">Contract</span><span class="p">(</span><span class="n">down_strides</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">Expand</span><span class="p">(</span><span class="n">odims</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Builder.Detector"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Detector">[docs]</a>  <span class="k">def</span> <span class="nf">Detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.Detector"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.Builder.Detector">[docs]</a>  <span class="k">def</span> <span class="nf">Detector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">conv_init_method</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">bias_params_init</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="c1"># Implemented according to VoxelNet</span>
     <span class="c1"># https://arxiv.org/pdf/1711.06396.pdf</span>
     <span class="c1"># May add more Conv2D layers before predictor for better performance.</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
         <span class="n">name</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ConvPlain</span><span class="p">(</span><span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">)),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ConvPlain</span><span class="p">(</span><span class="s1">&#39;predict&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
+                        <span class="n">conv_init_method</span><span class="o">=</span><span class="n">conv_init_method</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;predict_bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">,</span> <span class="n">bias_params_init</span><span class="p">))</span></div></div>
 
 <span class="c1"># pyformat: enable</span>
