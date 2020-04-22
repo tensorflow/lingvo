@@ -418,6 +418,17 @@ class PyUtilsTest(test_utils.TestCase):
       x = py_utils.Log(x, 'testLog', x=x, y=y)
       self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
 
+  def testDebug(self):
+    with self.session():
+      x = tf.constant([[1, 2], [3, 4]])
+      y = tf.constant([11] * 4)
+      z = tf.constant([22] * 4)
+      x = py_utils.Debug(x, 'msg')
+      self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
+
+      x = py_utils.Debug(x, 'msg', more=[y, z])
+      self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
+
   def testSave(self):
     with self.session() as sess:
       x = tf.constant([[1, 2], [3, 4]])

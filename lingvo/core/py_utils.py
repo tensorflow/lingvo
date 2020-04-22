@@ -24,8 +24,10 @@ import collections as py_collections
 import contextlib
 import functools
 import hashlib
+import inspect
 import math
 import numbers
+import os
 import pkgutil
 import re
 import threading
@@ -285,6 +287,73 @@ def Log(value, prefix, **kwargs):
       last = tf.py_func(_Print, [prefix + ' : ' + k, kwargs[k]], [])
   with tf.control_dependencies([last]):
     return tf.identity(value)
+
+
+def Debug(tensor, message='', enabled=True, summarize=100, more=None):
+  """Wrapper around tf.Print() and tf.logging.info() to simplify debug printing.
+
+  x = py_utils.Debug(x)
+
+  When the graph is built a regular log info line will be printed:
+  -DBG- py_utils_test.py:429 x=Tensor(...
+
+  Then when the tensor node is evaluated it will print lines like:
+  -DBG- py_utils_test.py:429 x Const:0[shape=][2 2][x=][[1 2][3 4]]
+
+  WARNING: The code that parses local variable names can fail. E.g. don't write
+  two Debug() calls on one line.
+
+  Args:
+     tensor: A tensor to print.
+     message: A message to print.
+     enabled: To enable the debugging.
+     summarize: Integer with number of tensor values to print.
+     more: An optional list of additional tensors.
+
+  Returns:
+    The tensor.
+  """
+  if not enabled:
+    return tensor
+
+  if more is None:
+    more = []
+
+  caller = inspect.getframeinfo(inspect.stack()[1][0])
+
+  caller_var = ''
+  caller_more_vars = []
+  if caller.code_context:
+    # Rough and likely to fail. But better than nothing.
+    caller_var = re.compile(r'Debug\((.*?)(\)|,).*$').search(
+        caller.code_context[0]).groups()[0]
+    if more:
+      more_vars = re.compile(r'more=\[(.*?)\].*$').search(
+          caller.code_context[0]).groups()[0]
+      caller_more_vars = more_vars.split(',')
+
+  header = '-DBG- {}:{} {} '.format(
+      os.path.basename(caller.filename), caller.lineno, message)
+
+  info = '{}{}={}'.format(header, caller_var, tensor)
+  for name, val in zip(caller_more_vars, more):
+    info += ' {}={}'.format(name.strip(), val)
+  tf.logging.info(info)
+
+  if isinstance(tensor, tf.Tensor):
+    tensors = [
+        tf.constant('shape='),
+        tf.shape(tensor),
+        tf.constant('{}='.format(caller_var)), tensor
+    ]
+    for name, val in zip(caller_more_vars, more):
+      tensors.append(tf.constant('{}='.format(name.strip())))
+      tensors.append(val)
+
+    info = '{}{} {}'.format(header, caller_var, tensor.name)
+    return tf.Print(tensor, tensors, info, summarize=summarize)
+
+  return tensor
 
 
 def _Save(steps, prefix, key, val):
@@ -690,7 +759,8 @@ class NestedMap(dict):
   @staticmethod
   def CheckKey(key):
     """Asserts that key is valid NestedMap key."""
-    assert isinstance(key, six.string_types) and _NAME_PATTERN.match(key), key
+    if not (isinstance(key, six.string_types) and _NAME_PATTERN.match(key)):
+      raise ValueError('Invalid NestedMap key \'{}\''.format(key))
 
   def GetItem(self, key):
     """Gets the value for the nested `key`.
