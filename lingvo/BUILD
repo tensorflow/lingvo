@@ -56,7 +56,7 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "compat_test",
     srcs = ["compat_test.py"],
     deps = [
@@ -85,7 +85,7 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
     deps = [
@@ -109,7 +109,7 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "models_test",
     srcs = ["models_test.py"],
     deps = [
@@ -133,7 +133,7 @@ py_library(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
     deps = [":model_registry_test_lib"],
@@ -199,7 +199,7 @@ lingvo_py_binary(
     ],
 )
 
-py_test(
+py2and3_test(
     name = "trainer_test",
     size = "large",
     srcs = ["trainer_test.py"],

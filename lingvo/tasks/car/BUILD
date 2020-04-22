@@ -1,5 +1,4 @@
 # Car related tasks.
-load("//lingvo:lingvo.bzl", "py2and3_test")
 
 package(default_visibility = [
     "//visibility:public",
@@ -46,6 +45,7 @@ py_library(
 py_test(
     name = "detection_decoder_test",
     srcs = ["detection_decoder_test.py"],
+    python_version = "PY3",
     deps = [
         ":detection_decoder",
         "//lingvo:compat",
@@ -76,6 +76,7 @@ py_library(
 py_test(
     name = "detection_3d_metrics_test",
     srcs = ["detection_3d_metrics_test.py"],
+    python_version = "PY3",
     deps = [
         ":detection_3d_metrics",
         ":transform_util",
@@ -89,6 +90,7 @@ py_test(
 py_test(
     name = "detection_3d_lib_test",
     srcs = ["detection_3d_lib_test.py"],
+    python_version = "PY3",
     deps = [
         ":detection_3d_lib",
         "//lingvo:compat",
@@ -101,6 +103,7 @@ py_test(
 py_test(
     name = "car_layers_test",
     srcs = ["car_layers_test.py"],
+    python_version = "PY3",
     deps = [
         ":car_layers",
         "//lingvo:compat",
@@ -143,6 +146,7 @@ py_library(
 py_test(
     name = "calibration_processing_test",
     srcs = ["calibration_processing_test.py"],
+    python_version = "PY3",
     deps = [
         ":calibration_processing",
         ":kitti_metadata",
@@ -171,6 +175,7 @@ py_library(
 py_test(
     name = "breakdown_metric_test",
     srcs = ["breakdown_metric_test.py"],
+    python_version = "PY3",
     deps = [
         ":breakdown_metric",
         ":kitti_ap_metric",
@@ -201,6 +206,7 @@ py_library(
 py_test(
     name = "builder_lib_test",
     srcs = ["builder_lib_test.py"],
+    python_version = "PY3",
     shard_count = 2,
     deps = [
         ":builder_lib",
@@ -259,6 +265,7 @@ py_library(
 py_test(
     name = "input_extractor_test",
     srcs = ["input_extractor_test.py"],
+    python_version = "PY3",
     deps = [
         ":input_extractor",
         ":input_preprocessors",
@@ -356,6 +363,7 @@ py_test(
     name = "lr_util_test",
     size = "small",
     srcs = ["lr_util_test.py"],
+    python_version = "PY3",
     deps = [
         ":kitti_input_generator",
         ":lr_util",
@@ -448,6 +456,7 @@ py_library(
 py_test(
     name = "pointnet_test",
     srcs = ["pointnet_test.py"],
+    python_version = "PY3",
     deps = [
         ":pointnet",
         # Implicit absl.testing.parameterized dependency.
@@ -460,6 +469,7 @@ py_test(
 py_test(
     name = "summary_test",
     srcs = ["summary_test.py"],
+    python_version = "PY3",
     deps = [
         ":summary",
         "//lingvo:compat",
@@ -486,6 +496,7 @@ py_test(
     srcs = [
         "transform_util_test.py",
     ],
+    python_version = "PY3",
     deps = [
         ":transform_util",
         "//lingvo:compat",
@@ -496,6 +507,7 @@ py_test(
 py_test(
     name = "car_lib_test",
     srcs = ["car_lib_test.py"],
+    python_version = "PY3",
     deps = [
         ":car_lib",
         "//lingvo:compat",
@@ -508,6 +520,7 @@ py_test(
 py_test(
     name = "geometry_test",
     srcs = ["geometry_test.py"],
+    python_version = "PY3",
     deps = [
         ":geometry",
         "//lingvo:compat",
