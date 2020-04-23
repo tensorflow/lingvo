@@ -2898,5 +2898,30 @@ class TopKTest(test_utils.TestCase):
       self.assertAllEqual(v3, v4)
 
 
+class TpuSummaryTensorsTest(test_utils.TestCase):
+
+  def testTpuSummaryTensors(self):
+    with self.session() as sess:
+      with tf.name_scope('fprop'):
+        with tf.name_scope('tower_0_0'):
+          with tf.name_scope('fprop'):
+            with tf.name_scope('my_model'):
+              with tf.name_scope('layer_001'):
+                with tf.name_scope('fprop'):
+                  x = tf.constant(0., name='inputs')
+                  py_utils.AddTpuSummaryTensor('mean_x', tf.reduce_mean(x))
+              with tf.name_scope('layer_002'):
+                with tf.name_scope('fprop'):
+                  x = tf.identity(x, name='inputs')
+                  py_utils.AddTpuSummaryTensor('mean_x', tf.reduce_mean(x))
+      tpu_summary_tensors = py_utils.GetTpuSummaryTensors()
+      actual_value = sess.run([tpu_summary_tensors])
+      expected_value = [{
+          'mean_x/fprop/tower_0_0/fprop/my_model/layer_001/fprop': (0., 1.),
+          'mean_x/fprop/tower_0_0/fprop/my_model/layer_002/fprop': (0., 1.),
+      }]
+      self.assertAllEqual(expected_value, actual_value)
+
+
 if __name__ == '__main__':
   tf.test.main()

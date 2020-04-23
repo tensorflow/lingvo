@@ -4181,3 +4181,52 @@ def ReadVariable(var_op):
 
   assert var_op.type in ['Variable', 'VariableV2']
   return var_op.outputs[0]
+
+
+_TPU_SUMMARY_TENSORS_KEY = ('__lingvo_tpu_summary_tensors')
+
+_get_tpu_summary_tensors = _CollectionGetter(_TPU_SUMMARY_TENSORS_KEY,
+                                             lambda: [])
+
+
+def AddTpuSummaryTensor(name, value, weight=1.0):
+  """Adds tensor to global collection of summaries.
+
+  This needs to be used in situations where tf.summary() could be used but
+  currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in
+  low level code to add summary tensors to global collection of summaries.
+  Then recover all summary tensors from global collection by calling
+  py_utils.GetTpuSummaryTensors() from top level code (for example from
+  ComputeLoss method of BaseTask).
+
+  In addition to 'name' argument, current tensorflow name scope is also
+  captured and added to the metric name. This way for example summaries from
+  a repeated layer will appear as separate graphs in the tensorboard.
+
+  Weight argument is optional and defaults to 1.0. See BaseTask.ComputeLoss for
+  the exact definition of weight for eval metrics.
+
+  Args:
+    name: metric name
+    value: metric value tensor
+    weight: weight tensor for weighted metrics
+  """
+  tpu_summary_tensors = _get_tpu_summary_tensors()
+  x = NestedMap()
+  x.name = name
+  x.value = value, tf.convert_to_tensor(weight)
+  x.name_scope = tf.get_default_graph().get_name_scope()
+  tpu_summary_tensors.append(x)
+
+
+def GetTpuSummaryTensors():
+  """Returns summary tensors from global collection.
+
+  Returns:
+    A dict containing str keys and (metric, weight) pairs as values
+  """
+  tpu_summary_tensors = _get_tpu_summary_tensors()
+  return {
+      '%s/%s' % (x.name, SanitizeScopeKey(x.name_scope)): x.value
+      for x in tpu_summary_tensors
+  }
