@@ -79,6 +79,7 @@ def GenericInput(processor, **kwargs):
   """
   output_tmpl = py_utils.NestedMap()
 
+  @tf.function(autograph=False)
   def _FlatOutputProcessor(source_id, record):
     """Returns a flattened list of 'processor(inputs)'."""
     processor_spec = tf_inspect.getargspec(processor)
@@ -116,10 +117,11 @@ def GenericInput(processor, **kwargs):
                                                    function.get_extra_args()))
     return flat_output_tmpl + [bucketing_key]
 
-  proc_fn = tf.Defun(tf.int32, tf.string)(_FlatOutputProcessor)
+  proc_fn = _FlatOutputProcessor.get_concrete_function(
+      tf.TensorSpec([], tf.int32), tf.TensorSpec([], tf.string))
 
   out_types = [
-      tf.DType(a.type) for a in proc_fn.definition.signature.output_arg
+      tf.DType(a.type) for a in proc_fn.function_def.signature.output_arg
   ]
   assert out_types[-1] == tf.int32, ('%s is not expected.' % out_types[-1])
   flat_outputs, bucket_keys = ops.gen_x_ops.generic_input(
