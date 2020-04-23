@@ -1,4 +1,3 @@
-load("//lingvo:lingvo.bzl", "py2and3_test")
 load(
     "//lingvo:lingvo.bzl",
     "lingvo_py_binary",
@@ -56,9 +55,10 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "compat_test",
     srcs = ["compat_test.py"],
+    python_version = "PY3",
     deps = [
         ":compat",
     ],
@@ -85,9 +85,10 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_import_test",
     srcs = ["model_import_test.py"],
+    python_version = "PY3",
     deps = [
         ":compat",
         ":model_imports_no_params",
@@ -109,9 +110,10 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "models_test",
     srcs = ["models_test.py"],
+    python_version = "PY3",
     deps = [
         ":compat",
         ":model_imports",
@@ -133,9 +135,10 @@ py_library(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "model_registry_test",
     srcs = ["model_registry_test.py"],
+    python_version = "PY3",
     deps = [":model_registry_test_lib"],
 )
 
@@ -199,10 +202,11 @@ lingvo_py_binary(
     ],
 )
 
-py2and3_test(
+py_test(
     name = "trainer_test",
     size = "large",
     srcs = ["trainer_test.py"],
+    python_version = "PY3",
     shard_count = 5,
     tags = [
         "noasan",
