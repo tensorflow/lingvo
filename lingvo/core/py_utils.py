@@ -89,6 +89,9 @@ tf.flags.DEFINE_bool(
     'variable handles directly for weight-sharing / multi-core '
     'inference on TPUs.')
 
+tf.flags.DEFINE_bool('disable_py_utils_debug', False,
+                     'If True disables all py_utils.Debug() logs.')
+
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
 # 1) They require app.run() or explicit flag parsing, preventing the use of
@@ -298,10 +301,10 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
   -DBG- py_utils_test.py:429 x=Tensor(...
 
   Then when the tensor node is evaluated it will print lines like:
-  -DBG- py_utils_test.py:429 x Const:0[shape=][2 2][x=][[1 2][3 4]]
+  -DBG- py_utils_test.py:429 x Const:0[x.shape=][2 2][x=][[1 2][3 4]]
 
   WARNING: The code that parses local variable names can fail. E.g. don't write
-  two Debug() calls on one line.
+  two Debug() calls on one line or a Debug() call that spans more than one line.
 
   Args:
      tensor: A tensor to print.
@@ -313,13 +316,14 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
   Returns:
     The tensor.
   """
-  if not enabled:
+  if not enabled or _FromGlobal('disable_py_utils_debug'):
     return tensor
 
   if more is None:
     more = []
 
-  caller = inspect.getframeinfo(inspect.stack()[1][0])
+  stack = inspect.stack()[1][0]
+  caller = inspect.getframeinfo(stack)
 
   caller_var = ''
   caller_more_vars = []
@@ -332,8 +336,12 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
           caller.code_context[0]).groups()[0]
       caller_more_vars = more_vars.split(',')
 
-  header = '-DBG- {}:{} {} '.format(
-      os.path.basename(caller.filename), caller.lineno, message)
+  the_class = ''
+  if 'self' in stack.f_locals:
+    the_class = stack.f_locals['self'].__class__.__name__
+  header = '-DBG- {}:{}:{}:{} {} '.format(
+      os.path.basename(caller.filename), the_class, caller.function,
+      caller.lineno, message)
 
   info = '{}{}={}'.format(header, caller_var, tensor)
   for name, val in zip(caller_more_vars, more):
@@ -341,14 +349,14 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
   tf.logging.info(info)
 
   if isinstance(tensor, tf.Tensor):
-    tensors = [
-        tf.constant('shape='),
-        tf.shape(tensor),
-        tf.constant('{}='.format(caller_var)), tensor
-    ]
+    tensors = []
+    tensors += [tf.constant('{}.shape='.format(caller_var)), tf.shape(tensor)]
     for name, val in zip(caller_more_vars, more):
-      tensors.append(tf.constant('{}='.format(name.strip())))
-      tensors.append(val)
+      tensors += [tf.constant('{}.shape='.format(name.strip())), tf.shape(val)]
+
+    tensors += [tf.constant('{}='.format(caller_var)), tensor]
+    for name, val in zip(caller_more_vars, more):
+      tensors += [tf.constant('{}='.format(name.strip())), val]
 
     info = '{}{} {}'.format(header, caller_var, tensor.name)
     return tf.Print(tensor, tensors, info, summarize=summarize)
