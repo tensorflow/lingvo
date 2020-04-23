@@ -447,6 +447,36 @@ class ModelV1(point_detector.PointDetectorBase):
 
     return ret
 
+  def _ComputeClassificationLoss(self, predictions, input_batch, class_weights):
+    """Compute classification loss for the given predictions.
+
+    Args:
+      predictions: The output of `ComputePredictions`, contains: logits - [b,
+        nx, ny, nz, na, 7 + num_classes]. na is the number of anchor
+        boxes per cell. [..., :7] are (dx, dy, dz, dw, dl, dh, dt).
+      input_batch: The input batch from which we accesses the groundtruth.
+      class_weights: Per-class weights to use in loss computation.
+
+    Returns:
+      Classification loss.
+
+    """
+    p = self.params
+    predicted_class_logits = py_utils.HasShape(
+        predictions.classification_logits,
+        [-1, -1, -1, -1, p.num_anchors, p.num_classes])
+    bs, nx, ny, nz, na, _ = py_utils.GetShape(predicted_class_logits, 6)
+    assigned_gt_labels = py_utils.HasShape(input_batch.assigned_gt_labels,
+                                           [bs, nx, ny, nz, na])
+    class_loss = py_utils.SigmoidCrossEntropyFocalLoss(
+        logits=predicted_class_logits,
+        labels=tf.one_hot(assigned_gt_labels, p.num_classes),
+        alpha=p.focal_loss_alpha,
+        gamma=p.focal_loss_gamma)
+    class_loss *= class_weights[..., tf.newaxis]
+    class_loss_sum = tf.reduce_sum(class_loss)
+    return class_loss_sum
+
   def ComputeLoss(self, theta, predictions, input_batch):
     """Computes loss and other metrics for the given predictions.
 
@@ -490,15 +520,8 @@ class ModelV1(point_detector.PointDetectorBase):
       reg_weights /= loss_normalization
 
     # Classification loss.
-    assigned_gt_labels = py_utils.HasShape(input_batch.assigned_gt_labels,
-                                           [bs, nx, ny, nz, na])
-    class_loss = py_utils.SigmoidCrossEntropyFocalLoss(
-        logits=predicted_class_logits,
-        labels=tf.one_hot(assigned_gt_labels, p.num_classes),
-        alpha=p.focal_loss_alpha,
-        gamma=p.focal_loss_gamma)
-    class_loss *= class_weights[..., tf.newaxis]
-    class_loss_sum = tf.reduce_sum(class_loss)
+    class_loss_sum = self._ComputeClassificationLoss(predictions, input_batch,
+                                                     class_weights)
 
     # Regression loss.
     anchor_localization_residuals = py_utils.HasShape(
