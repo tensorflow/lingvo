@@ -151,7 +151,8 @@ class Learner(base_layer.BaseLayer):
   def LearningRate(self, step):
     p = self.params
     lrs = self.lr_schedule.Value(step)
-    self._AddScalarSummary('lr_schedule', lrs)
+    lrs.set_shape([])
+    self._AddEvalMetric('lr_schedule', lrs, tf.constant(1.0))
     return p.learning_rate * lrs
 
   def Apply(self, loss, vmap, gradient_mask=None, gradient_adjuster=None):
@@ -219,13 +220,13 @@ class Learner(base_layer.BaseLayer):
     if p.l2_regularizer_weight is not None:
       l2_loss, var_grads = py_utils.AdjustGradientsWithLpLoss(
           var_grads, p.l2_regularizer_weight, p=2.0)
-      self._AddScalarSummary('l2_loss', l2_loss)
+      self._AddEvalMetric('l2_loss', l2_loss, tf.constant(1.0))
 
     # L1 regularizer.
     if p.l1_regularizer_weight is not None:
       l1_loss, var_grads = py_utils.AdjustGradientsWithLpLoss(
           var_grads, p.l1_regularizer_weight, p=1.0)
-      self._AddScalarSummary('l1_loss', l1_loss)
+      self._AddEvalMetric('l1_loss', l1_loss, tf.constant(1.0))
 
     # Mask gradients only if the mask is set.
     if gradient_mask:
@@ -343,10 +344,6 @@ class Learner(base_layer.BaseLayer):
 
   def _AddEvalMetric(self, key, value, weight):
     self._eval_metrics[key] = (value, weight)
-
-  def _AddScalarSummary(self, key, value):
-    summary_utils.scalar('%s/%s' % (key, self.params.name), value)
-
 
 _LEGACY_LEARNER_PARAMS = [
     'bprop_variable_filter',
