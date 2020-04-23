@@ -343,6 +343,26 @@ overridden if desired.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.car.pillars.ModelV1._ComputeClassificationLoss">
+<code class="sig-name descname">_ComputeClassificationLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em>, <em class="sig-param"><span class="n">class_weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ModelV1._ComputeClassificationLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1._ComputeClassificationLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute classification loss for the given predictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>predictions</strong> – The output of <a class="reference internal" href="#lingvo.tasks.car.pillars.ModelV1.ComputePredictions" title="lingvo.tasks.car.pillars.ModelV1.ComputePredictions"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ComputePredictions</span></code></a>, contains: logits - [b,
+nx, ny, nz, na, 7 + num_classes]. na is the number of anchor
+boxes per cell. […, :7] are (dx, dy, dz, dw, dl, dh, dt).</p></li>
+<li><p><strong>input_batch</strong> – The input batch from which we accesses the groundtruth.</p></li>
+<li><p><strong>class_weights</strong> – Per-class weights to use in loss computation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Classification loss.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.car.pillars.ModelV1.ComputeLoss">
 <code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">input_batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/pillars.html#ModelV1.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.pillars.ModelV1.ComputeLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes loss and other metrics for the given predictions.</p>

@@ -592,6 +592,36 @@
 
     <span class="k">return</span> <span class="n">ret</span></div>
 
+<div class="viewcode-block" id="ModelV1._ComputeClassificationLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1._ComputeClassificationLoss">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeClassificationLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">class_weights</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute classification loss for the given predictions.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      predictions: The output of `ComputePredictions`, contains: logits - [b,</span>
+<span class="sd">        nx, ny, nz, na, 7 + num_classes]. na is the number of anchor</span>
+<span class="sd">        boxes per cell. [..., :7] are (dx, dy, dz, dw, dl, dh, dt).</span>
+<span class="sd">      input_batch: The input batch from which we accesses the groundtruth.</span>
+<span class="sd">      class_weights: Per-class weights to use in loss computation.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Classification loss.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">predicted_class_logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">,</span>
+        <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_anchors</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">])</span>
+    <span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">predicted_class_logits</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+    <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
+                                           <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
+    <span class="n">class_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SigmoidCrossEntropyFocalLoss</span><span class="p">(</span>
+        <span class="n">logits</span><span class="o">=</span><span class="n">predicted_class_logits</span><span class="p">,</span>
+        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">assigned_gt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
+        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
+    <span class="n">class_loss</span> <span class="o">*=</span> <span class="n">class_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="n">class_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">class_loss</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">class_loss_sum</span></div>
+
 <div class="viewcode-block" id="ModelV1.ComputeLoss"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes loss and other metrics for the given predictions.</span>
 
@@ -635,15 +665,8 @@
       <span class="n">reg_weights</span> <span class="o">/=</span> <span class="n">loss_normalization</span>
 
     <span class="c1"># Classification loss.</span>
-    <span class="n">assigned_gt_labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">,</span>
-                                           <span class="p">[</span><span class="n">bs</span><span class="p">,</span> <span class="n">nx</span><span class="p">,</span> <span class="n">ny</span><span class="p">,</span> <span class="n">nz</span><span class="p">,</span> <span class="n">na</span><span class="p">])</span>
-    <span class="n">class_loss</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SigmoidCrossEntropyFocalLoss</span><span class="p">(</span>
-        <span class="n">logits</span><span class="o">=</span><span class="n">predicted_class_logits</span><span class="p">,</span>
-        <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">assigned_gt_labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
-        <span class="n">alpha</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_alpha</span><span class="p">,</span>
-        <span class="n">gamma</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">focal_loss_gamma</span><span class="p">)</span>
-    <span class="n">class_loss</span> <span class="o">*=</span> <span class="n">class_weights</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
-    <span class="n">class_loss_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">class_loss</span><span class="p">)</span>
+    <span class="n">class_loss_sum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeClassificationLoss</span><span class="p">(</span><span class="n">predictions</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span>
+                                                     <span class="n">class_weights</span><span class="p">)</span>
 
     <span class="c1"># Regression loss.</span>
     <span class="n">anchor_localization_residuals</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>

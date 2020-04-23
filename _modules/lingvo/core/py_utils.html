@@ -234,6 +234,9 @@
     <span class="s1">&#39;variable handles directly for weight-sharing / multi-core &#39;</span>
     <span class="s1">&#39;inference on TPUs.&#39;</span><span class="p">)</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;disable_py_utils_debug&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True disables all py_utils.Debug() logs.&#39;</span><span class="p">)</span>
+
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
 <span class="c1"># 1) They require app.run() or explicit flag parsing, preventing the use of</span>
@@ -443,10 +446,10 @@
 <span class="sd">  -DBG- py_utils_test.py:429 x=Tensor(...</span>
 
 <span class="sd">  Then when the tensor node is evaluated it will print lines like:</span>
-<span class="sd">  -DBG- py_utils_test.py:429 x Const:0[shape=][2 2][x=][[1 2][3 4]]</span>
+<span class="sd">  -DBG- py_utils_test.py:429 x Const:0[x.shape=][2 2][x=][[1 2][3 4]]</span>
 
 <span class="sd">  WARNING: The code that parses local variable names can fail. E.g. don&#39;t write</span>
-<span class="sd">  two Debug() calls on one line.</span>
+<span class="sd">  two Debug() calls on one line or a Debug() call that spans more than one line.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">     tensor: A tensor to print.</span>
@@ -458,13 +461,14 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    The tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span><span class="p">:</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">enabled</span> <span class="ow">or</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;disable_py_utils_debug&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tensor</span>
 
   <span class="k">if</span> <span class="n">more</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">more</span> <span class="o">=</span> <span class="p">[]</span>
 
-  <span class="n">caller</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getframeinfo</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+  <span class="n">stack</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+  <span class="n">caller</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getframeinfo</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span>
 
   <span class="n">caller_var</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
   <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="p">[]</span>
@@ -477,8 +481,12 @@
           <span class="n">caller</span><span class="o">.</span><span class="n">code_context</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">.</span><span class="n">groups</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">caller_more_vars</span> <span class="o">=</span> <span class="n">more_vars</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
 
-  <span class="n">header</span> <span class="o">=</span> <span class="s1">&#39;-DBG- </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-      <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">filename</span><span class="p">),</span> <span class="n">caller</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
+  <span class="n">the_class</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+  <span class="k">if</span> <span class="s1">&#39;self&#39;</span> <span class="ow">in</span> <span class="n">stack</span><span class="o">.</span><span class="n">f_locals</span><span class="p">:</span>
+    <span class="n">the_class</span> <span class="o">=</span> <span class="n">stack</span><span class="o">.</span><span class="n">f_locals</span><span class="p">[</span><span class="s1">&#39;self&#39;</span><span class="p">]</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span>
+  <span class="n">header</span> <span class="o">=</span> <span class="s1">&#39;-DBG- </span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1">:</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1"> &#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+      <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="n">caller</span><span class="o">.</span><span class="n">filename</span><span class="p">),</span> <span class="n">the_class</span><span class="p">,</span> <span class="n">caller</span><span class="o">.</span><span class="n">function</span><span class="p">,</span>
+      <span class="n">caller</span><span class="o">.</span><span class="n">lineno</span><span class="p">,</span> <span class="n">message</span><span class="p">)</span>
 
   <span class="n">info</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1">=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">caller_var</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">caller_more_vars</span><span class="p">,</span> <span class="n">more</span><span class="p">):</span>
@@ -486,14 +494,14 @@
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">info</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
-    <span class="n">tensors</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;shape=&#39;</span><span class="p">),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caller_var</span><span class="p">)),</span> <span class="n">tensor</span>
-    <span class="p">]</span>
+    <span class="n">tensors</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">tensors</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.shape=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caller_var</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)]</span>
     <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">caller_more_vars</span><span class="p">,</span> <span class="n">more</span><span class="p">):</span>
-      <span class="n">tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())))</span>
-      <span class="n">tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+      <span class="n">tensors</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.shape=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">val</span><span class="p">)]</span>
+
+    <span class="n">tensors</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">caller_var</span><span class="p">)),</span> <span class="n">tensor</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">caller_more_vars</span><span class="p">,</span> <span class="n">more</span><span class="p">):</span>
+      <span class="n">tensors</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">=&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="o">.</span><span class="n">strip</span><span class="p">())),</span> <span class="n">val</span><span class="p">]</span>
 
     <span class="n">info</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">header</span><span class="p">,</span> <span class="n">caller_var</span><span class="p">,</span> <span class="n">tensor</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">Print</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">tensors</span><span class="p">,</span> <span class="n">info</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">summarize</span><span class="p">)</span>
