@@ -4326,6 +4326,55 @@
 
   <span class="k">assert</span> <span class="n">var_op</span><span class="o">.</span><span class="n">type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Variable&#39;</span><span class="p">,</span> <span class="s1">&#39;VariableV2&#39;</span><span class="p">]</span>
   <span class="k">return</span> <span class="n">var_op</span><span class="o">.</span><span class="n">outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+
+
+<span class="n">_TPU_SUMMARY_TENSORS_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_tpu_summary_tensors&#39;</span><span class="p">)</span>
+
+<span class="n">_get_tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_TPU_SUMMARY_TENSORS_KEY</span><span class="p">,</span>
+                                             <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+
+
+<div class="viewcode-block" id="AddTpuSummaryTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddTpuSummaryTensor">[docs]</a><span class="k">def</span> <span class="nf">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">1.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Adds tensor to global collection of summaries.</span>
+
+<span class="sd">  This needs to be used in situations where tf.summary() could be used but</span>
+<span class="sd">  currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in</span>
+<span class="sd">  low level code to add summary tensors to global collection of summaries.</span>
+<span class="sd">  Then recover all summary tensors from global collection by calling</span>
+<span class="sd">  py_utils.GetTpuSummaryTensors() from top level code (for example from</span>
+<span class="sd">  ComputeLoss method of BaseTask).</span>
+
+<span class="sd">  In addition to &#39;name&#39; argument, current tensorflow name scope is also</span>
+<span class="sd">  captured and added to the metric name. This way for example summaries from</span>
+<span class="sd">  a repeated layer will appear as separate graphs in the tensorboard.</span>
+
+<span class="sd">  Weight argument is optional and defaults to 1.0. See BaseTask.ComputeLoss for</span>
+<span class="sd">  the exact definition of weight for eval metrics.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: metric name</span>
+<span class="sd">    value: metric value tensor</span>
+<span class="sd">    weight: weight tensor for weighted metrics</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_get_tpu_summary_tensors</span><span class="p">()</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">value</span> <span class="o">=</span> <span class="n">value</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">weight</span><span class="p">)</span>
+  <span class="n">x</span><span class="o">.</span><span class="n">name_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">get_name_scope</span><span class="p">()</span>
+  <span class="n">tpu_summary_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="GetTpuSummaryTensors"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetTpuSummaryTensors">[docs]</a><span class="k">def</span> <span class="nf">GetTpuSummaryTensors</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns summary tensors from global collection.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dict containing str keys and (metric, weight) pairs as values</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">tpu_summary_tensors</span> <span class="o">=</span> <span class="n">_get_tpu_summary_tensors</span><span class="p">()</span>
+  <span class="k">return</span> <span class="p">{</span>
+      <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name_scope</span><span class="p">)):</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
+      <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tpu_summary_tensors</span>
+  <span class="p">}</span></div>
 </pre></div>
 
            </div>

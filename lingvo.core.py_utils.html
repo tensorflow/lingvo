@@ -2463,6 +2463,43 @@ Variable and VariableV2.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.py_utils.AddTpuSummaryTensor">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">AddTpuSummaryTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">weight</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#AddTpuSummaryTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.AddTpuSummaryTensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds tensor to global collection of summaries.</p>
+<p>This needs to be used in situations where tf.summary() could be used but
+currently tf.summary is not supported. Use py_utils.AddTpuSummaryTensor() in
+low level code to add summary tensors to global collection of summaries.
+Then recover all summary tensors from global collection by calling
+py_utils.GetTpuSummaryTensors() from top level code (for example from
+ComputeLoss method of BaseTask).</p>
+<p>In addition to ‘name’ argument, current tensorflow name scope is also
+captured and added to the metric name. This way for example summaries from
+a repeated layer will appear as separate graphs in the tensorboard.</p>
+<p>Weight argument is optional and defaults to 1.0. See BaseTask.ComputeLoss for
+the exact definition of weight for eval metrics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – metric name</p></li>
+<li><p><strong>value</strong> – metric value tensor</p></li>
+<li><p><strong>weight</strong> – weight tensor for weighted metrics</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.GetTpuSummaryTensors">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GetTpuSummaryTensors</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetTpuSummaryTensors"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetTpuSummaryTensors" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns summary tensors from global collection.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A dict containing str keys and (metric, weight) pairs as values</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
