@@ -1125,7 +1125,7 @@ new_name_format will be interpolated using the matched groups.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.CreateVariable">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CreateVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">init_wrapper=None</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateVariable" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CreateVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates tf.Variable according to param_config.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1136,9 +1136,6 @@ constructed and initialized.</p></li>
 <li><p><strong>reuse</strong> – Whether or not to reuse an existing variable. It has the same
 semantics as the reuse arg in tf.variable_scope.</p></li>
 <li><p><strong>trainable</strong> – Whether or not the variable is trainable.</p></li>
-<li><p><strong>init_wrapper</strong> – a callback which takes a tf initializer callable and returns a
-tensor. It is used when shape of the variable isn’t statically
-determinable.</p></li>
 <li><p><strong>collections</strong> – Override the default variable collection (
 tf.GraphKeys.GLOBAL_VARIABLES).</p></li>
 <li><p><strong>default_seed</strong> – Seed to use for initialization if not specified in params.
