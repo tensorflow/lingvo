@@ -61,7 +61,7 @@ def get_caller(stack_index=2, root_dir=None):
 LOG_TEMPLATE = ':::MLL {:.3f} {}: {{"value": {}, "metadata": {}}}'
 
 
-def mlperf_format(key, value, stack_offset=0, metadata=None):
+def mlperf_format(key, value, now, stack_offset=0, metadata=None):
   """Format a message for MLPerf."""
   if metadata is None:
     metadata = {}
@@ -71,12 +71,13 @@ def mlperf_format(key, value, stack_offset=0, metadata=None):
     metadata['lineno'] = lineno
     metadata['file'] = filename
 
-  now = time.time()
   msg = LOG_TEMPLATE.format(now, key, json.dumps(value), json.dumps(metadata))
   return msg
 
 
 def mlperf_print(key, value, stack_offset=0, metadata=None):
+  now = time.time()
   LOGGER.info(
       mlperf_format(
-          key, value, stack_offset=stack_offset + 1, metadata=metadata))
+          key, value, now, stack_offset=stack_offset + 1, metadata=metadata))
+  return now

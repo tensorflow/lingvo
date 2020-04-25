@@ -299,9 +299,9 @@ py_library(
     srcs = ["executor.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":base_runner",
         ":compat",
         # Implicit network file system dependency.
+        "//lingvo:base_runner",
         "//lingvo/core:base_model",
         "//lingvo/core:checkpointer_lib",
         "//lingvo/core:cluster_factory",

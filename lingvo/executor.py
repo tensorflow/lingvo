@@ -21,8 +21,6 @@ from __future__ import print_function
 
 import os
 
-
-from lingvo import base_runner
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import checkpointer
@@ -32,6 +30,7 @@ from lingvo.core import multitask_model
 from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 
+from lingvo import base_runner
 from tensorflow.python.tpu import device_assignment as device_assignment_lib  # pylint: disable=g-direct-tensorflow-import
 
 tf.flags.DEFINE_bool(
@@ -269,6 +268,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           for program in self._programs:
             program.BuildTpuSubgraph()
         for program in self._programs:
+          program.SetStatusMessageFn(self._SetStatusMessage)
           program.CreateCheckpointer()
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
@@ -293,9 +293,6 @@ class ExecutorTpu(base_runner.BaseRunner):
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
 
-      if self._ml_perf_log:
-        # Post-initialize/compile.
-        mlp_log.mlperf_print(key='run_start', value=None)
       while True:
         global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
@@ -314,7 +311,10 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Sampled %s', model_task)
           program_schedule = self._program_schedule_dict[model_task]
 
-        program_schedule.Run(sess)
+        done = program_schedule.Run(sess)
+        if done:
+          tf.logging.info('Program schedule told us to stop.')
+          return
 
         # TODO(blee): More complex saving rules. Currently, we assume
         # we save after every task's program schedule execution.
@@ -325,4 +325,5 @@ class ExecutorTpu(base_runner.BaseRunner):
         #   (train_executions_per_eval * train_steps_per_loop)
         # steps ahead already, due to program_schedule.Run(sess).
         #
-        self.save_only_checkpointer.Save(sess, py_utils.GetGlobalStep())
+        if not self._ml_perf_log:
+          self.save_only_checkpointer.Save(sess, py_utils.GetGlobalStep())

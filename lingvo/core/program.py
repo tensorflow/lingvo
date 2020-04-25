@@ -76,7 +76,6 @@ class BaseProgram(object):
     p.Define('name', 'base_program', 'Program name.')
     p.Define('task_name', None,
              'If multi-task, what the high-level task name is')
-    p.Define('ml_perf', None, 'MLPerf config')
 
     return p
 
@@ -84,12 +83,6 @@ class BaseProgram(object):
     self.params = params.Copy()
     p = self.params
     self._task_params = p.task
-    if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
-      self._ml_perf_log = True
-      self._ml_perf = p.ml_perf
-      self._ml_perf_epoch = -1
-    else:
-      self._ml_perf_log = False
     self._logdir = p.logdir
     self._task_name = p.task_name
     self._program_name = ''
@@ -116,6 +109,7 @@ class BaseProgram(object):
     self._infeed_pool = multiprocessing.dummy.Pool(1)
 
     self._compile_op = None
+    self._status_msg_fn = None
 
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
@@ -140,10 +134,20 @@ class BaseProgram(object):
     """
     raise NotImplementedError()
 
+  def SetStatusMessageFn(self, fn):
+    """Workaround since we instantiate programs via Params."""
+    self._status_msg_fn = fn
+
+  def SetStatusMessage(self, msg):
+    """Write to borglet status."""
+    tf.logging.info('Status: %s', msg)
+    if self._status_msg_fn:
+      self._status_msg_fn(msg)
+
   def Compile(self, sess):
     """Compile the program using the given session handle."""
     if self._compile_op is not None:
-      tf.logging.info('Compiling %s', self._program_name)
+      self.SetStatusMessage('Compiling %s' % self._program_name)
       result = sess.run(self._compile_op)
       proto = tpu_compilation_result.CompilationResultProto()
       proto.ParseFromString(result)
@@ -153,7 +157,14 @@ class BaseProgram(object):
       tf.logging.info('Compiling %s done.', self._program_name)
 
   def Run(self, sess):
-    """Execute the program using the given session handle."""
+    """Execute the program using the given session handle.
+
+    Args:
+      sess: TF Session.
+
+    Returns:
+      done: Whether to end all execution.
+    """
     raise NotImplementedError()
 
   def CreateCheckpointer(self):
@@ -261,15 +272,6 @@ class TrainProgram(BaseProgram):
 
   def BuildTpuSubgraph(self):
     tf.logging.info('TrainProgram BuildTpuSubGraph')
-    if self._ml_perf_log:
-      mlp_log.mlperf_print('global_batch_size', self._ml_perf.global_batch_size)
-      mlp_log.mlperf_print('max_sequence_length',
-                           self._ml_perf.max_sequence_length)
-      mlp_log.mlperf_print('opt_name', self._ml_perf.optimizer_name)
-      mlp_log.mlperf_print('opt_base_learning_rate',
-                           self._ml_perf.base_learning_rate)
-      mlp_log.mlperf_print('opt_learning_rate_warmup_steps',
-                           self._ml_perf.warmup_steps)
 
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
@@ -320,23 +322,9 @@ class TrainProgram(BaseProgram):
     return self.tpu_ops
 
   def Run(self, sess):
-    tf.logging.info('Executing train program for %s.', self._task_name)
     gsteps = py_utils.GetGlobalStep()
-
     global_step = sess.run(gsteps)
-    if self._ml_perf_log:
-      steps_per_epoch = self._ml_perf.steps_per_epoch
-      epoch = int(global_step) // steps_per_epoch
-      if epoch > self._ml_perf_epoch:
-        self._ml_perf_epoch = epoch
-        mlp_log.mlperf_print(
-            'block_start',
-            None,
-            metadata={
-                'first_epoch_num': epoch + 1,
-                'epoch_count': 1
-            })
-
+    self.SetStatusMessage('Executing train program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
@@ -362,6 +350,7 @@ class TrainProgram(BaseProgram):
 
     self._model.GetTask().ProcessFPropResults(sess, global_step, eval_metrics,
                                               outfeeds)
+    return False
 
 
 class EvalProgram(BaseProgram):
@@ -422,17 +411,19 @@ class EvalProgram(BaseProgram):
       return self.tpu_ops
 
   def Run(self, sess):
-    tf.logging.info('Executing eval program for %s.', self._task_name)
     gsteps = py_utils.GetGlobalStep()
+    global_step = sess.run(gsteps)
+    self.SetStatusMessage('Executing eval program at step %d' % global_step)
+
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     ary = sess.run(self.tpu_ops)
     infeed_future.wait()
     values = ary[0]
     self._eval_metrics.PackMetricsValues(values)
-    global_step = sess.run(gsteps)
     for key, (val, _) in sorted(six.iteritems(self._eval_metrics.metrics)):
       self._SummarizeValue(global_step, key, val)
+    return False
 
 
 class DecodeProgram(BaseProgram):
@@ -487,16 +478,9 @@ class DecodeProgram(BaseProgram):
     return None
 
   def Run(self, sess):
-    tf.logging.info('Executing decode program for %s.', self._task_name)
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
-
-    if self._ml_perf_log:
-      steps_per_epoch = self._ml_perf.steps_per_epoch
-      epoch = int(global_step) // steps_per_epoch
-      mlp_log.mlperf_print(
-          'eval_start', None, metadata={'epoch_num': (epoch + 1)})
-
+    self.SetStatusMessage('Executing decode program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
     dec_metrics = self._model_task.CreateDecoderMetrics()
@@ -512,10 +496,6 @@ class DecodeProgram(BaseProgram):
         buffered_decode_out.extend(decode_out)
     infeed_future.wait()
 
-    if self._ml_perf_log:
-      mlp_log.mlperf_print(
-          'eval_stop', None, metadata={'epoch_num': (epoch + 1)})
-
     num_examples_metric = dec_metrics['num_samples_in_batch']
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
     elapsed_secs = time.time() - start_time
@@ -529,8 +509,171 @@ class DecodeProgram(BaseProgram):
     decode_finalize_args = base_model.DecodeFinalizeArgs(
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
     self._model_task.DecodeFinalize(decode_finalize_args)
+    return False
+
+
+class MLPerfTrainDecodeProgram(BaseProgram):
+  """Run train/decode in a single session run."""
+
+  @classmethod
+  def Params(cls):
+    """"Defaults parameters for Programs."""
+    p = super(MLPerfTrainDecodeProgram, cls).Params()
+    p.Define('train_task', None, 'Underlying task')
+    p.Define('decode_task', None, 'Underlying task')
+    p.Define('train_dataset_name', None, '')
+    p.Define('decode_dataset_name', None, '')
+    p.Define('train_steps_per_loop', 0, '')
+    p.Define('decode_steps_per_loop', 0, '')
+    p.Define('ml_perf', None, 'MLPerf config')
+    return p
+
+  def __init__(self, params):
+    super(MLPerfTrainDecodeProgram, self).__init__(params)
+    p = self.params
+    if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
+      self._ml_perf_log = True
+      self._ml_perf = p.ml_perf
+      self._ml_perf_epoch = -1
+    else:
+      self._ml_perf_log = False
+
+    self._program_name = 'TrainAndDecodeProgram'
+    self._train_steps_per_loop = params.train_steps_per_loop
+    self._decode_steps_per_loop = params.decode_steps_per_loop
+    self._train_task_params = params.train_task
+    self._decode_task_params = params.decode_task
+    self._run_start = None
+    self._run_stop = None
+
+  def BuildTpuSubgraph(self):
+    if self._ml_perf_log:
+      mlp_log.mlperf_print('global_batch_size', self._ml_perf.global_batch_size)
+      mlp_log.mlperf_print('max_sequence_length',
+                           self._ml_perf.max_sequence_length)
+      mlp_log.mlperf_print('opt_name', self._ml_perf.optimizer_name)
+      mlp_log.mlperf_print('opt_base_learning_rate',
+                           self._ml_perf.base_learning_rate)
+      mlp_log.mlperf_print('opt_learning_rate_warmup_steps',
+                           self._ml_perf.warmup_steps)
+
+    with py_utils.OpportunisticVariableReuseScope(True):
+      self._eval_metrics = metrics.TpuEvalMetrics()
+      data_parallelism = self.data_parallelism
+
+      def TpuTrainStep():
+        """Train a shard of a batch on a single TPU core.
+
+        Do not calculate loss metrics.
+
+        Returns:
+         [train_op].
+        """
+        self._train_model = self._train_task_params.Instantiate()
+        self._model = self._train_model
+        self._train_model.ConstructFPropBPropGraph()
+        return [self._train_model.GetTask().train_op]
+
+      @tpu_function.on_device_training_loop
+      def TpuTrain():
+        loop_result = tpu_training_loop.repeat(
+            self._train_steps_per_loop,
+            TpuTrainStep,
+            inputs=[],
+            name='train_loop')
+        return loop_result
+
+    py_utils.ResetStepSeed()
+
+    def _DecodeFn():
+      """Decode call to be compiled for TPU."""
+      with py_utils.OpportunisticVariableReuseScope(True):
+        with cluster_factory.SetEval(True):
+          self._decode_model = self._decode_task_params.Instantiate()
+          self._decode_model_task = self._decode_model.GetTask()
+          if py_utils.use_tpu():
+            input_batch = self._decode_model_task.input_generator.CreateTpuFeeds(
+            )
+          else:
+            input_batch = self._decode_model_task.input_generator.SplitInputBatch(
+                self.cluster.num_splits_per_client)
+          metrics_dict = self._decode_model_task.Decode(input_batch)
+          self.metrics_nm = py_utils.NestedMap(metrics_dict)
+          return self.metrics_nm.Flatten()
+
+    def TrainAndDecode():
+      with tf.control_dependencies([TpuTrain()]):
+        return _DecodeFn()
+
+    self._compile_op, batch_parallel_res = tpu.split_compile_and_shard(
+        TrainAndDecode,
+        num_shards=data_parallelism,
+        device_assignment=py_utils.GetTpuDeviceAssignment())
+
+    self.metrics = py_utils.NestedMap(self.metrics_nm)
+    self.metrics = self.metrics.Pack(batch_parallel_res)
+    return None
+
+  def _InfeedLoop(self, sess):
+    tf.logging.info('_InfeedLoop start')
+    try:
+      for i in range(self._train_steps_per_loop):
+        tf.logging.vlog(1, '_InfeedLoop %d', i)
+        sess.run(self._train_model.GetTask().input_generator.tpu_infeed_op)
+      if self._ml_perf_log:
+        mlp_log.mlperf_print(
+            'eval_start',
+            None,
+            metadata={
+                'first_epoch_num': self._ml_perf_epoch + 1,
+                'epoch_count': 1
+            })
+      for i in range(self._decode_steps_per_loop):
+        tf.logging.vlog(1, '_InfeedLoop %d', i)
+        sess.run(self._decode_model.GetTask().input_generator.tpu_infeed_op)
+      tf.logging.info('_InfeedLoop done')
+    except Exception as e:
+      tf.logging.info('_InfeedLoop exception %r %s', e, e)
+      raise
+
+  def Run(self, sess):
+    gsteps = py_utils.GetGlobalStep()
+    global_step = sess.run(gsteps)
 
     if self._ml_perf_log:
+      if not self._run_start:
+        self._run_start = mlp_log.mlperf_print(key='run_start', value=None)
+      steps_per_epoch = self._ml_perf.steps_per_epoch
+      epoch = int(global_step) // steps_per_epoch
+      if epoch > self._ml_perf_epoch:
+        self._ml_perf_epoch = epoch
+        mlp_log.mlperf_print(
+            'block_start',
+            None,
+            metadata={
+                'first_epoch_num': epoch + 1,
+                'epoch_count': 1
+            })
+
+        self.SetStatusMessage('MLPerf epoch: %d' % self._ml_perf_epoch)
+
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
+    dec_metrics = self._decode_model_task.CreateDecoderMetrics()
+    buffered_decode_out = []
+    for i in range(self._decode_steps_per_loop):
+      metrics_values = sess.run(self.metrics)
+      decode_out = self._decode_model_task.PostProcessDecodeOut(
+          metrics_values, dec_metrics)
+      tf.logging.info('step: %d %f' %
+                      (i, dec_metrics['num_samples_in_batch'].total_value))
+      if decode_out:
+        buffered_decode_out.extend(decode_out)
+    infeed_future.wait()
+
+    if self._ml_perf_log:
+      mlp_log.mlperf_print(
+          'eval_stop', None, metadata={'epoch_num': (epoch + 1)})
       mlperf_metric = self._ml_perf.decoder_metric_name
       mlperf_metric_value = dec_metrics[mlperf_metric].value
       mlp_log.mlperf_print(
@@ -538,7 +681,13 @@ class DecodeProgram(BaseProgram):
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
         tf.logging.info('ml_perf_final_threshold: %f exceeded',
                         self._ml_perf.decoder_metric_success_threshold)
-        mlp_log.mlperf_print('run_stop', None, metadata={'status': 'success'})
+        if not self._run_stop:
+          self._run_stop = mlp_log.mlperf_print(
+              'run_stop', None, metadata={'status': 'success'})
+          self.SetStatusMessage('MLPerf run_time: %.2f' %
+                                (self._run_stop - self._run_start))
+          return True
+    return False
 
 
 class MultiTaskProgramSchedule(object):
@@ -573,20 +722,10 @@ class SimpleProgramSchedule(object):
     p.Define('num_splits_per_client', None, '')
     p.Define('dataset_names', [], 'List of all dataset names.')
 
+    # TODO(blee): Clean these up.
     p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
-
     mlp = p.ml_perf
     mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
-    mlp.Define('decoder_metric_name', None,
-               'Name of the decoder metric to report for compliance log.')
-    mlp.Define('decoder_metric_success_threshold', None,
-               'Benchmark run must exceed this value to succeeed.')
-    mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
-    mlp.Define('global_batch_size', None, 'Global batch size.')
-    mlp.Define('max_sequence_length', None, 'Maximum sequence length.')
-    mlp.Define('optimizer_name', None, 'Optimizer used.')
-    mlp.Define('base_learning_rate', None, 'Base learning rate.')
-    mlp.Define('warmup_steps', None, 'Number of warm-up steps.')
     return p
 
   def __init__(self, params):
@@ -601,14 +740,12 @@ class SimpleProgramSchedule(object):
     p.train_program.task = p.task_dict[p.train_program.dataset_name]
     p.train_program.num_splits_per_client = p.num_splits_per_client
     p.train_program.task_name = p.task_name
-    p.train_program.ml_perf = p.ml_perf.Copy()
 
     for eval_program_params in p.eval_programs:
       eval_program_params.logdir = p.logdir
       eval_program_params.task = p.task_dict[eval_program_params.dataset_name]
       eval_program_params.task_name = p.task_name
       eval_program_params.num_splits_per_client = p.num_splits_per_client
-      eval_program_params.ml_perf = p.ml_perf.Copy()
 
     self.eval_programs = []
     self.train_program = p.train_program.Instantiate()
@@ -628,6 +765,7 @@ class SimpleProgramSchedule(object):
       self.train_program.Run(sess)
     for eval_program in self.eval_programs:
       eval_program.Run(sess)
+    return False
 
 
 def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
@@ -672,5 +810,109 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
       decode_program_params.steps_per_loop = decode_steps_per_loop
       decode_program_params.dataset_name = dataset_name
       program_schedule_params.eval_programs.append(decode_program_params)
+
+  return program_schedule_params
+
+
+class MLPerfProgramSchedule(object):
+  """Program schedule for ML Perf benchmark."""
+
+  @classmethod
+  def Params(cls):
+    """Params for a MLPerfProgramSchedule."""
+    p = hyperparams.InstantiableParams(cls)
+
+    p.Define('task_dict', None, 'dataset_name -> task params')
+    p.Define('task_name', None, 'High level task name')
+    p.Define('logdir', None, 'Log directory')
+    p.Define('train_program', None, 'Train program params')
+    p.Define('train_executions_per_eval', 1, '')
+    p.Define('dataset_names', [], 'List of all dataset names.')
+    p.Define('num_splits_per_client', None, '')
+
+    p.Define('ml_perf', hyperparams.Params(), 'MlPerf configuration.')
+
+    mlp = p.ml_perf
+    mlp.Define('benchmark_name', None, 'Benchmark name for compliance log.')
+    mlp.Define('decoder_metric_name', None,
+               'Name of the decoder metric to report for compliance log.')
+    mlp.Define('decoder_metric_success_threshold', None,
+               'Benchmark run must exceed this value to succeeed.')
+    mlp.Define('steps_per_epoch', None, 'Number of training steps per epoch.')
+    mlp.Define('global_batch_size', None, 'Global batch size.')
+    mlp.Define('max_sequence_length', None, 'Maximum sequence length.')
+    mlp.Define('optimizer_name', None, 'Optimizer used.')
+    mlp.Define('base_learning_rate', None, 'Base learning rate.')
+    mlp.Define('warmup_steps', None, 'Number of warm-up steps.')
+
+    return p
+
+  def __init__(self, params):
+    self.params = params.Copy()
+    p = self.params
+
+    # Propagate run-time parameters to programs:
+    p.train_program.logdir = p.logdir
+    if p.train_program.train_dataset_name not in p.task_dict:
+      tf.logging.error('could not find %s in %s' %
+                       (p.train_program.train_dataset_name, p.task_dict))
+
+    if p.train_program.decode_dataset_name not in p.task_dict:
+      tf.logging.error('could not find %s in %s' %
+                       (p.train_program.decode_dataset_name, p.task_dict))
+
+    p.train_program.train_task = p.task_dict[p.train_program.train_dataset_name]
+    p.train_program.decode_task = p.task_dict[
+        p.train_program.decode_dataset_name]
+
+    p.train_program.num_splits_per_client = p.num_splits_per_client
+    p.train_program.task_name = p.task_name
+    p.train_program.ml_perf = p.ml_perf.Copy()
+
+    self.train_program = p.train_program.Instantiate()
+    self._programs = []
+    self._programs.append(self.train_program)
+
+  def Programs(self):
+    return self._programs
+
+  def Run(self, sess):
+    p = self.params
+    for _ in range(p.train_executions_per_eval):
+      program_done = self.train_program.Run(sess)
+      if program_done:
+        return True
+    return False
+
+
+def MLPerfProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
+                                 decode_dataset_name, decode_steps_per_loop):
+  """Populate MLPerfProgramSchedule params.
+
+  Args:
+    train_dataset_name: Name of the training dataset, eg: 'Train'.
+    train_steps_per_loop: Number of steps to execute the training program.
+    decode_dataset_name:  Eg: 'Test'.
+    decode_steps_per_loop: Number of steps to execute the decode program.
+
+  Returns:
+    A populated MLPerfProgramSchedule.Params()
+  """
+
+  program_schedule_params = MLPerfProgramSchedule.Params()
+  train_program_params = MLPerfTrainDecodeProgram.Params()
+  train_program_params.name = 'train_and_decode'
+  train_program_params.train_steps_per_loop = train_steps_per_loop
+  train_program_params.decode_steps_per_loop = decode_steps_per_loop
+
+  train_program_params.dataset_name = train_dataset_name
+  train_program_params.train_dataset_name = train_dataset_name
+  train_program_params.decode_dataset_name = decode_dataset_name
+
+  program_schedule_params.train_program = train_program_params
+
+  program_schedule_params.dataset_names = [
+      train_dataset_name, decode_dataset_name
+  ]
 
   return program_schedule_params
