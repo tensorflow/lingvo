@@ -47,16 +47,6 @@ class PlotTest(test_utils.TestCase):
     self.assertGreater(value.image.width, 0)
     self.assertGreater(value.image.height, 0)
 
-  def testScatter3D(self):
-    # Passing `zs` means the plot tries to use '3d' projection, which is not
-    # installed by default, so raises a ValueError.
-    with self.assertRaisesRegex(ValueError, 'Unknown projection'):
-      _ = plot.Scatter(
-          'summary', (4, 4),
-          xs=np.random.rand(10),
-          ys=np.random.rand(10),
-          zs=np.random.rand(10))
-
 
 class MatplotlibFigureSummaryTest(test_utils.TestCase):
 
