@@ -1474,7 +1474,6 @@ def CreateVariable(name,
                    params,
                    reuse=None,
                    trainable=True,
-                   init_wrapper=None,
                    collections=None,
                    default_seed=None,
                    synchronization=tf.VariableSynchronization.AUTO,
@@ -1488,9 +1487,6 @@ def CreateVariable(name,
     reuse: Whether or not to reuse an existing variable. It has the same
       semantics as the reuse arg in tf.variable_scope.
     trainable: Whether or not the variable is trainable.
-    init_wrapper: a callback which takes a tf initializer callable and returns a
-      tensor. It is used when shape of the variable isn't statically
-      determinable.
     collections: Override the default variable collection (
       tf.GraphKeys.GLOBAL_VARIABLES).
     default_seed: Seed to use for initialization if not specified in params.
@@ -1613,12 +1609,7 @@ def CreateVariable(name,
         minval=-bound, maxval=bound, seed=seed, dtype=init_dtype)
   else:
     assert False, 'init_type not supported.'
-  if init_wrapper:
-    assert shape is None, (
-        'Expecting \'params.shape\' being None when '
-        '\'init_wrapper\' is specified, instead getting %s') % p.shape
-    # Later variable will init from Tensor value instead of intializer callable.
-    v_init = init_wrapper(init_dtype, v_init)
+
   if dtype == tf.complex64:
 
     def ComplexWrapper(init):
@@ -1638,10 +1629,7 @@ def CreateVariable(name,
   # variable sharing mechanism.
   def GetVar(reuse=reuse):
     """reuse: Whether to reuse the variables."""
-    if shape is not None:
-      var_shape = GetVariableShapePrefixes() + list(shape)
-    else:
-      var_shape = None
+    var_shape = GetVariableShapePrefixes() + list(shape)
     with tf.variable_scope(name) as scope:
       var_name = GetVariableName(scope.name)
       var_scope = tf.VariableScope(
