@@ -433,6 +433,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_loss</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span> <span class="o">=</span> <span class="p">{}</span>
@@ -750,7 +751,9 @@
     <span class="c1"># TODO(rpang): try to structure _train_op as:</span>
     <span class="c1">#   tf.cond(skip_step, &lt;only update skip stats&gt;, &lt;all updates&gt;)</span>
     <span class="c1"># so that we skip all other updates when a step is skipped.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">train_ops</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bprop&#39;</span><span class="p">)</span></div>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">flatten</span><span class="p">(</span><span class="n">train_ops</span><span class="p">),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_ops&#39;</span><span class="p">)]):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bprop&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask._ComputeGradientMask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._ComputeGradientMask">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeGradientMask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bprop_variable_filters</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute gradient mask for each variable and bprop_variable_filters.</span>
@@ -789,9 +792,8 @@
     <span class="n">all_vars</span> <span class="o">&amp;=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
     <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="n">all_vars</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span>
-                                 <span class="p">]),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_train_op</span> <span class="o">=</span> <span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">)</span></div>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;moving_average&#39;</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ema</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">all_vars</span><span class="p">))</span></div>
 
   <span class="c1"># TODO(blee): Rename Decode-&gt;DecodeWithDefaultTheta, DecodeWithTheta-&gt;Decode.</span>
 <div class="viewcode-block" id="BaseTask.Decode"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.Decode">[docs]</a>  <span class="k">def</span> <span class="nf">Decode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
@@ -1331,11 +1333,11 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
 
 <div class="viewcode-block" id="SingleTaskModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="SingleTaskModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">()</span></div>
@@ -1456,10 +1458,10 @@
     <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
         <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-          <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span></div>
+          <span class="n">task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MultiTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">for</span> <span class="n">task_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
