@@ -834,7 +834,7 @@ class BaseTinyDatasetInput(BaseInputGenerator):
   def _InputBatch(self):
     p = self.params
 
-    @tf.Defun()
+    @tf.function
     def ReadData():
       x, y = io_ops.restore_v2(p.ckpt, [p.data, p.label], [''] * 2,
                                [p.data_dtype, p.label_dtype])
@@ -842,7 +842,8 @@ class BaseTinyDatasetInput(BaseInputGenerator):
       return tf.cast(x, tf.float32), tf.cast(y, tf.float32)
 
     # Loads data and label into memory and keep it around.
-    data, label = ops.cached_call(f=ReadData, T=[tf.float32, tf.float32])
+    data, label = ops.cached_call(
+        f=ReadData.get_concrete_function(), T=[tf.float32, tf.float32])
     b, shape = self.InfeedBatchSize(), list(p.data_shape)
     data = tf.reshape(data, [-1] + shape)
     label = tf.reshape(label, [-1])
