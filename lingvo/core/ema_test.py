@@ -84,7 +84,7 @@ class EmaTest(test_utils.TestCase):
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
       sess.run(tf.assign(beta, beta_1))
       sess.run(tf.assign(mean, mean_1))
-      sess.run(task._train_op)
+      sess.run(task._post_train_ops)
 
       self.assertAllClose([beta_1, beta_1_ema, mean_1, mean_1_ema],
                           sess.run([

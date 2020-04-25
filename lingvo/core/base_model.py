@@ -288,6 +288,7 @@ class BaseTask(base_layer.BaseLayer):
     self._loss = None
     self._num_predictions = None
     self._train_op = None
+    self._post_train_ops = []
     self._eval_metrics = {}
     self._per_example = {}
     self._trainer_verbose_tensors = {}
@@ -605,7 +606,9 @@ class BaseTask(base_layer.BaseLayer):
     # TODO(rpang): try to structure _train_op as:
     #   tf.cond(skip_step, <only update skip stats>, <all updates>)
     # so that we skip all other updates when a step is skipped.
-    self._train_op = tf.group(*tf.nest.flatten(train_ops), name='bprop')
+    with tf.control_dependencies(
+        [tf.group(*tf.nest.flatten(train_ops), name='train_ops')]):
+      self._train_op = tf.group(self._post_train_ops, name='bprop')
 
   def _ComputeGradientMask(self, bprop_variable_filters):
     """Compute gradient mask for each variable and bprop_variable_filters.
@@ -644,9 +647,8 @@ class BaseTask(base_layer.BaseLayer):
     all_vars &= set(self.vars.Flatten())
     for var in all_vars:
       tf.logging.debug('ApplyExponentialMovingAverage: %s', var.name)
-    with tf.control_dependencies([self._train_op
-                                 ]), tf.name_scope('moving_average'):
-      self._train_op = ema.apply(all_vars)
+    with tf.name_scope('moving_average'):
+      self._post_train_ops.append(ema.apply(all_vars))
 
   # TODO(blee): Rename Decode->DecodeWithDefaultTheta, DecodeWithTheta->Decode.
   def Decode(self, input_batch):
@@ -1186,11 +1188,11 @@ class SingleTaskModel(BaseModel):
     return self._task
 
   def ConstructFPropBPropGraph(self):
-    self._task.FPropDefaultTheta()
-    self._task.BProp()
     if self.ema:
       tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
       self._task.ApplyExponentialMovingAverage(self.ema)
+    self._task.FPropDefaultTheta()
+    self._task.BProp()
 
   def ConstructPostTrainingLoop(self):
     self._task.PostTrainingLoop()
@@ -1311,10 +1313,10 @@ class MultiTaskModel(BaseModel):
     for task_name in self.task_names:
       with tf.name_scope(task_name):
         task = self.GetTask(task_name)
-        task.FPropDefaultTheta()
-        task.BProp()
         if self.ema:
           task.ApplyExponentialMovingAverage(self.ema)
+        task.FPropDefaultTheta()
+        task.BProp()
 
   def ConstructFPropGraph(self):
     for task_name in self.task_names:
