@@ -245,7 +245,7 @@
 
     <span class="k">def</span> <span class="nf">_ShouldMerge</span><span class="p">(</span><span class="n">unused_tokens</span><span class="p">,</span> <span class="n">candidates</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Merge until not possible, or we abort early according to merge_prob.&quot;&quot;&quot;</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">candidates</span><span class="p">,</span> <span class="n">NO_TOKEN</span><span class="p">)),</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([])</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_merge_prob</span><span class="p">)</span>
 

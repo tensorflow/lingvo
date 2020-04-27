@@ -435,7 +435,7 @@
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A numpy 4D array of type np.uint8 which can be used to generate a</span>
-<span class="sd">    `tf.image_summary` when converted to a tf tensor.</span>
+<span class="sd">    `tf.math.image_summary` when converted to a tf tensor.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">batch_size</span> <span class="o">=</span> <span class="n">numpy_data_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
   <span class="n">max_outputs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">max_outputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
@@ -452,8 +452,9 @@
     <span class="k">try</span><span class="p">:</span>
       <span class="n">images</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_RenderOneMatplotlibFigure</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">,</span> <span class="o">*</span><span class="n">data</span><span class="p">))</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint: disable=broad-except</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Error rendering example </span><span class="si">%d</span><span class="s1"> using matplotlib: </span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">b</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span> <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Error rendering example </span><span class="si">%d</span><span class="s1"> using matplotlib: </span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">e</span><span class="p">,</span>
+          <span class="n">traceback</span><span class="o">.</span><span class="n">format_exc</span><span class="p">())</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="n">max_outputs</span><span class="p">:</span>
       <span class="k">break</span>
   <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="n">fig</span><span class="p">)</span>

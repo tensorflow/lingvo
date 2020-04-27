@@ -185,10 +185,10 @@ and match the composition of different fields from the same dataset.</p>
 <blockquote>
 <div><ol class="arabic">
 <li><p>FeatureMap(): returning a dictionary of field names to field types, e.g.,
-‘images’ to tf.VarLenFeature(tf.string).  For PlainTextIterator
+‘images’ to tf.io.VarLenFeature(tf.string).  For PlainTextIterator
 datasets, FeatureMap() should be empty.</p></li>
 <li><p>_Extract(features): Given a ‘features’ dictionary containing the result
-from calling tf.parse_example or tf.parse_sequence_example on all
+from calling tf.io.parse_example or tf.parse_sequence_example on all
 extractors’ features, produce a NestedMap of Tensors.</p>
 <p>NOTE: The return of the overall pipeline is a NestedMap of batched
 Tensors. However, the names and associations of the fields of each
@@ -203,7 +203,7 @@ ensure that every output has a statically known shape.</p></li>
 </ol>
 </div></blockquote>
 <p>The caller of Extractors calls each extractor’s FeatureMap() to populate the
-schema passed to tf.parse_example() or tf.parse_sequence_example(). The
+schema passed to tf.io.parse_example() or tf.parse_sequence_example(). The
 resulting dicationary of Tensors is then passed to each extractor’s _Extract()
 function (via FieldsExtractor.Extract()) to return each extractor’s output.</p>
 <p>It is the responsibility of the caller to maintain orders of outputs, since

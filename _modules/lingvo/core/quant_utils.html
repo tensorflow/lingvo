@@ -506,7 +506,7 @@
     <span class="n">WrapOp</span><span class="p">(</span><span class="s1">&#39;qrelu6&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu6</span><span class="p">,</span> <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">default_qmax</span><span class="o">=</span><span class="mf">6.0</span><span class="p">)</span>
     <span class="n">WrapOp</span><span class="p">(</span>
         <span class="s1">&#39;qrandom_uniform&#39;</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">,</span>
         <span class="n">default_qmin</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
         <span class="n">default_qmax</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
 
@@ -1165,7 +1165,7 @@
       <span class="c1"># NANs. Sometimes early in the training process, things are unstable</span>
       <span class="c1"># and ranges can produce numerical instability that makes it</span>
       <span class="c1"># impossible to perform a fake_quant.</span>
-      <span class="n">quant_w_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_w</span><span class="p">)</span>
+      <span class="n">quant_w_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_w</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">quant_w_has_nans</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">quant_w</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PassiveAsymQDomain.QuantizeNaturalRange"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain.QuantizeNaturalRange">[docs]</a>  <span class="k">def</span> <span class="nf">QuantizeNaturalRange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">min_value</span><span class="p">,</span> <span class="n">max_value</span><span class="p">):</span>
@@ -1237,7 +1237,7 @@
           <span class="n">quant_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeFakeQuant</span><span class="p">(</span>
               <span class="n">t</span><span class="p">,</span> <span class="n">batch_min</span><span class="p">,</span> <span class="n">batch_max</span><span class="p">,</span> <span class="n">num_bits</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
           <span class="c1"># TODO(laurenzo): Plumb quant_t_has_nans through state and report.</span>
-          <span class="n">quant_t_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
+          <span class="n">quant_t_has_nans</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
           <span class="n">quant_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">quant_t_has_nans</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">quant_t</span><span class="p">)</span>
         <span class="n">ts_out</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">quant_t</span><span class="p">)</span>
         <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span>

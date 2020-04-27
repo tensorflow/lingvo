@@ -270,8 +270,8 @@
 
   <span class="n">preds</span><span class="p">,</span> <span class="n">gts</span> <span class="o">=</span> <span class="n">convert_detections</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_path</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">MkDir</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">):</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">output_dir</span><span class="p">)</span>
 
   <span class="c1"># Write the predictions and gts into individual files.</span>
   <span class="c1">#</span>

@@ -598,7 +598,8 @@
 
     <span class="k">def</span> <span class="nf">LoopContinue</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">all_done</span><span class="p">,</span> <span class="n">unused_step_ids</span><span class="p">,</span> <span class="n">unused_core_bs_states</span><span class="p">,</span>
                      <span class="n">unused_other_states_list</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">all_done</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">all_done</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">unused_all_done</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">core_bs_states</span><span class="p">,</span>
                  <span class="n">other_states_list</span><span class="p">):</span>
@@ -830,8 +831,8 @@
     <span class="n">hyp_ids</span> <span class="o">=</span> <span class="n">inplace_ops</span><span class="o">.</span><span class="n">alias_inplace_update</span><span class="p">(</span><span class="n">hyp_ids</span><span class="p">,</span> <span class="n">cur_step</span><span class="p">,</span>
                                                <span class="n">new_step_ids_1d</span><span class="p">)</span>
     <span class="c1"># Update done_hyps if the current step_ids is the end of sequence token.</span>
-    <span class="n">done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_step_ids_1d</span><span class="p">,</span>
-                                                  <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">))</span>
+    <span class="n">done_hyps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">,</span>
+                                   <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">new_step_ids_1d</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="p">(</span><span class="n">cur_step</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">new_step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
             <span class="n">final_other_states</span><span class="p">)</span></div>
@@ -898,8 +899,8 @@
 
     <span class="k">def</span> <span class="nf">LoopContinue</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">unused_step_ids</span><span class="p">,</span> <span class="n">unused_hyp_ids</span><span class="p">,</span> <span class="n">unused_hyp_lens</span><span class="p">,</span>
                      <span class="n">done_hyps</span><span class="p">,</span> <span class="n">unused_other_states_list</span><span class="p">):</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span>
-                            <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">)))</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">cur_step</span> <span class="o">&lt;</span> <span class="n">max_steps</span><span class="p">,</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">done_hyps</span><span class="p">)))</span>
 
     <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="n">cur_step</span><span class="p">,</span> <span class="n">step_ids</span><span class="p">,</span> <span class="n">hyp_ids</span><span class="p">,</span> <span class="n">hyp_lens</span><span class="p">,</span> <span class="n">done_hyps</span><span class="p">,</span>
                  <span class="n">other_states_list</span><span class="p">):</span>

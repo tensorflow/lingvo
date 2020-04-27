@@ -196,7 +196,7 @@
 <span class="sd">    An InferenceGraph object.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">inference_graph</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
     <span class="n">text_format</span><span class="o">.</span><span class="n">Parse</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="n">inference_graph</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">clear_device_placement</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">inference_graph</span><span class="o">.</span><span class="n">graph_def</span><span class="o">.</span><span class="n">node</span><span class="p">:</span>

@@ -210,8 +210,9 @@
 <span class="sd">    A string Tensor of shape [batch], containing the extracted run id.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">run_segments</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">run_segments</span><span class="p">)[:,</span> <span class="mi">0</span><span class="p">]</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">run_segments</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;[^:]+: &quot;(.+)&quot;\n[^:]+: (\d+)(.|\n)*&#39;</span><span class="p">,</span>
-                          <span class="sa">r</span><span class="s1">&#39;\1_\2&#39;</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">regex_replace</span><span class="p">(</span><span class="n">run_segments</span><span class="p">,</span>
+                                  <span class="sa">r</span><span class="s1">&#39;[^:]+: &quot;(.+)&quot;\n[^:]+: (\d+)(.|\n)*&#39;</span><span class="p">,</span>
+                                  <span class="sa">r</span><span class="s1">&#39;\1_\2&#39;</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="CameraImageSummary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.summary.html#lingvo.tasks.car.summary.CameraImageSummary">[docs]</a><span class="k">def</span> <span class="nf">CameraImageSummary</span><span class="p">(</span><span class="n">frontal_images</span><span class="p">,</span> <span class="n">run_segment_strings</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">6</span><span class="p">,</span> <span class="mi">4</span><span class="p">)):</span>

@@ -290,8 +290,8 @@
     <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
     <span class="c1"># for generating a subset of the whole batch.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">,</span>
-                      <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
+                           <span class="n">batch_per_input</span><span class="p">,</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
       <span class="n">batch_per_input</span> <span class="o">//=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
@@ -415,9 +415,9 @@
           <span class="n">shapes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
           <span class="n">dtypes</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1"> infeed shapes: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span>
-                          <span class="n">shapes</span><span class="p">)</span>
+                               <span class="n">shapes</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;host_device: </span><span class="si">%s</span><span class="s1"> infeed dtypes: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">host_device</span><span class="p">,</span>
-                          <span class="n">dtypes</span><span class="p">)</span>
+                               <span class="n">dtypes</span><span class="p">)</span>
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
             <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
 
@@ -864,8 +864,9 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">buckets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="n">buckets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">buckets</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Using max bucket batch limit but not all limits are &#39;</span>
-                         <span class="s1">&#39;the same </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">buckets</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+          <span class="s1">&#39;Using max bucket batch limit but not all limits are &#39;</span>
+          <span class="s1">&#39;the same </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">buckets</span><span class="p">))</span>
     <span class="n">infeed_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">buckets</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;InfeedBatchSize: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">infeed_size</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">infeed_size</span></div>
@@ -1049,7 +1050,7 @@
     <span class="sd">&quot;&quot;&quot;Subclasses must implement and return a feature spec.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      NestedMap of features compatible with tf.parse_example. Default</span>
+<span class="sd">      NestedMap of features compatible with tf.io.parse_example. Default</span>
 <span class="sd">      implementation returns an empty dict.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="p">{}</span></div>
@@ -1067,7 +1068,7 @@
       <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;BaseExampleInputGenerator supports one or two column input&#39;</span><span class="p">)</span>
       <span class="n">record</span> <span class="o">=</span> <span class="n">cols</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">feature_spec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetFeatureSpec</span><span class="p">()</span>
-      <span class="n">features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">parse_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_spec</span><span class="p">))</span>
+      <span class="n">features</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_spec</span><span class="p">))</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_PreprocessInputBatch</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
 
     <span class="n">dataset_factory</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dataset_type</span>

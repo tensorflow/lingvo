@@ -288,7 +288,7 @@
     <span class="k">assert</span> <span class="n">data_parallelism</span>
     <span class="n">num_devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;data_parallelism: </span><span class="si">%d</span><span class="s1">, num_devices_per_split: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                    <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
+                         <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">task_scheduler</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
@@ -335,7 +335,7 @@
       <span class="n">ps</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_program_schedule_dict</span><span class="p">[</span><span class="n">task_string</span><span class="p">]</span> <span class="o">=</span> <span class="n">ps</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;program_schedule_params: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                      <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+                           <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span> <span class="o">+=</span> <span class="n">ps</span><span class="o">.</span><span class="n">Programs</span><span class="p">()</span>
       <span class="k">if</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span> <span class="o">=</span> <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">ml_perf</span>
@@ -394,9 +394,10 @@
               <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                          <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                          <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
+                               <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+              <span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+              <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
       <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
         <span class="k">raise</span>

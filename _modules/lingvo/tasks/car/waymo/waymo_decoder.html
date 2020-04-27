@@ -266,11 +266,11 @@
     <span class="n">input_labels</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">labels</span>
     <span class="n">input_lasers</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">lasers</span>
     <span class="n">input_metadata</span> <span class="o">=</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">metadata</span>
-    <span class="n">source_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">string_join</span><span class="p">([</span>
+    <span class="n">source_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
         <span class="n">input_metadata</span><span class="o">.</span><span class="n">run_segment</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="n">input_metadata</span><span class="o">.</span><span class="n">run_start_offset</span><span class="p">)</span>
     <span class="p">],</span>
-                                <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
+                                 <span class="n">separator</span><span class="o">=</span><span class="s1">&#39;_&#39;</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;num_points_in_bboxes&#39;</span><span class="p">:</span> <span class="n">input_batch</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_num_points</span><span class="p">,</span>
         <span class="c1"># Ground truth.</span>

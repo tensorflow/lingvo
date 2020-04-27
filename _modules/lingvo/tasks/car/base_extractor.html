@@ -178,7 +178,7 @@
 
 <div class="viewcode-block" id="_ParseSequenceExample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.base_extractor.html#lingvo.tasks.car.base_extractor._ParseSequenceExample">[docs]</a><span class="k">def</span> <span class="nf">_ParseSequenceExample</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">,</span> <span class="n">context_map</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Parse a SequenceExample, adding the context features to the features.&quot;&quot;&quot;</span>
-  <span class="n">context</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_sequence_example</span><span class="p">(</span>
+  <span class="n">context</span><span class="p">,</span> <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_sequence_example</span><span class="p">(</span>
       <span class="n">serialized</span><span class="o">=</span><span class="n">record</span><span class="p">,</span>
       <span class="n">context_features</span><span class="o">=</span><span class="n">context_map</span><span class="p">,</span>
       <span class="n">sequence_features</span><span class="o">=</span><span class="n">feature_map</span><span class="p">)</span>
@@ -200,7 +200,7 @@
 
 <span class="c1"># Supported raw record types and the corresponding parsing functions.</span>
 <span class="n">_PARSING_FUNCTIONS</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">,</span>
+    <span class="s1">&#39;EXAMPLE&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">,</span>
     <span class="s1">&#39;SEQUENCE_EXAMPLE&#39;</span><span class="p">:</span> <span class="n">_ParseSequenceExample</span><span class="p">,</span>
     <span class="s1">&#39;TEXT&#39;</span><span class="p">:</span> <span class="n">_TextInput</span><span class="p">,</span>
 <span class="p">}</span>
@@ -393,7 +393,7 @@
     <span class="sd">&quot;&quot;&quot;Extracts Tensors from a tf.Example record using self.extractors.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      record: A tf.Example input to pass to tf.parse_single_example.</span>
+<span class="sd">      record: A tf.Example input to pass to tf.io.parse_single_example.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple of tensors:</span>

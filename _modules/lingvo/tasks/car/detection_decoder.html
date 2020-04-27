@@ -269,7 +269,7 @@
   <span class="c1"># Get the original box for each index selected by NMS.</span>
   <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>
                              <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_indices</span><span class="p">)</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_indices</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
 
 
@@ -341,8 +341,9 @@
       <span class="n">max_num_boxes</span><span class="o">=</span><span class="n">max_boxes_per_class</span><span class="p">)</span>
 
   <span class="c1"># Reorder the box data and logits according to NMS scoring.</span>
-  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">nms_indices</span><span class="p">)</span>
-  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span> <span class="n">nms_indices</span><span class="p">)</span>
+  <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">nms_indices</span><span class="p">)</span>
+  <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">classification_scores</span><span class="p">,</span>
+                                                    <span class="n">nms_indices</span><span class="p">)</span>
 
   <span class="c1"># Now reformat the output of NMS to match the format of the</span>
   <span class="c1"># MultiClassOrientedDecodeWithNMS, which outputs a per class NMS result.</span>

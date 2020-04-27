@@ -905,19 +905,19 @@ defined by the init parameters.</p>
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.Gaussian">
 <em class="property">static </em><code class="sig-name descname">Gaussian</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.Gaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.Gaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_normal(0, 1.0).</p>
+<dd><p>scale * tf.random.normal(0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.Uniform">
 <em class="property">static </em><code class="sig-name descname">Uniform</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.Uniform"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.Uniform" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_uniform(-1.0, 1.0).</p>
+<dd><p>scale * tf.random.uniform(-1.0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.UniformPositive">
 <em class="property">static </em><code class="sig-name descname">UniformPositive</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.UniformPositive"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.UniformPositive" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_uniform(0., 1.0).</p>
+<dd><p>scale * tf.random.uniform(0., 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -947,25 +947,25 @@ defined by the init parameters.</p>
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussian">
 <em class="property">static </em><code class="sig-name descname">TruncatedGaussian</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussian" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.truncated_normal(0, 1.0).</p>
+<dd><p>scale * tf.random.truncated_normal(0, 1.0).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.GaussianSqrtDim">
 <em class="property">static </em><code class="sig-name descname">GaussianSqrtDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GaussianSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GaussianSqrtDim" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_normal(0, 1 / sqrt(dim0)).</p>
+<dd><p>scale * tf.random.normal(0, 1 / sqrt(dim0)).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.GaussianSqrtFanIn">
 <em class="property">static </em><code class="sig-name descname">GaussianSqrtFanIn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GaussianSqrtFanIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GaussianSqrtFanIn" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_normal(0, 1 / sqrt(fan_in)).</p>
+<dd><p>scale * tf.random.normal(0, 1 / sqrt(fan_in)).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.GaussianSqrtFanOut">
 <em class="property">static </em><code class="sig-name descname">GaussianSqrtFanOut</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.GaussianSqrtFanOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.GaussianSqrtFanOut" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.random_normal(0, 1 / sqrt(fan_out)).</p>
+<dd><p>scale * tf.random.normal(0, 1 / sqrt(fan_out)).</p>
 </dd></dl>
 
 <dl class="py method">
@@ -983,19 +983,19 @@ defined by the init parameters.</p>
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">
 <em class="property">static </em><code class="sig-name descname">TruncatedGaussianSqrtDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.truncated_normal(0, 1 / sqrt(dim0)).</p>
+<dd><p>scale * tf.random.truncated_normal(0, 1 / sqrt(dim0)).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanIn">
 <em class="property">static </em><code class="sig-name descname">TruncatedGaussianSqrtFanIn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtFanIn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanIn" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.truncated_normal(0, 1 / sqrt(fan_in)).</p>
+<dd><p>scale * tf.random.truncated_normal(0, 1 / sqrt(fan_in)).</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanOut">
 <em class="property">static </em><code class="sig-name descname">TruncatedGaussianSqrtFanOut</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtFanOut"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanOut" title="Permalink to this definition">¶</a></dt>
-<dd><p>scale * tf.truncated_normal(0, 1 / sqrt(fan_out)).</p>
+<dd><p>scale * tf.random.truncated_normal(0, 1 / sqrt(fan_out)).</p>
 </dd></dl>
 
 <dl class="py method">

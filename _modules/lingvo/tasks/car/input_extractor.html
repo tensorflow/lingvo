@@ -195,11 +195,11 @@
 <span class="sd">  A descendant of this class will implement three functions:</span>
 
 <span class="sd">    1) FeatureMap(): returning a dictionary of field names to field types, e.g.,</span>
-<span class="sd">       &#39;images&#39; to tf.VarLenFeature(tf.string).  For PlainTextIterator</span>
+<span class="sd">       &#39;images&#39; to tf.io.VarLenFeature(tf.string).  For PlainTextIterator</span>
 <span class="sd">       datasets, FeatureMap() should be empty.</span>
 
 <span class="sd">    2) _Extract(features): Given a &#39;features&#39; dictionary containing the result</span>
-<span class="sd">       from calling tf.parse_example or tf.parse_sequence_example on all</span>
+<span class="sd">       from calling tf.io.parse_example or tf.parse_sequence_example on all</span>
 <span class="sd">       extractors&#39; features, produce a NestedMap of Tensors.</span>
 
 <span class="sd">       NOTE: The return of the overall pipeline is a NestedMap of batched</span>
@@ -214,7 +214,7 @@
 <span class="sd">       ensure that every output has a statically known shape.</span>
 
 <span class="sd">  The caller of Extractors calls each extractor&#39;s FeatureMap() to populate the</span>
-<span class="sd">  schema passed to tf.parse_example() or tf.parse_sequence_example(). The</span>
+<span class="sd">  schema passed to tf.io.parse_example() or tf.parse_sequence_example(). The</span>
 <span class="sd">  resulting dicationary of Tensors is then passed to each extractor&#39;s _Extract()</span>
 <span class="sd">  function (via FieldsExtractor.Extract()) to return each extractor&#39;s output.</span>
 

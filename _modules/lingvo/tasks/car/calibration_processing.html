@@ -289,8 +289,9 @@
 <span class="sd">      nothing</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="s1">&#39;calibrations&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;CalibrationProcessing invoked but no metrics available &#39;</span>
-                      <span class="s1">&#39;for calculating calibration.&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;CalibrationProcessing invoked but no metrics available &#39;</span>
+          <span class="s1">&#39;for calculating calibration.&#39;</span><span class="p">)</span>
       <span class="k">return</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span> <span class="o">=</span> <span class="p">{}</span>
@@ -299,11 +300,12 @@
       <span class="n">classname</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_classnames</span><span class="p">[</span><span class="n">classid</span><span class="p">]</span>
 
       <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">]))</span> <span class="ow">or</span> <span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Skipping </span><span class="si">%s</span><span class="s1"> for calibration calculation because no &#39;</span>
-                        <span class="s1">&#39;output provided.&#39;</span> <span class="o">%</span> <span class="n">classname</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+            <span class="s1">&#39;Skipping </span><span class="si">%s</span><span class="s1"> for calibration calculation because no &#39;</span>
+            <span class="s1">&#39;output provided.&#39;</span> <span class="o">%</span> <span class="n">classname</span><span class="p">)</span>
         <span class="k">continue</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating calibration for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%d</span><span class="s1"> items.&#39;</span> <span class="o">%</span>
-                      <span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">])))</span>
+                           <span class="p">(</span><span class="n">classname</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;calibrations&#39;</span><span class="p">])))</span>
 
       <span class="c1"># Ensure that all counts are greater then zero and less then or equal</span>
       <span class="c1"># to 1.0 to guarantee that all scores are counted.</span>
@@ -312,7 +314,8 @@
       <span class="n">hits</span> <span class="o">=</span> <span class="n">scores_and_hits</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span>
       <span class="n">curve_data</span> <span class="o">=</span> <span class="n">CalibrationCurve</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">hits</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_calibration_bins</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_calibration_by_class</span><span class="p">[</span><span class="n">classname</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">curve_data</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">3</span><span class="p">])</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished calculating calibration for </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span> <span class="n">classname</span><span class="p">)</span></div>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Finished calculating calibration for </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span>
+                           <span class="n">classname</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CalibrationCalculator.Summary"><a class="viewcode-back" href="../../../../lingvo.tasks.car.calibration_processing.html#lingvo.tasks.car.calibration_processing.CalibrationCalculator.Summary">[docs]</a>  <span class="k">def</span> <span class="nf">Summary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate tf summaries for calibration.</span>

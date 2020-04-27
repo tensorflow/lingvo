@@ -182,7 +182,7 @@
 <div class="viewcode-block" id="_ConsistentShuffle"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors._ConsistentShuffle">[docs]</a><span class="k">def</span> <span class="nf">_ConsistentShuffle</span><span class="p">(</span><span class="n">tensors</span><span class="p">,</span> <span class="n">seed</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Shuffle multiple tensors with the same shuffle order.&quot;&quot;&quot;</span>
   <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensors</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span>
-  <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_shuffle</span><span class="p">(</span><span class="n">shuffled_idx</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+  <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">shuffled_idx</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
   <span class="k">return</span> <span class="nb">tuple</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">shuffled_idx</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensors</span><span class="p">])</span></div>
 
 
@@ -957,14 +957,14 @@
 <span class="sd">      multinomial sample without replacement.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">log_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
+    <span class="n">log_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
     <span class="n">probs_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">probs</span><span class="p">)</span>
-    <span class="n">uniform_samples</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+    <span class="n">uniform_samples</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">probs_shape</span><span class="p">,</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">probs</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;uniform_samples&#39;</span><span class="p">)</span>
-    <span class="n">gumbel_noise</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_samples</span><span class="p">))</span>
+    <span class="n">gumbel_noise</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">uniform_samples</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">gumbel_noise</span> <span class="o">+</span> <span class="n">log_prob</span></div>
 
 <div class="viewcode-block" id="GridToPillars._DensitySample"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GridToPillars._DensitySample">[docs]</a>  <span class="k">def</span> <span class="nf">_DensitySample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_points</span><span class="p">):</span>
@@ -1954,7 +1954,7 @@
 
 <div class="viewcode-block" id="RandomWorldRotationAboutZAxis.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomWorldRotationAboutZAxis.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">((),</span>
+    <span class="n">rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((),</span>
                             <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span><span class="p">,</span>
                             <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span><span class="p">,</span>
                             <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
@@ -2142,9 +2142,9 @@
     <span class="n">max_bbox_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">bboxes_3d_corners</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="n">mask</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_x</span> <span class="o">&gt;=</span> <span class="n">min_x</span><span class="p">,</span> <span class="n">max_bbox_x</span> <span class="o">&lt;=</span> <span class="n">max_x</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_y</span> <span class="o">&gt;=</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_bbox_y</span> <span class="o">&lt;=</span> <span class="n">max_y</span><span class="p">)</span>
-        <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_z</span> <span class="o">&gt;=</span> <span class="n">min_z</span><span class="p">,</span> <span class="n">max_bbox_z</span> <span class="o">&lt;=</span> <span class="n">max_z</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_x</span> <span class="o">&gt;=</span> <span class="n">min_x</span><span class="p">,</span> <span class="n">max_bbox_x</span> <span class="o">&lt;=</span> <span class="n">max_x</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_y</span> <span class="o">&gt;=</span> <span class="n">min_y</span><span class="p">,</span> <span class="n">max_bbox_y</span> <span class="o">&lt;=</span> <span class="n">max_y</span><span class="p">)</span>
+        <span class="o">&amp;</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">min_bbox_z</span> <span class="o">&gt;=</span> <span class="n">min_z</span><span class="p">,</span> <span class="n">max_bbox_z</span> <span class="o">&lt;=</span> <span class="n">max_z</span><span class="p">))</span>
 
     <span class="n">max_num_boxes</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d_mask</span><span class="p">)</span>
     <span class="n">mask</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">max_num_boxes</span><span class="p">)</span>
@@ -2197,7 +2197,7 @@
     <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">npoints</span><span class="p">])</span>
 
     <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">npoints</span><span class="p">)</span>
-    <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_shuffle</span><span class="p">(</span><span class="n">shuffled_idx</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">shuffled_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">shuffled_idx</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_PadOrTrimFn</span><span class="p">(</span><span class="n">points_tensor</span><span class="p">):</span>
       <span class="c1"># Shuffle before trimming so we have a random sampling</span>
@@ -2252,7 +2252,7 @@
 
 <div class="viewcode-block" id="WorldScaling.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.WorldScaling.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">scaling</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">((),</span>
+    <span class="n">scaling</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((),</span>
                                 <span class="n">minval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span>
@@ -2344,7 +2344,7 @@
 <div class="viewcode-block" id="RandomFlipY.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomFlipY.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">threshold</span> <span class="o">=</span> <span class="mf">1.</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">flip_probability</span>
-    <span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
         <span class="p">(),</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">threshold</span>
 
     <span class="c1"># Flip points</span>
@@ -2400,15 +2400,15 @@
     <span class="n">x_seed</span> <span class="o">=</span> <span class="n">base_seed</span>
     <span class="n">y_seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">base_seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="n">z_seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">base_seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="mi">2</span>
-    <span class="n">random_translate_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">((),</span>
+    <span class="n">random_translate_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((),</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">x_seed</span><span class="p">)</span>
-    <span class="n">random_translate_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">((),</span>
+    <span class="n">random_translate_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((),</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">y_seed</span><span class="p">)</span>
-    <span class="n">random_translate_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">((),</span>
+    <span class="n">random_translate_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">((),</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">z_seed</span><span class="p">)</span>
@@ -2534,7 +2534,7 @@
     <span class="n">foreground_points_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">points_in_bbox_mask</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="c1"># All others are background.  We rotate all of the foreground points to</span>
     <span class="c1"># final_points_* and keep the background points unchanged</span>
-    <span class="n">background_points_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">foreground_points_mask</span><span class="p">)</span>
+    <span class="n">background_points_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="n">foreground_points_mask</span><span class="p">)</span>
     <span class="n">background_points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">,</span> <span class="n">background_points_mask</span><span class="p">)</span>
     <span class="n">background_points_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">boolean_mask</span><span class="p">(</span><span class="n">points_feature</span><span class="p">,</span>
                                                 <span class="n">background_points_mask</span><span class="p">)</span>
@@ -2610,15 +2610,15 @@
         <span class="c1"># [[s_x+1    0      0]</span>
         <span class="c1">#  [ 0      s_y+1   0]</span>
         <span class="c1">#  [ 0       0     s_z+1]]</span>
-        <span class="n">sx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">sx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">sy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">sy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">sz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">sz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_scaling</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
@@ -2633,27 +2633,27 @@
         <span class="c1"># [[1       sh_x^y  sh_x^z]</span>
         <span class="c1">#  [sh_y^x     1    sh_y^z]</span>
         <span class="c1">#  [sh_z^x  sh_z^y     1  ]]</span>
-        <span class="n">sxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">sxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">sxz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">sxz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">syx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">syx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">syz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">syz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">3</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">szx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">szx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">4</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-        <span class="n">szy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([],</span>
+        <span class="n">szy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([],</span>
                                 <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
                                 <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_shearing</span><span class="p">[</span><span class="mi">5</span><span class="p">],</span>
                                 <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
@@ -2705,7 +2705,7 @@
 
     <span class="c1"># Choose a random rotation for every real box.</span>
     <span class="n">num_boxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">real_bboxes_3d</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-    <span class="n">rotation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
+    <span class="n">rotation</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
                                  <span class="n">minval</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span><span class="p">,</span>
                                  <span class="n">maxval</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span><span class="p">,</span>
                                  <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
@@ -2714,15 +2714,15 @@
     <span class="n">x_seed</span> <span class="o">=</span> <span class="n">base_seed</span>
     <span class="n">y_seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">base_seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="mi">1</span>
     <span class="n">z_seed</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="n">base_seed</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">base_seed</span> <span class="o">+</span> <span class="mi">2</span>
-    <span class="n">random_translate_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
+    <span class="n">random_translate_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">x_seed</span><span class="p">)</span>
-    <span class="n">random_translate_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
+    <span class="n">random_translate_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">y_seed</span><span class="p">)</span>
-    <span class="n">random_translate_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
+    <span class="n">random_translate_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">([</span><span class="n">num_boxes</span><span class="p">],</span>
                                           <span class="n">mean</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
                                           <span class="n">stddev</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span>
                                           <span class="n">seed</span><span class="o">=</span><span class="n">z_seed</span><span class="p">)</span>
@@ -2858,16 +2858,16 @@
     <span class="k">def</span> <span class="nf">Process</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Process a groundtruth record.&quot;&quot;&quot;</span>
       <span class="n">feature_map</span> <span class="o">=</span> <span class="p">{</span>
-          <span class="s1">&#39;num_points&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-          <span class="s1">&#39;points&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-          <span class="s1">&#39;points_feature&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-          <span class="s1">&#39;bbox_3d&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
-          <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-          <span class="s1">&#39;difficulty&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-          <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
+          <span class="s1">&#39;num_points&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="s1">&#39;points&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+          <span class="s1">&#39;points_feature&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+          <span class="s1">&#39;bbox_3d&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">),</span>
+          <span class="s1">&#39;label&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="s1">&#39;difficulty&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">FixedLenFeature</span><span class="p">((),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+          <span class="s1">&#39;text&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">),</span>
       <span class="p">}</span>
 
-      <span class="n">example_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
+      <span class="n">example_data</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
       <span class="n">num_points</span> <span class="o">=</span> <span class="n">example_data</span><span class="p">[</span><span class="s1">&#39;num_points&#39;</span><span class="p">]</span>
 
       <span class="n">points</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">_Dense</span><span class="p">(</span><span class="n">example_data</span><span class="p">[</span><span class="s1">&#39;points&#39;</span><span class="p">]),</span> <span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
@@ -2933,8 +2933,8 @@
     <span class="n">points_per_object</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">db_points_mask</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="n">example_filter</span> <span class="o">=</span> <span class="n">points_per_object</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_min_points</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_max_points</span><span class="p">:</span>
-      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span>
-                                      <span class="n">points_per_object</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_max_points</span><span class="p">)</span>
+      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+          <span class="n">example_filter</span><span class="p">,</span> <span class="n">points_per_object</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_max_points</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">difficulty_sampling_probability</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="c1"># Sample db based on difficulity of each example.</span>
@@ -2945,7 +2945,7 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">db_difficulty</span><span class="p">,</span> <span class="n">difficulty_idx</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span>
             <span class="n">difficulty_prob</span><span class="p">)</span>
 
-      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">),</span>
           <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -2955,8 +2955,8 @@
       <span class="n">example_filter</span> <span class="o">&amp;=</span> <span class="n">sampled_filter</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Filter out db examples below min difficulty</span>
-      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span>
-                                      <span class="n">db_difficulty</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_min_difficulty</span><span class="p">)</span>
+      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
+          <span class="n">example_filter</span><span class="p">,</span> <span class="n">db_difficulty</span> <span class="o">&gt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_min_difficulty</span><span class="p">)</span>
 
     <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span> <span class="p">[</span><span class="n">num_objects_in_database</span><span class="p">])</span>
     <span class="n">db_label</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">db_label</span><span class="p">,</span> <span class="p">[</span><span class="n">num_objects_in_database</span><span class="p">])</span>
@@ -2969,7 +2969,7 @@
         <span class="n">db_class_probability</span> <span class="o">+=</span> <span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">db_label</span><span class="p">,</span> <span class="n">class_idx</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">*</span> <span class="n">class_prob</span><span class="p">)</span>
 
-      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+      <span class="n">sampled_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">example_filter</span><span class="p">),</span>
           <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
@@ -2983,7 +2983,7 @@
       <span class="n">valid_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">label_filter</span><span class="p">)</span>
       <span class="n">label_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">db_label</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">valid_labels</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span> <span class="n">label_mask</span><span class="p">)</span>
+      <span class="n">example_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">example_filter</span><span class="p">,</span> <span class="n">label_mask</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">example_filter</span></div>
 
   <span class="c1"># TODO(vrv): Create an overlap filter that also ensures that boxes don&#39;t</span>
@@ -3022,7 +3022,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading groundtruth database at </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                    <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">))</span>
+                         <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">))</span>
     <span class="n">db</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReadDB</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
 
     <span class="n">original_features_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">)</span>
@@ -3047,7 +3047,7 @@
     <span class="c1"># from which we only need a sample.</span>
     <span class="c1"># To reduce the amount of computation, we randomly subsample to slightly</span>
     <span class="c1"># more than we want to augment.</span>
-    <span class="n">db_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_shuffle</span><span class="p">(</span>
+    <span class="n">db_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span>
         <span class="n">db_idx</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)[</span><span class="mi">0</span><span class="p">:</span><span class="n">num_augmented_bboxes</span> <span class="o">*</span> <span class="mi">2</span><span class="p">]</span>
 
     <span class="c1"># After filtering, further filter out the db boxes that would occlude with</span>
@@ -3223,7 +3223,7 @@
         <span class="n">geometry</span><span class="o">.</span><span class="n">SphericalCoordinatesTransform</span><span class="p">(</span><span class="n">points_xyz</span><span class="p">),</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_PickRandomPoint</span><span class="p">():</span>
-      <span class="n">point_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">((),</span>
+      <span class="n">point_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">((),</span>
                                     <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                                     <span class="n">maxval</span><span class="o">=</span><span class="n">num_points</span><span class="p">,</span>
                                     <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
@@ -3266,7 +3266,7 @@
       <span class="n">down_sampling_filter</span> <span class="o">=</span> <span class="n">drop_filter</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Randomly drop points in drop_filter based on keep_prob.</span>
-      <span class="n">sampling_drop_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="n">num_total_points</span><span class="p">],</span>
+      <span class="n">sampling_drop_filter</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="n">num_total_points</span><span class="p">],</span>
                                                <span class="n">minval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                                                <span class="n">maxval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
                                                <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -3377,7 +3377,7 @@
 
 <div class="viewcode-block" id="RandomApplyPreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
         <span class="p">(),</span> <span class="n">minval</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">maxval</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">p</span><span class="o">.</span><span class="n">prob</span>
     <span class="c1"># Features is passed downstream and may be modified, we make deep copies</span>
     <span class="c1"># here to use with tf.cond to avoid having tf.cond access updated</span>

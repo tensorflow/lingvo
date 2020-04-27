@@ -306,7 +306,7 @@
 
 <div class="viewcode-block" id="assert_greater_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_greater_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
@@ -320,7 +320,7 @@
 
 <div class="viewcode-block" id="assert_less_equal"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_less_equal">[docs]</a><span class="k">def</span> <span class="nf">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div>
 
@@ -375,7 +375,8 @@
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
     <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
       <span class="n">kwargs</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;:\d+&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="s1">&#39;_CheckNumerics&#39;</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">check_numerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span> <span class="k">if</span> <span class="n">message</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">check_numerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span> <span class="k">if</span> <span class="n">message</span> <span class="k">else</span> <span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span>
+                                       <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">x</span></div>
 
@@ -512,7 +513,7 @@
 <div class="viewcode-block" id="_Save"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Save">[docs]</a><span class="k">def</span> <span class="nf">_Save</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
   <span class="n">filename</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">.</span><span class="si">%08d</span><span class="s1">.</span><span class="si">%s</span><span class="s1">.npy&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">steps</span><span class="p">,</span>
                                  <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">Open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">outfile</span><span class="p">:</span>
     <span class="n">np</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">outfile</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span></div>
 
 
@@ -566,7 +567,8 @@
     <span class="k">return</span> <span class="n">tensor</span>
   <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span> <span class="n">tensor</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">debugging</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">),</span> <span class="n">expected_rank</span><span class="p">)],</span>
+        <span class="n">tensor</span><span class="p">)</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tensor</span></div>
 
@@ -747,7 +749,7 @@
   <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
   <span class="k">if</span> <span class="n">_tpu_device_assignment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;tpu_device_assignment was already set, &#39;</span>
-                       <span class="s1">&#39;overwriting with new assignment.&#39;</span><span class="p">)</span>
+                            <span class="s1">&#39;overwriting with new assignment.&#39;</span><span class="p">)</span>
   <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span></div>
 
 
@@ -772,7 +774,7 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A TF session config proto.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">session_config</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">(</span>
+  <span class="n">session_config</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">config_pb2</span><span class="o">.</span><span class="n">ConfigProto</span><span class="p">(</span>
       <span class="n">allow_soft_placement</span><span class="o">=</span><span class="n">soft_placement</span><span class="p">,</span>
       <span class="n">graph_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphOptions</span><span class="p">(</span>
           <span class="n">optimizer_options</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">OptimizerOptions</span><span class="p">(</span>
@@ -1315,17 +1317,17 @@
 
 <div class="viewcode-block" id="WeightInit.Gaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Gaussian">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Gaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1.0).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.normal(0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.Uniform"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Uniform">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">Uniform</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_uniform(-1.0, 1.0).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.uniform(-1.0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.UniformPositive"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.UniformPositive">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">UniformPositive</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_uniform(0., 1.0).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.uniform(0., 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform_positive&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.Xavier"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.Xavier">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -1354,22 +1356,22 @@
 
 <div class="viewcode-block" id="WeightInit.TruncatedGaussian"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussian">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussian</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1.0).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.truncated_normal(0, 1.0).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.GaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.GaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GaussianSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.GaussianSqrtFanIn"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.GaussianSqrtFanIn">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GaussianSqrtFanIn</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1 / sqrt(fan_in)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.normal(0, 1 / sqrt(fan_in)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.GaussianSqrtFanOut"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.GaussianSqrtFanOut">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">GaussianSqrtFanOut</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.random_normal(0, 1 / sqrt(fan_out)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.normal(0, 1 / sqrt(fan_out)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.UniformSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.UniformSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -1384,17 +1386,17 @@
 
 <div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussianSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.truncated_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtFanIn"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanIn">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussianSqrtFanIn</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1 / sqrt(fan_in)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.truncated_normal(0, 1 / sqrt(fan_in)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtFanOut"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtFanOut">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussianSqrtFanOut</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;scale * tf.truncated_normal(0, 1 / sqrt(fan_out)).&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;scale * tf.random.truncated_normal(0, 1 / sqrt(fan_out)).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="WeightInit.KaimingUniformFanInRelu"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.KaimingUniformFanInRelu">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -1555,7 +1557,8 @@
         <span class="n">matched</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">new_name</span> <span class="o">=</span> <span class="n">name_format</span> <span class="o">%</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">new_name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;WARNING!!! Renaming variable &#39;</span><span class="si">%s</span><span class="s2">&#39; to &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;WARNING!!! Renaming variable &#39;</span><span class="si">%s</span><span class="s2">&#39; to &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>
+                         <span class="n">new_name</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">new_name</span></div>
 
 
@@ -1735,7 +1738,7 @@
         <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">6.</span> <span class="o">/</span> <span class="p">(</span><span class="n">fan_in</span> <span class="o">+</span> <span class="n">fan_out</span><span class="p">))</span>
       <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;geo_mean_xavier&#39;</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">fan_in</span> <span class="o">*</span> <span class="n">fan_out</span><span class="p">))</span>
-      <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="o">-</span><span class="n">limit</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span>
 
     <span class="c1"># pylint: enable=unused-argument</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">XavierUniform</span>
@@ -1825,7 +1828,7 @@
                          <span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                    <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                         <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
@@ -2148,7 +2151,7 @@
       <span class="k">continue</span>
     <span class="k">if</span> <span class="n">use_bf16_gradients_ar</span><span class="p">:</span>
       <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bfloat16</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">g</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">skip_zero_gradients</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># loss is already scaled by 1/shards.</span>
         <span class="n">normalized_g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">g</span><span class="p">)</span>
@@ -2391,8 +2394,11 @@
       <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="o">.</span><span class="n">values</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span>
+             <span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">x</span><span class="p">))])</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_nan</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">is_inf</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
 
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">([</span><span class="n">HasNanOrInf</span><span class="p">(</span><span class="n">g</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()])</span></div>
 
@@ -2494,7 +2500,7 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">grad</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
         <span class="c1"># Counts is a vector of size vocab_size. counts[i] is i-th words</span>
         <span class="c1"># occurances in &#39;ids&#39;.</span>
-        <span class="n">counts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unsorted_segment_sum</span><span class="p">(</span>
+        <span class="n">counts</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_sum</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">values</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">ids</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
 
         <span class="c1"># Gradients for duplicated ids will be summed when they get</span>
@@ -2504,7 +2510,7 @@
         <span class="c1">#</span>
         <span class="c1"># For each id in &#39;ids&#39;, we know counts[id] is non-zero,</span>
         <span class="c1"># hence, it&#39;s always safe to take reciprocal.</span>
-        <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reciprocal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">ids</span><span class="p">))</span>
+        <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">ids</span><span class="p">))</span>
         <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># [#ids, 1]</span>
         <span class="k">if</span> <span class="n">p</span> <span class="o">==</span> <span class="mf">2.0</span><span class="p">:</span>
           <span class="n">grad_v</span> <span class="o">=</span> <span class="n">values</span>
@@ -2770,7 +2776,7 @@
   <span class="n">seed</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">seed</span>
   <span class="k">if</span> <span class="n">seed</span> <span class="ow">and</span> <span class="n">step</span><span class="p">:</span>
     <span class="n">seed</span> <span class="o">+=</span> <span class="n">step</span> <span class="o">*</span> <span class="mi">203984</span>
-  <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_normal</span><span class="p">(</span>
+  <span class="n">noises</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">stddev</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">noises</span></div>
 
@@ -2880,7 +2886,7 @@
     <span class="c1"># the same outputs, even if the model is supposed to have randomness such as</span>
     <span class="c1"># dropout during inference. We inject additional randomness only during</span>
     <span class="c1"># inference if the graph is exported with random_seed=None as a workaround.</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">seed_dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">seed_dtype</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">seed_dtype</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">seed_dtype</span><span class="p">)</span>
 
   <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">seed_dtype</span><span class="p">)</span>
   <span class="n">step_seed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">GetIncStepSeed</span><span class="p">(),</span> <span class="n">seed_dtype</span><span class="p">)</span>
@@ -2981,7 +2987,7 @@
           <span class="n">batch_norm_stats</span><span class="p">,</span>
           <span class="n">decay</span><span class="p">,</span>
       <span class="p">])</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">batch_norm_var</span><span class="p">):</span>
       <span class="n">decay</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
           <span class="mf">1.0</span> <span class="o">-</span> <span class="n">decay</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">batch_norm_var</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">base_dtype</span><span class="p">)</span>
       <span class="n">update_delta</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_norm_var</span> <span class="o">-</span> <span class="n">batch_norm_stats</span><span class="p">)</span> <span class="o">*</span> <span class="n">decay</span>
@@ -3119,9 +3125,9 @@
   <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_complex</span><span class="p">:</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">complex</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_real&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_real&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">),</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_imag&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">))</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">imag</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_imag&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">))</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">clip_value_min</span><span class="p">,</span> <span class="n">clip_value_max</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span></div>
 
 
@@ -3281,8 +3287,8 @@
   <span class="n">padding</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
       <span class="n">Assert</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))),</span>
-          <span class="p">[</span><span class="n">padding</span><span class="p">])</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">))),</span> <span class="p">[</span><span class="n">padding</span><span class="p">])</span>
   <span class="p">],</span> <span class="n">padding</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">use_select</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">padded</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -3365,7 +3371,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">inversed_paddings</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
   <span class="n">inputs_length</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inversed_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rint</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inversed_paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">inputs_length</span><span class="p">,</span> <span class="n">seq_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></div>
 
 
@@ -3576,13 +3582,13 @@
 
   <span class="n">lower</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="n">upper</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random_uniform</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">[],</span> <span class="n">maxval</span><span class="o">=</span><span class="n">upper</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
   <span class="n">return_input</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
-      <span class="p">[(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+      <span class="p">[(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">inputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">))],</span>
       <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="n">selected_index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">case</span><span class="p">(</span>
-      <span class="p">[(</span><span class="n">tf</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">)</span>
+      <span class="p">[(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">lower</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">&lt;</span> <span class="n">upper</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="k">lambda</span> <span class="n">i</span><span class="o">=</span><span class="n">i</span><span class="p">:</span> <span class="n">i</span><span class="p">)</span>
        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">))],</span>
       <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
   <span class="n">bprop_index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">selected_index</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -3713,7 +3719,7 @@
     <span class="sd">&quot;&quot;&quot;The backward function that rematerializes forward outputs.&quot;&quot;&quot;</span>
     <span class="n">always_true</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">([])</span> <span class="o">&lt;</span> <span class="mf">2.0</span>
     <span class="c1"># Alternatively, can do this:</span>
-    <span class="c1"># tf.where(tf.is_nan(x),</span>
+    <span class="c1"># tf.where(tf.math.is_nan(x),</span>
     <span class="c1">#          tf.constant(float(&#39;nan&#39;), dtype=x.dtype) * tf.ones_like(x),</span>
     <span class="c1">#          x)</span>
     <span class="c1"># Skip op.inputs[0] which is initial_step_seed.</span>

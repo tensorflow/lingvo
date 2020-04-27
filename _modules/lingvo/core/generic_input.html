@@ -178,7 +178,7 @@
 <span class="sd">    def ParseRecord(record):</span>
 <span class="sd">      # Given a tf.string record, return a (NestedMap, bucketing key) pair.</span>
 <span class="sd">      feature_map = ...</span>
-<span class="sd">      features = tf.parse_single_example(record, feature_map)</span>
+<span class="sd">      features = tf.io.parse_single_example(record, feature_map)</span>
 <span class="sd">      # Each example is represented by a NestedMap of tensors (without a</span>
 <span class="sd">      # batch dimension).</span>
 <span class="sd">      example = py_utils.NestedMap(field1=..., field2=...)</span>
@@ -250,13 +250,13 @@
               <span class="n">output</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
     <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bucketing_key</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor outputs=</span><span class="si">%s</span><span class="s1"> bucketing_key=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
-                     <span class="n">bucketing_key</span><span class="p">)</span>
+                          <span class="n">bucketing_key</span><span class="p">)</span>
     <span class="n">output_tmpl</span><span class="o">.</span><span class="n">out_values</span> <span class="o">=</span> <span class="n">output</span>
     <span class="n">flat_output_tmpl</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor flat outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_output_tmpl</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extra_inputs=</span><span class="si">%s</span><span class="s1"> extra_args=</span><span class="si">%s</span><span class="s1"> extra_vars=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                     <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span>
-                     <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">())</span>
+                          <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span>
+                          <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">())</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="p">(</span>
         <span class="s1">&#39;fns </span><span class="si">{}</span><span class="s1"> is not pure: extra_args=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span>
                                                    <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()))</span>

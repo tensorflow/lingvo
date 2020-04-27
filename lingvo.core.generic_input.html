@@ -174,7 +174,7 @@
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">ParseRecord</span><span class="p">(</span><span class="n">record</span><span class="p">):</span>
   <span class="c1"># Given a tf.string record, return a (NestedMap, bucketing key) pair.</span>
   <span class="n">feature_map</span> <span class="o">=</span> <span class="o">...</span>
-  <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
+  <span class="n">features</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="n">feature_map</span><span class="p">)</span>
   <span class="c1"># Each example is represented by a NestedMap of tensors (without a</span>
   <span class="c1"># batch dimension).</span>
   <span class="n">example</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">field1</span><span class="o">=...</span><span class="p">,</span> <span class="n">field2</span><span class="o">=...</span><span class="p">)</span>
