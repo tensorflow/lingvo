@@ -3029,6 +3029,12 @@
         <span class="s1">&#39; divide num_classes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_pruning&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to prune the weights while training&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_num_classes_major_weight&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether to use num_classes as major dimension for weight params. &#39;</span>
+        <span class="s1">&#39;This shows performance benefit especially when sharing embedding &#39;</span>
+        <span class="s1">&#39;and softmax. By removing the transpose before gather, it allows &#39;</span>
+        <span class="s1">&#39;better XLA fusions and optimizations.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -3045,7 +3051,7 @@
     <span class="c1"># op before computing the sampled_softmax_loss.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">num_classes_per_shard</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">use_num_classes_major_weight</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span>
@@ -3332,7 +3338,11 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
       <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
           <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)],</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">ids</span><span class="p">)</span>
+
+    <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">wm</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">:</span>
+      <span class="n">wm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">wm</span><span class="p">)</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">wm</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
       <span class="n">embs_result</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="o">**</span><span class="mf">0.5</span>
