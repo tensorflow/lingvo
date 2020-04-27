@@ -195,9 +195,10 @@ def AddAttentionSummaryBatchMajor(attention_tensors,
       name, max_outputs=max_outputs, gridspec_kwargs={'hspace': 0.3}) as fig:
     for n, atten in enumerate(attention_tensors):
       # Diagnostic metric that decreases as attention picks up.
-      max_entropy = tf.log(tf.cast(Get(src_lens, n), tf.float32))
+      max_entropy = tf.math.log(tf.cast(Get(src_lens, n), tf.float32))
       max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, -1), -1)
-      atten_normalized_entropy = -atten * tf.log(atten + 1e-10) / max_entropy
+      atten_normalized_entropy = -atten * tf.math.log(atten +
+                                                      1e-10) / max_entropy
       scalar('Attention/average_normalized_entropy/%d' % n,
              tf.reduce_mean(atten_normalized_entropy))
       args = [atten, Get(src_lens, n), Get(tgt_lens, n)]
@@ -339,5 +340,6 @@ class StepRateTracker(object):
       elapsed_secs = t1 - t0
       rate = (s1 - s0) / elapsed_secs
       example_rate = (e1 - e0) / elapsed_secs
-    tf.logging.info('Steps/second: %f, Examples/second: %f', rate, example_rate)
+    tf.logging.info('Steps/second: %f, Examples/second: %f', rate,
+                         example_rate)
     return rate, example_rate, total_examples

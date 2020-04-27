@@ -342,9 +342,9 @@ class BaseBeamSearchDecoder(BaseDecoder):
         prev_label = TileForBeamAndFlatten(
             tf.gather(labels, tf.maximum(time_step - 1, 0), axis=1))
         is_step0 = tf.equal(time_step, 0)
-        local_consistence = tf.logical_or(
+        local_consistence = tf.math.logical_or(
             is_step0, tf.equal(prev_label, tf.squeeze(step_ids, 1)))
-        consistent = tf.logical_and(states.consistent, local_consistence)
+        consistent = tf.math.logical_and(states.consistent, local_consistence)
 
         # get label, weight slices corresponding to current time_step
         label = TileForBeamAndFlatten(tf.gather(labels, time_step, axis=1))
@@ -370,7 +370,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
             py_utils.assert_less_equal(weight, 1.),
             py_utils.assert_greater_equal(weight, 0.)
         ], (1.0 - weight) * pred_probs + weight * label_probs)
-        return tf.log(probs), consistent
+        return tf.math.log(probs), consistent
 
       def NoApplyBias():
         """No-op. Return original log_probs and consistent."""

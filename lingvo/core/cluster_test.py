@@ -65,7 +65,7 @@ class ClusterTest(test_utils.TestCase):
           dyn_shape = tf.placeholder_with_default(dyn_shape, shape=[None])
           v = tf.get_variable(
               'x%d_wb/var' % i,
-              initializer=tf.random_uniform(dyn_shape, dtype=tf.float64),
+              initializer=tf.random.uniform(dyn_shape, dtype=tf.float64),
               validate_shape=False)
           vs.append(v)
         sum_all = tf.add_n(vs)

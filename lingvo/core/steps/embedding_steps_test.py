@@ -25,7 +25,7 @@ class EmbeddingStepsTest(test_utils.TestCase):
 
   def testEmbeddingStep(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       p = embedding_steps.EmbeddingStep.Params()
       p.name = 'emb_step'
       p.emb.vocab_size = 10

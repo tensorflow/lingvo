@@ -290,7 +290,7 @@ def _RenderMatplotlibFigures(figsize, max_outputs, plot_func, *numpy_data_list):
 
   Returns:
     A numpy 4D array of type np.uint8 which can be used to generate a
-    `tf.image_summary` when converted to a tf tensor.
+    `tf.math.image_summary` when converted to a tf tensor.
   """
   batch_size = numpy_data_list[0].shape[0]
   max_outputs = min(max_outputs, batch_size)
@@ -307,8 +307,9 @@ def _RenderMatplotlibFigures(figsize, max_outputs, plot_func, *numpy_data_list):
     try:
       images.append(_RenderOneMatplotlibFigure(fig, plot_func, *data))
     except Exception as e:  # pylint: disable=broad-except
-      tf.logging.warning('Error rendering example %d using matplotlib: %s\n%s',
-                         b, e, traceback.format_exc())
+      tf.logging.warning(
+          'Error rendering example %d using matplotlib: %s\n%s', b, e,
+          traceback.format_exc())
     if len(images) == max_outputs:
       break
   plt.close(fig)

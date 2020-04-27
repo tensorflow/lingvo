@@ -37,7 +37,7 @@ from tensorflow.python.ops import inplace_ops
 def _ConsistentShuffle(tensors, seed):
   """Shuffle multiple tensors with the same shuffle order."""
   shuffled_idx = tf.range(tf.shape(tensors[0])[0])
-  shuffled_idx = tf.random_shuffle(shuffled_idx, seed=seed)
+  shuffled_idx = tf.random.shuffle(shuffled_idx, seed=seed)
   return tuple([tf.gather(t, shuffled_idx) for t in tensors])
 
 
@@ -812,14 +812,14 @@ class GridToPillars(Preprocessor):
       multinomial sample without replacement.
     """
     p = self.params
-    log_prob = tf.log(probs)
+    log_prob = tf.math.log(probs)
     probs_shape = tf.shape(probs)
-    uniform_samples = tf.random_uniform(
+    uniform_samples = tf.random.uniform(
         shape=probs_shape,
         dtype=probs.dtype,
         seed=p.random_seed,
         name='uniform_samples')
-    gumbel_noise = -tf.log(-tf.log(uniform_samples))
+    gumbel_noise = -tf.math.log(-tf.math.log(uniform_samples))
     return gumbel_noise + log_prob
 
   def _DensitySample(self, num_points):
@@ -1809,7 +1809,7 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
 
   def TransformFeatures(self, features):
     p = self.params
-    rot = tf.random_uniform((),
+    rot = tf.random.uniform((),
                             minval=-p.max_rotation,
                             maxval=p.max_rotation,
                             seed=p.random_seed)
@@ -1997,9 +1997,9 @@ class DropBoxesOutOfRange(Preprocessor):
     max_bbox_z = tf.reduce_max(bboxes_3d_corners[:, :, 2], axis=-1)
 
     mask = (
-        tf.logical_and(min_bbox_x >= min_x, max_bbox_x <= max_x)
-        & tf.logical_and(min_bbox_y >= min_y, max_bbox_y <= max_y)
-        & tf.logical_and(min_bbox_z >= min_z, max_bbox_z <= max_z))
+        tf.math.logical_and(min_bbox_x >= min_x, max_bbox_x <= max_x)
+        & tf.math.logical_and(min_bbox_y >= min_y, max_bbox_y <= max_y)
+        & tf.math.logical_and(min_bbox_z >= min_z, max_bbox_z <= max_z))
 
     max_num_boxes = py_utils.GetShape(features.labels.bboxes_3d_mask)
     mask = py_utils.HasShape(mask, max_num_boxes)
@@ -2052,7 +2052,7 @@ class PadLaserFeatures(Preprocessor):
     features.lasers.points_padding = tf.ones([npoints])
 
     shuffled_idx = tf.range(npoints)
-    shuffled_idx = tf.random_shuffle(shuffled_idx, seed=p.random_seed)
+    shuffled_idx = tf.random.shuffle(shuffled_idx, seed=p.random_seed)
 
     def _PadOrTrimFn(points_tensor):
       # Shuffle before trimming so we have a random sampling
@@ -2107,7 +2107,7 @@ class WorldScaling(Preprocessor):
 
   def TransformFeatures(self, features):
     p = self.params
-    scaling = tf.random_uniform((),
+    scaling = tf.random.uniform((),
                                 minval=p.scaling[0],
                                 maxval=p.scaling[1],
                                 seed=p.random_seed,
@@ -2199,7 +2199,7 @@ class RandomFlipY(Preprocessor):
   def TransformFeatures(self, features):
     p = self.params
     threshold = 1. - p.flip_probability
-    choice = tf.random_uniform(
+    choice = tf.random.uniform(
         (), minval=0.0, maxval=1.0, seed=p.random_seed) >= threshold
 
     # Flip points
@@ -2255,15 +2255,15 @@ class GlobalTranslateNoise(Preprocessor):
     x_seed = base_seed
     y_seed = None if base_seed is None else base_seed + 1
     z_seed = None if base_seed is None else base_seed + 2
-    random_translate_x = tf.random_normal((),
+    random_translate_x = tf.random.normal((),
                                           mean=0.0,
                                           stddev=p.noise_std[0],
                                           seed=x_seed)
-    random_translate_y = tf.random_normal((),
+    random_translate_y = tf.random.normal((),
                                           mean=0.0,
                                           stddev=p.noise_std[1],
                                           seed=y_seed)
-    random_translate_z = tf.random_normal((),
+    random_translate_z = tf.random.normal((),
                                           mean=0.0,
                                           stddev=p.noise_std[2],
                                           seed=z_seed)
@@ -2389,7 +2389,7 @@ class RandomBBoxTransform(Preprocessor):
     foreground_points_mask = tf.reduce_any(points_in_bbox_mask, axis=-1)
     # All others are background.  We rotate all of the foreground points to
     # final_points_* and keep the background points unchanged
-    background_points_mask = tf.logical_not(foreground_points_mask)
+    background_points_mask = tf.math.logical_not(foreground_points_mask)
     background_points_xyz = tf.boolean_mask(points_xyz, background_points_mask)
     background_points_feature = tf.boolean_mask(points_feature,
                                                 background_points_mask)
@@ -2465,15 +2465,15 @@ class RandomBBoxTransform(Preprocessor):
         # [[s_x+1    0      0]
         #  [ 0      s_y+1   0]
         #  [ 0       0     s_z+1]]
-        sx = tf.random_uniform([],
+        sx = tf.random.uniform([],
                                minval=-p.max_scaling[0],
                                maxval=p.max_scaling[0],
                                seed=p.random_seed)
-        sy = tf.random_uniform([],
+        sy = tf.random.uniform([],
                                minval=-p.max_scaling[1],
                                maxval=p.max_scaling[1],
                                seed=p.random_seed)
-        sz = tf.random_uniform([],
+        sz = tf.random.uniform([],
                                minval=-p.max_scaling[2],
                                maxval=p.max_scaling[2],
                                seed=p.random_seed)
@@ -2488,27 +2488,27 @@ class RandomBBoxTransform(Preprocessor):
         # [[1       sh_x^y  sh_x^z]
         #  [sh_y^x     1    sh_y^z]
         #  [sh_z^x  sh_z^y     1  ]]
-        sxy = tf.random_uniform([],
+        sxy = tf.random.uniform([],
                                 minval=-p.max_shearing[0],
                                 maxval=p.max_shearing[0],
                                 seed=p.random_seed)
-        sxz = tf.random_uniform([],
+        sxz = tf.random.uniform([],
                                 minval=-p.max_shearing[1],
                                 maxval=p.max_shearing[1],
                                 seed=p.random_seed)
-        syx = tf.random_uniform([],
+        syx = tf.random.uniform([],
                                 minval=-p.max_shearing[2],
                                 maxval=p.max_shearing[2],
                                 seed=p.random_seed)
-        syz = tf.random_uniform([],
+        syz = tf.random.uniform([],
                                 minval=-p.max_shearing[3],
                                 maxval=p.max_shearing[3],
                                 seed=p.random_seed)
-        szx = tf.random_uniform([],
+        szx = tf.random.uniform([],
                                 minval=-p.max_shearing[4],
                                 maxval=p.max_shearing[4],
                                 seed=p.random_seed)
-        szy = tf.random_uniform([],
+        szy = tf.random.uniform([],
                                 minval=-p.max_shearing[5],
                                 maxval=p.max_shearing[5],
                                 seed=p.random_seed)
@@ -2560,7 +2560,7 @@ class RandomBBoxTransform(Preprocessor):
 
     # Choose a random rotation for every real box.
     num_boxes = tf.shape(real_bboxes_3d)[0]
-    rotation = tf.random_uniform([num_boxes],
+    rotation = tf.random.uniform([num_boxes],
                                  minval=-p.max_rotation,
                                  maxval=p.max_rotation,
                                  seed=p.random_seed)
@@ -2569,15 +2569,15 @@ class RandomBBoxTransform(Preprocessor):
     x_seed = base_seed
     y_seed = None if base_seed is None else base_seed + 1
     z_seed = None if base_seed is None else base_seed + 2
-    random_translate_x = tf.random_normal([num_boxes],
+    random_translate_x = tf.random.normal([num_boxes],
                                           mean=0.0,
                                           stddev=p.noise_std[0],
                                           seed=x_seed)
-    random_translate_y = tf.random_normal([num_boxes],
+    random_translate_y = tf.random.normal([num_boxes],
                                           mean=0.0,
                                           stddev=p.noise_std[1],
                                           seed=y_seed)
-    random_translate_z = tf.random_normal([num_boxes],
+    random_translate_z = tf.random.normal([num_boxes],
                                           mean=0.0,
                                           stddev=p.noise_std[2],
                                           seed=z_seed)
@@ -2713,16 +2713,16 @@ class GroundTruthAugmentor(Preprocessor):
     def Process(record):
       """Process a groundtruth record."""
       feature_map = {
-          'num_points': tf.FixedLenFeature((), tf.int64, 0),
-          'points': tf.VarLenFeature(dtype=tf.float32),
-          'points_feature': tf.VarLenFeature(dtype=tf.float32),
-          'bbox_3d': tf.VarLenFeature(dtype=tf.float32),
-          'label': tf.FixedLenFeature((), tf.int64, 0),
-          'difficulty': tf.FixedLenFeature((), tf.int64, 0),
-          'text': tf.VarLenFeature(dtype=tf.string),
+          'num_points': tf.io.FixedLenFeature((), tf.int64, 0),
+          'points': tf.io.VarLenFeature(dtype=tf.float32),
+          'points_feature': tf.io.VarLenFeature(dtype=tf.float32),
+          'bbox_3d': tf.io.VarLenFeature(dtype=tf.float32),
+          'label': tf.io.FixedLenFeature((), tf.int64, 0),
+          'difficulty': tf.io.FixedLenFeature((), tf.int64, 0),
+          'text': tf.io.VarLenFeature(dtype=tf.string),
       }
 
-      example_data = tf.parse_single_example(record, feature_map)
+      example_data = tf.io.parse_single_example(record, feature_map)
       num_points = example_data['num_points']
 
       points = tf.reshape(_Dense(example_data['points']), [num_points, 3])
@@ -2788,8 +2788,8 @@ class GroundTruthAugmentor(Preprocessor):
     points_per_object = tf.reduce_sum(tf.cast(db_points_mask, tf.int32), axis=1)
     example_filter = points_per_object >= p.filter_min_points
     if p.filter_max_points:
-      example_filter = tf.logical_and(example_filter,
-                                      points_per_object <= p.filter_max_points)
+      example_filter = tf.math.logical_and(
+          example_filter, points_per_object <= p.filter_max_points)
 
     if p.difficulty_sampling_probability is not None:
       # Sample db based on difficulity of each example.
@@ -2800,7 +2800,7 @@ class GroundTruthAugmentor(Preprocessor):
             tf.cast(tf.equal(db_difficulty, difficulty_idx), tf.float32) *
             difficulty_prob)
 
-      sampled_filter = tf.random_uniform(
+      sampled_filter = tf.random.uniform(
           tf.shape(example_filter),
           minval=0,
           maxval=1,
@@ -2810,8 +2810,8 @@ class GroundTruthAugmentor(Preprocessor):
       example_filter &= sampled_filter
     else:
       # Filter out db examples below min difficulty
-      example_filter = tf.logical_and(example_filter,
-                                      db_difficulty >= p.filter_min_difficulty)
+      example_filter = tf.math.logical_and(
+          example_filter, db_difficulty >= p.filter_min_difficulty)
 
     example_filter = tf.reshape(example_filter, [num_objects_in_database])
     db_label = tf.reshape(db_label, [num_objects_in_database])
@@ -2824,7 +2824,7 @@ class GroundTruthAugmentor(Preprocessor):
         db_class_probability += (
             tf.cast(tf.equal(db_label, class_idx), tf.float32) * class_prob)
 
-      sampled_filter = tf.random_uniform(
+      sampled_filter = tf.random.uniform(
           tf.shape(example_filter),
           minval=0,
           maxval=1,
@@ -2838,7 +2838,7 @@ class GroundTruthAugmentor(Preprocessor):
       valid_labels = tf.constant(p.label_filter)
       label_mask = tf.reduce_any(
           tf.equal(db_label[..., tf.newaxis], valid_labels), axis=1)
-      example_filter = tf.logical_and(example_filter, label_mask)
+      example_filter = tf.math.logical_and(example_filter, label_mask)
     return example_filter
 
   # TODO(vrv): Create an overlap filter that also ensures that boxes don't
@@ -2877,7 +2877,7 @@ class GroundTruthAugmentor(Preprocessor):
     p = self.params
 
     tf.logging.info('Loading groundtruth database at %s' %
-                    (p.groundtruth_database))
+                         (p.groundtruth_database))
     db = p.groundtruth_database.Instantiate().BuildDataSource(self._ReadDB).data
 
     original_features_shape = tf.shape(features.lasers.points_feature)
@@ -2902,7 +2902,7 @@ class GroundTruthAugmentor(Preprocessor):
     # from which we only need a sample.
     # To reduce the amount of computation, we randomly subsample to slightly
     # more than we want to augment.
-    db_idx = tf.random_shuffle(
+    db_idx = tf.random.shuffle(
         db_idx, seed=p.random_seed)[0:num_augmented_bboxes * 2]
 
     # After filtering, further filter out the db boxes that would occlude with
@@ -3078,7 +3078,7 @@ class FrustumDropout(Preprocessor):
         geometry.SphericalCoordinatesTransform(points_xyz), axis=-1)
 
     def _PickRandomPoint():
-      point_idx = tf.random_uniform((),
+      point_idx = tf.random.uniform((),
                                     minval=0,
                                     maxval=num_points,
                                     dtype=tf.int32)
@@ -3121,7 +3121,7 @@ class FrustumDropout(Preprocessor):
       down_sampling_filter = drop_filter
     else:
       # Randomly drop points in drop_filter based on keep_prob.
-      sampling_drop_filter = tf.random_uniform([num_total_points],
+      sampling_drop_filter = tf.random.uniform([num_total_points],
                                                minval=0,
                                                maxval=1,
                                                dtype=tf.float32)
@@ -3232,7 +3232,7 @@ class RandomApplyPreprocessor(Preprocessor):
 
   def TransformFeatures(self, features):
     p = self.params
-    choice = tf.random_uniform(
+    choice = tf.random.uniform(
         (), minval=0.0, maxval=1.0, seed=p.random_seed) <= p.prob
     # Features is passed downstream and may be modified, we make deep copies
     # here to use with tf.cond to avoid having tf.cond access updated

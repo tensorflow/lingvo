@@ -86,8 +86,8 @@ class SchedulerTests(test_utils.TestCase):
 
   def _setupTestAdaptiveScheduler(self, p):
     logdir = tf.test.get_temp_dir()
-    tf.gfile.MkDir(os.path.join(logdir, 'decoder_dev_a'))
-    tf.gfile.MkDir(os.path.join(logdir, 'decoder_dev_b'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'decoder_dev_a'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'decoder_dev_b'))
 
     early_stop.MetricHistory.SetLogdirInMetricHistories(p, logdir)
 

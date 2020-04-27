@@ -145,8 +145,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # If use_per_host_infeed, each input op is only responsible
     # for generating a subset of the whole batch.
     if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
-                      cluster.num_tpu_hosts)
+      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d',
+                           batch_per_input, cluster.num_tpu_hosts)
       batch_per_input //= cluster.num_tpu_hosts
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
@@ -270,9 +270,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
           shapes = batch.Transform(lambda x: x.shape).Flatten()
           dtypes = batch.Transform(lambda x: x.dtype).Flatten()
           tf.logging.info('host_device: %s infeed shapes: %r', host_device,
-                          shapes)
+                               shapes)
           tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
-                          dtypes)
+                               dtypes)
           if p.use_partitioned_infeed_queue:
             device_assignment = py_utils.GetTpuDeviceAssignment()
 
@@ -719,8 +719,9 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     """
     buckets = self.infeed_bucket_batch_limit
     if any(x != buckets[0] for x in buckets):
-      tf.logging.warning('Using max bucket batch limit but not all limits are '
-                         'the same {}'.format(buckets))
+      tf.logging.warning(
+          'Using max bucket batch limit but not all limits are '
+          'the same {}'.format(buckets))
     infeed_size = max(buckets)
     tf.logging.info('InfeedBatchSize: %d', infeed_size)
     return infeed_size
@@ -904,7 +905,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     """Subclasses must implement and return a feature spec.
 
     Returns:
-      NestedMap of features compatible with tf.parse_example. Default
+      NestedMap of features compatible with tf.io.parse_example. Default
       implementation returns an empty dict.
     """
     return {}
@@ -922,7 +923,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
       ], ('BaseExampleInputGenerator supports one or two column input')
       record = cols[-1]
       feature_spec = self.GetFeatureSpec()
-      features = py_utils.NestedMap(tf.parse_example(record, feature_spec))
+      features = py_utils.NestedMap(tf.io.parse_example(record, feature_spec))
       return self._PreprocessInputBatch(features)
 
     dataset_factory = p.dataset_type

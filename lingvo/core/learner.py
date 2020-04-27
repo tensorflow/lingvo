@@ -126,12 +126,12 @@ class Learner(base_layer.BaseLayer):
     def VariableFilter(v):
       """Returns True if variable v should be optimized by this learner."""
       if pos and not pos.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
-                        v.name)
+        tf.logging.info('%s: disabled by bprop_variable_filter: %s',
+                             p.name, v.name)
         return False
       if neg and neg.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
-                        v.name)
+        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s',
+                             p.name, v.name)
         return False
       return True
 
@@ -305,8 +305,8 @@ class Learner(base_layer.BaseLayer):
     flatten = py_utils.Flatten(var_grads)
     all_grad_norm = tf.sqrt(py_utils.SumSquared([g for (_, g) in flatten]))
     all_var_norm = tf.sqrt(py_utils.SumSquared([v for (v, _) in flatten]))
-    grad_norm_is_nan_or_inf = tf.logical_or(
-        tf.is_nan(all_grad_norm), tf.is_inf(all_grad_norm))
+    grad_norm_is_nan_or_inf = tf.math.logical_or(
+        tf.math.is_nan(all_grad_norm), tf.math.is_inf(all_grad_norm))
 
     # Optional gradient adjustment. Note that this happens after computing
     # all_grad_norm.
@@ -317,7 +317,7 @@ class Learner(base_layer.BaseLayer):
     # Handles NaN/Inf gradients.
     has_nan_or_inf = py_utils.HasNanOrInfGradient(var_grads)
     # Grad norm can still be inf even if none of the individual grad is inf.
-    has_nan_or_inf = tf.logical_or(has_nan_or_inf, grad_norm_is_nan_or_inf)
+    has_nan_or_inf = tf.math.logical_or(has_nan_or_inf, grad_norm_is_nan_or_inf)
     self._AddEvalMetric('has_nan_or_inf', has_nan_or_inf, tf.constant(1.0))
 
     return_values = py_utils.NestedMap()
@@ -379,8 +379,8 @@ def ExtractLearnerFromLegacyParams(tp, cls=Learner):
   lp.name = 'loss'
   for k, v in tp.IterParams():
     if k not in _LEGACY_LEARNER_PARAMS:
-      tf.logging.info('Ignoring legacy param %s=%s for optimization program', k,
-                      v)
+      tf.logging.info(
+          'Ignoring legacy param %s=%s for optimization program', k, v)
       continue
     setattr(lp, k, v)
     setattr(tp, k, None)

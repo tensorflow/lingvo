@@ -287,7 +287,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         tf.expand_dims(tf.cast(tf.range(mask_size), dtype=dtype), 0), 0)
     diagonal = tf.tile(diagonal, [batch_size, multiplicity, 1])
     pre_mask = tf.cast(
-        tf.logical_and(diagonal < end, diagonal > start), dtype=dtype)
+        tf.math.logical_and(diagonal < end, diagonal > start), dtype=dtype)
 
     # Sum masks with appropriate multiplicity.
     if masks_per_frame > 0:

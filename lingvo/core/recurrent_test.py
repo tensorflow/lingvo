@@ -528,7 +528,7 @@ class RecurrentTest(test_utils.TestCase):
       next_state = py_utils.NestedMap()
       next_state.value = (
           state.value +
-          inputs.coeff * tf.random_uniform(shape=[], dtype=state.value.dtype))
+          inputs.coeff * tf.random.uniform(shape=[], dtype=state.value.dtype))
       return next_state, py_utils.NestedMap()
 
     with self.session():
@@ -546,7 +546,7 @@ class RecurrentTest(test_utils.TestCase):
 
     @tf.Defun(tf.float32)
     def RandWithCoeff(coeff):
-      return coeff * tf.random_uniform(shape=[], dtype=coeff.dtype)
+      return coeff * tf.random.uniform(shape=[], dtype=coeff.dtype)
 
     def Rand(theta, state, inputs):
       del theta
@@ -595,11 +595,11 @@ class RecurrentTest(test_utils.TestCase):
 
   @staticmethod
   def Rand(shape):
-    return tf.random_uniform(shape, minval=-0.2, maxval=0.2, dtype=tf.float64)
+    return tf.random.uniform(shape, minval=-0.2, maxval=0.2, dtype=tf.float64)
 
   def _testElmanHelper(self, seqlen, use_grad, stop_fn=None):
     with self.session() as sess:
-      tf.set_random_seed(342462)
+      tf.random.set_seed(342462)
 
       batch = 3
       dims = 4
@@ -738,7 +738,7 @@ class StackedRecurrentTest(test_utils.TestCase):
 
   def _BuildStackedRecurrentElman(self, seqlen, trailing_pad_len, batch, dims,
                                   layers):
-    tf.set_random_seed(342462)
+    tf.random.set_seed(342462)
     np.random.seed(32540)
 
     seqlen += trailing_pad_len

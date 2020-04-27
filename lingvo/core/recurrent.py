@@ -388,9 +388,9 @@ class _Recurrent(object):
       should_continue = t < limit
       if self._stop_fn:
         theta, state0, _, _, _ = py_utils.Pack(fwdloop_sig, args)
-        should_continue = tf.logical_and(
+        should_continue = tf.math.logical_and(
             should_continue,
-            tf.reduce_any(tf.logical_not(self._stop_fn(t, theta, state0))))
+            tf.reduce_any(tf.math.logical_not(self._stop_fn(t, theta, state0))))
       return should_continue
 
     @tf.Defun(t_type, t_type, *py_utils.Dtypes(fwdloop_sig))
@@ -861,7 +861,8 @@ def _ReflectOnCellFn(cell_fn,
     if check_stateful_ops:
       raise ValueError('cell_fn contains stateful ops: %s' % Fwd.stateful_ops)
     else:
-      tf.logging.warning('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
+      tf.logging.warning('cell_fn contains stateful ops: %s',
+                              Fwd.stateful_ops)
 
   if cluster_factory.Current().job in {'trainer', 'trainer_client'}:
     stateful_random_ops = py_utils.StatefulRandomOpsInDefun(Fwd)

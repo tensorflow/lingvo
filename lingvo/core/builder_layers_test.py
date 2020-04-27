@@ -55,7 +55,7 @@ class BuilderLayerTest(test_utils.TestCase):
   def testSequentialLayer(self):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.SequentialLayer.Params().Set(
           name='seq',
           repeat=2,
@@ -70,7 +70,7 @@ class BuilderLayerTest(test_utils.TestCase):
                   name='dropout', keep_prob=0.5)
           ])
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 32])
+      x = tf.random.normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
@@ -89,10 +89,10 @@ class BuilderLayerTest(test_utils.TestCase):
   def testEmptySequentialLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.SequentialLayer.Params().Set(name='seq')
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 32])
+      x = tf.random.normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
       self.assertIsInstance(y, tf.Tensor)
 
@@ -106,7 +106,7 @@ class BuilderLayerTest(test_utils.TestCase):
     with g.as_default():
       p = layers.SequentialLayer.Params().Set(name='seq')
       l = p.Instantiate()
-      x = py_utils.NestedMap(val=tf.random_normal(shape=[2, 32]))
+      x = py_utils.NestedMap(val=tf.random.normal(shape=[2, 32]))
       y = l.FPropDefaultTheta(x)
       self.assertIsInstance(y.val, tf.Tensor)
       y_shape = l.FPropMeta(
@@ -118,7 +118,7 @@ class BuilderLayerTest(test_utils.TestCase):
   def testUnarySequentialLayer(self):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.UnarySequentialLayer.Params().Set(
           name='seq',
           sub=[
@@ -132,7 +132,7 @@ class BuilderLayerTest(test_utils.TestCase):
                   name='dropout', keep_prob=0.5)
           ])
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 32])
+      x = tf.random.normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
@@ -150,7 +150,7 @@ class BuilderLayerTest(test_utils.TestCase):
   def testParallelLayer(self):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.ParallelLayer.Params().Set(
           name='test',
           merge=lambda xs: tuple([tf.add_n(x) for x in zip(*xs)]),
@@ -169,7 +169,7 @@ class BuilderLayerTest(test_utils.TestCase):
                   ])
           ])
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 32])
+      x = tf.random.normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
@@ -194,7 +194,8 @@ class BuilderLayerTest(test_utils.TestCase):
   def testParallelMatmulLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
+
       def MergeFn(xs):
         result = []
         for x in zip(*xs):
@@ -216,7 +217,7 @@ class BuilderLayerTest(test_utils.TestCase):
                   name='baz', input_dim=32, output_dim=4)
           ])
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 4, 32])
+      x = tf.random.normal(shape=[2, 4, 32])
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
@@ -241,7 +242,7 @@ class BuilderLayerTest(test_utils.TestCase):
   def testParalellMultiOutputsLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
 
       def Merge(xs):
         rets = []
@@ -278,11 +279,11 @@ class BuilderLayerTest(test_utils.TestCase):
   def testMapLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.MapLayer.Params().Set(
           name='map', fn=tf.reduce_max, kwargs={'axis': 1})
       l = p.Instantiate()
-      x0, x1 = [tf.random_normal(shape=[2, 3, 5])] * 2
+      x0, x1 = [tf.random.normal(shape=[2, 3, 5])] * 2
       y0, y1 = l.FPropDefaultTheta(x0, x1)
 
     with self.session(graph=g) as sess:
@@ -295,14 +296,14 @@ class BuilderLayerTest(test_utils.TestCase):
   def testLinearLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.LinearLayer.Params().Set(
           name='test', input_dims=10, output_dims=5)
       l = p.Instantiate()
       xs = []
       ys = []
       for shape in ([2, 10], [2, 3, 10], [2, 3, 5, 10], [2, 3, 5, 7, 10]):
-        x = tf.random_normal(shape=shape)
+        x = tf.random.normal(shape=shape)
         y = l.FPropDefaultTheta(x)
         xs += [x]
         ys += [y]
@@ -318,10 +319,10 @@ class BuilderLayerTest(test_utils.TestCase):
   def testBiasLayer(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.BiasLayer.Params().Set(name='test', dims=10)
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 10])
+      x = tf.random.normal(shape=[2, 10])
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
@@ -367,7 +368,7 @@ class BuilderLayerTest(test_utils.TestCase):
   def testGraphLayer(self):
     g = tf.Graph()
     with g.as_default(), self.SetEval(True):
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
 
       def _FnMeta(*shapes):
         return py_utils.NestedMap(flops=1, out_shapes=shapes)
@@ -404,14 +405,14 @@ class BuilderLayerTest(test_utils.TestCase):
   def testSoftCondLayer(self):
     num_experts = 100
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.SoftCondLayer.Params().Set(
           name='soft_cond',
           cond_dim=2,
           num_experts=num_experts,
           body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
       l = p.Instantiate()
-      x = tf.random_normal(shape=[1, 2, 2])
+      x = tf.random.normal(shape=[1, 2, 2])
       y = l.FPropDefaultTheta(x)
       tf.global_variables_initializer().run()
       x_val, y_val, vars_val = sess.run([x, y, l.vars])
@@ -423,7 +424,7 @@ class BuilderLayerTest(test_utils.TestCase):
           nonzeros_mean=True,
           body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
       l_nz = p_nz.Instantiate()
-      x_nz = tf.random_normal(shape=[1, 2, 2])
+      x_nz = tf.random.normal(shape=[1, 2, 2])
       y_nz = l_nz.FPropDefaultTheta(x_nz)
       tf.global_variables_initializer().run()
       x_nz_val, y_nz_val, vars_nz_val = sess.run([x_nz, y_nz, l_nz.vars])
@@ -451,13 +452,13 @@ class BuilderLayerTest(test_utils.TestCase):
   def testRepeatLayer(self):
     repeat = 100
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.RepeatLayer.Params().Set(
           name='recurrent',
           repeat=repeat,
           body=lingvo_layers.FCLayer.Params().Set(input_dim=2, output_dim=2))
       l = p.Instantiate()
-      x = tf.random_normal(shape=[2, 2])
+      x = tf.random.normal(shape=[2, 2])
       y = l.FPropDefaultTheta(x)
       tf.global_variables_initializer().run()
       x_val, y_val, w = sess.run([x, y, l.vars])
@@ -484,11 +485,11 @@ class BuilderLayerTest(test_utils.TestCase):
                 name='ln2', input_dims=4, output_dims=2)
         ])
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.ParallelRepeatLayer.Params().Set(
           name='moe', repeat=repeat, body=body_p)
       l = p.Instantiate()
-      x = tf.random_normal(shape=[repeat, 2, 2])
+      x = tf.random.normal(shape=[repeat, 2, 2])
       y = l.FPropDefaultTheta(x)
       tf.global_variables_initializer().run()
       x_val, y_val, w = sess.run([x, y, l.vars])
@@ -506,7 +507,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testRematerializationLayer(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
 
       def MulSumFnMeta(x):
         return py_utils.NestedMap(flops=2, out_shapes=(x,))

@@ -167,14 +167,14 @@ class Checkpointer(object):
       tp = task.params.train
       if tp.init_from_checkpoint_rules:
         tf.logging.info('OverrideVarsFromCheckpoints %s',
-                        tp.init_from_checkpoint_rules)
+                             tp.init_from_checkpoint_rules)
         py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
                                              tp.init_from_checkpoint_rules)
 
     if self._params.train.init_from_checkpoint_rules:
       tp = self._params.train
       tf.logging.info('OverrideVarsFromCheckpoints %s',
-                      tp.init_from_checkpoint_rules)
+                           tp.init_from_checkpoint_rules)
       py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
                                            tp.init_from_checkpoint_rules)
 

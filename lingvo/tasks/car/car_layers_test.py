@@ -29,10 +29,10 @@ class CarLayersTest(test_utils.TestCase):
     with g.as_default():
       net = p.Instantiate()
       input_data = py_utils.NestedMap(
-          points=tf.random_uniform(input_shape[:-1] + (3,)),
-          features=tf.random_uniform(input_shape),
+          points=tf.random.uniform(input_shape[:-1] + (3,)),
+          features=tf.random.uniform(input_shape),
           padding=tf.zeros((batch_size, num_points), dtype=tf.float32),
-          label=tf.random_uniform((batch_size,),
+          label=tf.random.uniform((batch_size,),
                                   minval=0,
                                   maxval=16,
                                   dtype=tf.int32))

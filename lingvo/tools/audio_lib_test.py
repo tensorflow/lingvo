@@ -44,7 +44,7 @@ class AudioLibTest(test_utils.TestCase):
     try:
       converted = audio_lib.DecodeFlacToWav(flac)
       tf.logging.info('wav: %d bytes, converted: %d bytes', len(wav),
-                      len(converted))
+                           len(converted))
       self.assertEqual(wav, converted)
     except OSError:
       # sox is not installed, ignore this test.

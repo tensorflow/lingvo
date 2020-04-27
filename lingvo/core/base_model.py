@@ -273,9 +273,10 @@ class BaseTask(base_layer.BaseLayer):
             p.input.flush_every_n = p.input.num_samples
           p.eval.samples_per_summary = p.input.num_samples
         if seq_inp and p.input.num_batcher_threads > 1:
-          tf.logging.warning('input.num_batcher_threads > 1 inside eval mode.  '
-                             'The input generator may not iterate over exactly '
-                             'one epoch per run')
+          tf.logging.warning(
+              'input.num_batcher_threads > 1 inside eval mode.  '
+              'The input generator may not iterate over exactly '
+              'one epoch per run')
       tf.logging.info('input_params: %s', p.input)
       input_params = self.cluster.PlaceInput(p.input)
       with py_utils.outside_all_rewrites():
@@ -581,10 +582,10 @@ class BaseTask(base_layer.BaseLayer):
       train_ops['mask_updates'] = mask_update_op
       with tf.control_dependencies([mask_update_op]):
         true_global_step = py_utils.GetOrCreateGlobalStepVar()
-        with tf.colocate_with(true_global_step):
+        with tf.ops.colocate_with(true_global_step):
           increment_global_steps = tf.assign_add(true_global_step, 1)
         if self._global_step_var != true_global_step:
-          with tf.colocate_with(self._global_step_var):
+          with tf.ops.colocate_with(self._global_step_var):
             increment_global_steps = tf.group(
                 increment_global_steps, tf.assign_add(self._global_step_var, 1))
         train_ops['global_step'] = increment_global_steps
@@ -627,8 +628,9 @@ class BaseTask(base_layer.BaseLayer):
           tf.zeros(len(bprop_variable_filters), dtype=tf.float32))
       for i in range(len(bprop_variable_filters)):
         if re.search(bprop_variable_filters[i], var.name):
-          tf.logging.info('Keep gradient after filtering, regex: %s var: %s' %
-                          (bprop_variable_filters[i], var.name))
+          tf.logging.info(
+              'Keep gradient after filtering, regex: %s var: %s' %
+              (bprop_variable_filters[i], var.name))
           self._per_input_gradient_mask[var.name] += (
               tf.one_hot(i, len(bprop_variable_filters), dtype=tf.float32))
 

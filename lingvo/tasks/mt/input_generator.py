@@ -50,14 +50,14 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
     def Proc(record):
       """Parses a serialized tf.Example record."""
       outputs = [
-          ('source_id', tf.VarLenFeature(tf.int64)),
-          ('source_padding', tf.VarLenFeature(tf.float32)),
-          ('target_id', tf.VarLenFeature(tf.int64)),
-          ('target_padding', tf.VarLenFeature(tf.float32)),
-          ('target_label', tf.VarLenFeature(tf.int64)),
-          ('target_weight', tf.VarLenFeature(tf.float32)),
+          ('source_id', tf.io.VarLenFeature(tf.int64)),
+          ('source_padding', tf.io.VarLenFeature(tf.float32)),
+          ('target_id', tf.io.VarLenFeature(tf.int64)),
+          ('target_padding', tf.io.VarLenFeature(tf.float32)),
+          ('target_label', tf.io.VarLenFeature(tf.int64)),
+          ('target_weight', tf.io.VarLenFeature(tf.float32)),
       ]
-      features = tf.parse_single_example(record, dict(outputs))
+      features = tf.io.parse_single_example(record, dict(outputs))
       for k, v in six.iteritems(features):
         features[k] = v.values
       bucket_key = tf.cast(
@@ -255,15 +255,15 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     def _ProcPacked(record):
       """TFExample -> Tensors for PackedInput."""
       outputs = [
-          ('inputs', tf.VarLenFeature(tf.int64)),
-          ('targets', tf.VarLenFeature(tf.int64)),
-          ('inputs_segmentation', tf.VarLenFeature(tf.int64)),
-          ('inputs_position', tf.VarLenFeature(tf.int64)),
-          ('targets_segmentation', tf.VarLenFeature(tf.int64)),
-          ('targets_position', tf.VarLenFeature(tf.int64)),
+          ('inputs', tf.io.VarLenFeature(tf.int64)),
+          ('targets', tf.io.VarLenFeature(tf.int64)),
+          ('inputs_segmentation', tf.io.VarLenFeature(tf.int64)),
+          ('inputs_position', tf.io.VarLenFeature(tf.int64)),
+          ('targets_segmentation', tf.io.VarLenFeature(tf.int64)),
+          ('targets_position', tf.io.VarLenFeature(tf.int64)),
       ]
 
-      features = tf.parse_single_example(record, dict(outputs))
+      features = tf.io.parse_single_example(record, dict(outputs))
       for k, v in six.iteritems(features):
         features[k] = v.values
 
@@ -294,10 +294,10 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     def _Proc(record):
       """Parses a serialized tf.Example record."""
       outputs = [
-          ('inputs', tf.VarLenFeature(tf.int64)),
-          ('targets', tf.VarLenFeature(tf.int64)),
+          ('inputs', tf.io.VarLenFeature(tf.int64)),
+          ('targets', tf.io.VarLenFeature(tf.int64)),
       ]
-      features = tf.parse_single_example(record, dict(outputs))
+      features = tf.io.parse_single_example(record, dict(outputs))
       for k, v in six.iteritems(features):
         features[k] = v.values
 

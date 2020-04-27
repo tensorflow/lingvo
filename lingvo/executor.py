@@ -143,7 +143,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     assert data_parallelism
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
-                    data_parallelism, num_devices_per_split)
+                         data_parallelism, num_devices_per_split)
 
     self.task_scheduler = None
     self._checkpoint_dir = os.path.join(logdir, 'train')
@@ -190,7 +190,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       ps = program_schedule_params.Instantiate()
       self._program_schedule_dict[task_string] = ps
       tf.logging.info('program_schedule_params: %s',
-                      program_schedule_params.ToText())
+                           program_schedule_params.ToText())
       self._programs += ps.Programs()
       if program_schedule_params.ml_perf.benchmark_name is not None:
         self._ml_perf = program_schedule_params.ml_perf
@@ -249,9 +249,10 @@ class ExecutorTpu(base_runner.BaseRunner):
               num_replicas=data_parallelism)
           py_utils.SetTpuDeviceAssignment(device_assignment)
           tf.logging.info('device_assignment.core_assignment: %s',
-                          str(device_assignment.core_assignment))
-          tf.logging.info('device_assignment.topology.device_coordinates: %s',
-                          str(device_assignment.topology.device_coordinates))
+                               str(device_assignment.core_assignment))
+          tf.logging.info(
+              'device_assignment.topology.device_coordinates: %s',
+              str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise

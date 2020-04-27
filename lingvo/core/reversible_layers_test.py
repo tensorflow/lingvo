@@ -33,9 +33,9 @@ class RevNetLayerTest(test_utils.TestCase):
 
   def testRevNetLayerFProp(self):
     with self.session() as sess:
-      tf.set_random_seed(321)
-      input_1 = tf.random_normal([5, 3], seed=89122)
-      input_2 = tf.random_normal([5, 3], seed=19438)
+      tf.random.set_seed(321)
+      input_1 = tf.random.normal([5, 3], seed=89122)
+      input_2 = tf.random.normal([5, 3], seed=19438)
       p = reversible_layers.RevNetLayer.Params()
       p.name = 'revnet_simple'
       p.f_params = layers.FCLayer.Params().Set(input_dim=3, output_dim=3)
@@ -64,7 +64,7 @@ class RevNetLayerTest(test_utils.TestCase):
 
   def testRevNetLayerReverseGrad(self):
     with self.session() as sess:
-      tf.set_random_seed(321)
+      tf.random.set_seed(321)
       input_1 = np.random.normal(size=[5, 3])
       input_2 = np.random.normal(size=[5, 3])
       x1 = tf.placeholder(dtype=tf.float32)
@@ -149,7 +149,7 @@ class StackedRevNetLayerTest(test_utils.TestCase, parameterized.TestCase):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session() as sess:
-      tf.set_random_seed(321)
+      tf.random.set_seed(321)
       input_1 = tf.placeholder(tf.float32)
       input_2 = tf.placeholder(tf.float32)
 

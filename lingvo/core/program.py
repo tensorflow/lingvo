@@ -96,10 +96,10 @@ class BaseProgram(object):
     self._program_dir = os.path.join(self._logdir, program_dir_name)
     self._summary_writer = tf.summary.FileWriter(self._program_dir)
 
-    tf.gfile.MakeDirs(self._logdir)
+    tf.io.gfile.makedirs(self._logdir)
     # Just a standard spot that all programs may restore from.
     self._checkpoint_dir = os.path.join(self._logdir, 'train')
-    tf.gfile.MakeDirs(self._checkpoint_dir)
+    tf.io.gfile.makedirs(self._checkpoint_dir)
 
     self._steps_per_loop = p.steps_per_loop
     self.num_splits_per_client = p.num_splits_per_client
@@ -445,8 +445,9 @@ class DecodeProgram(BaseProgram):
       if summary.value:
         for value in summary.value:
           if value.HasField('simple_value'):
-            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
-                            global_step, value.tag, value.simple_value)
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g',
+                                 job_name, global_step, value.tag,
+                                 value.simple_value)
       self._summary_writer.flush()
 
   def BuildTpuSubgraph(self):
@@ -491,7 +492,7 @@ class DecodeProgram(BaseProgram):
       decode_out = self._model_task.PostProcessDecodeOut(
           metrics_values, dec_metrics)
       tf.logging.info('step: %d %f' %
-                      (i, dec_metrics['num_samples_in_batch'].total_value))
+                           (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:
         buffered_decode_out.extend(decode_out)
     infeed_future.wait()
@@ -680,7 +681,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           'eval_accuracy', mlperf_metric_value, metadata={'epoch_num': epoch})
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
         tf.logging.info('ml_perf_final_threshold: %f exceeded',
-                        self._ml_perf.decoder_metric_success_threshold)
+                             self._ml_perf.decoder_metric_success_threshold)
         if not self._run_stop:
           self._run_stop = mlp_log.mlperf_print(
               'run_stop', None, metadata={'status': 'success'})
@@ -736,7 +737,7 @@ class SimpleProgramSchedule(object):
     p.train_program.logdir = p.logdir
     if p.train_program.dataset_name not in p.task_dict:
       tf.logging.error('could not find %s in %s' %
-                       (p.train_program.dataset_name, p.task_dict))
+                            (p.train_program.dataset_name, p.task_dict))
     p.train_program.task = p.task_dict[p.train_program.dataset_name]
     p.train_program.num_splits_per_client = p.num_splits_per_client
     p.train_program.task_name = p.task_name

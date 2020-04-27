@@ -575,8 +575,8 @@ class LSTMCellSimple(RNNCell):
       assert not py_utils.use_tpu(), (
           'LSTMCellSimple does not support zoneout on TPU. Switch to '
           'LSTMCellSimpleDeterministic instead.')
-      c_random_uniform = tf.random_uniform(tf.shape(new_c), seed=p.random_seed)
-      m_random_uniform = tf.random_uniform(tf.shape(new_m), seed=p.random_seed)
+      c_random_uniform = tf.random.uniform(tf.shape(new_c), seed=p.random_seed)
+      m_random_uniform = tf.random.uniform(tf.shape(new_m), seed=p.random_seed)
     else:
       c_random_uniform = None
       m_random_uniform = None
@@ -1133,7 +1133,7 @@ class LayerNormalizedLSTMCell(RNNCell):
         mean = tf.reduce_mean(x, axis=[last_dim], keepdims=True)
         variance = tf.reduce_mean(
             tf.square(x - mean), axis=[last_dim], keepdims=True)
-      return (x - mean) * tf.rsqrt(variance + params.layer_norm_epsilon)
+      return (x - mean) * tf.math.rsqrt(variance + params.layer_norm_epsilon)
 
     state_split = tf.split(xmw, num_or_size_splits=4, axis=1)
     for i in range(4):
@@ -1159,9 +1159,9 @@ class LayerNormalizedLSTMCell(RNNCell):
       new_m = tf.sigmoid(o_g) * new_c
 
     if params.zo_prob > 0.0:
-      c_random_uniform = tf.random_uniform(
+      c_random_uniform = tf.random.uniform(
           tf.shape(new_c), seed=params.random_seed)
-      m_random_uniform = tf.random_uniform(
+      m_random_uniform = tf.random.uniform(
           tf.shape(new_m), seed=params.random_seed)
     else:
       c_random_uniform = None
@@ -1237,7 +1237,7 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       """
       mean = tf.reduce_mean(x, axis=-1, keepdims=True)
       variance = tf.reduce_mean(tf.square(x - mean), axis=-1, keepdims=True)
-      return (x - mean) * tf.rsqrt(variance + p.layer_norm_epsilon)
+      return (x - mean) * tf.math.rsqrt(variance + p.layer_norm_epsilon)
 
     p = self.params
     b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
@@ -1426,7 +1426,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
-    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
     scale = theta['ln_scale_%s' % gate_name] + 1.0
     if p.use_ln_bias:
       bias = theta['bias_%s' % gate_name]
@@ -1620,7 +1620,7 @@ class DoubleProjectionLSTMCell(RNNCell):
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
-    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
     scale = theta['ln_scale_%s' % gate_name] + 1.0
     bias = theta['bias_%s' % gate_name]
     return normed * scale + bias
@@ -1772,8 +1772,8 @@ class ConvLSTMCell(RNNCell):
     new_c = state0.c * padding + new_c * (1.0 - padding)
     new_m = state0.m * padding + new_m * (1.0 - padding)
     if p.zo_prob > 0.0:
-      c_random_uniform = tf.random_uniform(tf.shape(new_c), seed=p.random_seed)
-      m_random_uniform = tf.random_uniform(tf.shape(new_m), seed=p.random_seed)
+      c_random_uniform = tf.random.uniform(tf.shape(new_c), seed=p.random_seed)
+      m_random_uniform = tf.random.uniform(tf.shape(new_m), seed=p.random_seed)
     else:
       c_random_uniform = None
       m_random_uniform = None
@@ -2068,7 +2068,7 @@ class SRUCell(RNNCell):
       mean = tf.reduce_mean(x, axis=[1], keepdims=True)
       centered = x - mean
       variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
-      normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+      normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
       scale = theta['%s_ln_scale' % gate_name]
       x = normed * scale
     return x + bias
@@ -2146,8 +2146,8 @@ class SRUCell(RNNCell):
     if p.zo_prob > 0.0:
       assert not py_utils.use_tpu(), (
           'SRUCell does not support zoneout on TPU yet.')
-      c_random_uniform = tf.random_uniform(tf.shape(new_c), seed=p.random_seed)
-      m_random_uniform = tf.random_uniform(tf.shape(new_m), seed=p.random_seed)
+      c_random_uniform = tf.random.uniform(tf.shape(new_c), seed=p.random_seed)
+      m_random_uniform = tf.random.uniform(tf.shape(new_m), seed=p.random_seed)
     else:
       c_random_uniform = None
       m_random_uniform = None
@@ -2276,8 +2276,8 @@ class QRNNPoolingCell(RNNCell):
     """Apply Zoneout and returns the updated states."""
     p = self.params
     if p.zo_prob > 0.0:
-      c_random_uniform = tf.random_uniform(tf.shape(new_c), seed=p.random_seed)
-      m_random_uniform = tf.random_uniform(tf.shape(new_m), seed=p.random_seed)
+      c_random_uniform = tf.random.uniform(tf.shape(new_c), seed=p.random_seed)
+      m_random_uniform = tf.random.uniform(tf.shape(new_m), seed=p.random_seed)
     else:
       c_random_uniform = None
       m_random_uniform = None
@@ -2453,7 +2453,7 @@ class GRUCell(RNNCell):
     mean = tf.reduce_mean(x, axis=[1], keepdims=True)
     centered = x - mean
     variance = tf.reduce_mean(tf.square(centered), axis=[1], keepdims=True)
-    normed = centered * tf.rsqrt(variance + p.layer_norm_epsilon)
+    normed = centered * tf.math.rsqrt(variance + p.layer_norm_epsilon)
     return normed * scale
 
   def FProp(self, theta, state0, inputs):

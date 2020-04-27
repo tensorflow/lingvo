@@ -35,7 +35,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = conv_layers.Conv2DLayerWithPadding.Params()
       params.name = 'conv'
@@ -58,7 +58,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = conv_layers.Conv2DLayerWithPadding.Params()
       params.name = 'conv'
@@ -190,7 +190,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testConv2DLayerWithPaddingFPropRandom(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       params = conv_layers.Conv2DLayerWithPadding.Params()
@@ -274,7 +274,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testCausalConv2DLayerWithPaddingFPropRandom(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       params = (conv_layers.CausalConv2DLayerWithPadding.Params())
@@ -306,7 +306,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testDepthwiseConv2DLayerFProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       params = conv_layers.DepthwiseConv2DLayer.Params()
@@ -330,7 +330,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
   def testCausalDepthwiseConv2DLayer(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       params = conv_layers.CausalDepthwiseConv2DLayer.Params()
@@ -374,7 +374,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       conv_cls = (conv_layers.CausalNormalizedDepthwiseConv2DLayer)
     else:
       conv_cls = conv_layers.NormalizedDepthwiseConv2DLayer
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     params = conv_cls.Params().Set(
         name='conv',
@@ -530,7 +530,7 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
 
     g = tf.Graph()
     with g.as_default(), tf.Session(graph=g) as _:
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       input_shape = [3, 5, 2, 4]
       inputs = np.random.random(input_shape) - 0.5
       expected_avg_output = np.mean(inputs, axis=(1, 2), keepdims=True)

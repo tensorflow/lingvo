@@ -91,17 +91,18 @@ class AdaptiveScheduler(TaskScheduler):
     # TODO(sebjean) Time file reading and change behaviour if too long.
     for index, mh in enumerate(self._metric_histories):
       try:
-        with tf.gfile.GFile(mh.hist_file) as f:
+        with tf.io.gfile.GFile(mh.hist_file) as f:
           lines = f.readlines()
       except tf.errors.NotFoundError:
         tf.logging.warning('File not found. '
-                           'Expected at start of training only.')
+                                'Expected at start of training only.')
         score, lines = 0.0, []
       if lines:
         try:
           score = lines[-1].split()[-1]
         except IndexError:
-          tf.logging.warning('IndexError. Your history file may be corrupted.')
+          tf.logging.warning(
+              'IndexError. Your history file may be corrupted.')
           score = 0.0
       self.last_scores[index] = float(score)
 

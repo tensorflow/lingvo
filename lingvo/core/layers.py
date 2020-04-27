@@ -148,8 +148,8 @@ def Gelu(input_tensor):
   Returns:
     `input_tensor` with the GELU activation applied.
   """
-  cdf = 0.5 * (1.0 +
-               tf.erf(input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
+  cdf = 0.5 * (1.0 + tf.math.erf(
+      input_tensor / tf.cast(tf.sqrt(2.0), input_tensor.dtype)))
   return input_tensor * cdf
 
 
@@ -463,7 +463,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
     # Fold weights and bias. Note that this layer's bias is not used (not
     # applicable for batch norm case).
-    sigma_recip = tf.rsqrt(variance + self.bn.epsilon)
+    sigma_recip = tf.math.rsqrt(variance + self.bn.epsilon)
     scale_correction = gamma * sigma_recip
     # Normal conv will have all weights in the last dim
     # ([_, _, _, output_channels]), which matches the 1D layout from
@@ -1103,7 +1103,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           theta.bn, raw_output, paddings)
 
     # Fold weights and bias.
-    sigma_recip = tf.rsqrt(variance + self.bn.epsilon)
+    sigma_recip = tf.math.rsqrt(variance + self.bn.epsilon)
     scale_correction = gamma * sigma_recip
     w = w * scale_correction
     b = beta - (gamma * mean * sigma_recip)
@@ -2493,7 +2493,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
     embs_result = self._fprop(self.QWeight(theta.wm), tf.reshape(ids, [-1]))
     if p.vn.global_vn or p.vn.per_step_vn:
-      emb_noise = p.vn.scale * tf.random_normal(
+      emb_noise = p.vn.scale * tf.random.normal(
           tf.shape(embs_result),
           stddev=1.0,
           dtype=embs_result.dtype,
@@ -2636,7 +2636,8 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
         inv_timescales, [1, 1, -1])
 
     signal = tf.concat([tf.sin(scaled_time), tf.cos(scaled_time)], axis=2)
-    signal = tf.pad(signal, [[0, 0], [0, 0], [0, tf.mod(p.embedding_dim, -1)]])
+    signal = tf.pad(
+        signal, [[0, 0], [0, 0], [0, tf.math.floormod(p.embedding_dim, -1)]])
     signal = tf.reshape(signal, [-1, seq_length, p.embedding_dim])
     if p.trainable_scaling:
       signal *= (p.trainable_scaling_init + theta.scale)
@@ -3279,7 +3280,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     num_chunks = py_utils.with_dependencies([
         py_utils.assert_equal(
             0,
-            tf.mod(batch_size, chunk_size),
+            tf.math.floormod(batch_size, chunk_size),
             summarize=2,
             message='assert_equal')
     ], num_chunks)
@@ -3603,7 +3604,7 @@ class LayerNorm(base_layer.BaseLayer):
           inputs, axes=[-1], keepdims=True)
       mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                None)
-      inputs_norm = (inputs - mean) * tf.rsqrt(variance + p.epsilon)
+      inputs_norm = (inputs - mean) * tf.math.rsqrt(variance + p.epsilon)
       return inputs_norm * (1.0 + theta.scale) + theta.bias
 
     @tf.Defun(
@@ -3618,7 +3619,7 @@ class LayerNorm(base_layer.BaseLayer):
       mean = tf.reduce_mean(x_reshaped, axis=[1], keepdims=True)
       variance = tf.reduce_mean(
           tf.square(x_reshaped - mean), axis=[1], keepdims=True)
-      x_norm = (x_reshaped - mean) * tf.rsqrt(variance + p.epsilon)
+      x_norm = (x_reshaped - mean) * tf.math.rsqrt(variance + p.epsilon)
       x_norm = tf.reshape(x_norm, x_shape)
       return x_norm * (1.0 + scale) + bias
 
@@ -4055,9 +4056,9 @@ class GradNormTracker(base_layer.BaseLayer):
                            tf.exp(mean + std * p.clip_threshold) - 1.0)
       summary_utils.scalar('total_rejections', self._total_rejections)
 
-      log_grad_norm = tf.log(grad_norm + 1.0)
+      log_grad_norm = tf.math.log(grad_norm + 1.0)
       log_grad_norm_cap = mean + std * p.clip_threshold
-      log_grad_norm_cap_min = tf.log(p.grad_norm_clip_cap_min + 1.0)
+      log_grad_norm_cap_min = tf.math.log(p.grad_norm_clip_cap_min + 1.0)
       log_grad_norm_cap = tf.maximum(log_grad_norm_cap, log_grad_norm_cap_min)
 
       def UpdateExpMovingAvg(ref_var, val, ignore):
@@ -4070,10 +4071,10 @@ class GradNormTracker(base_layer.BaseLayer):
 
       # We trigger when total_weight is at least half of max weight or the
       # current batch contains NaNs.
-      trigger = tf.logical_and(log_grad_norm > log_grad_norm_cap,
-                               total_weight > 0.75)
+      trigger = tf.math.logical_and(log_grad_norm > log_grad_norm_cap,
+                                    total_weight > 0.75)
       if has_nan is not None:
-        trigger = tf.logical_or(trigger, has_nan)
+        trigger = tf.math.logical_or(trigger, has_nan)
 
       log_grad_norm_capped = tf.minimum(log_grad_norm, log_grad_norm_cap)
 
@@ -4353,7 +4354,7 @@ def Conv2DFlops(inputs, filter_shape, stride, padding):
   sh, sw = stride
 
   def _CeilDiv(x, y):
-    return tf.floordiv(x + y - 1, y)
+    return tf.math.floordiv(x + y - 1, y)
 
   if padding == 'SAME':
     oh = _CeilDiv(h, sh)

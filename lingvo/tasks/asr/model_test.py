@@ -57,7 +57,7 @@ class AsrModelTest(test_utils.TestCase):
   def testMakeDecoderTheta(self):
     # Test that decoder theta returns a copy of theta.decoder without changes.
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -67,7 +67,7 @@ class AsrModelTest(test_utils.TestCase):
 
   def testFProp(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -121,7 +121,7 @@ class AsrModelTest(test_utils.TestCase):
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
@@ -250,7 +250,7 @@ class AsrModelTest(test_utils.TestCase):
 
   def testBProp(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -261,7 +261,7 @@ class AsrModelTest(test_utils.TestCase):
 
   def testBPropSmoothDecay(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       p.train.lr_schedule = (
           schedule.ContinuousSchedule.Params().Set(
@@ -352,7 +352,7 @@ class AsrModelTest(test_utils.TestCase):
     def Run(num_splits):
       p = self._testParams()
       with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-        tf.set_random_seed(93820981)
+        tf.random.set_seed(93820981)
         p.input.cur_iter_in_seed = False
         p.input.bucket_batch_limit = [
             b * 2 / num_splits for b in p.input.bucket_batch_limit

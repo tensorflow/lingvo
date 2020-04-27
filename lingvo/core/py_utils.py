@@ -161,7 +161,7 @@ def assert_equal(*args, **kwargs):  # pylint: disable=invalid-name
 
 def assert_greater_equal(*args, **kwargs):  # pylint: disable=invalid-name
   if _FromGlobal('enable_asserts'):
-    return tf.assert_greater_equal(*args, **kwargs)
+    return tf.debugging.assert_greater_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
@@ -175,7 +175,7 @@ def assert_greater(*args, **kwargs):  # pylint: disable=invalid-name
 
 def assert_less_equal(*args, **kwargs):  # pylint: disable=invalid-name
   if _FromGlobal('enable_asserts'):
-    return tf.assert_less_equal(*args, **kwargs)
+    return tf.debugging.assert_less_equal(*args, **kwargs)
   else:
     return tf.no_op()
 
@@ -230,7 +230,8 @@ def _CheckNumerics(x, message=None, *args, **kwargs):
   if x.dtype.is_floating:
     if 'name' not in kwargs:
       kwargs['name'] = re.sub(r':\d+', '', x.name) + '_CheckNumerics'
-    return tf.check_numerics(x, message if message else x.name, *args, **kwargs)
+    return tf.debugging.check_numerics(x, message if message else x.name, *args,
+                                       **kwargs)
   else:
     return x
 
@@ -367,7 +368,7 @@ def Debug(tensor, message='', enabled=True, summarize=100, more=None):
 def _Save(steps, prefix, key, val):
   filename = '%s.%08d.%s.npy' % (six.ensure_text(prefix), steps,
                                  six.ensure_text(key))
-  with tf.gfile.Open(filename, 'w') as outfile:
+  with tf.io.gfile.GFile(filename, 'w') as outfile:
     np.save(outfile, val)
 
 
@@ -421,7 +422,8 @@ def HasAtLeastRank(tensor, expected_rank):
     return tensor
   if _FromGlobal('enable_asserts'):
     return with_dependencies(
-        [tf.assert_greater_equal(tf.rank(tensor), expected_rank)], tensor)
+        [tf.debugging.assert_greater_equal(tf.rank(tensor), expected_rank)],
+        tensor)
   else:
     return tensor
 
@@ -602,7 +604,7 @@ def SetTpuDeviceAssignment(tpu_device_assignment):
   global _tpu_device_assignment
   if _tpu_device_assignment is not None:
     tf.logging.warning('tpu_device_assignment was already set, '
-                       'overwriting with new assignment.')
+                            'overwriting with new assignment.')
   _tpu_device_assignment = tpu_device_assignment
 
 
@@ -627,7 +629,7 @@ def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
   Returns:
     A TF session config proto.
   """
-  session_config = tf.ConfigProto(
+  session_config = tf.config_pb2.ConfigProto(
       allow_soft_placement=soft_placement,
       graph_options=tf.GraphOptions(
           optimizer_options=tf.OptimizerOptions(
@@ -1170,17 +1172,17 @@ class WeightInit(object):
 
   @staticmethod
   def Gaussian(scale=1.0, seed=None):
-    """scale * tf.random_normal(0, 1.0)."""
+    """scale * tf.random.normal(0, 1.0)."""
     return WeightInit._Params('gaussian', scale, seed)
 
   @staticmethod
   def Uniform(scale=1.0, seed=None):
-    """scale * tf.random_uniform(-1.0, 1.0)."""
+    """scale * tf.random.uniform(-1.0, 1.0)."""
     return WeightInit._Params('uniform', scale, seed)
 
   @staticmethod
   def UniformPositive(scale=1.0, seed=None):
-    """scale * tf.random_uniform(0., 1.0)."""
+    """scale * tf.random.uniform(0., 1.0)."""
     return WeightInit._Params('uniform_positive', scale, seed)
 
   @staticmethod
@@ -1209,22 +1211,22 @@ class WeightInit(object):
 
   @staticmethod
   def TruncatedGaussian(scale=1.0, seed=None):
-    """scale * tf.truncated_normal(0, 1.0)."""
+    """scale * tf.random.truncated_normal(0, 1.0)."""
     return WeightInit._Params('truncated_gaussian', scale, seed)
 
   @staticmethod
   def GaussianSqrtDim(scale=1.0, seed=None):
-    """scale * tf.random_normal(0, 1 / sqrt(dim0))."""
+    """scale * tf.random.normal(0, 1 / sqrt(dim0))."""
     return WeightInit._Params('gaussian_sqrt_dim', scale, seed)
 
   @staticmethod
   def GaussianSqrtFanIn(scale=1.0, seed=None):
-    """scale * tf.random_normal(0, 1 / sqrt(fan_in))."""
+    """scale * tf.random.normal(0, 1 / sqrt(fan_in))."""
     return WeightInit._Params('gaussian_sqrt_fanin', scale, seed)
 
   @staticmethod
   def GaussianSqrtFanOut(scale=1.0, seed=None):
-    """scale * tf.random_normal(0, 1 / sqrt(fan_out))."""
+    """scale * tf.random.normal(0, 1 / sqrt(fan_out))."""
     return WeightInit._Params('gaussian_sqrt_fanout', scale, seed)
 
   @staticmethod
@@ -1239,17 +1241,17 @@ class WeightInit(object):
 
   @staticmethod
   def TruncatedGaussianSqrtDim(scale=1.0, seed=None):
-    """scale * tf.truncated_normal(0, 1 / sqrt(dim0))."""
+    """scale * tf.random.truncated_normal(0, 1 / sqrt(dim0))."""
     return WeightInit._Params('truncated_gaussian_sqrt_dim', scale, seed)
 
   @staticmethod
   def TruncatedGaussianSqrtFanIn(scale=1.0, seed=None):
-    """scale * tf.truncated_normal(0, 1 / sqrt(fan_in))."""
+    """scale * tf.random.truncated_normal(0, 1 / sqrt(fan_in))."""
     return WeightInit._Params('truncated_gaussian_sqrt_fanin', scale, seed)
 
   @staticmethod
   def TruncatedGaussianSqrtFanOut(scale=1.0, seed=None):
-    """scale * tf.truncated_normal(0, 1 / sqrt(fan_out))."""
+    """scale * tf.random.truncated_normal(0, 1 / sqrt(fan_out))."""
     return WeightInit._Params('truncated_gaussian_sqrt_fanout', scale, seed)
 
   @staticmethod
@@ -1410,7 +1412,8 @@ def GetVariableName(name):
         matched = True
         new_name = name_format % match.groups()
   if new_name != name:
-    tf.logging.info("WARNING!!! Renaming variable '%s' to '%s'", name, new_name)
+    tf.logging.info("WARNING!!! Renaming variable '%s' to '%s'", name,
+                         new_name)
   return new_name
 
 
@@ -1590,7 +1593,7 @@ def CreateVariable(name,
         limit = math.sqrt(6. / (fan_in + fan_out))
       elif method == 'geo_mean_xavier':
         limit = math.sqrt(3. / math.sqrt(fan_in * fan_out))
-      return scale * tf.random_uniform(shape, -limit, limit, dtype, seed)
+      return scale * tf.random.uniform(shape, -limit, limit, dtype, seed)
 
     # pylint: enable=unused-argument
     v_init = XavierUniform
@@ -1680,7 +1683,7 @@ def CreateVariable(name,
                          (cached.ToText(), p.ToText()))
   else:
     tf.logging.info('Creating var %s shape=%s on device %s', var.name,
-                    var.shape, var.device)
+                         var.shape, var.device)
     all_vars[var_ref] = p.Copy()
     for col in p.collections:
       tf.add_to_collection(col, var)
@@ -2003,7 +2006,7 @@ def _ComputeGradientsTpu(loss,
       continue
     if use_bf16_gradients_ar:
       g = tf.cast(g, tf.bfloat16)
-    with tf.colocate_with(g):
+    with tf.ops.colocate_with(g):
       if skip_zero_gradients is None:
         # loss is already scaled by 1/shards.
         normalized_g = tf.tpu.cross_replica_sum(g)
@@ -2246,8 +2249,11 @@ def HasNanOrInfGradient(var_grads):
       x = x.values
     with tf.device(x.device):
       if x.dtype.is_complex:
-        return tf.reduce_any([HasNanOrInf(tf.real(x)), HasNanOrInf(tf.imag(x))])
-      return tf.reduce_any(tf.logical_or(tf.is_nan(x), tf.is_inf(x)))
+        return tf.reduce_any(
+            [HasNanOrInf(tf.math.real(x)),
+             HasNanOrInf(tf.math.imag(x))])
+      return tf.reduce_any(
+          tf.math.logical_or(tf.math.is_nan(x), tf.math.is_inf(x)))
 
   return tf.reduce_any([HasNanOrInf(g) for (_, g) in var_grads.Flatten()])
 
@@ -2349,7 +2355,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
       with tf.device(grad.device):
         # Counts is a vector of size vocab_size. counts[i] is i-th words
         # occurances in 'ids'.
-        counts = tf.unsorted_segment_sum(
+        counts = tf.math.unsorted_segment_sum(
             tf.ones_like(ids, dtype=values.dtype), ids, vocab_size)
 
         # Gradients for duplicated ids will be summed when they get
@@ -2359,7 +2365,7 @@ def AdjustGradientsWithLpLoss(var_grads, lp_regularizer_weight, p=2.0):
         #
         # For each id in 'ids', we know counts[id] is non-zero,
         # hence, it's always safe to take reciprocal.
-        weights = tf.reciprocal(tf.gather(counts, ids))
+        weights = tf.math.reciprocal(tf.gather(counts, ids))
         weights = tf.expand_dims(weights, -1)  # [#ids, 1]
         if p == 2.0:
           grad_v = values
@@ -2625,7 +2631,7 @@ def _AddVN(p, x, step=None):
   seed = p.vn.seed
   if seed and step:
     seed += step * 203984
-  noises = tf.cast(p.vn.scale, x.dtype) * tf.random_normal(
+  noises = tf.cast(p.vn.scale, x.dtype) * tf.random.normal(
       tf.shape(x), stddev=1.0, seed=seed, dtype=x.dtype)
   return x + noises
 
@@ -2735,7 +2741,7 @@ def GenerateStepSeedPair(p, global_step, op_seed=None):
     # the same outputs, even if the model is supposed to have randomness such as
     # dropout during inference. We inject additional randomness only during
     # inference if the graph is exported with random_seed=None as a workaround.
-    return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
+    return tf.random.uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
 
   global_step = tf.cast(global_step, seed_dtype)
   step_seed = tf.cast(GetIncStepSeed(), seed_dtype)
@@ -2836,7 +2842,7 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
           batch_norm_stats,
           decay,
       ]) as scope:
-    with tf.colocate_with(batch_norm_var):
+    with tf.ops.colocate_with(batch_norm_var):
       decay = tf.convert_to_tensor(
           1.0 - decay, dtype=batch_norm_var.dtype.base_dtype)
       update_delta = (batch_norm_var - batch_norm_stats) * decay
@@ -2974,9 +2980,9 @@ def clip_by_value(t, clip_value_min, clip_value_max, name=None):  # pylint: disa
   if t.dtype.is_complex:
     return tf.complex(
         tf.clip_by_value(
-            tf.real(t), clip_value_min, clip_value_max, '%s_real' % name),
+            tf.math.real(t), clip_value_min, clip_value_max, '%s_real' % name),
         tf.clip_by_value(
-            tf.imag(t), clip_value_min, clip_value_max, '%s_imag' % name))
+            tf.math.imag(t), clip_value_min, clip_value_max, '%s_imag' % name))
   return tf.clip_by_value(t, clip_value_min, clip_value_max, name)
 
 
@@ -3136,8 +3142,8 @@ def ApplyPadding(padding, x, padded=None, broadcast=True, use_select=True):
   padding = with_dependencies([
       Assert(
           tf.reduce_all(
-              tf.logical_or(tf.equal(padding, 0.0), tf.equal(padding, 1.0))),
-          [padding])
+              tf.math.logical_or(
+                  tf.equal(padding, 0.0), tf.equal(padding, 1.0))), [padding])
   ], padding)
   if use_select:
     if padded is None:
@@ -3220,7 +3226,7 @@ def ReversePaddedSequence(inputs, paddings):
   """
   inversed_paddings = 1.0 - tf.squeeze(paddings, 2)
   inputs_length = tf.cast(
-      tf.rint(tf.reduce_sum(inversed_paddings, axis=0)), tf.int32)
+      tf.math.rint(tf.reduce_sum(inversed_paddings, axis=0)), tf.int32)
   return tf.reverse_sequence(inputs, inputs_length, seq_axis=0, batch_axis=1)
 
 
@@ -3431,13 +3437,13 @@ def MixByWeight(inputs, weights, seed=None):
 
   lower = tf.cumsum(weights, exclusive=True)
   upper = tf.cumsum(weights, exclusive=False)
-  r = tf.random_uniform(shape=[], maxval=upper[-1], seed=seed)
+  r = tf.random.uniform(shape=[], maxval=upper[-1], seed=seed)
   return_input = tf.case(
-      [(tf.logical_and(lower[i] <= r, r < upper[i]), inputs[i])
+      [(tf.math.logical_and(lower[i] <= r, r < upper[i]), inputs[i])
        for i in range(len(inputs))],
       exclusive=True)
   selected_index = tf.case(
-      [(tf.logical_and(lower[i] <= r, r < upper[i]), lambda i=i: i)
+      [(tf.math.logical_and(lower[i] <= r, r < upper[i]), lambda i=i: i)
        for i in range(len(inputs))],
       exclusive=True)
   bprop_index = tf.one_hot(selected_index, len(inputs), dtype=tf.float32)
@@ -3568,7 +3574,7 @@ def RematerializeFn(fn, *xs):
     """The backward function that rematerializes forward outputs."""
     always_true = tf.random.uniform([]) < 2.0
     # Alternatively, can do this:
-    # tf.where(tf.is_nan(x),
+    # tf.where(tf.math.is_nan(x),
     #          tf.constant(float('nan'), dtype=x.dtype) * tf.ones_like(x),
     #          x)
     # Skip op.inputs[0] which is initial_step_seed.

@@ -142,7 +142,7 @@ def ExportKITTIDetection(out_dir, source_id, location_cam, dimension_cam,
   """Write detections to a text file in KITTI format."""
   tf.logging.info("Exporting %s for %s" % (class_name, source_id))
   fname = out_dir + "/" + source_id + ".txt"
-  with tf.gfile.Open(fname, "a") as fid:
+  with tf.io.gfile.GFile(fname, "a") as fid:
     # Ensure we always create a file even when there's no detection.
     # TODO(shlens): Test whether this is actually necessary on the KITTI
     # eval server.
@@ -201,11 +201,11 @@ def main(argv):
     table_data.append(img_id_dict)
   img_ids = list(set(img_ids))
 
-  if not tf.gfile.Exists(FLAGS.output_dir):
-    tf.gfile.MkDir(FLAGS.output_dir)
+  if not tf.io.gfile.exists(FLAGS.output_dir):
+    tf.io.gfile.mkdir(FLAGS.output_dir)
 
   all_kitti_class_names = kitti_metadata.KITTIMetadata().ClassNames()
-  calib_data = LoadCalibData(tf.gfile.Open(FLAGS.calib_file, "rb"))
+  calib_data = LoadCalibData(tf.io.gfile.GFile(FLAGS.calib_file, "rb"))
   count = 0
   for img_id in img_ids:
     # Ignore padded samples where the img_ids are empty.

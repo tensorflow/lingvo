@@ -65,8 +65,9 @@ def ExtractRunIds(run_segments):
     A string Tensor of shape [batch], containing the extracted run id.
   """
   run_segments = tf.convert_to_tensor(run_segments)[:, 0]
-  return tf.regex_replace(run_segments, r'[^:]+: "(.+)"\n[^:]+: (\d+)(.|\n)*',
-                          r'\1_\2')
+  return tf.strings.regex_replace(run_segments,
+                                  r'[^:]+: "(.+)"\n[^:]+: (\d+)(.|\n)*',
+                                  r'\1_\2')
 
 
 def CameraImageSummary(frontal_images, run_segment_strings, figsize=(6, 4)):

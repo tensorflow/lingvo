@@ -371,7 +371,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     decay = tf.convert_to_tensor(1.0 - p.decay, p.dtype)
     # Update moving_mean, moving_variance from  batch mean and batch variance.
     with tf.name_scope(p.name) as scope:
-      with tf.colocate_with(self.vars.moving_mean):
+      with tf.ops.colocate_with(self.vars.moving_mean):
         mean_update = tf.assign_sub(
             self.vars.moving_mean,
             tf.where(
@@ -379,7 +379,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
                 (self.vars.moving_mean - tf.cast(mean, p.dtype)) * decay,
                 tf.zeros_like(self.vars.moving_mean)),
             name='moving_mean_update')
-      with tf.colocate_with(self.vars.moving_variance):
+      with tf.ops.colocate_with(self.vars.moving_variance):
         var_update = tf.assign_sub(
             self.vars.moving_variance,
             tf.where(

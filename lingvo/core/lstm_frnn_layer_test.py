@@ -146,7 +146,7 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
       act, state = base_frnn.FPropDefaultTheta(
           inputs, padding, state0=state0, segment_id=segment_id)
       # Compute grads
-      loss = -tf.log(
+      loss = -tf.math.log(
           tf.sigmoid((tf.reduce_sum(tf.math.square(act)) +
                       tf.reduce_sum(state.m * state.c * state.c))))
       grads = tf.gradients(loss, base_frnn.vars.Flatten())
@@ -157,7 +157,7 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
       act, state = frnn.FPropDefaultTheta(
           inputs, padding, state0=state0, segment_id=segment_id)
       # Compute grads
-      loss = -tf.log(
+      loss = -tf.math.log(
           tf.sigmoid((tf.reduce_sum(tf.math.square(act)) +
                       tf.reduce_sum(state.m * state.c * state.c))))
       grads = tf.gradients(loss, frnn.vars.Flatten())

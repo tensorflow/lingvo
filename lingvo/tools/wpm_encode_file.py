@@ -106,8 +106,8 @@ def _RunEncoding():
   with tf.python_io.TFRecordWriter(FLAGS.output_filepath) as outf:
     n = 0
     for p in pairs:
-      with tf.gfile.Open(p[0], 'r') as sourcef:
-        with tf.gfile.Open(p[1], 'r') as targetf:
+      with tf.io.gfile.GFile(p[0], 'r') as sourcef:
+        with tf.io.gfile.GFile(p[1], 'r') as targetf:
           for textp in zip(sourcef.readlines(), targetf.readlines()):
             n += 1
             if n % 10000 == 0:

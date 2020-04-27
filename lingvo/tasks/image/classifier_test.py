@@ -63,7 +63,7 @@ class ClassifierTest(test_utils.TestCase):
   def testMnistLeNet5(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       p = model_registry.GetParams('image.mnist.LeNet5', 'Test')
       p.random_seed = 73234288
       p.input.ckpt = self.data_path
@@ -79,7 +79,7 @@ class ClassifierTest(test_utils.TestCase):
   def testMnistV2(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       p = model_registry.GetParams('test.MnistV2', 'Test')
       p.random_seed = 73234288
       p.input.ckpt = self.data_path
@@ -94,7 +94,7 @@ class ClassifierTest(test_utils.TestCase):
 
   def testInference(self):
     with self.session() as sess:
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       p = model_registry.GetParams('test.MnistV2', 'Test')
       p.random_seed = 73234288
       p.input.ckpt = self.data_path

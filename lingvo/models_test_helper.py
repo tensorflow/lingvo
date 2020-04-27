@@ -159,12 +159,13 @@ class BaseModelsTest(test_utils.TestCase):
     model_names = list(registry.GetAllRegisteredClasses().keys())
     for model_name in sorted(model_names):
       if task_prefix_filter and not model_name.startswith(task_prefix_filter):
-        tf.logging.info('Skipping tests for registered model: %s', model_name)
+        tf.logging.info('Skipping tests for registered model: %s',
+                             model_name)
         continue
       if exclude_prefixes and any(
           [model_name.startswith(prefix) for prefix in exclude_prefixes]):
-        tf.logging.info('Explicitly excluding tests for registered model: %s',
-                        model_name)
+        tf.logging.info(
+            'Explicitly excluding tests for registered model: %s', model_name)
         continue
 
       def _Test(self, name=model_name):

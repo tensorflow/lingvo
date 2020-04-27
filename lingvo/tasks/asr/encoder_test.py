@@ -56,10 +56,10 @@ class EncoderTest(test_utils.TestCase):
     return p
 
   def _ForwardPass(self, p):
-    tf.set_random_seed(8372749040)
+    tf.random.set_seed(8372749040)
     stt_enc = encoder.AsrEncoder(p)
     batch = py_utils.NestedMap()
-    batch.src_inputs = tf.random_normal([2, 20, 16, 3], seed=92837472)
+    batch.src_inputs = tf.random.normal([2, 20, 16, 3], seed=92837472)
     batch.paddings = tf.zeros([2, 20])
     return stt_enc.FPropDefaultTheta(batch)
 

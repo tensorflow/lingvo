@@ -170,7 +170,7 @@ class Utils3D(object):
     stack_coordinates = []
 
     for r_start, r_stop, r_steps in ranges:
-      values = tf.lin_space(
+      values = tf.linspace(
           tf.cast(r_start, tf.float32), tf.cast(r_stop, tf.float32),
           tf.cast(r_steps, tf.int32))
       cycle_steps //= r_steps
@@ -389,7 +389,7 @@ class Utils3D(object):
 
     # Ensure that max score boxes are not padded boxes by setting score to 0
     # for boxes that are padded.
-    gathered_mask = tf.batch_gather(gt_bboxes_mask, anchor_max_idx)
+    gathered_mask = tf.array_ops.batch_gather(gt_bboxes_mask, anchor_max_idx)
     anchor_max_score = tf.where(
         tf.equal(gathered_mask, 1), anchor_max_score,
         tf.zeros_like(anchor_max_score))
@@ -427,8 +427,9 @@ class Utils3D(object):
             dtype=anchor_max_idx.dtype))
 
     # Gather the bboxes and weights.
-    assigned_gt_bbox = tf.batch_gather(gt_bboxes, anchor_gather_idx)
-    assigned_gt_labels = tf.batch_gather(gt_bboxes_labels, anchor_gather_idx)
+    assigned_gt_bbox = tf.array_ops.batch_gather(gt_bboxes, anchor_gather_idx)
+    assigned_gt_labels = tf.array_ops.batch_gather(gt_bboxes_labels,
+                                                   anchor_gather_idx)
 
     # Set masks for classification and regression losses.
     assigned_cls_mask = tf.cast(background_anchors | foreground_anchors,
@@ -524,9 +525,9 @@ class Utils3D(object):
     y_residual = py_utils.CheckNumerics((y_gt - y_a) / diagonal_xy)
     z_residual = py_utils.CheckNumerics((z_gt - z_a) / dz_a)
 
-    dx_residual = py_utils.CheckNumerics(tf.log(dx_gt / dx_a))
-    dy_residual = py_utils.CheckNumerics(tf.log(dy_gt / dy_a))
-    dz_residual = py_utils.CheckNumerics(tf.log(dz_gt / dz_a))
+    dx_residual = py_utils.CheckNumerics(tf.math.log(dx_gt / dx_a))
+    dy_residual = py_utils.CheckNumerics(tf.math.log(dy_gt / dy_a))
+    dz_residual = py_utils.CheckNumerics(tf.math.log(dz_gt / dz_a))
 
     phi_residual = phi_gt - phi_a
 
@@ -846,11 +847,11 @@ def RandomPadOrTrimTo(tensor_list, num_points_out, seed=None):
   def _Slicing():
     # Choose a random set of indices.
     indices = tf.range(actual_num)
-    indices = tf.random_shuffle(indices, seed=seed)[:num_points_out]
+    indices = tf.random.shuffle(indices, seed=seed)[:num_points_out]
     return [tf.gather(t, indices, axis=0) for t in tensor_list]
 
   def _Padding():
-    indices = tf.random_uniform([num_points_out - actual_num],
+    indices = tf.random.uniform([num_points_out - actual_num],
                                 minval=0,
                                 maxval=actual_num,
                                 dtype=tf.int32,

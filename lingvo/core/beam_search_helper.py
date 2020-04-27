@@ -453,7 +453,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
 
     def LoopContinue(cur_step, all_done, unused_step_ids, unused_core_bs_states,
                      unused_other_states_list):
-      return tf.logical_and(cur_step < max_steps, tf.logical_not(all_done))
+      return tf.math.logical_and(cur_step < max_steps,
+                                 tf.math.logical_not(all_done))
 
     def LoopBody(cur_step, unused_all_done, step_ids, core_bs_states,
                  other_states_list):
@@ -685,8 +686,8 @@ class GreedySearchHelper(base_layer.BaseLayer):
     hyp_ids = inplace_ops.alias_inplace_update(hyp_ids, cur_step,
                                                new_step_ids_1d)
     # Update done_hyps if the current step_ids is the end of sequence token.
-    done_hyps = tf.logical_or(done_hyps, tf.equal(new_step_ids_1d,
-                                                  p.target_eos_id))
+    done_hyps = tf.math.logical_or(done_hyps,
+                                   tf.equal(new_step_ids_1d, p.target_eos_id))
 
     return (cur_step + 1, new_step_ids, hyp_ids, hyp_lens, done_hyps,
             final_other_states)
@@ -753,8 +754,8 @@ class GreedySearchHelper(base_layer.BaseLayer):
 
     def LoopContinue(cur_step, unused_step_ids, unused_hyp_ids, unused_hyp_lens,
                      done_hyps, unused_other_states_list):
-      return tf.logical_and(cur_step < max_steps,
-                            tf.logical_not(tf.reduce_all(done_hyps)))
+      return tf.math.logical_and(cur_step < max_steps,
+                                 tf.math.logical_not(tf.reduce_all(done_hyps)))
 
     def LoopBody(cur_step, step_ids, hyp_ids, hyp_lens, done_hyps,
                  other_states_list):

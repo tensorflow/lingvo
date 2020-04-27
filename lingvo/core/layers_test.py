@@ -72,7 +72,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.BatchNormLayer.Params()
       params.name = 'bn'
@@ -92,7 +92,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerMoments(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       in_padding1 = tf.zeros([2, 2, 8, 1], dtype=tf.float32)
@@ -125,7 +125,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerFProp(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.BatchNormLayer.Params()
       params.name = 'bn'
@@ -146,7 +146,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerFPropUseGlobalStatsForTraining(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.BatchNormLayer.Params()
       params.name = 'bn'
@@ -168,7 +168,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerMomentsForConv(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       in_padding1 = tf.zeros([2, 8, 1, 1], dtype=tf.float32)
@@ -199,7 +199,7 @@ class BatchNormLayerTest(test_utils.TestCase):
 
   def testBatchNormLayerFPropForConv(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.BatchNormLayer.Params()
       params.name = 'bn_conv'
@@ -229,7 +229,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.Conv2DLayer.Params()
       params.name = 'conv'
@@ -251,7 +251,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testDepthwiseConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
@@ -274,7 +274,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testDepthwiseConv2DLayerModuleInterface(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv1'
@@ -310,7 +310,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testSeparableConv2DLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.SeparableConv2DLayer.Params()
       params.name = 'conv'
@@ -348,7 +348,7 @@ class ConvLayerTest(test_utils.TestCase):
   def testConv2DLayerWithBiasConstruction(self):
     """Tests Conv2DLayer with only bias and without batch normalization."""
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.Conv2DLayer.Params()
       params.name = 'conv'
@@ -373,7 +373,7 @@ class ConvLayerTest(test_utils.TestCase):
   def testDepthwiseConv2DLayerWithBiasConstruction(self):
     """Tests DepthwiseConv2D with only bias and without batch normalization."""
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
@@ -397,7 +397,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.Conv2DLayer.Params()
       params.name = 'conv'
@@ -415,7 +415,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testDepthwiseConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
@@ -433,7 +433,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testSeparableConv2DLayerOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.SeparableConv2DLayer.Params()
       params.name = 'conv'
@@ -451,7 +451,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.Conv2DLayer.Params()
       params.name = 'conv'
@@ -471,7 +471,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testDepthwiseConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
@@ -491,7 +491,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testSeparableConv2DLayerWithDilationOutShape(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.SeparableConv2DLayer.Params()
       params.name = 'conv'
@@ -543,7 +543,7 @@ class ConvLayerTest(test_utils.TestCase):
                             params_builder=layers.Conv2DLayer.Params):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = params_builder()
       params.name = 'conv'
@@ -557,8 +557,8 @@ class ConvLayerTest(test_utils.TestCase):
         params.depth_multiplier = depth_multiplier
       conv_layer = params.Instantiate()
 
-      inp = tf.random_uniform(input_shape)
-      inp_pad = tf.floor(0.5 + tf.random_uniform(input_shape[:2]))
+      inp = tf.random.uniform(input_shape)
+      inp_pad = tf.floor(0.5 + tf.random.uniform(input_shape[:2]))
       out, out_pad = conv_layer.FPropDefaultTheta(inp, inp_pad)
 
     with self.session(use_gpu=True, graph=g) as sess:
@@ -648,7 +648,7 @@ class ConvLayerTest(test_utils.TestCase):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = params_builder()
       params.name = 'conv'
@@ -982,11 +982,11 @@ class ConvLayerTest(test_utils.TestCase):
   def testConv2DLayerNoPadding(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(24332)
+      tf.random.set_seed(24332)
       p = layers.Conv2DLayerNoPadding.Params().Set(
           name='test', filter_shape=(3, 3, 3, 5), filter_stride=(2, 2))
       l = p.Instantiate()
-      x = tf.random_normal(shape=[17, 64, 64, 3])
+      x = tf.random.normal(shape=[17, 64, 64, 3])
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
@@ -1020,7 +1020,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testCausalConvLayerFProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.name = 'conv'
@@ -1078,7 +1078,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testCausalConv2DLayerFProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.name = 'causal_conv'
@@ -1131,7 +1131,7 @@ class ConvLayerTest(test_utils.TestCase):
   def testCausalConv2DEqualsConv2DWithPadding(self):
     # Causal conv is equivalent to regular conv with zero pre-padding.
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.name = 'causal_conv'
@@ -1165,7 +1165,7 @@ class ConvLayerTest(test_utils.TestCase):
     # When kernel height (time) = 1, causal convolution regresses to normal
     # convolution with SAME padding.
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.name = 'causal_conv'
@@ -1194,7 +1194,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConvLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.name = 'conv'
@@ -1224,7 +1224,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConvLayerFPropTanh(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvLayer.Params()
       params.activation = 'TANH'
@@ -1260,7 +1260,7 @@ class ConvLayerTest(test_utils.TestCase):
 
   def testConvSetLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvSetLayer.Params()
       params.name = 'conv_set'
@@ -1284,7 +1284,7 @@ class ConvLayerTest(test_utils.TestCase):
     self._ClearCachedSession()
     ops.reset_default_graph()
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ConvSetLayer.Params()
       params.name = 'conv_set'
@@ -1472,7 +1472,7 @@ class ProjectionLayerTest(test_utils.TestCase):
 
   def testProjectionLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
@@ -1512,7 +1512,7 @@ class ProjectionLayerTest(test_utils.TestCase):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
@@ -1695,7 +1695,7 @@ class ProjectionLayerTest(test_utils.TestCase):
 
   def testProjectionLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
@@ -1845,7 +1845,7 @@ class ProjectionLayerTest(test_utils.TestCase):
 
   def testFCLayerConstruction(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.FCLayer.Params()
       params.name = 'fc'
@@ -1860,7 +1860,7 @@ class ProjectionLayerTest(test_utils.TestCase):
 
   def testFCLayerFProp(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.FCLayer.Params()
       params.name = 'fc'
@@ -1894,7 +1894,7 @@ class ProjectionLayerTest(test_utils.TestCase):
 
   def testFCLayerBackProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.FCLayer.Params()
       params.name = 'fc'
@@ -1997,7 +1997,7 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
       stacker = layers.StackingOverTime(params)
       self.assertEqual(stacker.window_size, 2)
 
-      inputs = tf.random_normal([2, 21, 16], seed=78123)
+      inputs = tf.random.normal([2, 21, 16], seed=78123)
       paddings = 1.0 - tf.sequence_mask([9, 14], 21, tf.float32)
       paddings = tf.expand_dims(paddings, -1)
 
@@ -2080,7 +2080,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
 
   def testSingleShardEmbeddingLayer(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SingleShardEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2098,7 +2098,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
 
   def testCheckedIds(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SingleShardEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2122,7 +2122,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayerScaling(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SingleShardEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2142,7 +2142,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayerWithVN(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2167,7 +2167,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayer(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.EmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2186,7 +2186,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testCheckedIds(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.EmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2211,7 +2211,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayerScaling(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.EmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2232,7 +2232,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
   def testEmbeddingLayerWithVN(self):
     with self.session(use_gpu=True):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.EmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2259,7 +2259,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
                                 scale_sqrt_depth=False):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2320,7 +2320,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
   def testSimpleEmbeddingLayerMasked(self):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emd'
       params.dtype = tf.float32
@@ -2371,7 +2371,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
                                     use_3d_weight_tensor,
                                     scale_sqrt_depth=False):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SimpleEmbeddingLayer.Params()
       params.name = 'emb'
       params.dtype = tf.float32
@@ -2428,7 +2428,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       ids = tf.placeholder(tf.int32)
 
       def CreateSimple():
-        tf.set_random_seed(398847392)
+        tf.random.set_seed(398847392)
         p = layers.SimpleEmbeddingLayer.Params()
         p.name = 'emb'
         p.dtype = tf.float32
@@ -2444,7 +2444,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       simple_grad = tf.gradients(simple_outs, simple.vars.wm)[0]
 
       def CreateOriginal():
-        tf.set_random_seed(398847392)
+        tf.random.set_seed(398847392)
         p = layers.EmbeddingLayer.Params()
         p.name = 'emb'
         p.dtype = tf.float32
@@ -2660,7 +2660,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       fprop_dtype = dtype
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
       if seed is not None:
-        tf.set_random_seed(seed)
+        tf.random.set_seed(seed)
       if class_ids is None:
         class_ids = tf.constant([[1], [5], [10]], dtype=tf.int32)
       else:
@@ -3226,7 +3226,7 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
   def _Logits(self, params, batch_size=2, seq_length=None):
     with self.session(use_gpu=True, graph=tf.Graph()):
       np.random.seed(12345)
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
 
       params.name = 'softmax'
       if not params.input_dim:
@@ -3275,7 +3275,7 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
   def _testSharedSoftmaxLayerEmbLookup(self, scale_sqrt_depth=False):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params = layers.SharedSoftmaxLayer.Params()
       params.dtype = tf.float32
       params.fprop_dtype = None
@@ -3364,7 +3364,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNet(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.FeedForwardNet.Params().Set(
           name='ffn',
@@ -3405,7 +3405,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetQuantized(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
 
       cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
@@ -3460,7 +3460,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetBnFolded(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.FeedForwardNet.Params().Set(
           name='ffn',
@@ -3504,7 +3504,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testFeedForwardNetSmokeTest(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.FeedForwardNet.Params().Set(
           name='ffn',
@@ -3526,7 +3526,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testDropoutLayerTrain(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
+      tf.random.set_seed(3980847392)
       p = layers.DropoutLayer.Params()
       p.keep_prob = 0.5
       p.random_seed = 1234
@@ -3534,7 +3534,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
       dl = p.Instantiate()
 
-      x = tf.random_normal([10, 10, 10, 3])
+      x = tf.random.normal([10, 10, 10, 3])
       xd = dl.FPropDefaultTheta(x)
       x, xd = sess.run([x, xd])
       self.assertGreater((xd == 0).mean(), 0.3)
@@ -3543,14 +3543,14 @@ class FeedForwardNetTest(test_utils.TestCase):
 
   def testDropoutLayerEval(self):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(3980847392)
+      tf.random.set_seed(3980847392)
       p = layers.DropoutLayer.Params()
       p.keep_prob = 0.5
       p.random_seed = 1234
       p.name = 'dropout'
       dl = p.Instantiate()
 
-      x = tf.random_normal([10, 10, 10, 3])
+      x = tf.random.normal([10, 10, 10, 3])
       xd = dl.FPropDefaultTheta(x)
 
       x, xd = sess.run([x, xd])
@@ -3607,7 +3607,7 @@ class AddingAccumulatorTest(test_utils.TestCase):
 class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBatchNormLayerNoPaddingConstruction(self):
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     params = layers.BatchNormLayerNoPadding.Params()
     params.name = 'bn'
@@ -3631,7 +3631,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
   })
   def testBatchNormLayerNoPaddingFProp(self, is_eval):
     with self.session(use_gpu=True), self.SetEval(is_eval):
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.BatchNormLayerNoPadding.Params()
       params.name = 'bn'
@@ -3653,7 +3653,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_sig2, sig2.eval(), atol=1e-5)
 
   def testBatchNormLayerNoPaddingFPropUseGlobalStatsForTraining(self):
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     params = layers.BatchNormLayerNoPadding.Params()
     params.name = 'bn'
@@ -3673,7 +3673,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(47.8501930237, sig2.eval(), atol=1e-5)
 
   def testBatchNormLayerNoPaddingPostTrainingStepUpdate(self):
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     params = layers.BatchNormLayerNoPadding.Params()
     params.name = 'bn'
@@ -3695,7 +3695,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose([1.0, 1.0], moving_std)
 
   def testBatchNormLayerNoPaddingFPropForConv(self):
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     params = layers.BatchNormLayerNoPadding.Params()
     params.name = 'bn_conv'
@@ -3799,7 +3799,7 @@ class LayerNormTest(test_utils.TestCase):
 
   def testLayerNormFProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.LayerNorm.Params()
       p.name = 'ln'
@@ -3825,7 +3825,7 @@ class LayerNormTest(test_utils.TestCase):
 
   def testLayerNormBProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.LayerNorm.Params()
       p.name = 'ln'
@@ -3944,7 +3944,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
     """Test to verify the drop mask used in fprop and bprop is identical."""
     assert splits in [1, 2, 4]
     with self.session() as sess:
-      tf.set_random_seed(12345)
+      tf.random.set_seed(12345)
       num_layers = 4
       # Build a model with 4 dropout layers.
       blocks = []
@@ -3983,7 +3983,7 @@ class GradNormTrackerTest(test_utils.TestCase):
 
   def testGradNormTracker(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.GradNormTracker.Params().Set(
           name='grad_norm_tracker', clip_threshold=3.0)
@@ -4009,7 +4009,7 @@ class GradNormTrackerTest(test_utils.TestCase):
 
   def testGradNormTrackerClipCapMin(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.GradNormTracker.Params().Set(
           name='grad_norm_tracker',
@@ -4036,7 +4036,7 @@ class GradNormTrackerTest(test_utils.TestCase):
 
   def testGradNormTrackerHasNan(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.GradNormTracker.Params().Set(
           name='grad_norm_tracker', clip_threshold=3.0)
@@ -4077,7 +4077,7 @@ class HighwaySkipLayerTest(test_utils.TestCase):
 
   def testHighwaySkipLayerCarryGate(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.HighwaySkipLayer.Params().Set(
           name='gffn',
@@ -4229,7 +4229,7 @@ class DeconvLayerTest(test_utils.TestCase):
 
   def testDeconvLayerFProp(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = layers.DeconvLayer.Params()
       params.name = 'deconv'
@@ -4251,7 +4251,7 @@ class DeconvLayerTest(test_utils.TestCase):
 
       summary = np.sum(np.square(out_v), axis=(1, 2, 3))
       tf.logging.info('testDeconvLaye rFProp actual = %s',
-                      np.array_repr(summary))
+                           np.array_repr(summary))
       self.assertAllClose([4.77159977, 5.47860432], summary)
 
 
@@ -4350,8 +4350,8 @@ class GluLayerTest(test_utils.TestCase):
 
   def testGlu(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers.GluLayer.Params()
       p.name = 'glu_layers'
@@ -4381,8 +4381,8 @@ class GluLayerTest(test_utils.TestCase):
 
   def testGluWithoutResidual(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers.GluLayer.Params()
       p.name = 'glu_layers'
@@ -4534,8 +4534,8 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
         if isinstance(grad, tf.Tensor):
           return grad
         elif isinstance(grad, tf.IndexedSlices):
-          return tf.unsorted_segment_sum(grad.values, grad.indices,
-                                         tf.shape(var)[0])
+          return tf.math.unsorted_segment_sum(grad.values, grad.indices,
+                                              tf.shape(var)[0])
 
       dense_grads = [DenseGrad(x, y) for (x, y) in zip(all_vars, grads)]
       dense_grad_sums = [tf.reduce_sum(g) for g in dense_grads]
@@ -4563,7 +4563,7 @@ class CCTGatingNetworkTest(test_utils.TestCase):
 
   def testCCTGatingNetworkTraining(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.CCTGatingNetwork.Params().Set(
           name='cct_gating',
@@ -4589,7 +4589,7 @@ class CCTGatingNetworkTest(test_utils.TestCase):
 
   def testCCTGatingNetworkInference(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.CCTGatingNetwork.Params().Set(
           name='cct_gating',

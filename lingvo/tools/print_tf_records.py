@@ -83,7 +83,7 @@ def _PrintHeader(tf_example):
 
 def _PrintFiles():
   entry = 0
-  for filepath in tf.gfile.Glob(FLAGS.input_filepattern):
+  for filepath in tf.io.gfile.glob(FLAGS.input_filepattern):
     records = tf.compat.v1.io.tf_record_iterator(filepath)
     for serialized in records:
       if entry < FLAGS.skip_first_n:

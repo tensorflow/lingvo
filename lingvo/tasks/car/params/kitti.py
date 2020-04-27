@@ -214,7 +214,7 @@ class StarNetCarsBase(base_model_params.SingleTaskModelParams):
       self._configure_evaler_input(p)
     else:
       tf.logging.info('There are no input configuration changes to for '
-                      'job {}.'.format(job))
+                           'job {}.'.format(job))
     if self.RUN_LOCALLY:
       p.num_batcher_threads = 1
       p.file_buffer_size = 1

@@ -292,8 +292,8 @@ class Accumulator(Base):
 
     return tf.cond(
         tf.equal(
-            tf.mod(self.theta.global_step, p.accum_steps), p.accum_steps - 1),
-        _ApplyAndReset, lambda: tf.group(tf.no_op()))
+            tf.math.floormod(self.theta.global_step, p.accum_steps),
+            p.accum_steps - 1), _ApplyAndReset, lambda: tf.group(tf.no_op()))
 
   def GetOptimizer(self, lr):
     return self._opt.GetOptimizer(lr)

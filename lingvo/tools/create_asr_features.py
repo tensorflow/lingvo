@@ -140,7 +140,7 @@ def _MakeLogMelFromTensorflowBuiltin(tf_wav_bytes):
 
 def _OpenSubShards():
   tf.logging.info('Shards: %d to %d', FLAGS.output_range_begin,
-                  FLAGS.output_range_end)
+                       FLAGS.output_range_end)
   recordio_writers = []
   for s in range(FLAGS.output_range_begin, FLAGS.output_range_end):
     filepath = FLAGS.output_template % (s, FLAGS.num_output_shards)
@@ -173,7 +173,7 @@ def _CreateAsrFeatures():
   tar = tarfile.open(FLAGS.input_tarball, mode='r:gz')
   n = 0
   recordio_writers = _OpenSubShards()
-  tfconf = tf.ConfigProto()
+  tfconf = tf.config_pb2.ConfigProto()
   tfconf.gpu_options.allow_growth = True
   with tf.Session(config=tfconf) as sess:
     for tarinfo in tar:
@@ -190,7 +190,7 @@ def _CreateAsrFeatures():
       assert uttid in trans, uttid
       num_words = len(trans[uttid])
       tf.logging.info('utt[%d]: %s [%d frames, %d words]', n, uttid,
-                      frames.shape[1], num_words)
+                           frames.shape[1], num_words)
       ex = _MakeTfExample(uttid, frames, trans[uttid])
       outf = _SelectRandomShard(recordio_writers)
       outf.write(ex.SerializeToString())

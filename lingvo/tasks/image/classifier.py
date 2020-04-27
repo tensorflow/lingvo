@@ -243,7 +243,7 @@ class ModelV2(BaseClassifier):
     p = self.params
     batch = tf.shape(input_batch.data)[0]
     act = predictions.act
-    with tf.colocate_with(act):
+    with tf.ops.colocate_with(act):
       tf.logging.info("{}'s device: {}".format(act, act.device))
       # Softmax
       labels = tf.cast(input_batch.label, tf.int64)

@@ -47,7 +47,7 @@ def ComputeSplits(batch_size, num_splits):
       tf.div([batch_size], num_splits),
       tf.constant(
           [num_splits], dtype=tf.int32))
-  mods = tf.tile(tf.constant([1]), tf.mod([batch_size], num_splits))
+  mods = tf.tile(tf.constant([1]), tf.math.floormod([batch_size], num_splits))
   zeros = tf.tile(tf.constant([0]),
                   tf.subtract(tf.shape(values), tf.shape(mods)))
   mods = tf.concat([mods, zeros], 0)

@@ -252,7 +252,8 @@ class SoftCondLayer(base_layer.BaseLayer):
     reshaped_inputs = tf.reshape(inputs, [-1, self.params.cond_dim])
     if self.params.nonzeros_mean:
       per_example_emb = tf.reduce_sum(reshaped_inputs, 0)
-      nonzeros = tf.cast(tf.count_nonzero(reshaped_inputs, 0), dtype=tf.float32)
+      nonzeros = tf.cast(
+          tf.math.count_nonzero(reshaped_inputs, 0), dtype=tf.float32)
       per_example_emb /= (nonzeros + 1e-10)
     else:
       per_example_emb = tf.reduce_mean(reshaped_inputs, 0)
@@ -417,13 +418,13 @@ class SequentialLayer(base_layer.BaseLayer):
           th = theta[name]
           args = _ToTuple(args)
           tf.logging.vlog(1, 'SequentialLayer: call %s %s %d %s',
-                          ch.params.name, ch, len(args), str(args))
+                               ch.params.name, ch, len(args), str(args))
           args = ch.FProp(th, *args)
       else:
         for (ch, th) in zip(self.rep, theta.rep):
           args = _ToTuple(args)
           tf.logging.vlog(1, '  call %s %s %d %s', ch.params.name, ch,
-                          len(args), str(args))
+                               len(args), str(args))
           args = ch.FProp(th, *args)
       args = _ToTuple(args)
       return args[0] if len(args) == 1 else args
@@ -434,8 +435,8 @@ class SequentialLayer(base_layer.BaseLayer):
     total = 0
     for _ in range(p.repeat):
       for sub in p.sub:
-        tf.logging.vlog(1, '  seq abs fprop %s %s %d %s', sub.name, sub.cls,
-                        len(args), str(args))
+        tf.logging.vlog(1, '  seq abs fprop %s %s %d %s', sub.name,
+                             sub.cls, len(args), str(args))
         meta = sub.cls.FPropMeta(sub, *args)
         py_utils.CheckShapes(meta.out_shapes)
         total += meta.flops
@@ -852,8 +853,8 @@ class GraphLayer(base_layer.BaseLayer):
         packed = template.Transform(graph_tensors.GetTensor)
         input_args = packed.inputs
         tf.logging.vlog(1, 'signature: %s', p.sub[i][0])
-        tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name, ch,
-                        len(input_args), str(input_args))
+        tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name,
+                             ch, len(input_args), str(input_args))
         ch_out = ch.FProp(th, *input_args)
         if len(sig.outputs) == 1:
           ch_out = (ch_out,)
@@ -949,7 +950,7 @@ class ParallelLayer(base_layer.BaseLayer):
     outputs = []
     for sub in p.sub:
       tf.logging.vlog(1, '  par abs fprop %s %s %d %s', sub.name, sub.cls,
-                      len(args), str(args))
+                           len(args), str(args))
       meta = sub.cls.FPropMeta(sub, *args)
       py_utils.CheckShapes(meta.out_shapes)
       meta.VLog(

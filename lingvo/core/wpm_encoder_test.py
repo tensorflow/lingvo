@@ -27,7 +27,7 @@ class WpmEncoderTest(test_utils.TestCase):
 
   def _CreateVocab(self):
     outpath = os.path.join(tf.test.get_temp_dir(), 'wpm.voc')
-    with tf.gfile.Open(outpath, 'w') as f:
+    with tf.io.gfile.GFile(outpath, 'w') as f:
       contents = [
           '<unk>',
           '<s>',

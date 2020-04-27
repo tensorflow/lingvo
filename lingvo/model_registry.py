@@ -54,16 +54,16 @@ def _MaybeUpdateParamsFromFlags(cfg):
 
   if FLAGS.model_params_override:
     params_override = FLAGS.model_params_override.replace(';', '\n')
-    tf.logging.info('Applying params overrides:\n%s\nTo:\n%s', params_override,
-                    cfg.ToText())
+    tf.logging.info('Applying params overrides:\n%s\nTo:\n%s',
+                         params_override, cfg.ToText())
     cfg.FromText(params_override)
   if (FLAGS.model_params_file_override and
-      tf.gfile.Exists(FLAGS.model_params_file_override)):
-    params_override = tf.gfile.GFile(FLAGS.model_params_file_override,
-                                     'r').read()
+      tf.io.gfile.exists(FLAGS.model_params_file_override)):
+    params_override = tf.io.gfile.GFile(FLAGS.model_params_file_override,
+                                        'r').read()
     tf.logging.info('Applying params overrides from file %s:\n%s\nTo:\n%s',
-                    FLAGS.model_params_file_override, params_override,
-                    cfg.ToText())
+                         FLAGS.model_params_file_override, params_override,
+                         cfg.ToText())
     cfg.FromText(params_override)
 
 

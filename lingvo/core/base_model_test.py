@@ -72,9 +72,10 @@ class BaseTaskTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       self.assertEqual(1.0, scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertFalse(
+          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
       self.assertTrue(
-          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsInf(self):
     FLAGS.enable_check_numerics = False
@@ -86,16 +87,17 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Infinite gradient.
-    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, tf.log(0.)))
+    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, tf.math.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertFalse(
+          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
       self.assertTrue(
-          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsNaN(self):
     FLAGS.enable_check_numerics = False
@@ -107,16 +109,18 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
-    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, 0. * tf.log(0.)))
+    var_grads = py_utils.NestedMap(
+        a=py_utils.VarGrad(var_a, 0. * tf.math.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
       tf.global_variables_initializer().run()
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
-      self.assertFalse(tf.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
+      self.assertFalse(
+          tf.math.is_nan(scaled_grads_map.final_var_grads.a[1]).eval())
       self.assertTrue(
-          tf.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
+          tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
   def testScaleGradientsCheckNumerics(self):
     """ScaleGradients when enable_check_numerics=True."""
@@ -129,7 +133,8 @@ class BaseTaskTest(test_utils.TestCase):
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
-    var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, 0. * tf.log(0.)))
+    var_grads = py_utils.NestedMap(
+        a=py_utils.VarGrad(var_a, 0. * tf.math.log(0.)))
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():

@@ -326,7 +326,7 @@ class TransformerMLPerfSchedule(BaseSchedule):
     current_step = tf.cast(current_step, tf.float32)
     warmup_steps = tf.cast(p.warmup_steps, tf.float32)
     linear_warmup = tf.minimum(1.0, current_step / warmup_steps)
-    rsqrt_decay = tf.rsqrt(tf.maximum(current_step, warmup_steps))
+    rsqrt_decay = tf.math.rsqrt(tf.maximum(current_step, warmup_steps))
     return p.model_dim**-0.5 * linear_warmup * rsqrt_decay
 
 
@@ -354,9 +354,8 @@ class TransformerScheduleNoWarmUp(BaseSchedule):
   @base_layer.initializer
   def __init__(self, params):
     super(TransformerScheduleNoWarmUp, self).__init__(params)
-    tf.logging.info(
-        'Peak lr: %f',
-        (self.params.decay_start * self.params.worker_replicas)**-0.5)
+    tf.logging.info('Peak lr: %f', (self.params.decay_start *
+                                         self.params.worker_replicas)**-0.5)
 
   def FProp(self, theta, current_step):
     """Returns the current learning rate decay."""

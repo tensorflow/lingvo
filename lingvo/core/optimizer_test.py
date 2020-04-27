@@ -37,7 +37,7 @@ class OptimizerTest(test_utils.TestCase):
     np_input2 = np.random.normal(0.1, 0.5, [2, 4, 3])
 
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
       params.dtype = tf.float64
@@ -88,7 +88,7 @@ class OptimizerTest(test_utils.TestCase):
       vars1_1 = sess.run(proj_layer.vars.Flatten())
 
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       params = layers.ProjectionLayer.Params()
       params.name = 'proj'
       params.dtype = tf.float64

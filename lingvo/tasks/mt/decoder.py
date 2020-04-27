@@ -929,8 +929,9 @@ class TransformerDecoder(MTBaseDecoder):
     assert self._token_emb_vocab_size == p.softmax.num_classes
     assert self._token_emb_dim == p.position_emb.embedding_dim
     if p.model_dim != self._token_emb_dim:
-      tf.logging.warning('token_emb.embedding_dim != model_dim (%s vs. %s), '
-                         'creating a projection!')
+      tf.logging.warning(
+          'token_emb.embedding_dim != model_dim (%s vs. %s), '
+          'creating a projection!')
       proj_p = layers.ProjectionLayer.Params().Copy()
       proj_p.name = 'emb_proj'
       proj_p.input_dim = p.token_emb.embedding_dim
@@ -1436,7 +1437,7 @@ class TransformerDecoder(MTBaseDecoder):
 
       return bs_results, new_states
 
-    random_seed = tf.random_uniform(
+    random_seed = tf.random.uniform(
         shape=[], maxval=(2**31 - 1), dtype=tf.int32, seed=p.random_seed)
     sample = self.target_sequence_sampler.Sample(
         self.theta, encoder_outputs, random_seed, InitCallback,
@@ -1452,7 +1453,8 @@ class TransformerDecoder(MTBaseDecoder):
     weights = 1 - sample.paddings
     sample.topk_lens = tf.to_int32(tf.reduce_sum(weights, axis=1))
     sample.topk_scores = tf.reduce_sum(
-        tf.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) * weights,
+        tf.math.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) *
+        weights,
         axis=1)
     return sample
 

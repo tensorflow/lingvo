@@ -77,7 +77,7 @@ def GenerateStepSeedPair(p, unused_global_step=None, op_seed=None):
     # the same outputs, even if the model is supposed to have randomness such as
     # dropout during inference. We inject additional randomness only during
     # inference if the graph is exported with random_seed=None as a workaround.
-    return tf.random_uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
+    return tf.random.uniform([2], maxval=seed_dtype.max, dtype=seed_dtype)
 
   with tf.name_scope('op_seed') as scope:
     global_step = tf.cast(GetOverWriteGlobalStep(), seed_dtype)
@@ -249,7 +249,7 @@ def PartitionSequentialLayers(params, num_partitions, *shapes):
   seqs = []
   for i, pa in enumerate(parts):
     tf.logging.info('Partition %d #subs %d #cost %.3f', i, len(pa),
-                    parts_cost[i])
+                         parts_cost[i])
 
     seqs.append(FeatureExtractionLayer.Params().Set(name='d%d' % i, sub=pa))
   return seqs

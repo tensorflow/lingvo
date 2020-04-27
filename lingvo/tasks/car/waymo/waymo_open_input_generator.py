@@ -129,12 +129,12 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     feature_map = {}
-    feature_map['pose'] = tf.VarLenFeature(dtype=tf.float32)
-    feature_map['run_segment'] = tf.FixedLenFeature((), tf.string, '')
-    feature_map['run_start_offset'] = tf.FixedLenFeature((), tf.int64, 0)
-    feature_map['time_of_day'] = tf.FixedLenFeature((), tf.string, '')
-    feature_map['location'] = tf.FixedLenFeature((), tf.string, '')
-    feature_map['weather'] = tf.FixedLenFeature((), tf.string, '')
+    feature_map['pose'] = tf.io.VarLenFeature(dtype=tf.float32)
+    feature_map['run_segment'] = tf.io.FixedLenFeature((), tf.string, '')
+    feature_map['run_start_offset'] = tf.io.FixedLenFeature((), tf.int64, 0)
+    feature_map['time_of_day'] = tf.io.FixedLenFeature((), tf.string, '')
+    feature_map['location'] = tf.io.FixedLenFeature((), tf.string, '')
+    feature_map['weather'] = tf.io.FixedLenFeature((), tf.string, '')
     return feature_map
 
   def _Extract(self, features):
@@ -186,7 +186,7 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
             'Filter key `{}` not found in extracted data.'.format(filter_key))
       has_allowed_data = tf.reduce_any(
           tf.equal(outputs[filter_key], filter_values))
-      allowed_example = tf.logical_and(allowed_example, has_allowed_data)
+      allowed_example = tf.math.logical_and(allowed_example, has_allowed_data)
 
     not_allowed_example = 1 - tf.cast(allowed_example, tf.int32)
     return 1 + (not_allowed_example * input_extractor.BUCKET_UPPER_BOUND)
@@ -228,30 +228,30 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
     """Return a dictionary from tf.Example feature names to Features."""
     p = self.params
     features = {}
-    features['pose'] = tf.VarLenFeature(dtype=tf.float32)
+    features['pose'] = tf.io.VarLenFeature(dtype=tf.float32)
 
     for camera_name in p.camera_names:
-      features['image_%s' % camera_name] = tf.VarLenFeature(dtype=tf.string)
+      features['image_%s' % camera_name] = tf.io.VarLenFeature(dtype=tf.string)
       features['image_%s_shape' % camera_name] = (
-          tf.VarLenFeature(dtype=tf.int64))
+          tf.io.VarLenFeature(dtype=tf.int64))
       features['camera_%s_intrinsics' %
-               camera_name] = tf.VarLenFeature(dtype=tf.float32)
+               camera_name] = tf.io.VarLenFeature(dtype=tf.float32)
       features['camera_%s_extrinsics' %
-               camera_name] = tf.VarLenFeature(dtype=tf.float32)
+               camera_name] = tf.io.VarLenFeature(dtype=tf.float32)
 
       features['camera_%s_rolling_shutter_direction' %
-               camera_name] = tf.FixedLenFeature(
+               camera_name] = tf.io.FixedLenFeature(
                    dtype=tf.int64, shape=())
       features['image_%s_pose' %
-               camera_name] = tf.VarLenFeature(dtype=tf.float32)
+               camera_name] = tf.io.VarLenFeature(dtype=tf.float32)
       features['image_%s_velocity' %
-               camera_name] = tf.VarLenFeature(dtype=tf.float32)
+               camera_name] = tf.io.VarLenFeature(dtype=tf.float32)
 
       for feat in [
           'pose_timestamp', 'shutter', 'camera_trigger_time',
           'camera_readout_done_time'
       ]:
-        features['image_%s_%s' % (camera_name, feat)] = tf.FixedLenFeature(
+        features['image_%s_%s' % (camera_name, feat)] = tf.io.FixedLenFeature(
             dtype=tf.float32, shape=())
     return features
 
@@ -361,7 +361,7 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
     for lidar in p.lidar_names:
       for ri in p.lidar_returns:
         features['laser_%s_%s' %
-                 (lidar, ri)] = tf.VarLenFeature(dtype=tf.float32)
+                 (lidar, ri)] = tf.io.VarLenFeature(dtype=tf.float32)
     return features
 
   def _Extract(self, features):
@@ -458,15 +458,15 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     feature_map = {}
-    feature_map['labels'] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['label_ids'] = tf.VarLenFeature(dtype=tf.string)
-    feature_map['detection_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['single_frame_detection_difficulties'] = tf.VarLenFeature(
+    feature_map['labels'] = tf.io.VarLenFeature(dtype=tf.int64)
+    feature_map['label_ids'] = tf.io.VarLenFeature(dtype=tf.string)
+    feature_map['detection_difficulties'] = tf.io.VarLenFeature(dtype=tf.int64)
+    feature_map['single_frame_detection_difficulties'] = tf.io.VarLenFeature(
         dtype=tf.int64)
-    feature_map['tracking_difficulties'] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['bboxes_3d'] = tf.VarLenFeature(dtype=tf.float32)
-    feature_map['bboxes_3d_num_points'] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['label_metadata'] = tf.VarLenFeature(dtype=tf.float32)
+    feature_map['tracking_difficulties'] = tf.io.VarLenFeature(dtype=tf.int64)
+    feature_map['bboxes_3d'] = tf.io.VarLenFeature(dtype=tf.float32)
+    feature_map['bboxes_3d_num_points'] = tf.io.VarLenFeature(dtype=tf.int64)
+    feature_map['label_metadata'] = tf.io.VarLenFeature(dtype=tf.float32)
     return feature_map
 
   def _Extract(self, features):
@@ -666,21 +666,22 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
     feature_map = {}
     for laser in p.cbr_laser_names + p.gbr_laser_names:
       feature_map['%s_beam_inclinations' % laser] = (
-          tf.VarLenFeature(dtype=tf.float32))
+          tf.io.VarLenFeature(dtype=tf.float32))
       feature_map['%s_beam_inclination_min' % laser] = (
-          tf.VarLenFeature(dtype=tf.float32))
+          tf.io.VarLenFeature(dtype=tf.float32))
       feature_map['%s_beam_inclination_max' % laser] = (
-          tf.VarLenFeature(dtype=tf.float32))
-      feature_map['%s_extrinsics' % laser] = tf.VarLenFeature(dtype=tf.float32)
+          tf.io.VarLenFeature(dtype=tf.float32))
+      feature_map['%s_extrinsics' %
+                  laser] = tf.io.VarLenFeature(dtype=tf.float32)
       if laser in p.gbr_laser_names:
-        feature_map['%s_pose' % laser] = tf.VarLenFeature(dtype=tf.float32)
+        feature_map['%s_pose' % laser] = tf.io.VarLenFeature(dtype=tf.float32)
 
       for returns in p.returns:
         feature_map['%s_%s' %
-                    (laser, returns)] = tf.VarLenFeature(dtype=tf.float32)
+                    (laser, returns)] = tf.io.VarLenFeature(dtype=tf.float32)
         feature_map['%s_%s_shape' %
-                    (laser, returns)] = tf.VarLenFeature(dtype=tf.int64)
-    feature_map['pose'] = tf.VarLenFeature(dtype=tf.float32)
+                    (laser, returns)] = tf.io.VarLenFeature(dtype=tf.int64)
+    feature_map['pose'] = tf.io.VarLenFeature(dtype=tf.float32)
     return feature_map
 
   def _Extract(self, features):
@@ -857,7 +858,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
         raise ValueError('frame_pose must be set when pixel_pose is set.')
       # To vehicle frame corresponding to the given frame_pose
       # [4, 4]
-      world_to_vehicle = tf.matrix_inverse(frame_pose)
+      world_to_vehicle = tf.linalg.inv(frame_pose)
       world_to_vehicle_rotation = world_to_vehicle[0:3, 0:3]
       world_to_vehicle_translation = world_to_vehicle[0:3, 3]
       # [H, W, 3]

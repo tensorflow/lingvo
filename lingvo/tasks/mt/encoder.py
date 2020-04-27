@@ -587,8 +587,9 @@ class TransformerEncoder(base_layer.BaseLayer):
       p.transformer_stack.Set(
           model_dim=p.model_dim, packed_input=p.packed_input)
       if p.model_dim != p.token_emb.embedding_dim:
-        tf.logging.warning('token_emb.embedding_dim != model_dim (%s vs. %s), '
-                           'creating a projection!')
+        tf.logging.warning(
+            'token_emb.embedding_dim != model_dim (%s vs. %s), '
+            'creating a projection!')
         proj_p = layers.ProjectionLayer.Params().Copy()
         proj_p.name = 'emb_proj'
         proj_p.input_dim = p.token_emb.embedding_dim

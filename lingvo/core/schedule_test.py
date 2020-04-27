@@ -415,7 +415,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
   def testDevBasedSchedule(self):
     logdir = tf.test.get_temp_dir()
-    tf.gfile.MkDir(os.path.join(logdir, 'eval_dev'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'eval_dev'))
 
     p = schedule.DevBasedSchedule.Params()
     p.tolerance = 1.0

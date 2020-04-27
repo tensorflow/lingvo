@@ -139,17 +139,18 @@ class PredictorRunnerBase(object):
     if device_type == 'tpu' and FLAGS.xla_device != 'tpu':
       raise ValueError('xla_device=tpu should be set with device_type=tpu!')
 
-    if tf.gfile.IsDirectory(self._checkpoint):
+    if tf.io.gfile.isdir(self._checkpoint):
       initial_checkpoint = tf.train.latest_checkpoint(self._checkpoint)
       while (not initial_checkpoint or
-             not tf.gfile.Exists(initial_checkpoint + '.index')):
+             not tf.io.gfile.exists(initial_checkpoint + '.index')):
         tf.logging.log_first_n(tf.logging.INFO,
-                               'Waiting for checkpoint to be available.', 10)
+                                    'Waiting for checkpoint to be available.',
+                                    10)
         time.sleep(_RETRY_SLEEP_SECONDS)
         initial_checkpoint = tf.train.latest_checkpoint(self._checkpoint)
     else:
       initial_checkpoint = self._checkpoint
-      if not tf.gfile.Exists(initial_checkpoint + '.index'):
+      if not tf.io.gfile.exists(initial_checkpoint + '.index'):
         raise ValueError('Could not find checkpoint %s' % initial_checkpoint)
 
     # Use saved inference graph.
@@ -157,7 +158,7 @@ class PredictorRunnerBase(object):
       self._inference_graph = inference_graph
     else:
       checkpoint_dir = self._checkpoint
-      if not tf.gfile.IsDirectory(checkpoint_dir):
+      if not tf.io.gfile.isdir(checkpoint_dir):
         checkpoint_dir = os.path.dirname(checkpoint_dir)
       logdir = os.path.dirname(checkpoint_dir)
       inference_graph_filename = 'inference.pbtxt'
@@ -276,7 +277,7 @@ class PredictorRunnerBase(object):
           raise ValueError(
               'output_dir must be specified for _PredictContinuously.')
         output_dir = os.path.join(self._output_dir, 'step_' + step_str)
-        tf.gfile.MakeDirs(output_dir)
+        tf.io.gfile.makedirs(output_dir)
         self._PredictOneCheckpoint(path, output_dir)
         prev_step = step
         tf.logging.info('Waiting for next checkpoint...')
@@ -286,8 +287,8 @@ class PredictorRunnerBase(object):
   def Run(self):
     """Monitor checkpoints and runs predictor."""
     if self._output_dir:
-      tf.gfile.MakeDirs(self._output_dir)
-    if tf.gfile.IsDirectory(self._checkpoint):
+      tf.io.gfile.makedirs(self._output_dir)
+    if tf.io.gfile.isdir(self._checkpoint):
       self._PredictContinuously()
     else:
       self._PredictOneCheckpoint(self._checkpoint, self._output_dir)

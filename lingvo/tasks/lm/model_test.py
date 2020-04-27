@@ -62,7 +62,7 @@ class ModelTest(test_utils.TestCase):
     return p
 
   def testLmFprop(self):
-    tf.set_random_seed(93820986)
+    tf.random.set_seed(93820986)
     p = self._Params()
     p.input = self._InputParams(for_training=False)
 
@@ -104,7 +104,7 @@ class ModelTest(test_utils.TestCase):
       self.assertLess(loss_val, 3.8)
 
   def testLmInference(self):
-    tf.set_random_seed(93820986)
+    tf.random.set_seed(93820986)
     p = self._Params()
     p.input = self._InputParams(for_training=False)
     tf.logging.info('Params: %s', p.ToText())
@@ -124,7 +124,7 @@ class ModelTest(test_utils.TestCase):
       self.assertEqual(vals['paddings'].shape, (2, 20))
 
   def testLmInferenceWordLevel(self):
-    tf.set_random_seed(93820986)
+    tf.random.set_seed(93820986)
     p = self._Params()
     p.input = self._InputParams(for_training=False)
     p.input.tokenizer = tokenizers.VocabFileTokenizer.Params()

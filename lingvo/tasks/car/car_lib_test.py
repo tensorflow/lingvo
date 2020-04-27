@@ -73,8 +73,8 @@ class CarLibTest(test_utils.TestCase):
 
   def testNeighborSquaredDistance(self):
     n, p1, k = 2, 10, 3
-    points = tf.random_uniform((n, p1, 3))
-    neighbor_idx = tf.random_uniform((n, p1, k),
+    points = tf.random.uniform((n, p1, 3))
+    neighbor_idx = tf.random.uniform((n, p1, k),
                                      minval=0,
                                      maxval=p1,
                                      dtype=tf.int32)

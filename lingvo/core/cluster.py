@@ -522,5 +522,5 @@ class _LeastLoadedPlacer(VarPlacer):
       allocated += shape.num_elements() * size
     heapq.heappush(self._var_space_pq, (allocated, device))
     tf.logging.info('Place variable %s on %s %d', var_op.name, device,
-                    allocated)
+                         allocated)
     return device

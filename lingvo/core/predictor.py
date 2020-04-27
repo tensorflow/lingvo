@@ -51,7 +51,7 @@ def LoadInferenceGraph(path, clear_device_placement=False):
     An InferenceGraph object.
   """
   inference_graph = inference_graph_pb2.InferenceGraph()
-  with tf.gfile.Open(path, "r") as f:
+  with tf.io.gfile.GFile(path, "r") as f:
     text_format.Parse(f.read(), inference_graph)
   if clear_device_placement:
     for node in inference_graph.graph_def.node:

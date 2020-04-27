@@ -301,7 +301,7 @@ class BuilderLibTest(test_utils.TestCase):
     p = b._CondFC('p', idims=10, adims=8, odims=12)
     l = p.Instantiate()
     y = l.FPropDefaultTheta(
-        tf.random_uniform((3, 4, 5, 10)), tf.random_uniform((3, 4, 1, 8)))
+        tf.random.uniform((3, 4, 5, 10)), tf.random.uniform((3, 4, 1, 8)))
     with self.session() as sess:
       sess.run(tf.global_variables_initializer())
       actual_y = sess.run(y)
@@ -443,13 +443,13 @@ class BuilderLibTest(test_utils.TestCase):
                                    num_out_channels)
     l = p.Instantiate()
     x = py_utils.NestedMap(
-        points=tf.random_uniform((batch_size, num_groups, points_per_group, 3),
+        points=tf.random.uniform((batch_size, num_groups, points_per_group, 3),
                                  dtype=tf.float32),
-        features=tf.random_uniform(
+        features=tf.random.uniform(
             (batch_size, num_groups, points_per_group, num_in_channels),
             dtype=tf.float32),
         padding=tf.cast(
-            tf.random_uniform((batch_size, num_groups, points_per_group),
+            tf.random.uniform((batch_size, num_groups, points_per_group),
                               minval=0,
                               maxval=2,
                               dtype=tf.int32), tf.float32))

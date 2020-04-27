@@ -125,8 +125,8 @@ def main(argv):
 
   preds, gts = convert_detections(FLAGS.decoder_path)
 
-  if not tf.gfile.Exists(FLAGS.output_dir):
-    tf.gfile.MkDir(FLAGS.output_dir)
+  if not tf.io.gfile.exists(FLAGS.output_dir):
+    tf.io.gfile.mkdir(FLAGS.output_dir)
 
   # Write the predictions and gts into individual files.
   #

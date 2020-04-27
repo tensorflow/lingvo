@@ -62,7 +62,7 @@ def ComputeWer(hyps, refs):
   """
 
   def _NormalizeWhitespace(s):
-    return tf.regex_replace(tf.strings.strip(s), r'\s+', ' ')
+    return tf.strings.regex_replace(tf.strings.strip(s), r'\s+', ' ')
 
   hyps = _NormalizeWhitespace(hyps)
   refs = _NormalizeWhitespace(refs)
@@ -79,7 +79,8 @@ def ComputeWer(hyps, refs):
   # Count number of spaces in reference, and increment by 1 to get total number
   # of words.
   ref_words = tf.cast(
-      tf.strings.length(tf.regex_replace(refs, '[^ ]', '')) + 1, tf.int64)
+      tf.strings.length(tf.strings.regex_replace(refs, '[^ ]', '')) + 1,
+      tf.int64)
   # Set number of words to 0 if the reference was empty.
   ref_words = tf.where(
       tf.equal(refs, ''), tf.zeros_like(ref_words, tf.int64), ref_words)

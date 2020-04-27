@@ -33,7 +33,7 @@ BUCKET_UPPER_BOUND = 9999
 
 def _ParseSequenceExample(record, feature_map, context_map):
   """Parse a SequenceExample, adding the context features to the features."""
-  context, features = tf.parse_single_sequence_example(
+  context, features = tf.io.parse_single_sequence_example(
       serialized=record,
       context_features=context_map,
       sequence_features=feature_map)
@@ -55,7 +55,7 @@ def _TextInput(record, feature_map):
 
 # Supported raw record types and the corresponding parsing functions.
 _PARSING_FUNCTIONS = {
-    'EXAMPLE': tf.parse_single_example,
+    'EXAMPLE': tf.io.parse_single_example,
     'SEQUENCE_EXAMPLE': _ParseSequenceExample,
     'TEXT': _TextInput,
 }
@@ -248,7 +248,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     """Extracts Tensors from a tf.Example record using self.extractors.
 
     Args:
-      record: A tf.Example input to pass to tf.parse_single_example.
+      record: A tf.Example input to pass to tf.io.parse_single_example.
 
     Returns:
       A tuple of tensors:

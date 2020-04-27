@@ -52,7 +52,7 @@ def MakeModelValidatorTestCase(model_classes):
       tmpdir = os.path.join(FLAGS.test_tmpdir, model.__name__)
 
       # Trainer should probably create these directories in the future.
-      tf.gfile.MakeDirs(os.path.join(tmpdir, 'train'))
+      tf.io.gfile.makedirs(os.path.join(tmpdir, 'train'))
 
       model_params = model()
       cfg = model_params.Model()
@@ -63,7 +63,7 @@ def MakeModelValidatorTestCase(model_classes):
 
     def DecoderBuilds(self, model):
       tmpdir = os.path.join(FLAGS.test_tmpdir, model.__name__)
-      tf.gfile.MakeDirs(tmpdir)
+      tf.io.gfile.makedirs(tmpdir)
 
       model_params = model()
       cfg = model_params.Model()

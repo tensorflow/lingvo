@@ -423,7 +423,7 @@ class MelAsrFrontend(BaseAsrFrontend):
 
     # Noise.
     if p.noise_scale > 0.0:
-      noise_signal = tf.random_normal(
+      noise_signal = tf.random.normal(
           tf.shape(preemphasized),
           stddev=p.noise_scale,
           mean=0.0,
@@ -440,7 +440,7 @@ class MelAsrFrontend(BaseAsrFrontend):
     mel_spectrogram = self._MelSpectrogram(windowed_signal)
 
     output_floor = 1.0
-    mel_spectrogram_log = tf.log(
+    mel_spectrogram_log = tf.math.log(
         tf.maximum(float(output_floor), mel_spectrogram))
 
     # Mean and stddev.

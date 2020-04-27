@@ -67,7 +67,7 @@ class LayersTestBase(test_utils.TestCase):
                              bi_directional=False,
                              input_dim=-1,
                              output_dim=-1):
-    tf.set_random_seed(123456)
+    tf.random.set_seed(123456)
     batch = 3
     dims = 16
     slen = 10 + trailing_pad_len
@@ -840,7 +840,8 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
     dims = 16
     slen = 10 + trailing_pad_len
     with self.session(
-        use_gpu=True, config=tf.ConfigProto(allow_soft_placement=True)) as sess:
+        use_gpu=True,
+        config=tf.config_pb2.ConfigProto(allow_soft_placement=True)) as sess:
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm_forward'
       params.output_nonlinearity = True

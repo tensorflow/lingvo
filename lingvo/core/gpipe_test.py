@@ -160,8 +160,8 @@ class DummyPipelineCnnTest(test_utils.TestCase):
     num_micro_batches = 8
     batch_size = 16
     with self.session(graph=tf.Graph()) as sess:
-      tf.set_random_seed(1245)
-      inputs = tf.random_uniform([batch_size, 8, 8, 1], seed=12345)
+      tf.random.set_seed(1245)
+      inputs = tf.random.uniform([batch_size, 8, 8, 1], seed=12345)
       if auto_partition:
         layers = [
             _SimpyLayer.Params().Set(name='layer_{}'.format(i))
@@ -238,8 +238,8 @@ class DummyPipelineCnnTest(test_utils.TestCase):
           cell_tpl=cells,
           before_tpl=[])
       layer = p.Instantiate()
-      tf.set_random_seed(1245)
-      inputs = tf.random_uniform([batch_size, 8, 8, 1], seed=12345)
+      tf.random.set_seed(1245)
+      inputs = tf.random.uniform([batch_size, 8, 8, 1], seed=12345)
       outputs = layer.FPropDefaultTheta(
           py_utils.NestedMap(vec=inputs, paddings=None))
       sess.run(tf.global_variables_initializer())

@@ -28,7 +28,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 5
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
       paddings = []
@@ -57,7 +57,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterDynamicSizeTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 3
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
       paddings = []
@@ -86,7 +86,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterDynamicMultiplicityTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
       paddings = []
@@ -115,7 +115,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterDynamicSizeAndMultiplicityTimeMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
       paddings = []
@@ -146,7 +146,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithFrequencyMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
       hs = []
@@ -192,7 +192,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithTimeWarping(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
       paddings = []
@@ -221,7 +221,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithDynamicTimeWarping(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
       paddings = []
@@ -250,7 +250,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterUnstacking(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
       hs = []
@@ -272,7 +272,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithPerDomainPolicyFreqMask(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       inputs = tf.ones([6, 5, 4, 2], dtype=tf.float32)
       input_domain_ids = tf.constant(
           [[1] * 5, [2] * 5, [0] * 5, [2] * 5, [0] * 5, [1] * 5],
@@ -297,7 +297,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterNoisify(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
       paddings = []
@@ -328,7 +328,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterGaussianNoisify(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(127)
+      tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
       paddings = []
@@ -360,9 +360,9 @@ class SpectrumAugmenterTest(test_utils.TestCase):
   def testSpectrumAugmenterWithStatelessRandomOps(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       batch_size = 5
-      inputs1 = tf.random_uniform(
+      inputs1 = tf.random.uniform(
           shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
-      inputs2 = tf.random_uniform(
+      inputs2 = tf.random.uniform(
           shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
       paddings = []
       for i in range(batch_size):
@@ -425,8 +425,8 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testEinsumReplacementBBmBm(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      a = tf.random_uniform(shape=[20], minval=0, maxval=1, dtype=tf.float32)
-      b = tf.random_uniform(
+      a = tf.random.uniform(shape=[20], minval=0, maxval=1, dtype=tf.float32)
+      b = tf.random.uniform(
           shape=[20, 10], minval=0, maxval=1, dtype=tf.float32)
       einsum = tf.einsum('b,bm->bm', a, b)
       p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()
@@ -438,9 +438,9 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testEinsumReplacementBxycByBxyc(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      a = tf.random_uniform(
+      a = tf.random.uniform(
           shape=[20, 5, 7, 4], minval=0, maxval=1, dtype=tf.float32)
-      b = tf.random_uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
+      b = tf.random.uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
       einsum = tf.einsum('bxyc,by->bxyc', a, b)
       p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()
       p.name = 'specAug_layers'
@@ -451,9 +451,9 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testEinsumReplacementBxycBxBxyc(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      a = tf.random_uniform(
+      a = tf.random.uniform(
           shape=[20, 5, 7, 4], minval=0, maxval=1, dtype=tf.float32)
-      b = tf.random_uniform(shape=[20, 5], minval=0, maxval=1, dtype=tf.float32)
+      b = tf.random.uniform(shape=[20, 5], minval=0, maxval=1, dtype=tf.float32)
       einsum = tf.einsum('bxyc,bx->bxyc', a, b)
       p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()
       p.name = 'specAug_layers'
@@ -464,9 +464,9 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testEinsumReplacementBxyBxBxy(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      a = tf.random_uniform(
+      a = tf.random.uniform(
           shape=[20, 7, 4], minval=0, maxval=1, dtype=tf.float32)
-      b = tf.random_uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
+      b = tf.random.uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
       einsum = tf.einsum('bxy,bx->bxy', a, b)
       p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()
       p.name = 'specAug_layers'
@@ -477,9 +477,9 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testEinsumReplacementBxycBzxBzyc(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      a = tf.random_uniform(
+      a = tf.random.uniform(
           shape=[20, 7, 4, 3], minval=0, maxval=1, dtype=tf.float32)
-      b = tf.random_uniform(
+      b = tf.random.uniform(
           shape=[20, 5, 7], minval=0, maxval=1, dtype=tf.float32)
       einsum = tf.einsum('bxyc,bzx->bzyc', a, b)
       p = spectrum_augmenter_on_device.SpectrumAugmenterOnDevice.Params()

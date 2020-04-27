@@ -78,7 +78,8 @@ def SafeCumprod(x, *args, **kwargs):
   The cumprod function and its gradient can result in numerical instabilities
   when its argument has very small and/or zero values.  As long as the argument
   is all positive, we can instead compute the cumulative product as
-  exp(cumsum(log(x))).  This function can be called identically to tf.cumprod.
+  exp(cumsum(log(x))).  This function can be called identically to
+  tf.math.cumprod.
 
   Args:
     x: Tensor to take the cumulative product of.
@@ -92,7 +93,8 @@ def SafeCumprod(x, *args, **kwargs):
     x = tf.convert_to_tensor(x, name='x')
     tiny = np.finfo(x.dtype.as_numpy_dtype).tiny
     return tf.exp(
-        py_utils.CumSum(tf.log(tf.clip_by_value(x, tiny, 1)), *args, **kwargs))
+        py_utils.CumSum(
+            tf.math.log(tf.clip_by_value(x, tiny, 1)), *args, **kwargs))
 
 
 # pyformat: disable
@@ -181,7 +183,8 @@ def MonotonicAttentionProb(p_choose_i, previous_attention, mode):
     # p_choose_i = [0, 0, 0, 1, 1, 0, 1, 1]
     # cumprod(1 - p_choose_i, exclusive=True) = [1, 1, 1, 1, 0, 0, 0, 0]
     # Product of above: [0, 0, 0, 1, 0, 0, 0, 0]
-    attention = p_choose_i * tf.cumprod(1 - p_choose_i, axis=1, exclusive=True)
+    attention = p_choose_i * tf.math.cumprod(
+        1 - p_choose_i, axis=1, exclusive=True)
   else:
     raise ValueError("mode must be 'recursive', 'parallel', or 'hard'.")
   return attention
@@ -894,7 +897,7 @@ class DotProductAttention(BaseAttentionLayer):
           concated_source_vecs, name='concated_source_vecs')
 
       logit_scale = tf.stop_gradient(
-          tf.rsqrt(
+          tf.math.rsqrt(
               tf.cast(
                   py_utils.GetShape(query_vec)[1],
                   dtype=py_utils.FPropDtype(p))))
@@ -2648,7 +2651,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         encoder_positions = tf.expand_dims(encoder_positions, 2)
 
         # [multiplier, source_batch, source_length, num_mixtures]
-        probs = ((priors * tf.rsqrt(2 * np.pi * variances + epsilon)) *
+        probs = ((priors * tf.math.rsqrt(2 * np.pi * variances + epsilon)) *
                  tf.exp(-(encoder_positions - means)**2 /
                         (2 * variances + epsilon)))
 

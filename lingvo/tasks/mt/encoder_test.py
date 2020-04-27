@@ -40,7 +40,7 @@ class EncoderTest(test_utils.TestCase):
 
   def testForwardPass(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._EncoderParams()
       mt_enc = encoder.MTEncoderV1(p)
       batch = py_utils.NestedMap()
@@ -90,7 +90,7 @@ class EncoderTest(test_utils.TestCase):
       with tf.variable_scope('bienc_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
-        tf.set_random_seed(8372749040)
+        tf.random.set_seed(8372749040)
         p = self._BiEncoderParams()
         mt_enc = encoder.MTEncoderBiRNN(p)
         packed_params = p.Copy()
@@ -127,7 +127,7 @@ class EncoderTest(test_utils.TestCase):
 
   def testUniEncoderForwardPass(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._UniEncoderParams()
       mt_enc = encoder.MTEncoderUniRNN(p)
       batch = py_utils.NestedMap()
@@ -149,7 +149,7 @@ class EncoderTest(test_utils.TestCase):
 
   def testBiEncoderForwardPass(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._BiEncoderParams()
       mt_enc = encoder.MTEncoderBiRNN(p)
       batch = py_utils.NestedMap()
@@ -171,7 +171,7 @@ class EncoderTest(test_utils.TestCase):
 
   def testBiEncoderForwardPassWithDropout(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._BiEncoderParams()
       p.dropout_prob = 0.5
       mt_enc = encoder.MTEncoderBiRNN(p)
@@ -195,7 +195,7 @@ class EncoderTest(test_utils.TestCase):
 
   def testBiEncoderForwardPassWithTransparent(self):
     with self.session(use_gpu=False):
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._BiEncoderParams()
       p.is_transparent = True
       mt_enc = encoder.MTEncoderBiRNN(p)
@@ -249,7 +249,7 @@ class TransformerEncoderTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       bs = 2
       sl = 21
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._EncoderParams()
       mt_enc = encoder.TransformerEncoder(p)
       batch = py_utils.NestedMap()
@@ -299,7 +299,7 @@ class TransformerEncoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       bs = 2
       sl = 21
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._EncoderParams()
       p.task_emb = p.token_emb.Copy()
       p.task_emb.vocab_size = 4
@@ -337,7 +337,7 @@ class TransformerEncoderTest(test_utils.TestCase):
     with self.session(use_gpu=False):
       bs = 2
       sl = 21
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._EncoderParams()
       p.task_emb = p.token_emb.Copy()
       p.task_emb.vocab_size = 4
@@ -377,7 +377,7 @@ class TransformerEncoderTest(test_utils.TestCase):
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
-        tf.set_random_seed(8372749040)
+        tf.random.set_seed(8372749040)
         p = self._EncoderParams()
         mt_enc = encoder.TransformerEncoder(p)
         packed_params = p.Copy()
@@ -415,7 +415,7 @@ class TransformerEncoderTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       bs = 8
       sl = 20
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       p = self._EncoderParams()
       p.random_seed = 1234
       mt_enc = encoder.TransformerEncoder(p)

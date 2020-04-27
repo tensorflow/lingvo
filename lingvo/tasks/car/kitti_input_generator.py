@@ -74,8 +74,8 @@ class KITTILaserExtractor(input_extractor.LaserExtractor):
 
   def FeatureMap(self):
     feature_map = {
-        'pointcloud/xyz': tf.VarLenFeature(dtype=tf.float32),
-        'pointcloud/reflectance': tf.VarLenFeature(dtype=tf.float32),
+        'pointcloud/xyz': tf.io.VarLenFeature(dtype=tf.float32),
+        'pointcloud/reflectance': tf.io.VarLenFeature(dtype=tf.float32),
     }
     return feature_map
 
@@ -133,26 +133,26 @@ class KITTIImageExtractor(input_extractor.FieldsExtractor):
     p = self.params
     feature_map = {
         'image/format':
-            tf.FixedLenFeature((), tf.string, default_value='png'),
+            tf.io.FixedLenFeature((), tf.string, default_value='png'),
         'image/height':
-            tf.FixedLenFeature((), tf.int64, default_value=1),
+            tf.io.FixedLenFeature((), tf.int64, default_value=1),
         'image/width':
-            tf.FixedLenFeature((), tf.int64, default_value=1),
+            tf.io.FixedLenFeature((), tf.int64, default_value=1),
         'image/source_id':
-            tf.FixedLenFeature((), tf.string, default_value=''),
+            tf.io.FixedLenFeature((), tf.string, default_value=''),
         # The camera calibration matrices can be used later with width/height
         # to perform out of camera frustum point dropping.
         'transform/velo_to_image_plane':
-            tf.FixedLenFeature(shape=(3, 4), dtype=tf.float32),
+            tf.io.FixedLenFeature(shape=(3, 4), dtype=tf.float32),
         'transform/velo_to_camera':
-            tf.FixedLenFeature(shape=(4, 4), dtype=tf.float32),
+            tf.io.FixedLenFeature(shape=(4, 4), dtype=tf.float32),
         'transform/camera_to_velo':
-            tf.FixedLenFeature(shape=(4, 4), dtype=tf.float32),
+            tf.io.FixedLenFeature(shape=(4, 4), dtype=tf.float32),
     }
     if p.decode_image:
-      feature_map['image/encoded'] = tf.FixedLenFeature((),
-                                                        tf.string,
-                                                        default_value='')
+      feature_map['image/encoded'] = tf.io.FixedLenFeature((),
+                                                           tf.string,
+                                                           default_value='')
     return feature_map
 
   def _Extract(self, features):
@@ -293,31 +293,31 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
   def FeatureMap(self):
     return {
         'image/source_id':
-            tf.FixedLenFeature((), tf.string, ''),
+            tf.io.FixedLenFeature((), tf.string, ''),
         'object/image/bbox/xmin':
-            tf.VarLenFeature(tf.float32),
+            tf.io.VarLenFeature(tf.float32),
         'object/image/bbox/xmax':
-            tf.VarLenFeature(tf.float32),
+            tf.io.VarLenFeature(tf.float32),
         'object/image/bbox/ymin':
-            tf.VarLenFeature(tf.float32),
+            tf.io.VarLenFeature(tf.float32),
         'object/image/bbox/ymax':
-            tf.VarLenFeature(tf.float32),
+            tf.io.VarLenFeature(tf.float32),
         'object/label':
-            tf.VarLenFeature(tf.string),
+            tf.io.VarLenFeature(tf.string),
         'object/has_3d_info':
-            tf.VarLenFeature(dtype=tf.int64),
+            tf.io.VarLenFeature(dtype=tf.int64),
         'object/occlusion':
-            tf.VarLenFeature(dtype=tf.int64),
+            tf.io.VarLenFeature(dtype=tf.int64),
         'object/truncation':
-            tf.VarLenFeature(dtype=tf.float32),
+            tf.io.VarLenFeature(dtype=tf.float32),
         'object/velo/bbox/xyz':
-            tf.VarLenFeature(dtype=tf.float32),
+            tf.io.VarLenFeature(dtype=tf.float32),
         'object/velo/bbox/dim_xyz':
-            tf.VarLenFeature(dtype=tf.float32),
+            tf.io.VarLenFeature(dtype=tf.float32),
         'object/velo/bbox/phi':
-            tf.VarLenFeature(dtype=tf.float32),
+            tf.io.VarLenFeature(dtype=tf.float32),
         'transform/velo_to_image_plane':
-            tf.FixedLenFeature(shape=(3, 4), dtype=tf.float32),
+            tf.io.FixedLenFeature(shape=(3, 4), dtype=tf.float32),
     }
 
   def _Extract(self, features):

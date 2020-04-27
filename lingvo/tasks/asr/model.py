@@ -192,7 +192,7 @@ class AsrModel(base_model.BaseTask):
 
   def _ComputeNormalizedWER(self, hyps, refs):
     # Filter out all '<epsilon>' tokens for norm_wer computation.
-    hyps_no_epsilon = tf.regex_replace(hyps, '(<epsilon>)+', ' ')
+    hyps_no_epsilon = tf.strings.regex_replace(hyps, '(<epsilon>)+', ' ')
     # norm_wer is size [num_transcripts * hyps_per_beam, 2]
     norm_wer = decoder_utils.ComputeWer(hyps_no_epsilon, refs)
     # Split into two tensors of size [num_transcripts * hyps_per_beam, 1]
@@ -263,8 +263,8 @@ class AsrModel(base_model.BaseTask):
 
     # Filter out all isolated '<noise>' tokens.
     noise_pattern = ' <noise> |^<noise> | <noise>$|^<noise>$'
-    filtered_refs = tf.regex_replace(transcripts, noise_pattern, ' ')
-    filtered_hyps = tf.regex_replace(topk.decoded, noise_pattern, ' ')
+    filtered_refs = tf.strings.regex_replace(transcripts, noise_pattern, ' ')
+    filtered_hyps = tf.strings.regex_replace(topk.decoded, noise_pattern, ' ')
     # Compute translation quality scores for all hyps.
     filtered_refs = tf.tile(
         tf.reshape(filtered_refs, [-1, 1]),
@@ -417,8 +417,8 @@ class AsrModel(base_model.BaseTask):
           # Note that these numbers are not consistent with what is used to
           # compute normalized WER.  In particular, these numbers will be
           # inflated when the transcript contains punctuation.
-          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins, subs,
-                          dels, errs)
+          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins,
+                               subs, dels, errs)
           # Only aggregate scores of the top hypothesis.
           if n == 0:
             total_errs += errs

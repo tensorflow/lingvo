@@ -86,7 +86,7 @@ class BaseTrainerTest(test_utils.TestCase):
 
   def _HasLine(self, filename, pattern):
     """Returns True iff one line in the given file matches the pattern."""
-    with tf.gfile.GFile(filename, 'r') as f:
+    with tf.io.gfile.GFile(filename, 'r') as f:
       lines = f.readlines()
     return any(re.search(pattern, _) for _ in lines)
 
@@ -129,10 +129,10 @@ class TrainerTest(BaseTrainerTest):
         [self._CreateController(cfg),
          self._CreateTrainer(cfg)])
 
-    train_files = tf.gfile.Glob(logdir + '/train/*')
+    train_files = tf.io.gfile.glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
     self.assertTrue(self._HasFile(train_files, 'tfevents'))
-    control_files = tf.gfile.Glob(logdir + '/control/*')
+    control_files = tf.io.gfile.glob(logdir + '/control/*')
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
     self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
@@ -143,7 +143,7 @@ class TrainerTest(BaseTrainerTest):
     # steps.
     runner_manager.StartRunners([self._CreateEvalerDev(cfg)])
 
-    dev_files = tf.gfile.Glob(logdir + '/eval_dev/*')
+    dev_files = tf.io.gfile.glob(logdir + '/eval_dev/*')
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
     self.assertTrue(self._HasFile(dev_files, 'eval_dev.pbtxt'))
     self.assertTrue(self._HasFile(dev_files, 'tfevents'))
@@ -164,7 +164,7 @@ class TrainerTest(BaseTrainerTest):
          self._CreateTrainer(cfg)])
     runner_manager.StartRunners([self._CreateDecoderDev(cfg)])
 
-    dec_files = tf.gfile.Glob(logdir + '/decoder_dev/*')
+    dec_files = tf.io.gfile.glob(logdir + '/decoder_dev/*')
     self.assertTrue(self._HasFile(dec_files, 'params.txt'))
     self.assertTrue(self._HasFile(dec_files, 'decoder_dev.pbtxt'))
     self.assertTrue(self._HasFile(dec_files, 'tfevents'))
@@ -205,7 +205,7 @@ class TrainerTest(BaseTrainerTest):
     FLAGS.logdir = logdir
     cfg = 'punctuator.codelab.RNMTModel'
     trainer.RunnerManager(cfg).WriteInferenceGraph()
-    inference_files = tf.gfile.Glob(logdir + '/inference_graphs/*')
+    inference_files = tf.io.gfile.glob(logdir + '/inference_graphs/*')
     self.assertTrue(self._HasFile(inference_files, 'inference.pbtxt'))
     self.assertTrue(self._HasFile(inference_files, 'inference_tpu.pbtxt'))
 
@@ -253,12 +253,12 @@ class TrainerWithTrialTest(TrainerTest):
     # report_done.
     self.assertEqual(trial.ReportEvalMeasure.call_count, 0)
 
-    train_files = tf.gfile.Glob(logdir + '/train/*')
+    train_files = tf.io.gfile.glob(logdir + '/train/*')
     self.assertTrue(self._HasFile(train_files, 'params.txt'))
     self.assertTrue(self._HasFile(train_files, 'trainer_params.txt'))
     self.assertTrue(self._HasFile(train_files, 'ckpt'))
     self.assertTrue(self._HasFile(train_files, 'tfevents'))
-    control_files = tf.gfile.Glob(logdir + '/control/*')
+    control_files = tf.io.gfile.glob(logdir + '/control/*')
     self.assertTrue(self._HasFile(control_files, 'params.txt'))
     self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
     self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
@@ -276,7 +276,7 @@ class TrainerWithTrialTest(TrainerTest):
     after_decoder_count = trial.ReportEvalMeasure.call_count
     self.assertGreater(after_decoder_count, 0)
 
-    dev_files = tf.gfile.Glob(logdir + '/eval_dev/*')
+    dev_files = tf.io.gfile.glob(logdir + '/eval_dev/*')
     self.assertTrue(self._HasFile(dev_files, 'params.txt'))
     self.assertTrue(self._HasFile(dev_files, 'eval_dev.pbtxt'))
     self.assertTrue(self._HasFile(dev_files, 'tfevents'))

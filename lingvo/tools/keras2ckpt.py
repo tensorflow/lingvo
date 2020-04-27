@@ -47,7 +47,8 @@ def main(argv):
     return tf.py_func(lambda: val, [], dtype)
 
   out_prefix = FLAGS.out or os.path.join("/tmp", FLAGS.dataset, FLAGS.dataset)
-  tf.logging.info("Save %s dataset to %s ckpt." % (FLAGS.dataset, out_prefix))
+  tf.logging.info("Save %s dataset to %s ckpt." %
+                       (FLAGS.dataset, out_prefix))
 
   with tf.Session() as sess:
     sess.run(

@@ -124,7 +124,7 @@ def _MultiClassOrientedDecodeWithNMS(predicted_bboxes,
   # Get the original box for each index selected by NMS.
   predicted_bboxes = tf.tile(predicted_bboxes[:, tf.newaxis, :, :],
                              [1, num_classes, 1, 1])
-  predicted_bboxes = tf.batch_gather(predicted_bboxes, bbox_indices)
+  predicted_bboxes = tf.array_ops.batch_gather(predicted_bboxes, bbox_indices)
   return predicted_bboxes, bbox_scores, valid_mask
 
 
@@ -196,8 +196,9 @@ def _SingleClassDecodeWithNMS(predicted_bboxes,
       max_num_boxes=max_boxes_per_class)
 
   # Reorder the box data and logits according to NMS scoring.
-  predicted_bboxes = tf.batch_gather(predicted_bboxes, nms_indices)
-  classification_scores = tf.batch_gather(classification_scores, nms_indices)
+  predicted_bboxes = tf.array_ops.batch_gather(predicted_bboxes, nms_indices)
+  classification_scores = tf.array_ops.batch_gather(classification_scores,
+                                                    nms_indices)
 
   # Now reformat the output of NMS to match the format of the
   # MultiClassOrientedDecodeWithNMS, which outputs a per class NMS result.

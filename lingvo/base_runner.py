@@ -77,7 +77,7 @@ class BaseRunner(object):
     self.params.cluster.logdir = logdir
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._train_dir = os.path.join(self._logdir, 'train')
-    tf.gfile.MakeDirs(self._train_dir)
+    tf.io.gfile.makedirs(self._train_dir)
     self._graph = tf.Graph()
     self._summary_writer = None
     self._initialize_tables = None
@@ -113,13 +113,13 @@ class BaseRunner(object):
   def _ShouldStop(self, sess, step):
     """Check if the runner should stop."""
     if step >= self.params.train.max_steps:
-      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d', step,
-                      self.params.train.max_steps)
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d',
+                           step, self.params.train.max_steps)
       return True
 
     if self._max_steps and step >= self._max_steps:
       tf.logging.info('ShouldStop: step:%6d _max_steps:%6d', step,
-                      self._max_steps)
+                           self._max_steps)
       return True
 
     if self._early_stop and self._early_stop.Stop(sess):
@@ -130,7 +130,7 @@ class BaseRunner(object):
 
   def _WriteToLog(self, text, logdir, filename):
     """Logs `text` and saves it under `logdir/filename`."""
-    with tf.gfile.GFile(os.path.join(logdir, filename), 'w') as f:
+    with tf.io.gfile.GFile(os.path.join(logdir, filename), 'w') as f:
       f.write(text)
 
     if self._summary_writer is not None:
@@ -149,7 +149,7 @@ class BaseRunner(object):
       global_step = sess.run(py_utils.GetGlobalStep())
     except tf.errors.FailedPreconditionError as e:
       tf.logging.info('%s: Probably the expected race on global_step: %s',
-                      self._job_name, e)
+                           self._job_name, e)
       raise
     msg = 'step:%6d' % global_step
     self._SetStatusMessage(msg)
@@ -288,10 +288,11 @@ class BaseRunner(object):
       global_enqueue_steps = None
 
       tf.logging.info('params.train.max_steps: %d, enqueue_max_steps: %d',
-                      p.train.max_steps, p.train.enqueue_max_steps)
+                           p.train.max_steps, p.train.enqueue_max_steps)
       while True:
         if self._dequeue_thread_complete:
-          tf.logging.info('LoopEnqueue done since consuming thread is done.')
+          tf.logging.info(
+              'LoopEnqueue done since consuming thread is done.')
           return
 
         global_step = sess.run(gsteps)
@@ -374,20 +375,21 @@ class BaseRunner(object):
       if summary.value:
         for value in summary.value:
           if value.HasField('simple_value'):
-            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
-                            global_step, value.tag, value.simple_value)
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g',
+                                 job_name, global_step, value.tag,
+                                 value.simple_value)
             status_metrics.append('%s: %.8g' % (value.tag, value.simple_value))
             early_stop.MetricHistory.ConditionalAppend(job_name, value.tag,
                                                        global_step,
                                                        value.simple_value)
           else:
             tf.logging.info('%s summary on checkpoint@%d %s', job_name,
-                            global_step, value.tag)
+                                 global_step, value.tag)
     summary_writer.flush()
     self._SetStatusMessage('%s: step:%6d, %s' %
                            (job_name, global_step, ', '.join(status_metrics)))
     if text_filename is not None:
-      with tf.gfile.GFile(text_filename, 'w') as f:
+      with tf.io.gfile.GFile(text_filename, 'w') as f:
         f.write('\n'.join(status_metrics))
 
   def _ExportMetrics(self, **kwargs):

@@ -33,7 +33,7 @@ def GenericInput(processor, **kwargs):
     def ParseRecord(record):
       # Given a tf.string record, return a (NestedMap, bucketing key) pair.
       feature_map = ...
-      features = tf.parse_single_example(record, feature_map)
+      features = tf.io.parse_single_example(record, feature_map)
       # Each example is represented by a NestedMap of tensors (without a
       # batch dimension).
       example = py_utils.NestedMap(field1=..., field2=...)
@@ -105,13 +105,13 @@ def GenericInput(processor, **kwargs):
               output.DebugString())
     bucketing_key = tf.cast(bucketing_key, tf.int32)
     tf.logging.debug('Processor outputs=%s bucketing_key=%s', output,
-                     bucketing_key)
+                          bucketing_key)
     output_tmpl.out_values = output
     flat_output_tmpl = output_tmpl.Flatten()
     tf.logging.debug('Processor flat outputs=%s', flat_output_tmpl)
     tf.logging.debug('extra_inputs=%s extra_args=%s extra_vars=%s',
-                     function.get_extra_inputs(), function.get_extra_args(),
-                     function.get_extra_vars())
+                          function.get_extra_inputs(),
+                          function.get_extra_args(), function.get_extra_vars())
     assert not function.get_extra_args(), (
         'fns {} is not pure: extra_args={}'.format(processor,
                                                    function.get_extra_args()))

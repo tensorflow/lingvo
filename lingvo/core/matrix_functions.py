@@ -43,7 +43,7 @@ def matrix_square_root(mat_a, mat_a_size, iter_count=100, ridge_epsilon=1e-4):
   def _iter_condition(i, unused_mat_y, unused_old_mat_y, unused_mat_z,
                       unused_old_mat_z, err, old_err):
     """This method require that we check for divergence every step."""
-    return tf.logical_and(i < iter_count, err < old_err)
+    return tf.math.logical_and(i < iter_count, err < old_err)
 
   def _iter_body(i, mat_y, unused_old_mat_y, mat_z, unused_old_mat_z, err,
                  unused_old_err):
@@ -138,8 +138,8 @@ def inlined_matrix_inverse_pth_root(mat_g,
 
   def _iter_condition(i, unused_mat_m, unused_mat_h, unused_old_mat_h, error,
                       run_step):
-    return tf.logical_and(
-        tf.logical_and(i < iter_count, error > error_tolerance), run_step)
+    return tf.math.logical_and(
+        tf.math.logical_and(i < iter_count, error > error_tolerance), run_step)
 
   def _iter_body(i, mat_m, mat_h, unused_old_mat_h, error, unused_run_step):
     mat_m_i = (1 - alpha) * identity + alpha * mat_m

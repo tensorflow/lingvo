@@ -100,7 +100,7 @@ class WpmEncoder(object):
 
     def _ShouldMerge(unused_tokens, candidates):
       """Merge until not possible, or we abort early according to merge_prob."""
-      return tf.logical_and(
+      return tf.math.logical_and(
           tf.reduce_any(tf.not_equal(candidates, NO_TOKEN)),
           tf.random.uniform([]) < self._merge_prob)
 

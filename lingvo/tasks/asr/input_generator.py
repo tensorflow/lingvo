@@ -45,11 +45,11 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     def Proc(record):
       """Parses a serialized tf.Example record."""
       features = [
-          ('uttid', tf.VarLenFeature(tf.string)),
-          ('transcript', tf.VarLenFeature(tf.string)),
-          ('frames', tf.VarLenFeature(tf.float32)),
+          ('uttid', tf.io.VarLenFeature(tf.string)),
+          ('transcript', tf.io.VarLenFeature(tf.string)),
+          ('frames', tf.io.VarLenFeature(tf.float32)),
       ]
-      example = tf.parse_single_example(record, dict(features))
+      example = tf.io.parse_single_example(record, dict(features))
       fval = {k: v.values for k, v in six.iteritems(example)}
       # Reshape the flattened vector into its original time-major
       # representation.

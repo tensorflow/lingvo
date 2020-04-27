@@ -367,12 +367,13 @@ class InferenceGraphExporter(object):
       else:
         _DisablePackedInput(model_cfg.task)
 
-    tf.logging.info('Model %s. Params: %s', model_cfg.name, model_cfg.ToText())
+    tf.logging.info('Model %s. Params: %s', model_cfg.name,
+                         model_cfg.ToText())
 
     # Instantiate the graph.
     graph = tf.Graph()
     with graph.as_default():
-      tf.set_random_seed(random_seed)
+      tf.random.set_seed(random_seed)
       cluster = model_cfg.cluster.Instantiate()
       device = cluster.GetPlacer()
       tpu_const_scope = _DummyScope()
@@ -444,7 +445,7 @@ class InferenceGraphExporter(object):
             FLAGS.xla_device = old_xla_device
 
     tf.logging.info('Graph contains ops: %r',
-                    [op.name for op in graph.get_operations()])
+                         [op.name for op in graph.get_operations()])
 
     inference_graph_proto.saver_def.CopyFrom(saver.as_saver_def())
 
@@ -456,7 +457,8 @@ class InferenceGraphExporter(object):
         raise ValueError('freeze_checkpoint cannot be used with device ' +
                          device_options.device)
       if freeze_checkpoint:
-        tf.logging.info('Freezing graph from checkpoint: %s', freeze_checkpoint)
+        tf.logging.info('Freezing graph from checkpoint: %s',
+                             freeze_checkpoint)
         graph_def = _FreezeGraphFromCheckpoint(graph, saver, freeze_checkpoint,
                                                output_op_names)
       elif freeze_defaults:
@@ -480,7 +482,7 @@ class InferenceGraphExporter(object):
     if not device_options.retain_device_placement:
       # Clear the device so that the runtime can choose.
       tf.logging.info('Clearing device placement for: %s',
-                      device_options.device)
+                           device_options.device)
       for node in graph_def.node:
         node.ClearField('device')
       for function in graph_def.library.function:
@@ -490,7 +492,7 @@ class InferenceGraphExporter(object):
     inference_graph_proto.graph_def.CopyFrom(graph_def)
 
     if export_path:
-      with tf.gfile.Open(export_path, 'w') as f:
+      with tf.io.gfile.GFile(export_path, 'w') as f:
         f.write(text_format.MessageToString(inference_graph_proto))
     return inference_graph_proto
 

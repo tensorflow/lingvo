@@ -89,7 +89,7 @@ class PunctuatorModelTest(test_utils.TestCase):
 
   def testFProp(self, dtype=tf.float32):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
       mdl = p.Instantiate()
@@ -111,7 +111,7 @@ class PunctuatorModelTest(test_utils.TestCase):
 
   def testBProp(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -133,7 +133,7 @@ class PunctuatorModelTest(test_utils.TestCase):
 
   def testFPropEvalMode(self):
     with self.session() as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -153,7 +153,7 @@ class PunctuatorModelTest(test_utils.TestCase):
 
   def testInference(self):
     with self.session(use_gpu=False) as sess, self.SetEval(True):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       fetches, feeds = mdl.Inference()['default']

@@ -100,10 +100,11 @@ class StatsCollector(object):
 def main(_):
   tf.logging.set_verbosity(tf.logging.INFO)
   if not FLAGS.feature_name:
-    tf.logging.fatal('Use a --feature_name to specify what to bucketize on. '
-                     'For instance, source_id for MT or frames for ASR.')
+    tf.logging.fatal(
+        'Use a --feature_name to specify what to bucketize on. '
+        'For instance, source_id for MT or frames for ASR.')
   stats = StatsCollector()
-  for filepath in tf.gfile.Glob(FLAGS.input_filepattern):
+  for filepath in tf.io.gfile.glob(FLAGS.input_filepattern):
     records = tf.compat.v1.io.tf_record_iterator(filepath)
     for serialized in records:
       ex = tf.train.Example()

@@ -25,7 +25,7 @@ import numpy as np
 
 def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
   np.random.seed(9384758)
-  tf.set_random_seed(8274758)
+  tf.random.set_seed(8274758)
   vocab_size = 12
   src_len = 5
   tgt_len = 7
@@ -48,7 +48,7 @@ def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
                                 unused_step_ids, states,
                                 unused_num_hyps_per_beam):
     atten_probs = tf.identity(states.atten_probs)
-    logits = tf.random_normal([tgt_batch_size, vocab_size], seed=8273747)
+    logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
     return (py_utils.NestedMap({
         'atten_probs': atten_probs,
         'log_probs': logits
@@ -58,7 +58,7 @@ def GetBeamSearchHelperResults(sess, num_hyps_per_beam, pass_seq_lengths=False):
                                  unused_new_step_ids, states):
     return states
 
-  src_enc = tf.random_normal([src_len, src_batch_size, 8], seed=982774838)
+  src_enc = tf.random.normal([src_len, src_batch_size, 8], seed=982774838)
   src_enc_padding = tf.constant(
       [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
       dtype=tf.float32)
@@ -134,7 +134,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
   def testCustomStepIds(self):
     with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
-      tf.set_random_seed(8274758)
+      tf.random.set_seed(8274758)
       vocab_size = 12
       src_len = 5
       tgt_len = 7
@@ -159,7 +159,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
                                     unused_step_ids, states,
                                     unused_num_hyps_per_beam):
         atten_probs = tf.identity(states.atten_probs)
-        logits = tf.random_normal([tgt_batch_size, vocab_size], seed=8273747)
+        logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
         return (py_utils.NestedMap({
             'atten_probs': atten_probs,
             'log_probs': logits
@@ -169,7 +169,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
                                      unused_new_step_ids, states):
         return states
 
-      src_enc = tf.random_normal([src_len, src_batch_size, 8], seed=982774838)
+      src_enc = tf.random.normal([src_len, src_batch_size, 8], seed=982774838)
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)
@@ -244,7 +244,7 @@ class GreedySearchHelperTest(test_utils.TestCase):
   def testGreedySearchHelper(self):
     with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
-      tf.set_random_seed(8274758)
+      tf.random.set_seed(8274758)
       vocab_size = 12
       src_len = 5
       tgt_len = 7
@@ -267,7 +267,7 @@ class GreedySearchHelperTest(test_utils.TestCase):
                                       unused_step_ids, states,
                                       unused_num_hyps_per_beam):
         atten_probs = tf.identity(states.atten_probs)
-        logits = tf.random_normal([tgt_batch_size, vocab_size], seed=8273747)
+        logits = tf.random.normal([tgt_batch_size, vocab_size], seed=8273747)
         return (py_utils.NestedMap({
             'atten_probs': atten_probs,
             'log_probs': logits
@@ -277,7 +277,7 @@ class GreedySearchHelperTest(test_utils.TestCase):
                                        unused_new_step_ids, states):
         return states
 
-      src_enc = tf.random_normal([src_len, src_batch_size, 8], seed=982774838)
+      src_enc = tf.random.normal([src_len, src_batch_size, 8], seed=982774838)
       src_enc_padding = tf.constant(
           [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
           dtype=tf.float32)

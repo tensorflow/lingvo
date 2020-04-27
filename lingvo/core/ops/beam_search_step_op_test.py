@@ -33,7 +33,7 @@ class BeamSearchOpTest(test_utils.TestCase):
   def setUp(self):
     super(BeamSearchOpTest, self).setUp()
     np.random.seed(12345)
-    tf.set_random_seed(398849988)
+    tf.random.set_seed(398849988)
 
   def _runBeamSearchOpHelper(self,
                              b_size,
@@ -220,10 +220,10 @@ class BeamSearchOpTest(test_utils.TestCase):
     ]
 
     scores = [
-        tf.random_uniform([b_size, num_classes], seed=12345),
-        tf.random_uniform([b_size, num_classes], seed=12346),
+        tf.random.uniform([b_size, num_classes], seed=12345),
+        tf.random.uniform([b_size, num_classes], seed=12346),
     ]
-    init_atten_probs = tf.random_uniform([b_size, 3], seed=12345)
+    init_atten_probs = tf.random.uniform([b_size, 3], seed=12345)
     atten_probs = tf.zeros([seq_len, b_size, 3])
     done_hyps = self._testBeamSearchOpHelper(
         b_size, num_beams, seq_len, 0., scores, init_atten_probs, atten_probs,
@@ -547,8 +547,8 @@ class BeamSearchOpTest(test_utils.TestCase):
       num_beams = 2
       num_hyps_per_beam = b_size / num_beams
       seq_len = 6
-      scores = tf.random_uniform([b_size, 5], seed=12345)
-      atten_probs = tf.random_uniform([b_size, 3], seed=12345)
+      scores = tf.random.uniform([b_size, 5], seed=12345)
+      atten_probs = tf.random.uniform([b_size, 3], seed=12345)
       src_seq_lengths = [3, 3]
       best_scores = tf.zeros([num_beams])
       cumulative_scores = tf.zeros([b_size])

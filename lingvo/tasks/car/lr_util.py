@@ -79,8 +79,9 @@ def SetExponentialLR(train_p,
   limit_steps = limit_epoch * train_stats.steps_per_epoch
 
   tf.logging.info('#cores = %d batch size = %d steps/epoch = %d',
-                  train_stats.total_num_cores, train_stats.total_batch_size,
-                  train_stats.steps_per_epoch)
+                       train_stats.total_num_cores,
+                       train_stats.total_batch_size,
+                       train_stats.steps_per_epoch)
   tf.logging.info(
       'warmup_steps = %d exp_start_steps = %d total_steps = %d '
       'limit_steps = %d', warmup_steps, exp_start_steps, total_steps,

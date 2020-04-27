@@ -59,8 +59,8 @@ class MetricHistoryTest(test_utils.TestCase):
 
   def testMetricHistoriesFiles(self):
     logdir = tf.test.get_temp_dir()
-    tf.gfile.MkDir(os.path.join(logdir, 'job1'))
-    tf.gfile.MkDir(os.path.join(logdir, 'job2'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'job1'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'job2'))
 
     p = early_stop.MetricHistory.Params().Set(logdir=logdir)
     mh1 = early_stop.MetricHistory(
@@ -73,14 +73,14 @@ class MetricHistoryTest(test_utils.TestCase):
     early_stop.MetricHistory.ConditionalAppend('job2', 'm2', 1, 10.0)
     early_stop.MetricHistory.ConditionalAppend('job1', 'm1', 2, 5.0)
 
-    self.assertTrue(tf.gfile.Exists(mh1.hist_file))
-    self.assertTrue(tf.gfile.Exists(mh2.hist_file))
-    with tf.gfile.GFile(mh1.hist_file) as f:
+    self.assertTrue(tf.io.gfile.exists(mh1.hist_file))
+    self.assertTrue(tf.io.gfile.exists(mh2.hist_file))
+    with tf.io.gfile.GFile(mh1.hist_file) as f:
       lines = f.readlines()
       self.assertEqual(len(lines), 2)
       self.assertEqual(lines[0].rstrip(), '1 10.000000')
       self.assertEqual(lines[1].rstrip(), '2 5.000000')
-    with tf.gfile.GFile(mh2.hist_file) as f:
+    with tf.io.gfile.GFile(mh2.hist_file) as f:
       lines = f.readlines()
       self.assertEqual(len(lines), 1)
       self.assertEqual(lines[0].rstrip(), '1 10.000000')
@@ -108,7 +108,7 @@ class EarlyStopTest(test_utils.TestCase):
 
   def testEarlyStopping(self):
     logdir = tf.test.get_temp_dir()
-    tf.gfile.MkDir(os.path.join(logdir, 'eval_dev'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'eval_dev'))
 
     p = early_stop.EarlyStop.Params()
     p.window = 2
@@ -145,7 +145,7 @@ class EarlyStopTest(test_utils.TestCase):
 
   def testEarlyStoppingAscendingMetric(self):
     logdir = tf.test.get_temp_dir()
-    tf.gfile.MkDir(os.path.join(logdir, 'decoder_dev'))
+    tf.io.gfile.mkdir(os.path.join(logdir, 'decoder_dev'))
 
     p = early_stop.EarlyStop.Params()
     p.window = 2

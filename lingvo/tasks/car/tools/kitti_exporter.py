@@ -133,7 +133,7 @@ def _ReadObjectDataset(root_dir, frame_names):
     feature['image/source_id'].bytes_list.value[:] = [frame_name]
 
     # 2D image data
-    encoded_image = tf.gfile.Open(image_file_path).read()
+    encoded_image = tf.io.gfile.GFile(image_file_path).read()
     feature['image/encoded'].bytes_list.value[:] = [encoded_image]
     image = np.array(Image.open(io.BytesIO(encoded_image)))
     assert image.ndim == 3
@@ -153,7 +153,7 @@ def _ReadObjectDataset(root_dir, frame_names):
 
     # Object data
     calib_dict = kitti_data.LoadCalibrationFile(calib_file_path)
-    if tf.gfile.Exists(label_file_path):
+    if tf.io.gfile.exists(label_file_path):
       # Load object labels for training data
       object_dicts = kitti_data.LoadLabelFile(label_file_path)
       object_dicts = kitti_data.AnnotateKITTIObjectsWithBBox3D(
@@ -229,7 +229,7 @@ def _ExportObjectDatasetToTFRecord(root_dir, split_file, tfrecord_path,
     raise ValueError('TFRecord dataset must have at least one shard.')
 
   logging.info('Reading frame names from split_file %s.', split_file)
-  frame_names = [line.rstrip('\n') for line in tf.gfile.GFile(split_file)]
+  frame_names = [line.rstrip('\n') for line in tf.io.gfile.GFile(split_file)]
   logging.info('Reading object dataset with %d frames.', len(frame_names))
   dataset = _ReadObjectDataset(root_dir, frame_names)
   logging.info('Saving object dataset at %s with %d shards.', tfrecord_path,

@@ -38,9 +38,9 @@ class DetectionDecoderTest(test_utils.TestCase):
     nms_iou_threshold[1] = 0.5
 
     with tf.Graph().as_default():
-      tf.set_random_seed(12345)
-      predicted_bboxes = tf.random_normal([batch_size, num_preds, 7])
-      classification_scores = tf.random_uniform(
+      tf.random.set_seed(12345)
+      predicted_bboxes = tf.random.normal([batch_size, num_preds, 7])
+      classification_scores = tf.random.uniform(
           [batch_size, num_preds, num_classes], minval=0, maxval=1)
 
       bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(
@@ -84,9 +84,9 @@ class DetectionDecoderTest(test_utils.TestCase):
     score_threshold = 0.05
     nms_iou_threshold = 0.5
     with tf.Graph().as_default():
-      tf.set_random_seed(12345)
-      predicted_bboxes = tf.random_normal([batch_size, num_preds, 7])
-      classification_scores = tf.random_uniform(
+      tf.random.set_seed(12345)
+      predicted_bboxes = tf.random.normal([batch_size, num_preds, 7])
+      classification_scores = tf.random.uniform(
           [batch_size, num_preds, num_classes], minval=0, maxval=1)
 
       bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(

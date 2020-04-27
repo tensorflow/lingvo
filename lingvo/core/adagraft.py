@@ -59,7 +59,7 @@ class AdaGraftOptimizer(tf.train.Optimizer):
     self.direction_optimizer._create_slots(var_list)  # pylint: disable=protected-access
 
     for v in var_list:
-      with tf.colocate_with(v):
+      with tf.ops.colocate_with(v):
         self._zeros_slot(v, "scratch_copy", self._name)
         if self.diagnostic or self.use_global_norm:
           self._get_or_make_slot(v, tf.constant(0.0), "m_step_norm", self._name)

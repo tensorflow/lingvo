@@ -211,7 +211,7 @@ def NeighborhoodIndices(points,
       mask_by_distance = tf.less_equal(dist_mat, max_distance**2)
       dist_mat = tf.where(
           mask_by_distance,
-          tf.square(max_distance) * tf.random_uniform(tf.shape(dist_mat)),
+          tf.square(max_distance) * tf.random.uniform(tf.shape(dist_mat)),
           dist_mat)
     else:
       raise ValueError('Uniform sampling requires specifying max_distance.')
@@ -280,8 +280,9 @@ def FarthestPointSampler(points,
 
   More details at https://en.wikipedia.org/wiki/Farthest-first_traversal
 
-  This output of this function can be used with tf.batch_gather to extract the
-  desired points, for example: tf.batch_gather(points, sampled_idx)
+  This output of this function can be used with tf.array_ops.batch_gather to
+  extract the desired points, for example:
+  tf.array_ops.batch_gather(points, sampled_idx)
 
   Args:
     points: floating point tf.Tensor of shape [N, P1, dims]
@@ -513,7 +514,7 @@ def MaxPool3D(points, point_features, pooling_idx, closest_idx):
   _, _, feature_dims = py_utils.GetShape(point_features, 3)
 
   # Gather new point locations.
-  pooled_points = tf.batch_gather(points, pooling_idx)
+  pooled_points = tf.array_ops.batch_gather(points, pooling_idx)
 
   mask = tf.one_hot(closest_idx, num_output_points)  # [N, P1, P2]
   mask = tf.transpose(mask, [2, 0, 1])  # [P2, N, P1]
@@ -583,7 +584,7 @@ def SegmentPool3D(points,
   closest_idx = py_utils.HasShape(closest_idx, [n, p1])
 
   # Subselect our output points
-  pooled_points = tf.batch_gather(points, pooling_idx)
+  pooled_points = tf.array_ops.batch_gather(points, pooling_idx)
 
   # Loop over batch dimension of our features/indices, as unsorted_segment_X
   # does not currently support a batch dimension.

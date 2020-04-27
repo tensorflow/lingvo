@@ -123,7 +123,7 @@ class MetricHistory(object):
     fname = self._hist_file
     if not self.params.local_filesystem:
       fname += '%r=3.2:sl=8M'
-    with tf.gfile.GFile(fname, 'a') as f:
+    with tf.io.gfile.GFile(fname, 'a') as f:
       f.write('%d %f\n' % (global_step, value))
 
 
@@ -202,8 +202,9 @@ class EarlyStop(object):
           self._last_step - self._best_step > self.params.window and
           self._last_step >= self.params.min_steps)
       if self.params.verbose:
-        tf.logging.info('early stop check: best_step=%d, last_step=%d, stop=%d',
-                        self._best_step, self._last_step, s)
+        tf.logging.info(
+            'early stop check: best_step=%d, last_step=%d, stop=%d',
+            self._best_step, self._last_step, s)
       return s
     else:
       return False

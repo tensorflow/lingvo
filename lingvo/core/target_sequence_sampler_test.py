@@ -28,7 +28,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
   def testTargetSequenceSampler(self):
     with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
-      tf.set_random_seed(8274758)
+      tf.random.set_seed(8274758)
       vocab_size = 12
       src_len = 5
       tgt_len = 7
@@ -102,7 +102,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
   def testTargetSequenceSamplerWithEOC(self):
     with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
-      tf.set_random_seed(8274758)
+      tf.random.set_seed(8274758)
       vocab_size = 4
       src_len = 5
       tgt_len = 20
@@ -173,7 +173,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
   def testTargetSequenceSamplerWithVariables(self):
     with self.session(use_gpu=False) as sess:
       np.random.seed(9384758)
-      tf.set_random_seed(8274758)
+      tf.random.set_seed(8274758)
       hidden_dim = 8
       vocab_size = 12
       src_len = 5

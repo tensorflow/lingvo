@@ -560,7 +560,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
                                    alignments=None):
       """Plots attention for one example."""
       tf.logging.info('Plotting attention for %s: %s %s', title,
-                      atten_probs.shape, alignments)
+                           atten_probs.shape, alignments)
       atten_probs = atten_probs[:tgtlen, index, :srclen]
       if alignments is not None:
         # [tgtlen].
@@ -1173,7 +1173,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     if self._max_label_prob > 0:
       dec_bs = tf.shape(decoder_step_state.misc_states.prev_predicted_ids)[0]
       pick_groundtruth = tf.less(
-          tf.random_uniform([dec_bs], seed=self.params.random_seed),
+          tf.random.uniform([dec_bs], seed=self.params.random_seed),
           decoder_step_state.misc_states.groundtruth_p)
       emb = tf.where(
           pick_groundtruth, target_info_tas.emb.read(time),

@@ -260,7 +260,7 @@ class RnnLmTest(test_utils.TestCase):
 
   def testDropout(self):
     seed = 12345
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
     np.random.seed(seed)
 
     time, batch, dims, vocab = 5, 3, 6, 8
@@ -342,8 +342,8 @@ class RnnLmTest(test_utils.TestCase):
 
       for i, x in enumerate(grads):
         if isinstance(x, tf.IndexedSlices):
-          grads[i] = tf.unsorted_segment_sum(x.values, x.indices,
-                                             x.dense_shape[0])
+          grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
+                                                  x.dense_shape[0])
 
       tf.global_variables_initializer().run()
       self.assertEqual(len(lm_vars), len(grads))
@@ -402,7 +402,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
 
   def testDropout(self):
     seed = 12345
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
     np.random.seed(seed)
 
     time, batch, dims, vocab, condition_dim = 5, 3, 6, 8, 7
@@ -492,8 +492,8 @@ class ConditionalRnnLmTest(test_utils.TestCase):
 
       for i, x in enumerate(grads):
         if isinstance(x, tf.IndexedSlices):
-          grads[i] = tf.unsorted_segment_sum(x.values, x.indices,
-                                             x.dense_shape[0])
+          grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
+                                                  x.dense_shape[0])
 
       tf.global_variables_initializer().run()
       self.assertEqual(len(lm_vars), len(grads))
@@ -542,7 +542,7 @@ class MoeLmTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
@@ -566,7 +566,7 @@ class MoeLmTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
@@ -590,7 +590,7 @@ class MoeLmTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
@@ -615,7 +615,7 @@ class MoeLmTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       np.random.seed(54321)
-      tf.set_random_seed(123456)
+      tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
       sess.run(tf.global_variables_initializer())
@@ -631,8 +631,8 @@ class MoeLmTest(test_utils.TestCase):
 
       for i, x in enumerate(grads):
         if isinstance(x, tf.IndexedSlices):
-          grads[i] = tf.unsorted_segment_sum(x.values, x.indices,
-                                             x.dense_shape[0])
+          grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
+                                                  x.dense_shape[0])
 
       tf.global_variables_initializer().run()
       self.assertEqual(len(lm_vars), len(grads))
@@ -789,7 +789,7 @@ class TransformerLmTest(test_utils.TestCase):
 
   def testDropout(self):
     seed = 12345
-    tf.set_random_seed(seed)
+    tf.random.set_seed(seed)
     np.random.seed(seed)
 
     time, batch, dims, hidden_dim, vocab = 5, 3, 6, 4, 8
@@ -870,8 +870,8 @@ class TransformerLmTest(test_utils.TestCase):
 
       for i, x in enumerate(grads):
         if isinstance(x, tf.IndexedSlices):
-          grads[i] = tf.unsorted_segment_sum(x.values, x.indices,
-                                             x.dense_shape[0])
+          grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
+                                                  x.dense_shape[0])
 
       tf.global_variables_initializer().run()
       self.assertEqual(len(lm_vars), len(grads))
@@ -924,8 +924,8 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     grads = tf.gradients(xent_output.avg_xent, lm_vars)
     for i, x in enumerate(grads):
       if isinstance(x, tf.IndexedSlices):
-        grads[i] = tf.unsorted_segment_sum(x.values, x.indices,
-                                           x.dense_shape[0])
+        grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
+                                                x.dense_shape[0])
     self.assertEqual(len(lm_vars), len(grads))
     return xent_output, lm_vars, grads
 

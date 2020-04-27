@@ -361,7 +361,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     WrapOp('qrelu6', tf.nn.relu6, default_qmin=0.0, default_qmax=6.0)
     WrapOp(
         'qrandom_uniform',
-        tf.random_uniform,
+        tf.random.uniform,
         default_qmin=0.0,
         default_qmax=1.0)
 
@@ -1020,7 +1020,7 @@ class PassiveAsymQDomain(QDomain):
       # NANs. Sometimes early in the training process, things are unstable
       # and ranges can produce numerical instability that makes it
       # impossible to perform a fake_quant.
-      quant_w_has_nans = tf.is_nan(quant_w)
+      quant_w_has_nans = tf.math.is_nan(quant_w)
       return tf.where(quant_w_has_nans, w, quant_w)
 
   def QuantizeNaturalRange(self, t, min_value, max_value):
@@ -1092,7 +1092,7 @@ class PassiveAsymQDomain(QDomain):
           quant_t = self._MaybeFakeQuant(
               t, batch_min, batch_max, num_bits=p.bits)
           # TODO(laurenzo): Plumb quant_t_has_nans through state and report.
-          quant_t_has_nans = tf.is_nan(quant_t)
+          quant_t_has_nans = tf.math.is_nan(quant_t)
           quant_t = tf.where(quant_t_has_nans, t, quant_t)
         ts_out.append(quant_t)
         summary_utils.histogram(

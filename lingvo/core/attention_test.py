@@ -258,7 +258,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
   def _testSameBatchSize(self, same_batch_size, packed_inputs=False):
     g = tf.Graph()
     with g.as_default():
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       params, tensors = self._AdditiveAttentionInputs(packed_inputs, tgt_bs=3)
       source_vecs, source_contexts, source_padding, _, query_vec, _ = tensors
       params.same_batch_size = same_batch_size
@@ -1582,7 +1582,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=True) as sess:
       # Use float64 dtype for numeric checks
       dtype = tf.float64
-      tf.set_random_seed(398847392)
+      tf.random.set_seed(398847392)
       np.random.seed(12345)
       batch_size = 3
       source_dim = 4

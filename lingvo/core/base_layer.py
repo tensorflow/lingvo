@@ -286,7 +286,7 @@ class BaseLayer(tf.Module):
     assert self._parent is not self
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
-                     self.__class__.__name__, str(params))
+                          self.__class__.__name__, str(params))
     # Vars created by this layer.
     self._private_vars = py_utils.NestedMap()
     # Theta derived from this layer's vars.

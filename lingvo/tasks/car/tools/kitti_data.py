@@ -31,7 +31,7 @@ def LoadVeloBinFile(filepath):
   Returns:
     A dictionary with keys xyz and reflectance containing numpy arrays.
   """
-  with tf.gfile.Open(filepath, 'rb') as f:
+  with tf.io.gfile.GFile(filepath, 'rb') as f:
     scan = np.frombuffer(f.read(), dtype=np.float32).reshape((-1, 4))
   xyz = scan[:, :3]
   reflectance = scan[:, 3:]
@@ -92,7 +92,7 @@ def LoadLabelFile(filepath):
     correspond to that in the doc-string above.
   """
   objects = []
-  with tf.gfile.GFile(filepath, 'r') as f:
+  with tf.io.gfile.GFile(filepath, 'r') as f:
     for line in f:
       line = line.strip()
       if not line:  # Skip empty lines
@@ -221,7 +221,7 @@ def LoadCalibrationFile(filepath):
     matrices.
   """
   raw_calib = {}
-  with tf.gfile.GFile(filepath, 'r') as f:
+  with tf.io.gfile.GFile(filepath, 'r') as f:
     for line in f:
       line = line.strip()
       if not line:  # Skip empty lines

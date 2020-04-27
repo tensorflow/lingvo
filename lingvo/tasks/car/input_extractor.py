@@ -50,11 +50,11 @@ class FieldsExtractor(base_layer.BaseLayer):
   A descendant of this class will implement three functions:
 
     1) FeatureMap(): returning a dictionary of field names to field types, e.g.,
-       'images' to tf.VarLenFeature(tf.string).  For PlainTextIterator
+       'images' to tf.io.VarLenFeature(tf.string).  For PlainTextIterator
        datasets, FeatureMap() should be empty.
 
     2) _Extract(features): Given a 'features' dictionary containing the result
-       from calling tf.parse_example or tf.parse_sequence_example on all
+       from calling tf.io.parse_example or tf.parse_sequence_example on all
        extractors' features, produce a NestedMap of Tensors.
 
        NOTE: The return of the overall pipeline is a NestedMap of batched
@@ -69,7 +69,7 @@ class FieldsExtractor(base_layer.BaseLayer):
        ensure that every output has a statically known shape.
 
   The caller of Extractors calls each extractor's FeatureMap() to populate the
-  schema passed to tf.parse_example() or tf.parse_sequence_example(). The
+  schema passed to tf.io.parse_example() or tf.parse_sequence_example(). The
   resulting dicationary of Tensors is then passed to each extractor's _Extract()
   function (via FieldsExtractor.Extract()) to return each extractor's output.
 

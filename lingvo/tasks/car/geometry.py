@@ -151,7 +151,7 @@ def TransformPoints(points, transforms):
 def WrapAngleRad(angles_rad, min_val=-np.pi, max_val=np.pi):
   """Wrap the value of `angles_rad` to the range [min_val, max_val]."""
   max_min_diff = max_val - min_val
-  return min_val + tf.mod(angles_rad + max_val, max_min_diff)
+  return min_val + tf.math.floormod(angles_rad + max_val, max_min_diff)
 
 
 def TransformBBoxes3D(bboxes_3d, transforms):
@@ -281,10 +281,10 @@ def ReorderIndicesByPhi(anchor, bboxes):
         tf.greater(norm, 0), dot / norm, tf.zeros([n], norm.dtype))
 
     # Disambiguates the angle anchor--O--point is positive or negative by the
-    # sign of cross products between angle and points.  tf.cross takes 3-vector
-    # (x, y, z), so we set z to 0.  tf.cross does not support broadcasting, so
-    # we tile anchor to shape [n, 3].
-    cross = tf.cross(
+    # sign of cross products between angle and points.  tf.linalg.cross takes
+    # 3-vector (x, y, z), so we set z to 0.  tf.linalg.cross does not support
+    # broadcasting, so we tile anchor to shape [n, 3].
+    cross = tf.linalg.cross(
         tf.tile(tf.pad(tf.expand_dims(anchor, 0), [[0, 0], [0, 1]]), [n, 1]),
         tf.pad(centroid, [[0, 0], [0, 1]]))
 
@@ -344,8 +344,8 @@ def DistanceBetweenCentroidsAndBBoxesFastAndFurious(centroids, bboxes, masks):
   # The following terms are zeros when masks[i] is 0.
   l_x = py_utils.CheckNumerics(masks * (x - x_gt) / Pos(w_gt))
   l_y = py_utils.CheckNumerics(masks * (y - y_gt) / Pos(h_gt))
-  s_w = py_utils.CheckNumerics(masks * tf.log(Pos(w) / Pos(w_gt)))
-  s_h = py_utils.CheckNumerics(masks * tf.log(Pos(h) / Pos(h_gt)))
+  s_w = py_utils.CheckNumerics(masks * tf.math.log(Pos(w) / Pos(w_gt)))
+  s_h = py_utils.CheckNumerics(masks * tf.math.log(Pos(h) / Pos(h_gt)))
   return (_SmoothL1Norm(l_x) + _SmoothL1Norm(l_y) + _SmoothL1Norm(s_w) +
           _SmoothL1Norm(s_h))
 
@@ -460,11 +460,11 @@ def IsWithinBBox(points, bbox):
       py_utils.Assert(v4v1v2_check, [v4, v1, v2]),
       py_utils.Assert(v3v4v1_check, [v3, v4, v1])
   ]):
-    is_inside = tf.logical_and(
-        tf.logical_and(
+    is_inside = tf.math.logical_and(
+        tf.math.logical_and(
             _IsOnLeftHandSideOrOn(points, v1, v2),
             _IsOnLeftHandSideOrOn(points, v2, v3)),
-        tf.logical_and(
+        tf.math.logical_and(
             _IsOnLeftHandSideOrOn(points, v3, v4),
             _IsOnLeftHandSideOrOn(points, v4, v1)))
   # Swap the last two dimensions.
@@ -619,12 +619,12 @@ def IsWithinBBox3D(points_3d, bboxes_3d):
   z0, z1 = _ComputeLimits(z, dz)
   z_points = tf.expand_dims(points_3d[:, 2], -1)
 
-  is_inside_z = tf.logical_and(
+  is_inside_z = tf.math.logical_and(
       tf.less_equal(z_points, z1[tf.newaxis, :, 0]),
       tf.greater_equal(z_points, z0[tf.newaxis, :, 0]))
   is_inside_z = py_utils.HasShape(is_inside_z, [num_points, num_bboxes])
 
-  return tf.logical_and(is_inside_z, is_inside_2d)
+  return tf.math.logical_and(is_inside_z, is_inside_2d)
 
 
 def SphericalCoordinatesTransform(points_xyz):

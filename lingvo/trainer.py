@@ -269,7 +269,7 @@ class Controller(base_runner.BaseRunner):
     self._job_name = 'controller'
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._control_dir = os.path.join(self._logdir, 'control')
-    tf.gfile.MakeDirs(self._control_dir)
+    tf.io.gfile.makedirs(self._control_dir)
     self._summary_writer = self._CreateSummaryWriter(self._control_dir)
     self._checkpoint_in_controller = True
     if FLAGS.checkpoint_in_trainer_tpu:
@@ -294,8 +294,8 @@ class Controller(base_runner.BaseRunner):
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
     self._WriteToLog(self.params.ToText(), self._control_dir, 'params.txt')
-    tf.train.write_graph(self._graph.as_graph_def(), self._control_dir,
-                         'train.pbtxt')
+    tf.io.write_graph(self._graph.as_graph_def(), self._control_dir,
+                      'train.pbtxt')
 
   def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
@@ -391,13 +391,13 @@ class Trainer(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
-                      len(self.enqueue_ops))
+                           len(self.enqueue_ops))
 
     try:
       self._task_probs_summary_writers = []
       for task in self._model.task_schedule.tasks:
         path = os.path.join(os.path.join(self._train_dir, task))
-        tf.gfile.MakeDirs(path)
+        tf.io.gfile.makedirs(path)
         self._task_probs_summary_writers.append(self._CreateSummaryWriter(path))
     except AttributeError:
       tf.logging.info('AttributeError. Expected for single task models.')
@@ -412,8 +412,8 @@ class Trainer(base_runner.BaseRunner):
       self._WriteToLog(self.params.ToText(), self._train_dir,
                        'trainer_params.txt')
       self._summary_writer = self._CreateSummaryWriter(self._train_dir)
-      tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
-                           'train.pbtxt')
+      tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
+                        'train.pbtxt')
     worker_id = self.params.cluster.task
     self._start_up_delay_steps = (((worker_id + 1) * worker_id / 2) *
                                   self.params.train.start_up_delay_steps)
@@ -537,7 +537,7 @@ class TrainerTpu(base_runner.BaseRunner):
     assert data_parallelism
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
-                    data_parallelism, num_devices_per_split)
+                         data_parallelism, num_devices_per_split)
 
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
@@ -574,9 +574,10 @@ class TrainerTpu(base_runner.BaseRunner):
             num_replicas=data_parallelism)
         py_utils.SetTpuDeviceAssignment(device_assignment)
         tf.logging.info('device_assignment.core_assignment: %s',
-                        str(device_assignment.core_assignment))
-        tf.logging.info('device_assignment.topology.device_coordinates: %s',
-                        str(device_assignment.topology.device_coordinates))
+                             str(device_assignment.core_assignment))
+        tf.logging.info(
+            'device_assignment.topology.device_coordinates: %s',
+            str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -659,13 +660,13 @@ class TrainerTpu(base_runner.BaseRunner):
 
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
-                      len(self.enqueue_ops))
+                           len(self.enqueue_ops))
 
     self._summary_writer = self._CreateSummaryWriter(self._train_dir)
 
     # Saves the graph def.
-    tf.train.write_graph(self._graph.as_graph_def(), self._train_dir,
-                         'train.pbtxt')
+    tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
+                      'train.pbtxt')
 
     # Saves the trainer params.
     self._WriteToLog(self.params.ToText(), self._train_dir,
@@ -944,7 +945,7 @@ class Evaler(base_runner.BaseRunner):
     self._eval_dir = os.path.join(self._logdir, self._output_name)
     if self._model_task_name:
       self._eval_dir += '_' + str(self._model_task_name)
-    tf.gfile.MakeDirs(self._eval_dir)
+    tf.io.gfile.makedirs(self._eval_dir)
 
     self._eval_path = None
     # Multitask params doesn't have 'task'.
@@ -974,8 +975,8 @@ class Evaler(base_runner.BaseRunner):
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._eval_dir, 'params.txt')
     if self.params.cluster.task == 0:
-      tf.train.write_graph(self._graph.as_graph_def(), self._eval_dir,
-                           '%s.pbtxt' % self._output_name)
+      tf.io.write_graph(self._graph.as_graph_def(), self._eval_dir,
+                        '%s.pbtxt' % self._output_name)
 
   def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
@@ -1072,8 +1073,8 @@ class Evaler(base_runner.BaseRunner):
       for name, (value, weight) in six.iteritems(ans):
         metrics_dict[name].Update(value, weight)
       tf.logging.info('Total examples done: %d/%d',
-                      num_samples_metric.total_value,
-                      self._model_task.params.eval.samples_per_summary)
+                           num_samples_metric.total_value,
+                           self._model_task.params.eval.samples_per_summary)
 
     # Replace average values with total values for certain metrics.
     if 'num_predictions' in metrics_dict:
@@ -1121,7 +1122,7 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   """
   tf.logging.info('Loaded checkpoint is at global step: %d', global_step)
   tf.logging.info('Checkpoint id according to checkpoint path: %d',
-                  ckpt_id_from_file)
+                       ckpt_id_from_file)
   if global_step != ckpt_id_from_file:
     tf.logging.warning(
         'Checkpoint id %d != global step %d. '
@@ -1140,7 +1141,7 @@ class Decoder(base_runner.BaseRunner):
     self._cluster = cluster_factory.Cluster(self.params.cluster)
     self._decoder_dir = GetDecoderDir(self._logdir, self._job_name,
                                       self._model_task_name)
-    tf.gfile.MakeDirs(self._decoder_dir)
+    tf.io.gfile.makedirs(self._decoder_dir)
 
     self._decode_path = None
     # Multitask params doesn't have 'task'.
@@ -1179,8 +1180,8 @@ class Decoder(base_runner.BaseRunner):
     # Saves the graph def.
     self._WriteToLog(self.params.ToText(), self._decoder_dir, 'params.txt')
     if self.params.cluster.task == 0:
-      tf.train.write_graph(self._graph.as_graph_def(), self._decoder_dir,
-                           '%s.pbtxt' % self._job_name)
+      tf.io.write_graph(self._graph.as_graph_def(), self._decoder_dir,
+                        '%s.pbtxt' % self._job_name)
 
   def _CreateCheckpointer(self, train_dir, model):
     """Wrapper method for override purposes."""
@@ -1257,7 +1258,7 @@ class Decoder(base_runner.BaseRunner):
         self._summary_writer.add_summary(summary, global_step)
       post_process_start = time.time()
       tf.logging.info('Done fetching (%f seconds)' %
-                      (post_process_start - fetch_start))
+                           (post_process_start - fetch_start))
       decode_out = self._model_task.PostProcessDecodeOut(dec_out, dec_metrics)
       if decode_out:
         buffered_decode_out.extend(decode_out)
@@ -1367,7 +1368,7 @@ class RunnerManager(object):
       # E.g., trainer_client is configured w/ FLAGS.tf_master pointing to
       # another job. In that case, start a local server.
       cluster_spec_dict = _GetClusterSpecDict()
-      self._tf_server = tf.train.Server(
+      self._tf_server = tf.distribute.Server(
           tf.train.ClusterSpec(cluster_spec_dict),
           job_name=FLAGS.job,
           task_index=FLAGS.task)
@@ -1411,7 +1412,7 @@ class RunnerManager(object):
         cfg = self.model_registry.GetParams(self._model_name,
                                             dataset_name_retry)
         tf.logging.warning('Succeeded after retrying as %s.' %
-                           dataset_name_retry)
+                                dataset_name_retry)
     cfg.cluster = cluster.params
 
     # Updates a few params based on flags.
@@ -1616,7 +1617,7 @@ class RunnerManager(object):
       threads.append(t)
       if runner.enqueue_ops:
         tf.logging.info('Total num runner.enqueue_ops: %d',
-                        len(runner.enqueue_ops))
+                             len(runner.enqueue_ops))
         for i, enqueue_op in enumerate(runner.enqueue_ops):
 
           def StartEnqueue(runner, op):
@@ -1666,7 +1667,7 @@ class RunnerManager(object):
       # Do nothing
       return
 
-    FLAGS.tf_master = tf.train.Server.create_local_server().target
+    FLAGS.tf_master = tf.distribute.Server.create_local_server().target
 
     if not FLAGS.mode:
       FLAGS.mode = 'sync'
@@ -1757,14 +1758,15 @@ class RunnerManager(object):
   def WriteInferenceGraph(self):
     """Generates the inference graphs for a given model."""
     inference_graph_dir = os.path.join(FLAGS.logdir, 'inference_graphs')
-    tf.gfile.MakeDirs(inference_graph_dir)
-    tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
+    tf.io.gfile.makedirs(inference_graph_dir)
+    tf.logging.info('Writing inference graphs to dir: %s',
+                         inference_graph_dir)
 
     cfg = self.model_registry.GetParams(self._model_name, 'Test')
     if (issubclass(cfg.cls, base_model.MultiTaskModel) and
         not FLAGS.model_task_name):
       tf.logging.info('Cannot write inference graphs for multi-task model '
-                      'when model_task_name is not specified.')
+                           'when model_task_name is not specified.')
       return
     try:
       filename_prefix = 'inference'

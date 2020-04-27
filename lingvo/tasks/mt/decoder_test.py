@@ -107,7 +107,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
                           expected_loss,
                           per_example_tensors=False):
     with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(
           dtype=dtype, fprop_dtype=fprop_dtype, decoder_cls=decoder_cls)
       p.per_example_tensors = per_example_tensors
@@ -131,7 +131,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
                                     decoder_cls,
                                     feed_att_context_to_softmax=False):
     with self.session(use_gpu=True, graph=tf.Graph()) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=tf.float64, decoder_cls=decoder_cls)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
@@ -145,8 +145,8 @@ class DecoderTestCaseBase(test_utils.TestCase):
         if isinstance(grad, tf.Tensor):
           return grad
         elif isinstance(grad, tf.IndexedSlices):
-          return tf.unsorted_segment_sum(grad.values, grad.indices,
-                                         tf.shape(var)[0])
+          return tf.math.unsorted_segment_sum(grad.values, grad.indices,
+                                              tf.shape(var)[0])
 
       grads = [DenseGrad(x, y) for x, y in zip(all_vars, grads)]
 
@@ -171,7 +171,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
                                         decoder_cls,
                                         feed_att_context_to_softmax=False):
     with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(True, decoder_cls=decoder_cls)
       p.feed_attention_context_vec_to_softmax = feed_att_context_to_softmax
       dec = p.Instantiate()
@@ -233,7 +233,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
   def testBeamSearchDecode(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
       src_time = p.target_seq_len
@@ -284,7 +284,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
   def testBeamSearchDecodeBiased(self, bias, bias_only_if_consistent):
     dtype = tf.float32
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
       p.bias_only_if_consistent = bias_only_if_consistent
@@ -340,7 +340,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
   def testBeamSearchDecodeUseZeroAttenState(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
       src_time = p.target_seq_len
@@ -382,7 +382,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
   def testBeamSearchDecodeFeedingAttContext(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
       src_time = p.target_seq_len
@@ -429,7 +429,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
 
   def testSampleTargetSequences(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
       if p.cls != decoder.MTDecoderV1:
@@ -675,7 +675,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
   def testDecoderFPropWithPacking(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
-        tf.set_random_seed(_TF_RANDOM_SEED)
+        tf.random.set_seed(_TF_RANDOM_SEED)
         p = self._DecoderParams(per_word_avg_loss=True, dtype=dtype)
         # Localized label smoother messes up the loss with packing.
         p.label_smoothing = None
@@ -703,7 +703,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testTransparentDecoderFProp(self, dtype=tf.float32):
     with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._testTransparentInputs(dtype=dtype)
@@ -715,7 +715,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def test_ExpandToNumHyps(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
@@ -728,7 +728,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def test_RemoveEOSProbs(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
@@ -751,7 +751,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderFPropWithTaskEmb(self, dtype=tf.float32):
     with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype, use_task_emb=True)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._Inputs(dtype=dtype, has_task_ids=True)
@@ -762,7 +762,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderFPropWithLangDepAtten(self, dtype=tf.float32):
     with self.session(use_gpu=True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype, use_task_emb=True)
       # 4 tasks, 2 languages.
       p.use_lang_dependent_atten = True
@@ -834,7 +834,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = (
@@ -844,7 +844,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderWithNgramMaskExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       # Turn on N-gram masking in the TransformerLayer.
       # Before doing so though copy the self-attention params to avoid
@@ -861,7 +861,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderExtendStepWithTaskEmb(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype, use_task_emb=True)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = (
@@ -871,7 +871,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testTransparentDecoderExtendStep(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = self._testTransparentInputs(
@@ -880,7 +880,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
   def testDecoderFPropSplitBatch(self, dtype=tf.float32):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
 
@@ -927,7 +927,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                       dtype=tf.float32,
                       init_step_ids=False,
                       has_task_ids=False):
-    tf.set_random_seed(_TF_RANDOM_SEED)
+    tf.random.set_seed(_TF_RANDOM_SEED)
     src_batch = 4
     src_time = 5
     p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)
@@ -1037,7 +1037,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                           dtype=tf.float32,
                           init_step_ids=False,
                           has_task_ids=False):
-    tf.set_random_seed(_TF_RANDOM_SEED)
+    tf.random.set_seed(_TF_RANDOM_SEED)
     src_batch = 4
     src_time = 5
     p = self._DecoderParams(dtype=dtype, init_step_ids=init_step_ids)

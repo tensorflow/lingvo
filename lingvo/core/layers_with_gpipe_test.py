@@ -526,7 +526,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         tgt_paddings = tf.transpose(tgt_paddings)
         labels = tf.ones([batch, tgt_inputs.shape.as_list()[1]], dtype=tf.int32)
         label_weights = tf.ones([batch, tgt_inputs.shape.as_list()[1]])
-        tf.set_random_seed(1234)
+        tf.random.set_seed(1234)
         tf.global_variables_initializer().run()
         xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                      tgt_inputs, tgt_paddings, None, None,
@@ -620,7 +620,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       input_ids, id_paddings, tgt_inputs, tgt_paddings, _, _ = _TransformerRandomInputsIds(
           batch=batch)
       inputs, paddings, _, _ = _TransformerRandomInputsVecs(batch=batch)
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       tf.global_variables_initializer().run()
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
       dec_output = xformer.FProp(xformer.theta, input_ids, id_paddings,
@@ -781,7 +781,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       input_ids, id_paddings, _, _, _, _ = inputs_fn(batch=batch)
       labels = tf.ones([input_ids.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([input_ids.shape.as_list()[0], batch])
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       tf.global_variables_initializer().run()
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings, None,
                                    None, None, None, labels, label_weights)
@@ -844,7 +844,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
           inputs_fn(batch=batch))
       labels = tf.ones([tgt_inputs.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([tgt_inputs.shape.as_list()[0], batch])
-      tf.set_random_seed(1234)
+      tf.random.set_seed(1234)
       tf.global_variables_initializer().run()
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                    tgt_inputs, tgt_paddings, None, None, labels,

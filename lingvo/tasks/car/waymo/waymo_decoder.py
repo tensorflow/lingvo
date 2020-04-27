@@ -121,11 +121,11 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
     input_labels = input_batch.labels
     input_lasers = input_batch.lasers
     input_metadata = input_batch.metadata
-    source_ids = tf.string_join([
+    source_ids = tf.strings.join([
         input_metadata.run_segment,
         tf.as_string(input_metadata.run_start_offset)
     ],
-                                separator='_')
+                                 separator='_')
     ret = py_utils.NestedMap({
         'num_points_in_bboxes': input_batch.labels.bboxes_3d_num_points,
         # Ground truth.

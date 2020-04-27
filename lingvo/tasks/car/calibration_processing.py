@@ -144,8 +144,9 @@ class CalibrationCalculator(object):
       nothing
     """
     if 'calibrations' not in metrics:
-      tf.logging.info('CalibrationProcessing invoked but no metrics available '
-                      'for calculating calibration.')
+      tf.logging.info(
+          'CalibrationProcessing invoked but no metrics available '
+          'for calculating calibration.')
       return
 
     self._calibration_by_class = {}
@@ -154,11 +155,12 @@ class CalibrationCalculator(object):
       classname = self._classnames[classid]
 
       if np.all(np.isnan(c['calibrations'])) or c['calibrations'].size == 0:
-        tf.logging.info('Skipping %s for calibration calculation because no '
-                        'output provided.' % classname)
+        tf.logging.info(
+            'Skipping %s for calibration calculation because no '
+            'output provided.' % classname)
         continue
       tf.logging.info('Calculating calibration for %s: %d items.' %
-                      (classname, len(c['calibrations'])))
+                           (classname, len(c['calibrations'])))
 
       # Ensure that all counts are greater then zero and less then or equal
       # to 1.0 to guarantee that all scores are counted.
@@ -167,7 +169,8 @@ class CalibrationCalculator(object):
       hits = scores_and_hits[:, 1]
       curve_data = CalibrationCurve(scores, hits, self._num_calibration_bins)
       self._calibration_by_class[classname] = np.array(curve_data[0:3])
-      tf.logging.info('Finished calculating calibration for %s.' % classname)
+      tf.logging.info('Finished calculating calibration for %s.' %
+                           classname)
 
   def Summary(self, name):
     """Generate tf summaries for calibration.

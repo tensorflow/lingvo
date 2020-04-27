@@ -222,7 +222,8 @@ class DistributedShampoo(optimizer.Optimizer):
     # Computes statistics every K steps.
     self._statistics_computation_frequency = statistics_computation_frequency
     self._run_statistics_computation = tf.equal(
-        tf.mod(self._global_step, self._statistics_computation_frequency), 0)
+        tf.math.floormod(self._global_step,
+                         self._statistics_computation_frequency), 0)
     # All vars that are preconditioned.
     self._all_vars_for_preconditioning = []
     self._exponent_multiplier = exponent_multiplier
@@ -273,7 +274,7 @@ class DistributedShampoo(optimizer.Optimizer):
 
   def _generalized_inverse_pth_root(self, input_t, exponent, epsilon=1e-12):
     input_t_f64 = tf.cast(input_t, tf.float64)
-    s, u, v = tf.svd(
+    s, u, v = tf.linalg.svd(
         input_t_f64 +
         tf.eye(tf.shape(input_t_f64)[0], dtype=tf.float64) * epsilon,
         full_matrices=True)
@@ -302,14 +303,14 @@ class DistributedShampoo(optimizer.Optimizer):
       input_t = tf.placeholder(dtype=tf.float32, name="input", shape=None)
       # For p = 2, 4 or 8, we use the iterative Newton-Schur method for
       # computing the inverse-pth root.
-      either_p_2_4_8 = tf.logical_or(
-          tf.logical_or(
+      either_p_2_4_8 = tf.math.logical_or(
+          tf.math.logical_or(
               tf.equal(-1.0 / exponent_t, 2), tf.equal(-1.0 / exponent_t, 4)),
           tf.equal(-1.0 / exponent_t, 8))
       # 4096 is the larger dimension SVD is tractable for.
       greater_than_4096 = tf.greater(tf.shape(input_t)[0], 4096)
-      run_specialized_iterative_method = tf.logical_and(greater_than_4096,
-                                                        either_p_2_4_8)
+      run_specialized_iterative_method = tf.math.logical_and(
+          greater_than_4096, either_p_2_4_8)
       specialized_fn = functools.partial(self._specialized_inverse_pth_root,
                                          input_t, exponent_t, epsilon)
       generalized_fn = functools.partial(self._generalized_inverse_pth_root,

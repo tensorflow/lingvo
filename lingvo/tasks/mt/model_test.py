@@ -84,23 +84,23 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       tgt_weights = tf.split(tgt_weights, 2, 0)
 
       ret.src.ids = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: src_ids[0], lambda: src_ids[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: src_ids[0], lambda: src_ids[1])
       ret.src.paddings = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: src_paddings[0], lambda: src_paddings[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: src_paddings[0], lambda: src_paddings[1])
       ret.tgt.ids = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: tgt_ids[0], lambda: tgt_ids[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: tgt_ids[0], lambda: tgt_ids[1])
       ret.tgt.labels = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: tgt_labels[0], lambda: tgt_labels[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: tgt_labels[0], lambda: tgt_labels[1])
       ret.tgt.paddings = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: tgt_paddings[0], lambda: tgt_paddings[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: tgt_paddings[0], lambda: tgt_paddings[1])
       ret.tgt.weights = tf.cond(
-          tf.equal(tf.mod(py_utils.GetGlobalStep(), 2),
-                   0), lambda: tgt_weights[0], lambda: tgt_weights[1])
+          tf.equal(tf.math.floormod(py_utils.GetGlobalStep(), 2), 0),
+          lambda: tgt_weights[0], lambda: tgt_weights[1])
     else:
       ret.src.ids = src_ids
       ret.src.paddings = src_paddings
@@ -189,7 +189,7 @@ class TransformerModelTest(test_utils.TestCase):
 
   def testFProp(self, dtype=tf.float32, fprop_dtype=tf.float32):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
       if fprop_dtype:
@@ -211,7 +211,7 @@ class TransformerModelTest(test_utils.TestCase):
 
   def testFPropEvalMode(self):
     with self.session() as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -232,7 +232,7 @@ class TransformerModelTest(test_utils.TestCase):
 
   def testBProp(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -279,7 +279,7 @@ class TransformerModelTest(test_utils.TestCase):
       return p
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
       p.input.split = True
@@ -298,7 +298,7 @@ class TransformerModelTest(test_utils.TestCase):
       expected = sess.run(mdl.dec.softmax.vars['weight_0'])
 
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
       p.input.split = False
@@ -319,7 +319,7 @@ class TransformerModelTest(test_utils.TestCase):
 
     def Run(num_splits):
       with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-        tf.set_random_seed(93820981)
+        tf.random.set_seed(93820981)
         p = self._testParams()
         p.input.bucket_batch_limit = [
             b * 2 / num_splits for b in p.input.bucket_batch_limit
@@ -336,7 +336,7 @@ class TransformerModelTest(test_utils.TestCase):
 
   def testBatchSizeInInputGenerator(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       with cluster_factory.ForTestingWorker(
           mode='sync', job='trainer_client', gpus=5):
@@ -349,7 +349,7 @@ class TransformerModelTest(test_utils.TestCase):
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
@@ -437,7 +437,7 @@ class RNMTModelTest(test_utils.TestCase):
 
   def testFProp(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -457,7 +457,7 @@ class RNMTModelTest(test_utils.TestCase):
 
   def testFPropEvalMode(self):
     with self.session() as sess, self.SetEval(True):
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -477,7 +477,7 @@ class RNMTModelTest(test_utils.TestCase):
 
   def testBProp(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
@@ -500,7 +500,7 @@ class RNMTModelTest(test_utils.TestCase):
 
   def testDecode(self):
     with self.session(use_gpu=False) as sess, self.SetEval(True):
-      tf.set_random_seed(93820985)
+      tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
@@ -518,7 +518,7 @@ class RNMTModelTest(test_utils.TestCase):
 
     def Run(num_splits):
       with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-        tf.set_random_seed(93820981)
+        tf.random.set_seed(93820981)
         p = self._testParams()
         p.input.bucket_batch_limit = [
             b * 2 / num_splits for b in p.input.bucket_batch_limit
@@ -535,7 +535,7 @@ class RNMTModelTest(test_utils.TestCase):
 
   def testBatchSizeInInputGenerator(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       cluster_params = cluster_factory.Cluster.Params()
       cluster_params.mode = 'sync'
@@ -589,7 +589,7 @@ class InsertionModelTest(test_utils.TestCase):
 
   def testSampleCanvasAndTargets(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
 
       x = np.asarray([[10, 11, 12, 13, 14, 15, 2], [10, 11, 12, 13, 14, 15, 2],
                       [2, 0, 0, 0, 0, 0, 0], [10, 11, 12, 13, 14, 2, 0]],
@@ -632,7 +632,7 @@ class InsertionModelTest(test_utils.TestCase):
 
   def testCreateCanvasAndTargets(self):
     with self.session() as sess:
-      tf.set_random_seed(_TF_RANDOM_SEED)
+      tf.random.set_seed(_TF_RANDOM_SEED)
       batch = py_utils.NestedMap(
           src=py_utils.NestedMap(
               ids=tf.convert_to_tensor(

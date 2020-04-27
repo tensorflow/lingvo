@@ -79,7 +79,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
         'sampled by the input_generator when given multiple file_patterns.'
         'This has an effect only when number_sources is set and greater than 1.'
         'Can use either constant values or a tensor like'
-        'tf.mod(tf.train.get_or_create_global_step(), num_sources)')
+        'tf.math.floormod(tf.train.get_or_create_global_step(), num_sources)')
     p.Define('target_transcript', 'dummy_transcript',
              'Text to use for transcript.')
     return p
@@ -117,7 +117,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
       non_decr = []
       for t in unpacked_paddings:
-        non_d = tf.is_non_decreasing(t)
+        non_d = tf.math.is_non_decreasing(t)
         non_decr.append(non_d)
       all_non_decr = tf.stack(non_decr)
 
@@ -143,7 +143,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       random_seed = p.random_seed * 2000 * self._cur_iter
     else:
       random_seed = p.random_seed * 2000
-    return tf.as_string(tf.random_uniform(p.target_shape[:1], seed=random_seed))
+    return tf.as_string(tf.random.uniform(p.target_shape[:1], seed=random_seed))
 
   def _Sources(self):
     p = self.params
@@ -151,23 +151,23 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
       self._cur_iter += 1
 
     if p.integer_source_max:
-      inputs = tf.random_uniform(
+      inputs = tf.random.uniform(
           p.source_shape,
           maxval=p.integer_source_max,
           dtype=tf.int32,
           seed=p.random_seed + 1000 * self._cur_iter)
     elif p.float_source_max:
-      inputs = tf.random_uniform(
+      inputs = tf.random.uniform(
           p.source_shape,
           maxval=p.float_source_max,
           seed=p.random_seed + 1000 * self._cur_iter)
     else:
-      inputs = tf.random_normal(
+      inputs = tf.random.normal(
           p.source_shape, seed=p.random_seed + 1000 * self._cur_iter)
 
     paddings = tf.cast(
         tf.cumsum(
-            tf.random_uniform(
+            tf.random.uniform(
                 p.source_shape[:2], seed=p.random_seed + 1001 * self._cur_iter),
             axis=1) > 0.5 * p.source_shape[1], tf.float32)
 
@@ -183,7 +183,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
     if p.fixed_target_ids is None:
       tids = tf.cast(
-          tf.random_uniform(target_shape, seed=random_seed) *
+          tf.random.uniform(target_shape, seed=random_seed) *
           p.tokenizer.vocab_size, tf.int32)
     else:
       tids = p.fixed_target_ids
@@ -191,11 +191,11 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
     if p.fixed_target_labels is None:
       tlabels = tf.cast(
-          tf.random_uniform(target_shape, seed=random_seed + 1) *
+          tf.random.uniform(target_shape, seed=random_seed + 1) *
           p.tokenizer.vocab_size, tf.int32)
       tpaddings = tf.cast(
           tf.cumsum(
-              tf.random_uniform(
+              tf.random.uniform(
                   target_shape[:2], seed=p.random_seed + 1001 * self._cur_iter),
               axis=1) > 0.4 * target_shape[1], tf.float32)
       tpaddings = self._check_paddings(tpaddings)
@@ -216,7 +216,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     if p.align_label_with_frame:
       source_len = p.source_shape[1]
       d['alignments'] = tf.cast(
-          tf.random_uniform(target_shape, seed=p.random_seed) * source_len,
+          tf.random.uniform(target_shape, seed=p.random_seed) * source_len,
           tf.int32)
     return d
 

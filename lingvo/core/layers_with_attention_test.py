@@ -47,8 +47,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerFeedForwardLayer(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers_with_attention.TransformerFeedForwardLayer.Params()
       p.name = 'transformer_fflayer'
@@ -79,8 +79,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerFeedForwardLayerSpecOutDim(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers_with_attention.TransformerFeedForwardLayer.Params()
       p.name = 'transformer_fflayer'
@@ -1005,8 +1005,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
   def testEvolvedTransformerEncoderBranchedConvsLayer(self):
     layer = layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layer.Params()
       p.name = 'et_encoder_branched_convs'
@@ -1037,8 +1037,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
   def testEvolvedTransformerDecoderBranchedConvsLayer(self):
     layer = layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layer.Params()
       p.name = 'et_decoder_branched_convs'
@@ -1530,10 +1530,10 @@ class LayersWithAttentionTest(test_utils.TestCase):
           num_styles=16,
           random_seed=28384)
 
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       np.random.seed(12345)
       sl = p.Instantiate()
-      features = tf.random_normal([2, 10], seed=28384)
+      features = tf.random.normal([2, 10], seed=28384)
       latent, atten_probs = sl.FPropDefaultTheta(features)
       tf.global_variables_initializer().run()
       latent_v, atten_probs_v = sess.run([latent, atten_probs])
@@ -1551,7 +1551,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           enable_ctx_post_proj=False,
           random_seed=28384)
 
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       np.random.seed(12345)
       sl = p.Instantiate()
       atten_probs = tf.constant([[1.0] + [0.0] * 15] * 2, dtype=tf.float32)
@@ -1570,10 +1570,10 @@ class LayersWithAttentionTest(test_utils.TestCase):
           output_dim=8,
           num_styles=16,
           random_seed=72738)
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       np.random.seed(12345)
       sl = p.Instantiate()
-      features = tf.random_normal([2, 10])
+      features = tf.random.normal([2, 10])
       features = tf.concat([features, features], 0)
       latent, _ = sl.FPropDefaultTheta(features)
       tf.global_variables_initializer().run()
@@ -1806,8 +1806,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testCCTFeedForwardLayerTraining(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers_with_attention.CCTFeedForwardLayer.Params()
       p.name = 'transformer_fflayer'
@@ -1856,8 +1856,8 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testCCTFeedForwardLayerInference(self):
     with self.session(use_gpu=True) as sess:
-      tf.set_random_seed(3980847392)
-      inputs = tf.random_normal([5, 2, 3], seed=948387483)
+      tf.random.set_seed(3980847392)
+      inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
       p = layers_with_attention.CCTFeedForwardLayer.Params()
       p.name = 'transformer_fflayer'

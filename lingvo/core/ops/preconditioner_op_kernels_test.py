@@ -25,14 +25,14 @@ class PreconditionerTest(tf.test.TestCase):
 
   def inverse_pth_root(self, input_t, exponent, epsilon=1e-12):
     input_t_f64 = tf.cast(input_t, tf.float64)
-    s, u, v = tf.svd(
+    s, u, v = tf.linalg.svd(
         input_t_f64 +
         tf.eye(tf.shape(input_t_f64)[0], dtype=tf.float64) * epsilon,
         full_matrices=True)
     val = tf.matmul(
         tf.matmul(
             u,
-            tf.diag(
+            tf.linalg.tensor_diag(
                 tf.pow(tf.maximum(s, epsilon), tf.cast(exponent, tf.float64)))),
         tf.transpose(v))
     return tf.cast(val, tf.float32), tf.reduce_max(tf.abs(u - v))

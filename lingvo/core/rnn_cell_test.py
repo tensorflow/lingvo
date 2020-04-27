@@ -1065,7 +1065,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       b_value = lstm._GetBias(lstm.theta).eval()
       tf.logging.info('testLSTMSimpleWithForgetGateInitBias b = %s',
-                      np.array_repr(b_value))
+                           np.array_repr(b_value))
       # pyformat: disable
       # pylint: disable=bad-whitespace
       expected_b_value = [ 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  2.1,  2.1,  2.1,
@@ -1142,7 +1142,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
           padding_v,
           zo_prob=0.5,
           is_eval=False,
-          random_uniform=tf.random_uniform([3, 2], seed=98798202))
+          random_uniform=tf.random.uniform([3, 2], seed=98798202))
       v_expected = [[0.2, 0.], [0., 0.4], [0.2, 0.5]]
       new_v_evaled = new_v.eval()
       print(np.array_repr(new_v_evaled))
@@ -1414,7 +1414,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     tf.reset_default_graph()
     with self.session(use_gpu=False) as sess:
       lstm, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
-      loss = -tf.log(
+      loss = -tf.math.log(
           tf.sigmoid(
               tf.reduce_sum(tf.square(state1.m)) +
               tf.reduce_sum(state1.m * state1.c * state1.c)))
@@ -2205,9 +2205,9 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       init_state_value = sess.run(lstm.zero_state(lstm.theta, 1))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
-                      np.array_repr(init_state_value['m']))
+                           np.array_repr(init_state_value['m']))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn c = %s',
-                      np.array_repr(init_state_value['c']))
+                           np.array_repr(init_state_value['c']))
       self.assertAllClose(init_state_value['m'], expected_init_states['m'])
       self.assertAllClose(init_state_value['c'], expected_init_states['c'])
 

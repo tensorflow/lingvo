@@ -39,8 +39,9 @@ class _MnistInputBase(base_input_generator.BaseTinyDatasetInput):
     return p
 
   def _Preprocess(self, raw):
-    data = tf.stack(
-        [tf.image.per_image_standardization(img) for img in tf.unstack(raw)])
+    data = tf.stack([
+        tf.image.per_image_standardization(img) for img in tf.unstack(raw)
+    ])
     data.set_shape(raw.shape)
     return data
 

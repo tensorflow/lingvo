@@ -183,9 +183,10 @@ class GeometryTest(test_utils.TestCase):
     # the z-axis (world rotation).
     rot_matrices = []
     for _ in range(batch_size):
-      rot_matrix = geometry._MakeRotationMatrix(tf.random_uniform([]), 0., 0.)
+      rot_matrix = geometry._MakeRotationMatrix(tf.random.uniform([]), 0., 0.)
       # Embed rotation matrix into a 4 x 4 matrix
-      rot_matrix = tf.pad(rot_matrix, [[0, 1], [0, 1]]) + tf.diag([0, 0, 0, 1.])
+      rot_matrix = tf.pad(rot_matrix, [[0, 1], [0, 1]]) + tf.linalg.tensor_diag(
+          [0, 0, 0, 1.])
       rot_matrices.append(rot_matrix)
     transforms = tf.stack(rot_matrices, axis=0)
     return transforms
@@ -195,16 +196,16 @@ class GeometryTest(test_utils.TestCase):
     # directions.
     translation_matrices = []
     for _ in range(batch_size):
-      translation_matrix = tf.random_uniform([3, 1])
+      translation_matrix = tf.random.uniform([3, 1])
       translation_matrix = tf.pad(translation_matrix, [[0, 1], [3, 0]])
-      translation_matrix += tf.diag([1., 1., 1., 1.])
+      translation_matrix += tf.linalg.tensor_diag([1., 1., 1., 1.])
       translation_matrices.append(translation_matrix)
     transforms = tf.stack(translation_matrices, axis=0)
     return transforms
 
   def testTransformPointsRotation(self):
     batch_size, num_points = 10, 8
-    points = tf.random_uniform((batch_size, num_points, 3))
+    points = tf.random.uniform((batch_size, num_points, 3))
     transforms = self._MakeTransformTestRotationMatrices(batch_size)
     points_transformed = geometry.TransformPoints(points, transforms)
     with self.session() as sess:
@@ -218,7 +219,7 @@ class GeometryTest(test_utils.TestCase):
 
   def testTransformPointsTranslation(self):
     batch_size, num_points = 10, 8
-    points = tf.random_uniform((batch_size, num_points, 3))
+    points = tf.random.uniform((batch_size, num_points, 3))
     transforms = self._MakeTransformTestTranslationMatrices(batch_size)
     points_transformed = geometry.TransformPoints(points, transforms)
     with self.session() as sess:
@@ -232,7 +233,7 @@ class GeometryTest(test_utils.TestCase):
                         actual_points_transformed)
 
   def testWrapAngleRad(self):
-    angles = tf.random_uniform([100],
+    angles = tf.random.uniform([100],
                                minval=-100.,
                                maxval=100.,
                                dtype=tf.float32)
@@ -250,7 +251,7 @@ class GeometryTest(test_utils.TestCase):
 
   def testTransformBBoxes3D(self):
     batch_size, num_boxes = 10, 20
-    bboxes_3d = tf.random_uniform((batch_size, num_boxes, 7))
+    bboxes_3d = tf.random.uniform((batch_size, num_boxes, 7))
     transforms = self._MakeTransformTestTranslationMatrices(batch_size)
     bboxes_3d_transformed = geometry.TransformBBoxes3D(bboxes_3d, transforms)
     with self.session() as sess:
@@ -274,8 +275,8 @@ class GeometryTest(test_utils.TestCase):
 
   def testTransformBBoxes3DConsistentWithPoints(self):
     num_boxes, num_points = 20, 100
-    points = tf.random_uniform((num_points, 3))
-    bboxes_3d = tf.random_uniform((num_boxes, 7))
+    points = tf.random.uniform((num_points, 3))
+    bboxes_3d = tf.random.uniform((num_boxes, 7))
     in_bboxes = geometry.IsWithinBBox3D(points, bboxes_3d)
     transforms = self._MakeTransformTestTranslationMatrices(1)[0]
     points_transformed = geometry.TransformPoints(points, transforms)

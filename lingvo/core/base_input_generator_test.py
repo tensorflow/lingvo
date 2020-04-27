@@ -47,7 +47,7 @@ def _CreateFakeTFRecordFiles(record_count=10):
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 
   def GetFeatureSpec(self):
-    return {'audio': tf.FixedLenFeature([48000], tf.float32)}
+    return {'audio': tf.io.FixedLenFeature([48000], tf.float32)}
 
 
 class BaseExampleInputGeneratorTest(test_utils.TestCase):

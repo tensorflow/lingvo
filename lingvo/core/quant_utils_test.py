@@ -281,7 +281,7 @@ class QuantizableLayerTest(test_utils.TestCase):
                        expected=None,
                        not_expected=None,
                        global_step=-1):
-    tf.set_random_seed(398847392)
+    tf.random.set_seed(398847392)
     np.random.seed(12345)
     p.name = 'proj'
     p.input_dim = 3

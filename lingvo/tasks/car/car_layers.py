@@ -90,7 +90,7 @@ class SamplingAndGroupingLayer(base_layer.BaseLayer):
     grouped_features = car_lib.MatmulGather(features, grouped_idx)
 
     # Get the padding for the query points.
-    query_padding = tf.batch_gather(padding, sampled_idx)
+    query_padding = tf.array_ops.batch_gather(padding, sampled_idx)
 
     # Verify the shapes of output tensors.
     query_points = py_utils.HasShape(query_points, [n, p.num_samples, 3])

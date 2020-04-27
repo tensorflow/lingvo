@@ -164,7 +164,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testCreateVariableUniform(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       methods = [
           py_utils.WeightInit.Uniform,
           py_utils.WeightInit.UniformSqrtDim,
@@ -197,7 +197,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testCreateVariableNormal(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(832124)
+      tf.random.set_seed(832124)
       methods = [
           py_utils.WeightInit.Gaussian,
           py_utils.WeightInit.GaussianSqrtDim,
@@ -229,7 +229,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testCreateVariableSqrtFanInOut(self):
     with self.session() as sess:
-      tf.set_random_seed(832124)
+      tf.random.set_seed(832124)
       methods = [
           py_utils.WeightInit.GaussianSqrtFanIn,
           py_utils.WeightInit.TruncatedGaussianSqrtFanIn,
@@ -266,7 +266,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testCreateVariableException(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(832124)
+      tf.random.set_seed(832124)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       var1 = py_utils.CreateVariable('var1', pc)[0]
 
@@ -284,7 +284,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testCreateVariableDifferentSeed(self):
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(3251343)
+      tf.random.set_seed(3251343)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       with tf.variable_scope('layer0'):
         w0, _ = py_utils.CreateVariable('w', pc)
@@ -299,7 +299,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testXavier(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2, 3]]
@@ -324,7 +324,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testXavier1D(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2]]
@@ -342,7 +342,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testXavier3D(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.Xavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[1, 1, 2]]
@@ -370,7 +370,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testGeoMeanXavier(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(1618)
+      tf.random.set_seed(1618)
       methods = [py_utils.WeightInit.GeoMeanXavier]
       dtypes = [tf.float32, tf.float16, tf.complex64]
       shapes = [[2, 3]]
@@ -1094,9 +1094,9 @@ class PyUtilsTest(test_utils.TestCase):
 
       @py_utils.tpu_host
       def bar(x):  #  pylint:disable=invalid-name
-        return tf.log(x)
+        return tf.math.log(x)
 
-      x = tf.random_uniform([])
+      x = tf.random.uniform([])
       y = foo(x)
       unused_z = y * y
 
@@ -1246,7 +1246,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
   def testOverrideVarsFromCheckpoint(self):
 
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         cfg.Instantiate()
@@ -1272,7 +1272,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
   def testOverrideVarsFromCheckpointWithIgnoreRules(self):
 
     with self.session(use_gpu=False) as sess:
-      tf.set_random_seed(8372749040)
+      tf.random.set_seed(8372749040)
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         cfg.Instantiate()
@@ -1733,7 +1733,7 @@ class PadPadSequenceToTest(test_utils.TestCase):
 
   def test2DInputs(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
       new_xs, new_padding = py_utils.PadSequenceTo([x, x], padding, length, 0)
@@ -1754,7 +1754,7 @@ class PadPadSequenceToTest(test_utils.TestCase):
 
   def testSingleInput(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
       new_x, new_padding = py_utils.PadSequenceTo(x, padding, length, 0)
@@ -1778,7 +1778,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_2D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0)
       self.assertEqual(padded_x.shape.as_list(), [3, 6])
@@ -1793,7 +1793,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
   def testPadSequenceDimension_2D_UnknownShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       shape = tf.placeholder(tf.int32)
-      x = tf.random_normal(shape=shape, seed=123456)
+      x = tf.random.normal(shape=shape, seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0)
       self.assertEqual(padded_x.shape, None)
@@ -1806,14 +1806,14 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def testPadSequenceDimension_ShortPaddingLength(self):
-    x = tf.random_normal(shape=(3, 8), seed=123456)
+    x = tf.random.normal(shape=(3, 8), seed=123456)
     length = 6
     with self.assertRaisesRegex(ValueError, 'Paddings must be non-negative'):
       py_utils.PadSequenceDimension(x, length, 0)
 
   def testPadSequenceDimension_4D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
       padded_x = py_utils.PadSequenceDimension(x, length, 1)
       real_x = sess.run(padded_x)
@@ -1829,7 +1829,7 @@ class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_UnmatchedShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
       self.assertRaises(ValueError, py_utils.PadSequenceDimension, x, length, 0,
                         (32, 3, 4, 5))
@@ -1839,7 +1839,7 @@ class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DConstantShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       shape = [4, 6]
       padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=0)
       self.assertEqual(padded_x.shape.as_list(), [4, 6])
@@ -1854,7 +1854,7 @@ class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DStaticShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       y = tf.zeros(shape=(4, 6))
       padded_x = py_utils.PadOrTrimTo(x, y.shape, pad_val=0)
       self.assertEqual(padded_x.shape.as_list(), [4, 6])
@@ -1869,7 +1869,7 @@ class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DDynamicShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(3, 3), seed=123456)
+      x = tf.random.normal(shape=(3, 3), seed=123456)
       y = tf.placeholder(dtype=tf.float32)
       padded_x = py_utils.PadOrTrimTo(x, tf.shape(y), pad_val=0)
       self.assertEqual(padded_x.shape, tf.TensorShape(None))
@@ -1890,7 +1890,7 @@ class PadOrTrimToTest(test_utils.TestCase):
 
   def test4D(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      x = tf.random_normal(shape=(2, 2, 2, 2), seed=123456)
+      x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       shape = (1, 1, 3, 3)
       padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=1)
       real_x = sess.run(padded_x)
@@ -1992,7 +1992,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
   def test2D_UnknownShape(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
       shape = tf.placeholder(tf.int32)
-      x = tf.random_normal(shape=shape, seed=123456)
+      x = tf.random.normal(shape=shape, seed=123456)
       padding = np.array([
           [1.0, 1.0, 0.0, 0.0, 0.0, 1.0],
           [1.0, 0.0, 0.0, 0.0, 1.0, 1.0],
@@ -2343,7 +2343,7 @@ class WeightInitTest(test_utils.TestCase):
 
   def testUniformPositive(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       pc = py_utils.WeightParams([20, 30],
                                  py_utils.WeightInit.UniformPositive(1.0),
                                  tf.float32)
@@ -2388,7 +2388,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 
   def testZeros(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3], init=py_utils.RNNCellStateInit.Zeros(), dtype=tf.float32)
       tf.global_variables_initializer().run()
@@ -2398,7 +2398,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 
   def testRandomNormal(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
           init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
@@ -2411,7 +2411,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 
   def testRandomNormalInEval(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3],
           init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
@@ -2427,7 +2427,7 @@ class RematerializeFnTest(test_utils.TestCase):
 
   def testRandomNormal(self):
     with self.session(use_gpu=False, graph=tf.Graph()) as sess:
-      tf.set_random_seed(12345678)
+      tf.random.set_seed(12345678)
       a = tf.random.normal([2, 3])
       b = tf.random.normal([3, 4])
 
@@ -2464,7 +2464,7 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
 
     @tf.Defun()
     def FunctionWithStatefulOp():
-      return tf.random_uniform([100], maxval=10, dtype=tf.int32)
+      return tf.random.uniform([100], maxval=10, dtype=tf.int32)
 
     self.assertAllEqual(
         ['RandomUniformInt'],
@@ -2488,7 +2488,7 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
 
     @tf.Defun()
     def FunctionWithStatefulOp():
-      return tf.random_uniform([100], maxval=10, dtype=tf.int32)
+      return tf.random.uniform([100], maxval=10, dtype=tf.int32)
 
     @tf.Defun()
     def FunctionWithStatefulFunctionCall():
@@ -2510,7 +2510,7 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
 
       @tf.Defun(tf.float32, tf.int32)
       def Body(result, i):
-        return (result + tf.random_uniform(tf.shape(result)), i + 1)
+        return (result + tf.random.uniform(tf.shape(result)), i + 1)
 
       return functional_ops.While([tf.zeros([2, 2]), 0], cond=Cond, body=Body)
 
@@ -2529,7 +2529,7 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
 
       @tf.Defun(tf.float32)
       def ElseFn(x):
-        return tf.random_uniform(tf.shape(x))
+        return tf.random.uniform(tf.shape(x))
 
       return functional_ops.If(
           tf.greater(tf.eye(2), 0.5), [tf.eye(2)], ThenFn, ElseFn)
@@ -2546,8 +2546,8 @@ class StatefulRandomOpsInDefunTest(test_utils.TestCase):
       @tf.Defun(tf.float32)
       def Body(result):
         return [
-            result + tf.random_uniform(tf.shape(result)) +
-            tf.random_poisson(shape=tf.shape(result), lam=[0.5, 1.5])
+            result + tf.random.uniform(tf.shape(result)) +
+            tf.random.poisson(shape=tf.shape(result), lam=[0.5, 1.5])
         ]
 
       return functional_ops.For(
