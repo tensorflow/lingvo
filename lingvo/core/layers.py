@@ -2884,6 +2884,12 @@ class SimpleFullSoftmax(SoftmaxLayer):
         ' divide num_classes.')
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
+    p.Define(
+        'use_num_classes_major_weight', False,
+        'Whether to use num_classes as major dimension for weight params. '
+        'This shows performance benefit especially when sharing embedding '
+        'and softmax. By removing the transpose before gather, it allows '
+        'better XLA fusions and optimizations.')
     return p
 
   @base_layer.initializer
@@ -2900,7 +2906,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     # op before computing the sampled_softmax_loss.
     self._transpose_weight_params = False
     weights_shard_shape = [p.input_dim, num_classes_per_shard]
-    if p.num_sampled:
+    if p.num_sampled or p.use_num_classes_major_weight:
       self._transpose_weight_params = True
       weights_shard_shape = [num_classes_per_shard, p.input_dim]
     self.TrackQTensor('inputs', 'logits')
@@ -3187,7 +3193,11 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
     if not py_utils.use_xla():
       ids = py_utils.with_dependencies(
           [py_utils.assert_between(ids, 0, p.num_classes)], ids)
-    embs_result = tf.gather(tf.transpose(self._ConcatWeights(theta).wm), ids)
+
+    wm = self._ConcatWeights(theta).wm
+    if not self._transpose_weight_params:
+      wm = tf.transpose(wm)
+    embs_result = tf.gather(wm, ids)
 
     if p.scale_sqrt_depth:
       embs_result *= p.input_dim**0.5
