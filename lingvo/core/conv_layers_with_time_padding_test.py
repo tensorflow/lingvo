@@ -141,9 +141,19 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       in_padding = tf.pad(
           in_padding, [[0, 0], [0, seq_len - 5]], constant_values=1.0)
 
-      inputs = tf.ones([batch_size, seq_len, 3, 1], dtype=np.float32)
+      inputs = 1.0 + tf.tile(
+          tf.reshape(tf.range(seq_len, dtype=tf.float32), [1, seq_len, 1, 1]),
+          [batch_size, 1, 3, 1])
       inputs = py_utils.ApplyPadding(
           tf.reshape(in_padding, [batch_size, seq_len, 1, 1]), inputs)
+
+      # [[[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[4], [4], [4]],
+      #   [[5], [5], [5]], [[0], [0], [0]]],
+      # [[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[4], [4], [4]],
+      #   [[0], [0], [0]], [[0], [0], [0]]],
+      # [[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[0], [0], [0]],
+      #   [[0], [0], [0]], [[0], [0], [0]]]]
+      inputs = py_utils.Debug(inputs)
 
       output, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
 
@@ -165,15 +175,15 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       # padding.
       if seq_len == 5:
         self.assertAllClose([
-            [[[4], [4]], [[6], [6]], [[4], [4]]],
-            [[[4], [4]], [[6], [6]], [[2], [2]]],
-            [[[4], [4]], [[4], [4]], [[0], [0]]],
+            [[[6], [6]], [[18], [18]], [[18], [18]]],
+            [[[6], [6]], [[18], [18]], [[8], [8]]],
+            [[[6], [6]], [[10], [10]], [[0], [0]]],
         ], output)
       elif seq_len == 6:
         self.assertAllClose([
-            [[[6], [6]], [[6], [6]], [[2], [2]]],
-            [[[6], [6]], [[4], [4]], [[0], [0]]],
-            [[[6], [6]], [[2], [2]], [[0], [0]]],
+            [[[12], [12]], [[24], [24]], [[10], [10]]],
+            [[[12], [12]], [[14], [14]], [[0], [0]]],
+            [[[12], [12]], [[6], [6]], [[0], [0]]],
         ], output)
       else:
         raise ValueError('Test does not handle length {seq_len}')
@@ -228,9 +238,13 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       in_padding = tf.pad(
           in_padding, [[0, 0], [0, seq_len - 5]], constant_values=1.0)
 
-      inputs = tf.ones([batch_size, seq_len, 3, 1], dtype=np.float32)
+      inputs = 1.0 + tf.tile(
+          tf.reshape(tf.range(seq_len, dtype=tf.float32), [1, seq_len, 1, 1]),
+          [batch_size, 1, 3, 1])
       inputs = py_utils.ApplyPadding(
           tf.reshape(in_padding, [batch_size, seq_len, 1, 1]), inputs)
+
+      inputs = py_utils.Debug(inputs)
 
       output, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
 
@@ -251,10 +265,10 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 
       # NOTE: There is a bug in the output not being padded correctly.
       self.assertAllClose([
-          [[[1], [1]], [[3], [3]], [[3], [3]]],
-          [[[1], [1]], [[3], [3]], [[2], [2]]],
-          [[[1], [1]], [[3], [3]], [[1], [1]]],
-          [[[1], [1]], [[2], [2]], [[0], [0]]],
+          [[[1], [1]], [[6], [6]], [[12], [12]]],
+          [[[1], [1]], [[6], [6]], [[7], [7]]],
+          [[[1], [1]], [[6], [6]], [[3], [3]]],
+          [[[1], [1]], [[3], [3]], [[0], [0]]],
           [[[1], [1]], [[1], [1]], [[0], [0]]],
       ], output)
 
