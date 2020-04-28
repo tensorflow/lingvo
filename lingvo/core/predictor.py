@@ -266,5 +266,6 @@ def main(_):
 
 
 if __name__ == "__main__":
+  tf.disable_eager_execution()
   model_imports.ImportAllParams()
   tf.app.run(main)

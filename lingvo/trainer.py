@@ -1850,6 +1850,7 @@ def main(unused_argv):
 
 
 if __name__ == '__main__':
+  tf.disable_eager_execution()
   tf.flags.mark_flag_as_required('model')
   FLAGS(sys.argv, known_only=True)
   model_imports.ImportParams(FLAGS.model)
