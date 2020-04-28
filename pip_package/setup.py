@@ -22,7 +22,7 @@ from setuptools.command.install import install
 from setuptools.dist import Distribution
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-__version__ = '0.6.5'
+__version__ = '0.6.6'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -73,7 +73,7 @@ setup(
     author_email='lingvo-bot@google.com',
     packages=find_packages(include=['lingvo*'], exclude=[]),
     include_package_data=True,
-    python_requires='>=3.6',
+    python_requires='>=3.6,<=3.8',
     install_requires=REQUIRED_PACKAGES,
     zip_safe=False,
     cmdclass={
@@ -89,6 +89,7 @@ setup(
         'License :: OSI Approved :: Apache Software License',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Artificial Intelligence',
         'Topic :: Software Development',
