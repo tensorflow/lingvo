@@ -67,6 +67,10 @@ class BatchNormLayer(base_layer.BaseLayer):
         'If True, use global moving avg (mean, variance) during training'
         ' to avoid mismatch between train and eval, which then'
         ' essentially acts as an adaptive normalization step.')
+    p.Define(
+        'gamma_zero_init', False,
+        'If True, initialize gamma to zeros according to the technique '
+        'introduced in the tech report: https://arxiv.org/abs/1706.02677')
     # TODO(rpang): remove this hparam, as it is replaced
     # by p.train.ema_decay_moving_vars.
     p.Define(
@@ -92,8 +96,12 @@ class BatchNormLayer(base_layer.BaseLayer):
     with tf.variable_scope(p.name):
       if not p.use_moving_avg_in_training:
         self.CreateVariable('beta', pc)
-        # Note, The real gamma to use is 1 + gamma.
-        self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+        if p.gamma_zero_init:
+          # zero initialization to BN gamma
+          self.CreateVariable('gamma', pc)
+        else:
+          # Note, The real gamma to use is 1 + gamma.
+          self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
       # Two statistics.
       moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
