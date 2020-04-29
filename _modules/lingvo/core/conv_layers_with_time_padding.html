@@ -275,6 +275,10 @@
         <span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If true, apply weight normalization to weights as proposed by&#39;</span>
         <span class="s1">&#39; Salimans and Kingma, 2016: https://arxiv.org/abs/1602.07868&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;partial_conv&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, rescale positions near sequence&#39;</span>
+        <span class="s1">&#39;boundaries as proposed in https://arxiv.org/abs/1811.11718&#39;</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -348,6 +352,8 @@
       <span class="c1"># Apply conv on &#39;inputs&#39;.</span>
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyConv</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
 
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">partial_conv</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RescaleBoundary</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
       <span class="c1"># NOTE: this may be slightly inaccurate when p.dilation_rate[0] &gt; 1.</span>
       <span class="c1"># But there&#39;s likely no real problems. Trying to set it gives an error:</span>
       <span class="c1"># pooling with SAME padding is not implemented for dilation_rate &gt; 1.</span>
@@ -361,6 +367,36 @@
       <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
           <span class="n">out</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">OutShape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">))))</span>
       <span class="k">return</span> <span class="n">out</span><span class="p">,</span> <span class="n">conv_padding</span></div>
+
+<div class="viewcode-block" id="BaseConv2DLayerWithPadding._RescaleBoundary"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._RescaleBoundary">[docs]</a>  <span class="k">def</span> <span class="nf">_RescaleBoundary</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">out</span><span class="p">,</span> <span class="n">in_paddings</span><span class="p">):</span>
+    <span class="c1"># Rescale every output position by:</span>
+    <span class="c1">#   (# input positions) / (# non-padding input positions)</span>
+    <span class="c1"># where (# input posisions) = filter_size.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">in_mask</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">in_paddings</span>
+
+    <span class="c1"># Compute the left and right implicity padding size used in &#39;SAME&#39; mode.</span>
+    <span class="n">filter_t</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">effective_filter_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">filter_t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="n">left_pad_size</span> <span class="o">=</span> <span class="p">(</span><span class="n">effective_filter_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">right_pad_size</span> <span class="o">=</span> <span class="n">effective_filter_size</span> <span class="o">//</span> <span class="mi">2</span>
+
+    <span class="c1"># Compute the rescaling factor.</span>
+    <span class="c1"># This expanded tensor has 1 on all valid positions, 0 on all padded ones,</span>
+    <span class="c1"># which include both explicit padding provided by &#39;in_padding&#39;, and implicit</span>
+    <span class="c1"># padding on boundaries.</span>
+    <span class="n">in_mask_padded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">in_mask</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_pad_size</span><span class="p">,</span> <span class="n">right_pad_size</span><span class="p">]])</span>
+    <span class="c1"># (# non-padding input positions) / (# input positions)</span>
+    <span class="n">factor_inverse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+        <span class="n">in_mask_padded</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+        <span class="n">window_shape</span><span class="o">=</span><span class="p">(</span><span class="n">filter_t</span><span class="p">,),</span>
+        <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
+        <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span>
+        <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;VALID&#39;</span><span class="p">,</span>
+        <span class="n">dilations</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dilation_rate</span><span class="p">[</span><span class="mi">0</span><span class="p">],))</span>
+
+    <span class="n">factor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">factor_inverse</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span> <span class="o">*</span> <span class="n">factor</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_EvaluateConvKernel</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">conv_input</span><span class="p">)</span></div>
