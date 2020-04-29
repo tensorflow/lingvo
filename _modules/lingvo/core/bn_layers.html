@@ -212,6 +212,10 @@
         <span class="s1">&#39;If True, use global moving avg (mean, variance) during training&#39;</span>
         <span class="s1">&#39; to avoid mismatch between train and eval, which then&#39;</span>
         <span class="s1">&#39; essentially acts as an adaptive normalization step.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gamma_zero_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, initialize gamma to zeros according to the technique &#39;</span>
+        <span class="s1">&#39;introduced in the tech report: https://arxiv.org/abs/1706.02677&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): remove this hparam, as it is replaced</span>
     <span class="c1"># by p.train.ema_decay_moving_vars.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -237,8 +241,12 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_moving_avg_in_training</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-        <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">gamma_zero_init</span><span class="p">:</span>
+          <span class="c1"># zero initialization to BN gamma</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
 
       <span class="c1"># Two statistics.</span>
       <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span>
