@@ -590,7 +590,7 @@
 
 <span class="sd">      Args:</span>
 <span class="sd">        op: The forward operation.</span>
-<span class="sd">        *args: Args to the backward operation (includes implicit captures).</span>
+<span class="sd">        *args: Args to the backward operation (not including implicit captures).</span>
 
 <span class="sd">      Returns:</span>
 <span class="sd">        Tuple of derivatives.</span>
@@ -926,8 +926,8 @@
             <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
             <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">)</span>
 
-      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span>
-       <span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span>
+       <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
 
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
@@ -937,8 +937,13 @@
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># Match the shape of gradient of the init_state.</span>
         <span class="n">d_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">)</span>
+
+      <span class="c1"># The `extra` input in the Forward function is actually an output of the</span>
+      <span class="c1"># function. It was supplied as an input only to create acc_extras with</span>
+      <span class="c1"># proper shape, so its gradients should be zero.</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">])</span>
+          <span class="p">[</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span>
+           <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">),</span> <span class="n">d_captured</span><span class="p">])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
 
