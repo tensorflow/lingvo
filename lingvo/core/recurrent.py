@@ -445,7 +445,7 @@ class _Recurrent(object):
 
       Args:
         op: The forward operation.
-        *args: Args to the backward operation (includes implicit captures).
+        *args: Args to the backward operation (not including implicit captures).
 
       Returns:
         Tuple of derivatives.
@@ -781,8 +781,8 @@ class _Recurrent(object):
             cond=BackwardLoopCond,
             body=BackwardLoopBody)
 
-      (theta, state0, inputs, acc_state, acc_extras, d_theta, d_state0,
-       d_inputs, d_acc_state, d_captured) = py_utils.Pack(bakloop_sig, run[2:])
+      (theta, state0, inputs, acc_state, _, d_theta, d_state0, d_inputs,
+       d_acc_state, d_captured) = py_utils.Pack(bakloop_sig, run[2:])
 
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the
@@ -792,8 +792,13 @@ class _Recurrent(object):
       if self._unused_acc_state:
         # Match the shape of gradient of the init_state.
         d_state0 = self._state.Transform(tf.zeros_like)
+
+      # The `extra` input in the Forward function is actually an output of the
+      # function. It was supplied as an input only to create acc_extras with
+      # proper shape, so its gradients should be zero.
       return py_utils.Flatten(
-          [d_theta, d_state0, d_inputs, acc_extras, d_captured])
+          [d_theta, d_state0, d_inputs,
+           _EmptyLike(self._extras), d_captured])
 
     self._forward = Forward
 
