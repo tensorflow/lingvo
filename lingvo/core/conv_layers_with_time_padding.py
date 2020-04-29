@@ -130,6 +130,10 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
         'weight_norm', False,
         'If true, apply weight normalization to weights as proposed by'
         ' Salimans and Kingma, 2016: https://arxiv.org/abs/1602.07868')
+    p.Define(
+        'partial_conv', False, 'If true, rescale positions near sequence'
+        'boundaries as proposed in https://arxiv.org/abs/1811.11718')
+
     return p
 
   @base_layer.initializer
@@ -203,6 +207,8 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       # Apply conv on 'inputs'.
       out = self._ApplyConv(theta, inputs)
 
+      if p.partial_conv:
+        out = self._RescaleBoundary(out, paddings)
       # NOTE: this may be slightly inaccurate when p.dilation_rate[0] > 1.
       # But there's likely no real problems. Trying to set it gives an error:
       # pooling with SAME padding is not implemented for dilation_rate > 1.
@@ -216,6 +222,36 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       out = py_utils.HasShape(
           out, symbolic.ToStatic(self.OutShape(tf.shape(inputs))))
       return out, conv_padding
+
+  def _RescaleBoundary(self, out, in_paddings):
+    # Rescale every output position by:
+    #   (# input positions) / (# non-padding input positions)
+    # where (# input posisions) = filter_size.
+    p = self.params
+    in_mask = 1.0 - in_paddings
+
+    # Compute the left and right implicity padding size used in 'SAME' mode.
+    filter_t = p.filter_shape[0]
+    effective_filter_size = (filter_t - 1) * p.dilation_rate[0] + 1
+    left_pad_size = (effective_filter_size - 1) // 2
+    right_pad_size = effective_filter_size // 2
+
+    # Compute the rescaling factor.
+    # This expanded tensor has 1 on all valid positions, 0 on all padded ones,
+    # which include both explicit padding provided by 'in_padding', and implicit
+    # padding on boundaries.
+    in_mask_padded = tf.pad(in_mask, [[0, 0], [left_pad_size, right_pad_size]])
+    # (# non-padding input positions) / (# input positions)
+    factor_inverse = tf.nn.pool(
+        in_mask_padded[:, :, tf.newaxis],
+        window_shape=(filter_t,),
+        pooling_type='AVG',
+        strides=(p.filter_stride[0],),
+        padding='VALID',
+        dilations=(p.dilation_rate[0],))
+
+    factor = tf.math.reciprocal_no_nan(factor_inverse)
+    return out * factor[..., tf.newaxis]
 
   def _ApplyConv(self, theta, conv_input):
     return self._EvaluateConvKernel(theta, conv_input)
