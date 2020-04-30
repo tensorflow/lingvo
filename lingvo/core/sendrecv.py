@@ -13,7 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-
 """Send/Recv ops.
 
 The following _Send()/_Recv() are adapted from python op wrappers
@@ -48,7 +47,7 @@ class Channel(object):
     Args:
       dtype: The dtype of tensors sent through the channel.
       shape: The shape of tensors sent through the channel. Must be a fully
-      defined shape for TPUs.
+        defined shape for TPUs.
       send_device: A fully-specified tensorflow device.
       recv_device: A fully-specified tensorflow device.
       name: A name for the channel (optional).
@@ -81,8 +80,8 @@ class Channel(object):
   def Send(self, tensor):
     """Sends a tensor through the channel."""
     assert tensor.dtype == self._dtype
-    assert not self._send_called, (
-        "Send called multiple times for %s" % self._name)
+    assert not self._send_called, ("Send called multiple times for %s" %
+                                   self._name)
     self._send_called = True
     if self._send_tpu_core == -1:
       return tf.raw_ops.Send(
@@ -99,12 +98,14 @@ class Channel(object):
   def Recv(self):
     """Receives a tensor from the channel."""
     if self._send_tpu_core == -1:
-      return tf.raw_ops.Recv(
+      received = tf.raw_ops.Recv(
           tensor_type=self._dtype,
           tensor_name=self._name,
           send_device=self._send_device,
           send_device_incarnation=0,
           recv_device=self._recv_device)
+      received.set_shape(self._shape)
+      return received
     else:
       with tf.device(self._recv_device):
         return xla.recv(
