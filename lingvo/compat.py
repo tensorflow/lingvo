@@ -241,7 +241,6 @@ nn.embedding_lookup = embedding_ops.embedding_lookup
 
 # TF 2.x symbols.
 # Please keep this list short by using TF 2.x API in-place in the codebase.
-to_float = lambda x, name="ToFloat": cast(x, dtype=dtypes.float32, name=name)
 to_int32 = lambda x, name="ToInt32": cast(x, dtype=dtypes.int32, name=name)
 to_int64 = lambda x, name="ToInt64": cast(x, dtype=dtypes.int64, name=name)
 # pylint: enable=undefined-variable
