@@ -158,7 +158,6 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
-
 <span class="sd">&quot;&quot;&quot;Send/Recv ops.</span>
 
 <span class="sd">The following _Send()/_Recv() are adapted from python op wrappers</span>
@@ -193,7 +192,7 @@
 <span class="sd">    Args:</span>
 <span class="sd">      dtype: The dtype of tensors sent through the channel.</span>
 <span class="sd">      shape: The shape of tensors sent through the channel. Must be a fully</span>
-<span class="sd">      defined shape for TPUs.</span>
+<span class="sd">        defined shape for TPUs.</span>
 <span class="sd">      send_device: A fully-specified tensorflow device.</span>
 <span class="sd">      recv_device: A fully-specified tensorflow device.</span>
 <span class="sd">      name: A name for the channel (optional).</span>
@@ -226,8 +225,8 @@
 <div class="viewcode-block" id="Channel.Send"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv.Channel.Send">[docs]</a>  <span class="k">def</span> <span class="nf">Send</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sends a tensor through the channel.&quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="n">tensor</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_called</span><span class="p">,</span> <span class="p">(</span>
-        <span class="s2">&quot;Send called multiple times for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_called</span><span class="p">,</span> <span class="p">(</span><span class="s2">&quot;Send called multiple times for </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span>
+                                   <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_send_called</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_tpu_core</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">raw_ops</span><span class="o">.</span><span class="n">Send</span><span class="p">(</span>
@@ -244,12 +243,14 @@
 <div class="viewcode-block" id="Channel.Recv"><a class="viewcode-back" href="../../../lingvo.core.sendrecv.html#lingvo.core.sendrecv.Channel.Recv">[docs]</a>  <span class="k">def</span> <span class="nf">Recv</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Receives a tensor from the channel.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_send_tpu_core</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
-      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">raw_ops</span><span class="o">.</span><span class="n">Recv</span><span class="p">(</span>
+      <span class="n">received</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">raw_ops</span><span class="o">.</span><span class="n">Recv</span><span class="p">(</span>
           <span class="n">tensor_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_dtype</span><span class="p">,</span>
           <span class="n">tensor_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span>
           <span class="n">send_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_send_device</span><span class="p">,</span>
           <span class="n">send_device_incarnation</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
           <span class="n">recv_device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">)</span>
+      <span class="n">received</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_shape</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">received</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_recv_device</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">xla</span><span class="o">.</span><span class="n">recv</span><span class="p">(</span>
