@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for generic_input_op."""
 
-
 import collections
 import os
 import pickle
@@ -232,6 +231,34 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       for _ in range(10):
         inputs_vals = sess.run(inputs)[0]
         self.assertEqual(inputs_vals.dtype, bool)
+
+  def testExtraArgs(self):
+
+    def _parse_record(record):
+      del record
+      example = py_utils.NestedMap(t=tf.convert_to_tensor(0))
+      bucketing_key = 1
+      return example, bucketing_key
+
+    def _parse_record_stateful(record):
+      del record
+      extra = tf.Variable(0)
+      example = py_utils.NestedMap(t=extra.value())
+      bucketing_key = 1
+      return example, bucketing_key
+
+    generic_input.GenericInput(
+        _parse_record,
+        file_pattern='',
+        bucket_upper_bound=[1],
+        bucket_batch_limit=[1])
+
+    with self.assertRaisesRegex(AssertionError, 'is not pure: extra_args='):
+      generic_input.GenericInput(
+          _parse_record_stateful,
+          file_pattern='',
+          bucket_upper_bound=[1],
+          bucket_batch_limit=[1])
 
 
 if __name__ == '__main__':

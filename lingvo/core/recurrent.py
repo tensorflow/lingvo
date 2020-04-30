@@ -604,9 +604,10 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
       # to cell_grad() which adds to the captured list.
-      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
+      _AssertSameTensors(py_utils.GetExtraInputs(),
+                         self._implicit_captures.Flatten())
 
-      captured = py_utils.Pack(self._implicit_captures, tf.GetExtraArgs())
+      captured = py_utils.Pack(self._implicit_captures, py_utils.GetExtraArgs())
       return py_utils.Flatten(
           _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
                                       [dtheta, dstate0, dinputs, dcaptures]))
@@ -711,7 +712,8 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
       # to Bak() which adds to the captured list.
-      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
+      _AssertSameTensors(py_utils.GetExtraInputs(),
+                         self._implicit_captures.Flatten())
 
       return [tf.subtract(t, 1), limit] + py_utils.Flatten([
           theta,
@@ -787,7 +789,8 @@ class _Recurrent(object):
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the
       # call to BackwardLoopBody, which adds to the captured list.
-      _AssertSameTensors(tf.GetExtraInputs(), self._implicit_captures.Flatten())
+      _AssertSameTensors(py_utils.GetExtraInputs(),
+                         self._implicit_captures.Flatten())
 
       if self._unused_acc_state:
         # Match the shape of gradient of the init_state.
@@ -866,8 +869,7 @@ def _ReflectOnCellFn(cell_fn,
     if check_stateful_ops:
       raise ValueError('cell_fn contains stateful ops: %s' % Fwd.stateful_ops)
     else:
-      tf.logging.warning('cell_fn contains stateful ops: %s',
-                              Fwd.stateful_ops)
+      tf.logging.warning('cell_fn contains stateful ops: %s', Fwd.stateful_ops)
 
   if cluster_factory.Current().job in {'trainer', 'trainer_client'}:
     stateful_random_ops = py_utils.StatefulRandomOpsInDefun(Fwd)
@@ -938,11 +940,11 @@ def _GetCellGrad(cell_fn,
       # Assert that if captured inputs were given, they match the actual
       # tensors passed to the function we are compiled into. Must come after
       # the call to cell_fn, which does the capture.
-      _AssertSameTensors(tf.GetExtraInputs(), implicit_captures.Flatten())
+      _AssertSameTensors(py_utils.GetExtraInputs(), implicit_captures.Flatten())
 
       # Extract the internal captured tensor placeholders within the Defun
       # we are running in.
-      captured = py_utils.Pack(implicit_captures, tf.GetExtraArgs())
+      captured = py_utils.Pack(implicit_captures, py_utils.GetExtraArgs())
       ys = py_utils.Flatten(state1)
       xs = py_utils.Flatten([theta, state0, inputs, captured])
       grad_ys = py_utils.Flatten(dstate1)

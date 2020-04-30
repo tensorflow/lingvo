@@ -48,6 +48,7 @@ from model_pruning.python import pruning
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.core.framework import node_def_pb2
 from tensorflow.core.protobuf import rewriter_config_pb2
+from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
 from tensorflow.python.tpu import tpu_function
@@ -604,7 +605,7 @@ def SetTpuDeviceAssignment(tpu_device_assignment):
   global _tpu_device_assignment
   if _tpu_device_assignment is not None:
     tf.logging.warning('tpu_device_assignment was already set, '
-                            'overwriting with new assignment.')
+                       'overwriting with new assignment.')
   _tpu_device_assignment = tpu_device_assignment
 
 
@@ -1412,8 +1413,7 @@ def GetVariableName(name):
         matched = True
         new_name = name_format % match.groups()
   if new_name != name:
-    tf.logging.info("WARNING!!! Renaming variable '%s' to '%s'", name,
-                         new_name)
+    tf.logging.info("WARNING!!! Renaming variable '%s' to '%s'", name, new_name)
   return new_name
 
 
@@ -1683,7 +1683,7 @@ def CreateVariable(name,
                          (cached.ToText(), p.ToText()))
   else:
     tf.logging.info('Creating var %s shape=%s on device %s', var.name,
-                         var.shape, var.device)
+                    var.shape, var.device)
     all_vars[var_ref] = p.Copy()
     for col in p.collections:
       tf.add_to_collection(col, var)
@@ -2208,6 +2208,7 @@ def ApplyGradMultiplier(vs_gs, grad_scale=None):
     grad_scale is 0, the result gradient is always 0, even if the input
     gradient is inf or nan.
   """
+
   def ScaleOrZero(var, grad, scale):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.where(
@@ -2271,6 +2272,7 @@ def ApplyGradNormClipping(vs_gs, norm=1.0):
     grad_scale is 0, the result gradient is always 0, even if the input
     gradient is inf or nan.
   """
+
   def ClipByNorm(var, grad, norm):
     grad = CheckNumerics(grad, 'Gradient for %s is not finite.' % var.name)
     return tf.clip_by_norm(grad, norm)
@@ -3606,9 +3608,9 @@ def RematerializeFn(fn, *xs):
     ResetStepSeed(initial_step_seed)
     ys = fn(*fwd_xs)
     # Some sanity check.
-    assert not function.get_extra_inputs()
-    assert not function.get_extra_args()
-    assert not function.get_extra_vars()
+    assert not GetExtraInputs()
+    assert not GetExtraArgs()
+    assert not GetExtraVars()
     if isinstance(ys, tuple):
       for y in ys:
         assert isinstance(y, tf.Tensor)
@@ -4224,3 +4226,27 @@ def GetTpuSummaryTensors():
       '%s/%s' % (x.name, SanitizeScopeKey(x.name_scope)): x.value
       for x in tpu_summary_tensors
   }
+
+
+def GetExtraVars():
+  """Returns the captured variables by the function."""
+  g = tf.get_default_graph()
+  if isinstance(g, func_graph.FuncGraph):
+    return g.variable_captures
+  return function.get_extra_vars()
+
+
+def GetExtraInputs():
+  """Returns the captured input tensors by the function."""
+  g = tf.get_default_graph()
+  if isinstance(g, func_graph.FuncGraph):
+    return g.external_captures
+  return function.get_extra_inputs()
+
+
+def GetExtraArgs():
+  """Returns the corresponding function arguments for the captured inputs."""
+  g = tf.get_default_graph()
+  if isinstance(g, func_graph.FuncGraph):
+    return g.internal_captures
+  return function.get_extra_args()

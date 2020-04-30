@@ -329,22 +329,6 @@ custom_kernel_library(
     deps = [":input_common"],
 )
 
-py_test(
-    name = "generic_input_op_test",
-    srcs = ["generic_input_op_test.py"],
-    python_version = "PY3",
-    deps = [
-        # Implicit absl.testing.parameterized dependency.
-        "//lingvo:compat",
-        "//lingvo/core:generic_input",
-        "//lingvo/core:py_utils",
-        "//lingvo/core:test_utils",
-        # Implicit numpy dependency.
-        # Implicit six dependency.
-        # Implicit tensorflow dependency.
-    ],
-)
-
 custom_kernel_library(
     name = "random_ops_kernels",
     srcs = ["random_ops_kernels.cc"],

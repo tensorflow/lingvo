@@ -1104,6 +1104,22 @@ py_library(
     ],
 )
 
+py_test(
+    name = "generic_input_test",
+    srcs = ["generic_input_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":generic_input",
+        ":py_utils",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
 py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],

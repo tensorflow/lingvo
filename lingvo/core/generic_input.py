@@ -21,7 +21,6 @@ from __future__ import print_function
 import lingvo.compat as tf
 from lingvo.core import ops
 from lingvo.core import py_utils
-from tensorflow.python.framework import function  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.util import tf_inspect  # pylint: disable=g-direct-tensorflow-import
 
 
@@ -61,12 +60,12 @@ def GenericInput(processor, **kwargs):
 
   Args:
     processor: a function that takes either a tf.string record or a
-      (source_id: tf.int32, record: tf.string) pair as input and returns a
-      tuple (output, bucketing_key).
-      `output` must be a NestedMap or a list of tensors representing an example.
-      `bucketing_key` must be a scalar convertible to a tf.int32 tensor that
-      represents the bucketing key (e.g., sequence length for sequence inputs).
-      If `bucketing_key` is a negative number, the record is dropped.
+      (source_id: tf.int32, record: tf.string) pair as input and returns a tuple
+      (output, bucketing_key). `output` must be a NestedMap or a list of tensors
+      representing an example. `bucketing_key` must be a scalar convertible to
+      a tf.int32 tensor that represents the bucketing key (e.g., sequence
+      length for sequence inputs). If `bucketing_key` is a negative number,
+      the record is dropped.
     **kwargs: additional keyword args for x_ops.generic_input.
 
   Returns:
@@ -105,16 +104,16 @@ def GenericInput(processor, **kwargs):
               output.DebugString())
     bucketing_key = tf.cast(bucketing_key, tf.int32)
     tf.logging.debug('Processor outputs=%s bucketing_key=%s', output,
-                          bucketing_key)
+                     bucketing_key)
     output_tmpl.out_values = output
     flat_output_tmpl = output_tmpl.Flatten()
     tf.logging.debug('Processor flat outputs=%s', flat_output_tmpl)
     tf.logging.debug('extra_inputs=%s extra_args=%s extra_vars=%s',
-                          function.get_extra_inputs(),
-                          function.get_extra_args(), function.get_extra_vars())
-    assert not function.get_extra_args(), (
+                     py_utils.GetExtraInputs(), py_utils.GetExtraArgs(),
+                     py_utils.GetExtraVars())
+    assert not py_utils.GetExtraArgs(), (
         'fns {} is not pure: extra_args={}'.format(processor,
-                                                   function.get_extra_args()))
+                                                   py_utils.GetExtraArgs()))
     return flat_output_tmpl + [bucketing_key]
 
   proc_fn = _FlatOutputProcessor.get_concrete_function(
