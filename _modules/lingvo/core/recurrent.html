@@ -749,9 +749,10 @@
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the call</span>
       <span class="c1"># to cell_grad() which adds to the captured list.</span>
-      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
+      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
       <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
           <span class="n">_ConvertNoneGradientToZeros</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">],</span>
                                       <span class="p">[</span><span class="n">dtheta</span><span class="p">,</span> <span class="n">dstate0</span><span class="p">,</span> <span class="n">dinputs</span><span class="p">,</span> <span class="n">dcaptures</span><span class="p">]))</span>
@@ -856,7 +857,8 @@
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the call</span>
       <span class="c1"># to Bak() which adds to the captured list.</span>
-      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
           <span class="n">theta</span><span class="p">,</span>
@@ -932,7 +934,8 @@
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
       <span class="c1"># call to BackwardLoopBody, which adds to the captured list.</span>
-      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
+                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># Match the shape of gradient of the init_state.</span>
@@ -1011,8 +1014,7 @@
     <span class="k">if</span> <span class="n">check_stateful_ops</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                              <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;cell_fn contains stateful ops: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">Fwd</span><span class="o">.</span><span class="n">stateful_ops</span><span class="p">)</span>
 
   <span class="k">if</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">Current</span><span class="p">()</span><span class="o">.</span><span class="n">job</span> <span class="ow">in</span> <span class="p">{</span><span class="s1">&#39;trainer&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">}:</span>
     <span class="n">stateful_random_ops</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">StatefulRandomOpsInDefun</span><span class="p">(</span><span class="n">Fwd</span><span class="p">)</span>
@@ -1083,11 +1085,11 @@
       <span class="c1"># Assert that if captured inputs were given, they match the actual</span>
       <span class="c1"># tensors passed to the function we are compiled into. Must come after</span>
       <span class="c1"># the call to cell_fn, which does the capture.</span>
-      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="n">implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="c1"># Extract the internal captured tensor placeholders within the Defun</span>
       <span class="c1"># we are running in.</span>
-      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
+      <span class="n">captured</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">())</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">state1</span><span class="p">)</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">captured</span><span class="p">])</span>
       <span class="n">grad_ys</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">dstate1</span><span class="p">)</span>

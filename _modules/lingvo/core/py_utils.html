@@ -193,6 +193,7 @@
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">node_def_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">rewriter_config_pb2</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">func_graph</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">init_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>
@@ -749,7 +750,7 @@
   <span class="k">global</span> <span class="n">_tpu_device_assignment</span>
   <span class="k">if</span> <span class="n">_tpu_device_assignment</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;tpu_device_assignment was already set, &#39;</span>
-                            <span class="s1">&#39;overwriting with new assignment.&#39;</span><span class="p">)</span>
+                       <span class="s1">&#39;overwriting with new assignment.&#39;</span><span class="p">)</span>
   <span class="n">_tpu_device_assignment</span> <span class="o">=</span> <span class="n">tpu_device_assignment</span></div>
 
 
@@ -1557,8 +1558,7 @@
         <span class="n">matched</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="n">new_name</span> <span class="o">=</span> <span class="n">name_format</span> <span class="o">%</span> <span class="n">match</span><span class="o">.</span><span class="n">groups</span><span class="p">()</span>
   <span class="k">if</span> <span class="n">new_name</span> <span class="o">!=</span> <span class="n">name</span><span class="p">:</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;WARNING!!! Renaming variable &#39;</span><span class="si">%s</span><span class="s2">&#39; to &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span>
-                         <span class="n">new_name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;WARNING!!! Renaming variable &#39;</span><span class="si">%s</span><span class="s2">&#39; to &#39;</span><span class="si">%s</span><span class="s2">&#39;&quot;</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">new_name</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">new_name</span></div>
 
 
@@ -1828,7 +1828,7 @@
                          <span class="p">(</span><span class="n">cached</span><span class="o">.</span><span class="n">ToText</span><span class="p">(),</span> <span class="n">p</span><span class="o">.</span><span class="n">ToText</span><span class="p">()))</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Creating var </span><span class="si">%s</span><span class="s1"> shape=</span><span class="si">%s</span><span class="s1"> on device </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-                         <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
+                    <span class="n">var</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">)</span>
     <span class="n">all_vars</span><span class="p">[</span><span class="n">var_ref</span><span class="p">]</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">col</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">collections</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="n">var</span><span class="p">)</span>
@@ -2353,6 +2353,7 @@
 <span class="sd">    grad_scale is 0, the result gradient is always 0, even if the input</span>
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
   <span class="k">def</span> <span class="nf">ScaleOrZero</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">scale</span><span class="p">):</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
@@ -2416,6 +2417,7 @@
 <span class="sd">    grad_scale is 0, the result gradient is always 0, even if the input</span>
 <span class="sd">    gradient is inf or nan.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+
   <span class="k">def</span> <span class="nf">ClipByNorm</span><span class="p">(</span><span class="n">var</span><span class="p">,</span> <span class="n">grad</span><span class="p">,</span> <span class="n">norm</span><span class="p">):</span>
     <span class="n">grad</span> <span class="o">=</span> <span class="n">CheckNumerics</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="s1">&#39;Gradient for </span><span class="si">%s</span><span class="s1"> is not finite.&#39;</span> <span class="o">%</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">clip_by_norm</span><span class="p">(</span><span class="n">grad</span><span class="p">,</span> <span class="n">norm</span><span class="p">)</span>
@@ -3751,9 +3753,9 @@
     <span class="n">ResetStepSeed</span><span class="p">(</span><span class="n">initial_step_seed</span><span class="p">)</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="o">*</span><span class="n">fwd_xs</span><span class="p">)</span>
     <span class="c1"># Some sanity check.</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">GetExtraInputs</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">GetExtraArgs</span><span class="p">()</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">GetExtraVars</span><span class="p">()</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">:</span>
         <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span>
@@ -4369,6 +4371,30 @@
       <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">name_scope</span><span class="p">)):</span> <span class="n">x</span><span class="o">.</span><span class="n">value</span>
       <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">tpu_summary_tensors</span>
   <span class="p">}</span></div>
+
+
+<div class="viewcode-block" id="GetExtraVars"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetExtraVars">[docs]</a><span class="k">def</span> <span class="nf">GetExtraVars</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns the captured variables by the function.&quot;&quot;&quot;</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">func_graph</span><span class="o">.</span><span class="n">FuncGraph</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">variable_captures</span>
+  <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetExtraInputs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetExtraInputs">[docs]</a><span class="k">def</span> <span class="nf">GetExtraInputs</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns the captured input tensors by the function.&quot;&quot;&quot;</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">func_graph</span><span class="o">.</span><span class="n">FuncGraph</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">external_captures</span>
+  <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="GetExtraArgs"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetExtraArgs">[docs]</a><span class="k">def</span> <span class="nf">GetExtraArgs</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Returns the corresponding function arguments for the captured inputs.&quot;&quot;&quot;</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">func_graph</span><span class="o">.</span><span class="n">FuncGraph</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">g</span><span class="o">.</span><span class="n">internal_captures</span>
+  <span class="k">return</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()</span></div>
 </pre></div>
 
            </div>

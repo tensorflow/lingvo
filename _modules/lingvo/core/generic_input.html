@@ -166,7 +166,6 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.util</span> <span class="kn">import</span> <span class="n">tf_inspect</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
@@ -206,12 +205,12 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    processor: a function that takes either a tf.string record or a</span>
-<span class="sd">      (source_id: tf.int32, record: tf.string) pair as input and returns a</span>
-<span class="sd">      tuple (output, bucketing_key).</span>
-<span class="sd">      `output` must be a NestedMap or a list of tensors representing an example.</span>
-<span class="sd">      `bucketing_key` must be a scalar convertible to a tf.int32 tensor that</span>
-<span class="sd">      represents the bucketing key (e.g., sequence length for sequence inputs).</span>
-<span class="sd">      If `bucketing_key` is a negative number, the record is dropped.</span>
+<span class="sd">      (source_id: tf.int32, record: tf.string) pair as input and returns a tuple</span>
+<span class="sd">      (output, bucketing_key). `output` must be a NestedMap or a list of tensors</span>
+<span class="sd">      representing an example. `bucketing_key` must be a scalar convertible to</span>
+<span class="sd">      a tf.int32 tensor that represents the bucketing key (e.g., sequence</span>
+<span class="sd">      length for sequence inputs). If `bucketing_key` is a negative number,</span>
+<span class="sd">      the record is dropped.</span>
 <span class="sd">    **kwargs: additional keyword args for x_ops.generic_input.</span>
 
 <span class="sd">  Returns:</span>
@@ -250,16 +249,16 @@
               <span class="n">output</span><span class="o">.</span><span class="n">DebugString</span><span class="p">())</span>
     <span class="n">bucketing_key</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">bucketing_key</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor outputs=</span><span class="si">%s</span><span class="s1"> bucketing_key=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">output</span><span class="p">,</span>
-                          <span class="n">bucketing_key</span><span class="p">)</span>
+                     <span class="n">bucketing_key</span><span class="p">)</span>
     <span class="n">output_tmpl</span><span class="o">.</span><span class="n">out_values</span> <span class="o">=</span> <span class="n">output</span>
     <span class="n">flat_output_tmpl</span> <span class="o">=</span> <span class="n">output_tmpl</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Processor flat outputs=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">flat_output_tmpl</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;extra_inputs=</span><span class="si">%s</span><span class="s1"> extra_args=</span><span class="si">%s</span><span class="s1"> extra_vars=</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                          <span class="n">function</span><span class="o">.</span><span class="n">get_extra_inputs</span><span class="p">(),</span>
-                          <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_vars</span><span class="p">())</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">(),</span> <span class="p">(</span>
+                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">(),</span>
+                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraVars</span><span class="p">())</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">(),</span> <span class="p">(</span>
         <span class="s1">&#39;fns </span><span class="si">{}</span><span class="s1"> is not pure: extra_args=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">processor</span><span class="p">,</span>
-                                                   <span class="n">function</span><span class="o">.</span><span class="n">get_extra_args</span><span class="p">()))</span>
+                                                   <span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraArgs</span><span class="p">()))</span>
     <span class="k">return</span> <span class="n">flat_output_tmpl</span> <span class="o">+</span> <span class="p">[</span><span class="n">bucketing_key</span><span class="p">]</span>
 
   <span class="n">proc_fn</span> <span class="o">=</span> <span class="n">_FlatOutputProcessor</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span>
