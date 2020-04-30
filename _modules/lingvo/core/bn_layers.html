@@ -169,6 +169,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">nn</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.tpu</span> <span class="kn">import</span> <span class="n">tpu_function</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
 <span class="n">_BN_FLOPS_PER_ELEMENT</span> <span class="o">=</span> <span class="mi">10</span>
@@ -224,6 +225,20 @@
         <span class="s1">&#39;collection to be compatible with ema_decay. &#39;</span>
         <span class="s1">&#39;Recommendation: set to True for new models, and to False to maintain &#39;</span>
         <span class="s1">&#39;checkpoint compatibility.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;set_padded_output_to_zero&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;If True, sets the padded outputs to zero.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_fused_batch_norm_for_eval&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, uses tf.compat.v1.nn.fused_batch_norm instead of &#39;</span>
+        <span class="s1">&#39;tf.nn.batch_normalization during eval. The fused version may be more &#39;</span>
+        <span class="s1">&#39;efficient but it has more restrictions on the expected input shapes.&#39;</span>
+        <span class="s1">&#39;The input tensor has to be rank 4, where the first dimension &#39;</span>
+        <span class="s1">&#39;corresponds to the batch, and the last dimension corresponds to the &#39;</span>
+        <span class="s1">&#39;features to normalize over. This usually corresponds to NHWC with &#39;</span>
+        <span class="s1">&#39;image inputs. Note that fused_batch_norm wants to track its own &#39;</span>
+        <span class="s1">&#39;mean and variance during training, so we are unable to use it &#39;</span>
+        <span class="s1">&#39;for training since we want to have a custom mean and variance to &#39;</span>
+        <span class="s1">&#39;support padding.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -433,9 +448,23 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
                                       <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
       <span class="p">]):</span>
-        <span class="n">bn_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">batch_normalization</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span>
-                                              <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
-      <span class="n">bn_output</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_batch_norm_for_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+          <span class="n">bn_output</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">fused_batch_norm</span><span class="p">(</span>
+              <span class="n">inputs</span><span class="p">,</span>
+              <span class="n">gamma</span><span class="p">,</span>
+              <span class="n">beta</span><span class="p">,</span>
+              <span class="n">norm_mean</span><span class="p">,</span>
+              <span class="n">norm_variance</span><span class="p">,</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">,</span>
+              <span class="n">is_training</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">bn_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">batch_normalization</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">norm_mean</span><span class="p">,</span>
+                                                <span class="n">norm_variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span>
+                                                <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">set_padded_output_to_zero</span><span class="p">:</span>
+          <span class="n">bn_output</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+
       <span class="k">return</span> <span class="n">bn_output</span></div>
 
 <div class="viewcode-block" id="BatchNormLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
