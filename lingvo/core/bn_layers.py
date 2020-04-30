@@ -24,6 +24,7 @@ from lingvo.core import py_utils
 from lingvo.core import summary_utils
 from six.moves import range
 
+from tensorflow.python.ops import nn  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import tpu_function  # pylint:disable=g-direct-tensorflow-import
 
 _BN_FLOPS_PER_ELEMENT = 10
@@ -79,6 +80,20 @@ class BatchNormLayer(base_layer.BaseLayer):
         'collection to be compatible with ema_decay. '
         'Recommendation: set to True for new models, and to False to maintain '
         'checkpoint compatibility.')
+    p.Define('set_padded_output_to_zero', True,
+             'If True, sets the padded outputs to zero.')
+    p.Define(
+        'use_fused_batch_norm_for_eval', False,
+        'If True, uses tf.compat.v1.nn.fused_batch_norm instead of '
+        'tf.nn.batch_normalization during eval. The fused version may be more '
+        'efficient but it has more restrictions on the expected input shapes.'
+        'The input tensor has to be rank 4, where the first dimension '
+        'corresponds to the batch, and the last dimension corresponds to the '
+        'features to normalize over. This usually corresponds to NHWC with '
+        'image inputs. Note that fused_batch_norm wants to track its own '
+        'mean and variance during training, so we are unable to use it '
+        'for training since we want to have a custom mean and variance to '
+        'support padding.')
     return p
 
   @base_layer.initializer
@@ -288,9 +303,23 @@ class BatchNormLayer(base_layer.BaseLayer):
           py_utils.assert_shape_match([tf.shape(inputs)[-1]],
                                       tf.shape(norm_variance)),
       ]):
-        bn_output = tf.nn.batch_normalization(inputs, norm_mean, norm_variance,
-                                              beta, gamma, self._epsilon)
-      bn_output *= 1.0 - paddings
+        if p.use_fused_batch_norm_for_eval and self.do_eval:
+          bn_output, _, _ = nn.fused_batch_norm(
+              inputs,
+              gamma,
+              beta,
+              norm_mean,
+              norm_variance,
+              self._epsilon,
+              is_training=False)
+        else:
+          bn_output = tf.nn.batch_normalization(inputs, norm_mean,
+                                                norm_variance, beta, gamma,
+                                                self._epsilon)
+
+        if p.set_padded_output_to_zero:
+          bn_output *= 1.0 - paddings
+
       return bn_output
 
   @classmethod

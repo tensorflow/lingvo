@@ -20,6 +20,7 @@ import math
 
 from absl.testing import parameterized
 import lingvo.compat as tf
+from lingvo.core import cluster_factory
 from lingvo.core import gpipe
 from lingvo.core import layers
 from lingvo.core import py_utils
@@ -68,7 +69,7 @@ class ActivationsTest(test_utils.TestCase):
       self.assertAllClose(expected_grads_gelu, actual_grads_gelu)
 
 
-class BatchNormLayerTest(test_utils.TestCase):
+class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBatchNormLayerConstruction(self):
     with self.session(use_gpu=True):
@@ -217,6 +218,37 @@ class BatchNormLayerTest(test_utils.TestCase):
       tf.global_variables_initializer().run()
       self.assertAllClose(0.0, sig1.eval(), atol=1e-4)
       self.assertAllClose(2039.398681, sig2.eval())
+
+  @parameterized.parameters(True, False)
+  def testBatchNormLayerFPropForConvWithFusedEval(
+      self, use_fused_batch_norm_for_eval):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.BatchNormLayer.Params()
+      params.name = 'bn_conv'
+      params.dim = 32
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.use_fused_batch_norm_for_eval = use_fused_batch_norm_for_eval
+      with cluster_factory.ForTestingWorker(
+          mode='sync', job='trainer_client', do_eval=True):
+        bn_layer = params.Instantiate()
+        bn_layer._epsilon = 0.0  # Enables a lower tolerance in the test check.
+        in_padding1 = tf.zeros([2, 4, 1, 1], dtype=tf.float32)
+        np_in1 = np.random.normal(0.1, 0.5, [2, 4, 1, 32])
+        bn_in1 = tf.constant(np_in1, dtype=tf.float32)
+        bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
+        tf.global_variables_initializer().run()
+        # Moving mean and variance are set to defaults, we set gamma and beta
+        # through assignment such that the outputs are inputs * 2 + 1.
+        sess.run([
+            tf.assign(bn_layer.vars.gamma,
+                      np.ones(bn_layer.vars.gamma.shape.as_list())),
+            tf.assign(bn_layer.vars.beta,
+                      np.ones(bn_layer.vars.beta.shape.as_list()))
+        ])
+        self.assertAllClose(
+            np_in1 * 2. + 1., bn_out.eval(), atol=1e-5, rtol=1e-5)
 
 
 class ConvLayerTest(test_utils.TestCase):

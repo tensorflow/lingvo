@@ -690,6 +690,7 @@ py_library(
     srcs = ["layers_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":cluster_factory",
         ":gpipe",
         ":layers",
         ":py_utils",
