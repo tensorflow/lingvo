@@ -136,22 +136,14 @@ class BatchNormLayer(base_layer.BaseLayer):
           init=py_utils.WeightInit.Constant(0.0),
           dtype=p.dtype,
           collections=moving_collections)
-      self.CreateVariable(
-          'moving_mean',
-          mva,
-          trainable=False,
-          aggregation=tf.VariableAggregation.MEAN)
+      self.CreateVariable('moving_mean', mva, trainable=False)
 
       mvv = py_utils.WeightParams(
           shape=[p.dim],
           init=py_utils.WeightInit.Constant(1.0),
           dtype=p.dtype,
           collections=moving_collections)
-      self.CreateVariable(
-          'moving_variance',
-          mvv,
-          trainable=False,
-          aggregation=tf.VariableAggregation.MEAN)
+      self.CreateVariable('moving_variance', mvv, trainable=False)
     self._epsilon = 0.001
     self._decay = p.decay
 
