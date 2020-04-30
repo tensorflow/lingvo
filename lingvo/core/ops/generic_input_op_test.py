@@ -209,6 +209,30 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAlmostEqual(source_id_count[1] / num_records, 0.3, delta=0.01)
       self.assertAlmostEqual(source_id_count[2] / num_records, 0.5, delta=0.01)
 
+  def testBoolDType(self):
+    tmp = os.path.join(tf.test.get_temp_dir(), 'bool')
+    with tf.python_io.TFRecordWriter(tmp) as w:
+      for i in range(50):
+        w.write(pickle.dumps(True if i % 2 == 0 else False))
+
+    g = tf.Graph()
+    with g.as_default():
+      # A record processor written in TF graph.
+      def _process(record):
+        bucket_key = 1
+        num, = tf.py_func(pickle.loads, [record], [tf.bool])
+        return [num], bucket_key
+
+      # Samples random records from the data files and processes them
+      # to generate batches.
+      inputs, _ = self.get_test_input(
+          tmp, bucket_upper_bound=[1], processor=_process)
+
+    with self.session(graph=g) as sess:
+      for _ in range(10):
+        inputs_vals = sess.run(inputs)[0]
+        self.assertEqual(inputs_vals.dtype, bool)
+
 
 if __name__ == '__main__':
   tf.test.main()
