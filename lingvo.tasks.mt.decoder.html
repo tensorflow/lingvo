@@ -308,6 +308,26 @@ tgt_batch, src_len].</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._ExpandToNumHyps">
+<code class="sig-name descname">_ExpandToNumHyps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_enc_len</span></em>, <em class="sig-param"><span class="n">num_hyps_per_beam</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._ExpandToNumHyps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._ExpandToNumHyps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Repeat each value according to num hyps.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>source_enc_len</strong> – source encoder length; int [batch].</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – number of hypotheses</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>New version of source_enc_len; int [batch * num_hyps_per_beam].
+Target_batch is (num_hyps_per_beam * batch).
+Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
+–&gt; [3, 2, 1, 3, 2, 1]</p>
+</dd>
+</dl>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -353,6 +373,23 @@ tgt_batch, src_len].</p></li>
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions">
 <code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.ComputePredictions" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.MTDecoderV1.AddExtraDecodingInfo">
+<code class="sig-name descname">AddExtraDecodingInfo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1.AddExtraDecodingInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1.AddExtraDecodingInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds extra decoding information to encoded_outputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>encoder_outputs</strong> – a NestedMap computed by encoder.</p></li>
+<li><p><strong>targets</strong> – a NestedMap containing target input fields.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>encoder_ouputs with extra information used for decoding.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.tasks.mt.decoder.MTDecoderV1._InitDecoder">
@@ -449,26 +486,6 @@ this to split computation across subgraph boundaries.</p>
 <dt id="lingvo.tasks.mt.decoder.TransformerDecoder.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">
-<code class="sig-name descname">_ExpandToNumHyps</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_enc_len</span></em>, <em class="sig-param"><span class="n">num_hyps_per_beam</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._ExpandToNumHyps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps" title="Permalink to this definition">¶</a></dt>
-<dd><p>Repeat each value according to num hyps.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>source_enc_len</strong> – source encoder length; int [batch].</p></li>
-<li><p><strong>num_hyps_per_beam</strong> – number of hypotheses</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>New version of source_enc_len; int [batch * num_hyps_per_beam].
-Target_batch is (num_hyps_per_beam * batch).
-Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
-–&gt; [3, 2, 1, 3, 2, 1]</p>
-</dd>
-</dl>
 </dd></dl>
 
 <dl class="py method">

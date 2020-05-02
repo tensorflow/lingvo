@@ -466,7 +466,23 @@
         <span class="n">fig</span><span class="o">.</span><span class="n">AddSubplot</span><span class="p">([</span><span class="n">probs</span><span class="p">],</span>
                        <span class="n">PlotAttention</span><span class="p">,</span>
                        <span class="n">title</span><span class="o">=</span><span class="s1">&#39;atten_probs_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span>
-                       <span class="n">set_x_label</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div></div>
+                       <span class="n">set_x_label</span><span class="o">=</span><span class="p">(</span><span class="n">i</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">atten_probs</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="MTBaseDecoder._ExpandToNumHyps"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder._ExpandToNumHyps">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandToNumHyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Repeat each value according to num hyps.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      source_enc_len: source encoder length; int [batch].</span>
+<span class="sd">      num_hyps_per_beam: number of hypotheses</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      New version of source_enc_len; int [batch * num_hyps_per_beam].</span>
+<span class="sd">      Target_batch is (num_hyps_per_beam * batch).</span>
+<span class="sd">      Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2</span>
+<span class="sd">      --&gt; [3, 2, 1, 3, 2, 1]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">source_enc_len</span><span class="p">,</span> <span class="n">multiples</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">x</span></div></div>
 
 
 <div class="viewcode-block" id="MTDecoderV1"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1">[docs]</a><span class="k">class</span> <span class="nc">MTDecoderV1</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
@@ -503,6 +519,12 @@
         <span class="s1">&#39;instead of computing attention with zero query vector.&#39;</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Clipping cap schedule.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;init_step_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Initializes beam search with first target id instead of &lt;s&gt;.&#39;</span>
+        <span class="s1">&#39;Use this when decoding starts with target_lang id intead of &lt;s&gt; &#39;</span>
+        <span class="s1">&#39;token at time step 0. Make sure the training data has &#39;</span>
+        <span class="s1">&#39;target_lang id as the first token in target sequence.&#39;</span><span class="p">)</span>
 
     <span class="n">disable_vn</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
     <span class="n">default_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.04</span><span class="p">)</span>
@@ -753,6 +775,21 @@
             <span class="n">attention</span><span class="o">=</span><span class="n">attention_map</span><span class="p">,</span>
             <span class="n">source_enc_len</span><span class="o">=</span><span class="n">source_enc_len</span><span class="p">)</span>
 
+<div class="viewcode-block" id="MTDecoderV1.AddExtraDecodingInfo"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.AddExtraDecodingInfo">[docs]</a>  <span class="k">def</span> <span class="nf">AddExtraDecodingInfo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">targets</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Adds extra decoding information to encoded_outputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      encoder_outputs: a NestedMap computed by encoder.</span>
+<span class="sd">      targets: a NestedMap containing target input fields.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoder_ouputs with extra information used for decoding.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">init_step_ids</span><span class="p">:</span>
+      <span class="n">encoder_outputs</span><span class="p">[</span><span class="s1">&#39;init_step_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">targets</span><span class="o">.</span><span class="n">ids</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">encoder_outputs</span></div>
+
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MTDecoderV1/InitDecoder&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">_InitDecoder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">encoder_outputs</span><span class="p">,</span> <span class="n">num_hyps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns initial decoder states.</span>
@@ -909,6 +946,11 @@
                            <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)),</span>
         <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">init_step_ids</span> <span class="ow">and</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="p">,</span> <span class="s1">&#39;init_step_ids&#39;</span><span class="p">):</span>
+      <span class="n">initial_results</span><span class="p">[</span><span class="s1">&#39;step_ids&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_ExpandToNumHyps</span><span class="p">(</span><span class="n">encoder_outputs</span><span class="o">.</span><span class="n">init_step_ids</span><span class="p">,</span>
+                                <span class="n">num_hyps_per_beam</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;time_step&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
         <span class="s1">&#39;rnn_states&#39;</span><span class="p">:</span> <span class="n">rnn_states</span><span class="p">,</span>
@@ -1024,8 +1066,12 @@
     <span class="c1"># TODO(miachen): Extend this to more general logic of adding multiple</span>
     <span class="c1"># embedding fields.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Task embedding layer params.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;init_step_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Initializes beam search with first target id instead of &lt;s&gt;.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;init_step_ids&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Initializes beam search with first target id instead of &lt;s&gt;.&#39;</span>
+        <span class="s1">&#39;Use this when decoder has target language token intead of &lt;s&gt; &#39;</span>
+        <span class="s1">&#39;token at time step 0.&#39;</span>
+        <span class="s1">&#39;Make sure the training is done in similar manner.&#39;</span><span class="p">)</span>
     <span class="c1"># MASS pretraining related (https://github.com/microsoft/MASS)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;use_lang_dependent_atten&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, attention between &#39;</span>
@@ -1129,22 +1175,6 @@
 
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_share_sm_emb</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="p">)</span>
-
-<div class="viewcode-block" id="TransformerDecoder._ExpandToNumHyps"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._ExpandToNumHyps">[docs]</a>  <span class="k">def</span> <span class="nf">_ExpandToNumHyps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">,</span> <span class="n">num_hyps_per_beam</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Repeat each value according to num hyps.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      source_enc_len: source encoder length; int [batch].</span>
-<span class="sd">      num_hyps_per_beam: number of hypotheses</span>
-
-<span class="sd">    Returns:</span>
-<span class="sd">      New version of source_enc_len; int [batch * num_hyps_per_beam].</span>
-<span class="sd">      Target_batch is (num_hyps_per_beam * batch).</span>
-<span class="sd">      Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2</span>
-<span class="sd">      --&gt; [3, 2, 1, 3, 2, 1]</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="nb">input</span><span class="o">=</span><span class="n">source_enc_len</span><span class="p">,</span> <span class="n">multiples</span><span class="o">=</span><span class="p">[</span><span class="n">num_hyps_per_beam</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">x</span></div>
 
 <div class="viewcode-block" id="TransformerDecoder._RemoveEOSProbs"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder._RemoveEOSProbs">[docs]</a>  <span class="k">def</span> <span class="nf">_RemoveEOSProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">source_enc_len</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Remove the attention probs on EOS symbol and renormalize.</span>
