@@ -323,6 +323,22 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
                        title='atten_probs_%d' % i,
                        set_x_label=(i == len(atten_probs) - 1))
 
+  def _ExpandToNumHyps(self, source_enc_len, num_hyps_per_beam):
+    """Repeat each value according to num hyps.
+
+    Args:
+      source_enc_len: source encoder length; int [batch].
+      num_hyps_per_beam: number of hypotheses
+
+    Returns:
+      New version of source_enc_len; int [batch * num_hyps_per_beam].
+      Target_batch is (num_hyps_per_beam * batch).
+      Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
+      --> [3, 2, 1, 3, 2, 1]
+    """
+    x = tf.tile(input=source_enc_len, multiples=[num_hyps_per_beam])
+    return x
+
 
 class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
   """MT decoder v1."""
@@ -358,6 +374,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
         'instead of computing attention with zero query vector.')
 
     p.Define('cc_schedule', None, 'Clipping cap schedule.')
+    p.Define(
+        'init_step_ids', False,
+        'Initializes beam search with first target id instead of <s>.'
+        'Use this when decoding starts with target_lang id intead of <s> '
+        'token at time step 0. Make sure the training data has '
+        'target_lang id as the first token in target sequence.')
 
     disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
     default_params_init = py_utils.WeightInit.Uniform(0.04)
@@ -608,6 +630,21 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
             attention=attention_map,
             source_enc_len=source_enc_len)
 
+  def AddExtraDecodingInfo(self, encoder_outputs, targets):
+    """Adds extra decoding information to encoded_outputs.
+
+    Args:
+      encoder_outputs: a NestedMap computed by encoder.
+      targets: a NestedMap containing target input fields.
+
+    Returns:
+      encoder_ouputs with extra information used for decoding.
+    """
+    p = self.params
+    if p.init_step_ids:
+      encoder_outputs['init_step_ids'] = targets.ids[:, 0]
+    return encoder_outputs
+
   @py_utils.NameScopeDecorator('MTDecoderV1/InitDecoder')
   def _InitDecoder(self, theta, encoder_outputs, num_hyps):
     """Returns initial decoder states.
@@ -764,6 +801,11 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
                            dtype=py_utils.FPropDtype(p)),
         atten_probs=atten_probs)
 
+    if p.init_step_ids and hasattr(encoder_outputs, 'init_step_ids'):
+      initial_results['step_ids'] = tf.expand_dims(
+          self._ExpandToNumHyps(encoder_outputs.init_step_ids,
+                                num_hyps_per_beam), 1)
+
     return initial_results, py_utils.NestedMap({
         'time_step': tf.constant(0),
         'rnn_states': rnn_states,
@@ -879,8 +921,12 @@ class TransformerDecoder(MTBaseDecoder):
     # TODO(miachen): Extend this to more general logic of adding multiple
     # embedding fields.
     p.Define('task_emb', None, 'Task embedding layer params.')
-    p.Define('init_step_ids', False,
-             'Initializes beam search with first target id instead of <s>.')
+    p.Define(
+        'init_step_ids', False,
+        'Initializes beam search with first target id instead of <s>.'
+        'Use this when decoder has target language token intead of <s> '
+        'token at time step 0.'
+        'Make sure the training is done in similar manner.')
     # MASS pretraining related (https://github.com/microsoft/MASS)
     p.Define(
         'use_lang_dependent_atten', False, 'If True, attention between '
@@ -984,22 +1030,6 @@ class TransformerDecoder(MTBaseDecoder):
 
       if not self._share_sm_emb:
         self.CreateChild('softmax', p.softmax)
-
-  def _ExpandToNumHyps(self, source_enc_len, num_hyps_per_beam):
-    """Repeat each value according to num hyps.
-
-    Args:
-      source_enc_len: source encoder length; int [batch].
-      num_hyps_per_beam: number of hypotheses
-
-    Returns:
-      New version of source_enc_len; int [batch * num_hyps_per_beam].
-      Target_batch is (num_hyps_per_beam * batch).
-      Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
-      --> [3, 2, 1, 3, 2, 1]
-    """
-    x = tf.tile(input=source_enc_len, multiples=[num_hyps_per_beam])
-    return x
 
   def _RemoveEOSProbs(self, p, probs, source_enc_len):
     """Remove the attention probs on EOS symbol and renormalize.

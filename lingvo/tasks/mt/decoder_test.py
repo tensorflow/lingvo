@@ -37,7 +37,7 @@ _TF_RANDOM_SEED = 8372749040
 
 class DecoderTestCaseBase(test_utils.TestCase):
 
-  def _Inputs(self, dtype=tf.float32):
+  def _Inputs(self, dtype=tf.float32, init_step_ids=False):
     np.random.seed(_NUMPY_RANDOM_SEED)
     src_seq_len = 5
     # batch = 2
@@ -64,13 +64,18 @@ class DecoderTestCaseBase(test_utils.TestCase):
     })
     encoder_outputs = py_utils.NestedMap(
         encoded=src_enc, padding=src_enc_padding, segment_id=None)
+    if init_step_ids:
+      tgt_prefix = tf.constant(np.random.randint(4, size=[2]), dtype=tf.int32)
+      encoder_outputs['init_step_ids'] = tgt_prefix
     return encoder_outputs, targets
 
-  def _DecoderParams(self,
-                     per_word_avg_loss=False,
-                     dtype=tf.float32,
-                     fprop_dtype=None,
-                     decoder_cls=decoder.MTDecoderV1):
+  def _DecoderParams(
+      self,
+      per_word_avg_loss=False,
+      dtype=tf.float32,
+      fprop_dtype=None,
+      decoder_cls=decoder.MTDecoderV1,
+  ):
     p = decoder_cls.Params()
     p.name = 'decoder'
     p.source_dim = 4
@@ -271,6 +276,42 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     expected_topk_lens = [1, 2, 0, 0]
     expected_topk_scores = [[-3.783162, -5.767723], [0., 0.]]
 
+    self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
+    self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
+    self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+
+  def testBeamSearchDecodeTgtPrefix(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      src_batch = 2
+      p = self._DecoderParams(dtype=dtype)
+      p.init_step_ids = True  # initializes beam search with predefined ids.
+      p.beam_search.num_hyps_per_beam = 2
+      p.rnn_cell_dim = 32
+      dec = decoder.MTDecoderV1(p)
+      encoder_outputs, _ = self._Inputs(dtype=dtype, init_step_ids=True)
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+      tf.global_variables_initializer().run()
+      actual_decode = sess.run(decode)
+
+    num_hyps = src_batch * p.beam_search.num_hyps_per_beam
+    self.assertTupleEqual((p.target_seq_len, num_hyps),
+                          actual_decode.done_hyps.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_hyps.shape)
+    self.assertTupleEqual((num_hyps, p.target_seq_len),
+                          actual_decode.topk_ids.shape)
+    self.assertTupleEqual((num_hyps,), actual_decode.topk_lens.shape)
+    self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
+                          actual_decode.topk_scores.shape)
+
+    expected_topk_ids = [[2, 0, 0, 0, 0], [13, 2, 0, 0, 0], [0, 0, 0, 0, 0],
+                         [0, 0, 0, 0, 0]]
+    expected_topk_lens = [1, 2, 0, 0]
+    expected_topk_scores = [[-3.783162, -5.767723], [0., 0.]]
     self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
     self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
