@@ -1084,11 +1084,11 @@ class LayerNormalizedLSTMCell(RNNCell):
     return py_utils.NestedMap(
         m=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype,
+                                    dtype=py_utils.FPropDtype(p),
                                     is_eval=self.do_eval),
         c=py_utils.InitRNNCellState([batch_size, p.num_output_nodes],
                                     init=p.zero_state_init_params,
-                                    dtype=p.dtype,
+                                    dtype=py_utils.FPropDtype(p),
                                     is_eval=self.do_eval))
 
   def GetOutput(self, state):
