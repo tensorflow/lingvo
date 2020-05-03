@@ -70,7 +70,7 @@ python_bin_path=$(which python || which python3 || die "Cannot find Python binar
 
   echo
   echo '== check for virtualenv ========================================='
-  ${python_bin_path} -c "import sys;print(hasattr(sys, \"real_prefix\"))"
+  ${python_bin_path} -c "import sys;print(hasattr(sys, \"real_prefix\") or hasattr(sys, \"base_prefix\") and sys.base_prefix!=sys.prefix)"
 
   echo
   echo '== tensorflow import ============================================'
