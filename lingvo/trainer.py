@@ -130,6 +130,11 @@ tf.flags.DEFINE_string('decoder_job', '/job:decoder', 'Job name')
 tf.flags.DEFINE_integer('decoder_replicas', 0, 'Number of replicas.')
 tf.flags.DEFINE_integer('decoder_gpus', 0, 'Number of gpus to use per replica.')
 
+tf.flags.DEFINE_integer(
+    'inference_graph_random_seed', None,
+    'Random seed to fix when exporting inference graph. '
+    'Not fixed when set to None.')
+
 tf.flags.DEFINE_bool(
     'evaler_in_same_address_as_controller', False,
     'Whether or not evaler is in the same address space as '
@@ -1777,7 +1782,8 @@ class RunnerManager(object):
       self.inference_graph_exporter.InferenceGraphExporter.Export(
           model_cfg=cfg,
           model_task_name=FLAGS.model_task_name,
-          export_path=filename_prefix + '.pbtxt')
+          export_path=filename_prefix + '.pbtxt',
+          random_seed=FLAGS.inference_graph_random_seed)
     except NotImplementedError as e:
       tf.logging.error('Cannot write inference graph: %s', e)
 
@@ -1792,7 +1798,8 @@ class RunnerManager(object):
               var_options='ON_DEVICE',
               gen_init_op=True,
               dtype_override=None),
-          export_path=filename_prefix + '_tpu.pbtxt')
+          export_path=filename_prefix + '_tpu.pbtxt',
+          random_seed=FLAGS.inference_graph_random_seed)
     except Exception as e:  # pylint: disable=broad-except
       tf.logging.error('Error exporting TPU inference graph: %s' % e)
 
