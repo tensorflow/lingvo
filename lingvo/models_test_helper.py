@@ -39,10 +39,14 @@ def _StubOutCreateVariable(variable_cache):
                           reuse=None,
                           trainable=True,
                           collections=None,
-                          default_seed=None):
+                          default_seed=None,
+                          synchronization=None,
+                          aggregation=None):
     """Return a zero tensor of the right shape instead of creating variable."""
     del reuse
     del default_seed
+    del synchronization
+    del aggregation
     dtype = params.dtype
     shape = py_utils.ToStaticShape(params.shape)
     # For total samples counters we have to actually create variables so that
