@@ -1780,8 +1780,10 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
     """
     p = self.params
     ids = tf.convert_to_tensor(ids)
-    ids = py_utils.with_dependencies(
-        [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids, 0, p.vocab_size, name='vocab_id_validation')
+    ], ids)
     embs = tf.nn.embedding_lookup(theta.emb_var, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
@@ -1878,8 +1880,10 @@ class EmbeddingLayer(base_layer.BaseLayer):
     """
     p = self.params
     ids = tf.convert_to_tensor(ids)
-    ids = py_utils.with_dependencies(
-        [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids, 0, p.vocab_size, name='vocab_id_validation')
+    ], ids)
     embs = tf.nn.embedding_lookup(theta.wm, tf.reshape(ids, [-1]))
     if p.scale_sqrt_depth:
       embs *= p.embedding_dim**0.5
@@ -2489,8 +2493,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       ids = tf.cast(ids, tf.int32)
     p = self.params
     if not py_utils.use_xla():
-      ids = py_utils.with_dependencies(
-          [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+      ids = py_utils.with_dependencies([
+          py_utils.assert_between(
+              ids, 0, p.vocab_size, name='vocab_id_validation')
+      ], ids)
     embs_result = self._fprop(self.QWeight(theta.wm), tf.reshape(ids, [-1]))
     if p.vn.global_vn or p.vn.per_step_vn:
       emb_noise = p.vn.scale * tf.random.normal(
@@ -2549,8 +2555,10 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
     del theta
     p = self.params
     if not py_utils.use_xla():
-      ids = py_utils.with_dependencies(
-          [py_utils.assert_between(ids, 0, p.vocab_size)], ids)
+      ids = py_utils.with_dependencies([
+          py_utils.assert_between(
+              ids, 0, p.vocab_size, name='vocab_id_validation')
+      ], ids)
     low_confidence = p.uncertainty / tf.cast(p.vocab_size - 1, tf.float32)
     high_confidence = 1.0 - p.uncertainty
     embs_result = tf.one_hot(
@@ -3192,8 +3200,10 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
   def EmbLookup(self, theta, ids):
     p = self.params
     if not py_utils.use_xla():
-      ids = py_utils.with_dependencies(
-          [py_utils.assert_between(ids, 0, p.num_classes)], ids)
+      ids = py_utils.with_dependencies([
+          py_utils.assert_between(
+              ids, 0, p.num_classes, name='class_id_validation')
+      ], ids)
 
     wm = self._ConcatWeights(theta).wm
     if not self._transpose_weight_params:
