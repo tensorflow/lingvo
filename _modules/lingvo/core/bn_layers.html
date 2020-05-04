@@ -281,14 +281,22 @@
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_mean&#39;</span><span class="p">,</span> <span class="n">mva</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;moving_mean&#39;</span><span class="p">,</span>
+          <span class="n">mva</span><span class="p">,</span>
+          <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">aggregation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableAggregation</span><span class="o">.</span><span class="n">MEAN</span><span class="p">)</span>
 
       <span class="n">mvv</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
           <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_variance&#39;</span><span class="p">,</span> <span class="n">mvv</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;moving_variance&#39;</span><span class="p">,</span>
+          <span class="n">mvv</span><span class="p">,</span>
+          <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">aggregation</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">VariableAggregation</span><span class="o">.</span><span class="n">MEAN</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span> <span class="o">=</span> <span class="mf">0.001</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span>
 
