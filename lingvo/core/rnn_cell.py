@@ -504,16 +504,17 @@ class LSTMCellSimple(RNNCell):
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
-    p = self.params
-    fns = self.fns
-    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
-    xmw = fns.qadd(xmw, b, qt='add_bias')
-    gates = tf.split(value=xmw, num_or_size_splits=self.num_gates, axis=1)
-    if not p.couple_input_forget_gates:
-      i_i, i_g, f_g, o_g = gates
-    else:
-      i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
+    i_i, i_g, f_g, o_g = self._RetrieveAndSplitGates(xmw, theta)
     return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+
+  def _RetrieveAndSplitGates(self, xmw, theta):
+    p = self.params
+    b = self.QWeight(tf.expand_dims(self._GetBias(theta), 0), domain='fc')
+    xmw = self.fns.qadd(xmw, b, qt='add_bias')
+    gates = tf.split(value=xmw, num_or_size_splits=self.num_gates, axis=1)
+    if p.couple_input_forget_gates:
+      gates = gates[0], None, gates[1], gates[2]
+    return gates
 
   def _GatesInternal(self, theta, state0, inputs, i_i, i_g, f_g, o_g):
     p = self.params
