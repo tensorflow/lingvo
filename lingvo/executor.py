@@ -41,6 +41,10 @@ tf.flags.DEFINE_bool(
     'enables sharded checkpointing and reduces host memory ' +
     'requirements, see _LeastLoadedPlacer in cluster.py.')
 
+tf.flags.DEFINE_bool(
+    'disable_meta_optimizer_in_executor', False,
+    'Disabling the grappler meta_optimizer improves start-up time.')
+
 FLAGS = tf.flags.FLAGS
 
 
@@ -240,7 +244,9 @@ class ExecutorTpu(base_runner.BaseRunner):
       """Wait until the model is ready."""
       try:
         with self._graph.as_default(), self._GetSession(
-            cluster_def=self._cluster_def) as sess:
+            cluster_def=self._cluster_def,
+            disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
+        ) as sess:
           topology = sess.run(
               tf.tpu.initialize_system(embedding_config=None, job=None))
           device_assignment = device_assignment_lib.device_assignment(
@@ -286,7 +292,9 @@ class ExecutorTpu(base_runner.BaseRunner):
 
   def _Loop(self):
     with tf.container(self._container_id), self._GetSession(
-        cluster_def=self._cluster_def) as sess:
+        cluster_def=self._cluster_def,
+        disable_meta_optimizer=FLAGS.disable_meta_optimizer_in_executor
+    ) as sess:
       # Initialize the variables first, if needed.
       for program in self._programs:
         program.RestoreIfNeeded(sess)
@@ -298,7 +306,8 @@ class ExecutorTpu(base_runner.BaseRunner):
         global_step = sess.run(py_utils.GetGlobalStep())
         if self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
-          self.save_only_checkpointer.Save(sess, global_step)
+          if not self._ml_perf_log:
+            self.save_only_checkpointer.Save(sess, global_step)
           return
 
         # If a task is explicitly selected, only run the programs associated

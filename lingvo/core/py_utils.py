@@ -619,13 +619,17 @@ def GetTpuDeviceAssignment():
   return _tpu_device_assignment
 
 
-def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
+def SessionConfig(soft_placement=True,
+                  inline=True,
+                  cluster_def=None,
+                  disable_meta_optimizer=False):
   """Returns a session config proto.
 
   Args:
     soft_placement: Turns allow_soft_placement on iff True.
     inline: Turns do_function_inlining on iff True.
     cluster_def: A tf.train.ClusterDef describing the cluster.
+    disable_meta_optimizer: Turns off grappler/metagraph optimizer.
 
   Returns:
     A TF session config proto.
@@ -636,6 +640,10 @@ def SessionConfig(soft_placement=True, inline=True, cluster_def=None):
           optimizer_options=tf.OptimizerOptions(
               opt_level=tf.OptimizerOptions.L1, do_function_inlining=inline)),
       cluster_def=cluster_def)
+
+  if disable_meta_optimizer:
+    # Useful if start-up time is critical.
+    session_config.graph_options.rewrite_options.disable_meta_optimizer = True
   # Disable layout optimizer which increases GPU memory usage.
   session_config.graph_options.rewrite_options.layout_optimizer = (
       rewriter_config_pb2.RewriterConfig.OFF)
