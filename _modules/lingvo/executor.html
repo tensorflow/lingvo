@@ -186,6 +186,10 @@
     <span class="s1">&#39;enables sharded checkpointing and reduces host memory &#39;</span> <span class="o">+</span>
     <span class="s1">&#39;requirements, see _LeastLoadedPlacer in cluster.py.&#39;</span><span class="p">)</span>
 
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;disable_meta_optimizer_in_executor&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Disabling the grappler meta_optimizer improves start-up time.&#39;</span><span class="p">)</span>
+
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
@@ -385,7 +389,9 @@
       <span class="sd">&quot;&quot;&quot;Wait until the model is ready.&quot;&quot;&quot;</span>
       <span class="k">try</span><span class="p">:</span>
         <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
-            <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+            <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span>
+            <span class="n">disable_meta_optimizer</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_meta_optimizer_in_executor</span>
+        <span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
           <span class="n">topology</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(</span><span class="n">embedding_config</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">job</span><span class="o">=</span><span class="kc">None</span><span class="p">))</span>
           <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
@@ -431,7 +437,9 @@
 
   <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">(</span>
-        <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+        <span class="n">cluster_def</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span><span class="p">,</span>
+        <span class="n">disable_meta_optimizer</span><span class="o">=</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">disable_meta_optimizer_in_executor</span>
+    <span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
       <span class="c1"># Initialize the variables first, if needed.</span>
       <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
         <span class="n">program</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -443,7 +451,8 @@
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
+          <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">save_only_checkpointer</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
           <span class="k">return</span>
 
         <span class="c1"># If a task is explicitly selected, only run the programs associated</span>
