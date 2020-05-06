@@ -292,3 +292,44 @@ class RoundRobinScheduler(TaskScheduler):
     sampled_task = self.tasks[self.next_task_idx]
     self.next_task_idx = (self.next_task_idx + 1) % self.n_tasks
     return sampled_task
+
+
+class SequentialScheduler(TaskScheduler):
+  """Deterministic schedule that stays a fixed number of steps on each task."""
+
+  @classmethod
+  def Params(cls):
+    p = super(SequentialScheduler, cls).Params()
+    p.Define(
+        'task_steps', [], 'List of tuples of (task_name, steps_for_task). Goes '
+        'through list sequentially in the specified order, staying '
+        'steps_for_task steps on task_name. On completing the schedule, '
+        'remains on the final task for the rest of the time. Assumes '
+        'p.task_global_step is False.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(SequentialScheduler, self).__init__(params)
+    assert isinstance(self.params.task_steps, list)
+    assert self.params.task_steps
+    self.task_steps = []
+    for (name, steps) in self.params.task_steps:
+      assert steps > 0
+      if self.task_steps:
+        self.task_steps.append((name, steps + self.task_steps[-1][1]))
+      else:
+        self.task_steps.append((name, steps))
+    self.n_tasks = len(self.task_steps)
+    self.task_idx = 0
+    self.cur_probs = [1] + [0] * (self.n_tasks - 1)  # For summary
+
+  def Sample(self, current_step):
+    """Sample a task."""
+    sampled_task, to_step = self.task_steps[self.task_idx]
+    if current_step >= to_step and self.task_idx < self.n_tasks - 1:
+      self.task_idx += 1
+      sampled_task = self.task_steps[self.task_idx][0]
+      self.cur_probs[self.task_idx - 1] = 0
+      self.cur_probs[self.task_idx] = 1
+    return sampled_task

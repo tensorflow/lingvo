@@ -169,6 +169,32 @@ class SchedulerTests(test_utils.TestCase):
       tasks.append(schedule.Sample(global_step))
     self.assertEqual(['a', 'b', 'a', 'b'], tasks)
 
+  def testSequentialScheduler(self):
+    """Test sequential scheduler."""
+    p = task_scheduler.SequentialScheduler.Params()
+    p.task_steps = [('a', 8), ('b', 10), ('c', 2)]
+
+    schedule = p.Instantiate()
+    tasks = []
+
+    for global_step in range(25):
+      tasks.append(schedule.Sample(global_step))
+    expected_tasks = ['a'] * 8 + ['b'] * 10 + ['c'] * 2 + ['c'] * 5
+    self.assertEqual(expected_tasks, tasks)
+
+  def testSequentialSchedulerUnevenStep(self):
+    """Sequential schedule uses global_step even with uneven step increments."""
+    p = task_scheduler.SequentialScheduler.Params()
+    p.task_steps = [('a', 8), ('b', 10), ('c', 2)]
+
+    schedule = p.Instantiate()
+    tasks = []
+
+    for global_step in [0, 2, 10, 17, 21]:
+      tasks.append(schedule.Sample(global_step))
+    expected_tasks = ['a', 'a', 'b', 'b', 'c']
+    self.assertEqual(expected_tasks, tasks)
+
 
 if __name__ == '__main__':
   tf.test.main()
