@@ -199,26 +199,6 @@ tf.flags.DEFINE_string(
 
 FLAGS = tf.flags.FLAGS
 
-# Map from split size to computation_shape for TPU model parallelism.
-SUPPORTED_SPLIT_SIZE = {
-    1: [1, 1, 1, 1],
-    2: [1, 1, 1, 2],
-    4: [1, 2, 1, 2],
-    8: [2, 2, 1, 2],
-    16: [4, 2, 1, 2],
-    32: [4, 4, 1, 2],
-    64: [4, 8, 1, 2],
-    128: [8, 8, 1, 2]
-}
-
-
-def ComputationShape(split_size):
-  """Decides the computation shape based on the split_size."""
-  assert (split_size in SUPPORTED_SPLIT_SIZE), ('Model parallelism with %d',
-                                                'devices is currently not'
-                                                ' supported.' % split_size)
-  return SUPPORTED_SPLIT_SIZE[split_size]
-
 
 # useful for debugging.
 def _StartShell(local_ns=None):
@@ -575,7 +555,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
         device_assignment = device_assignment_lib.device_assignment(
             topology,
-            computation_shape=ComputationShape(num_devices_per_split),
+            computation_shape=py_utils.ComputationShape(num_devices_per_split),
             num_replicas=data_parallelism)
         py_utils.SetTpuDeviceAssignment(device_assignment)
         tf.logging.info('device_assignment.core_assignment: %s',

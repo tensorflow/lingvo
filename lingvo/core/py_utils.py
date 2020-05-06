@@ -4236,6 +4236,38 @@ def GetTpuSummaryTensors():
   }
 
 
+def ComputationShape(split_size):
+  """Decides the computation shape based on the split_size."""
+  computation_shape = None
+  if split_size == 1:
+    computation_shape = [1, 1, 1, 1]
+  elif split_size == 2:
+    computation_shape = [1, 1, 1, 2]
+  elif split_size == 4:
+    computation_shape = [1, 2, 1, 2]
+  elif split_size == 8:
+    computation_shape = [2, 2, 1, 2]
+  elif split_size == 16:
+    computation_shape = [4, 2, 1, 2]
+  elif split_size == 32:
+    computation_shape = [4, 4, 1, 2]
+  elif split_size == 64:
+    computation_shape = [4, 8, 1, 2]
+  elif split_size == 128:
+    computation_shape = [8, 8, 1, 2]
+  elif split_size == 256:
+    computation_shape = [8, 16, 1, 2]
+  elif split_size == 512:
+    computation_shape = [16, 16, 1, 2]
+  elif split_size == 2048:
+    computation_shape = [32, 32, 1, 2]
+  else:
+    assert False, ('Model parallelism with %d devices is currently not'
+                   ' supported.' % split_size)
+  assert computation_shape is not None
+  return computation_shape
+
+
 def GetExtraVars():
   """Returns the captured variables by the function."""
   g = tf.get_default_graph()

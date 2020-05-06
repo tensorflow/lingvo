@@ -147,7 +147,7 @@ class ExecutorTpu(base_runner.BaseRunner):
     assert data_parallelism
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
-                         data_parallelism, num_devices_per_split)
+                    data_parallelism, num_devices_per_split)
 
     self.task_scheduler = None
     self._checkpoint_dir = os.path.join(logdir, 'train')
@@ -194,7 +194,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       ps = program_schedule_params.Instantiate()
       self._program_schedule_dict[task_string] = ps
       tf.logging.info('program_schedule_params: %s',
-                           program_schedule_params.ToText())
+                      program_schedule_params.ToText())
       self._programs += ps.Programs()
       if program_schedule_params.ml_perf.benchmark_name is not None:
         self._ml_perf = program_schedule_params.ml_perf
@@ -210,35 +210,6 @@ class ExecutorTpu(base_runner.BaseRunner):
     # BaseRunner legacy
     self.enqueue_ops = None
 
-    def ComputationShape(split_size):
-      """Decides the computation shape based on the split_size."""
-      computation_shape = None
-      if split_size == 1:
-        computation_shape = [1, 1, 1, 1]
-      elif split_size == 2:
-        computation_shape = [1, 1, 1, 2]
-      elif split_size == 4:
-        computation_shape = [1, 2, 1, 2]
-      elif split_size == 8:
-        computation_shape = [2, 2, 1, 2]
-      elif split_size == 16:
-        computation_shape = [4, 2, 1, 2]
-      elif split_size == 32:
-        computation_shape = [4, 4, 1, 2]
-      elif split_size == 64:
-        computation_shape = [4, 8, 1, 2]
-      elif split_size == 128:
-        computation_shape = [8, 8, 1, 2]
-      elif split_size == 256:
-        computation_shape = [8, 16, 1, 2]
-      elif split_size == 512:
-        computation_shape = [16, 16, 1, 2]
-      else:
-        assert False, ('Model parallelism with %d devices is currently not'
-                       ' supported.' % split_size)
-      assert computation_shape is not None
-      return computation_shape
-
     @py_utils.RetryOnTransientTfError()
     def _WaitTillInit():
       """Wait until the model is ready."""
@@ -251,11 +222,12 @@ class ExecutorTpu(base_runner.BaseRunner):
               tf.tpu.initialize_system(embedding_config=None, job=None))
           device_assignment = device_assignment_lib.device_assignment(
               topology,
-              computation_shape=ComputationShape(num_devices_per_split),
+              computation_shape=py_utils.ComputationShape(
+                  num_devices_per_split),
               num_replicas=data_parallelism)
           py_utils.SetTpuDeviceAssignment(device_assignment)
           tf.logging.info('device_assignment.core_assignment: %s',
-                               str(device_assignment.core_assignment))
+                          str(device_assignment.core_assignment))
           tf.logging.info(
               'device_assignment.topology.device_coordinates: %s',
               str(device_assignment.topology.device_coordinates))
