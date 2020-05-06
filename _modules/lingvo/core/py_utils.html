@@ -4381,6 +4381,38 @@
   <span class="p">}</span></div>
 
 
+<div class="viewcode-block" id="ComputationShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputationShape">[docs]</a><span class="k">def</span> <span class="nf">ComputationShape</span><span class="p">(</span><span class="n">split_size</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.&quot;&quot;&quot;</span>
+  <span class="n">computation_shape</span> <span class="o">=</span> <span class="kc">None</span>
+  <span class="k">if</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">16</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">32</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">64</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">128</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">256</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">512</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">elif</span> <span class="n">split_size</span> <span class="o">==</span> <span class="mi">2048</span><span class="p">:</span>
+    <span class="n">computation_shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="kc">False</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Model parallelism with </span><span class="si">%d</span><span class="s1"> devices is currently not&#39;</span>
+                   <span class="s1">&#39; supported.&#39;</span> <span class="o">%</span> <span class="n">split_size</span><span class="p">)</span>
+  <span class="k">assert</span> <span class="n">computation_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="k">return</span> <span class="n">computation_shape</span></div>
+
+
 <div class="viewcode-block" id="GetExtraVars"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetExtraVars">[docs]</a><span class="k">def</span> <span class="nf">GetExtraVars</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Returns the captured variables by the function.&quot;&quot;&quot;</span>
   <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span>

@@ -344,26 +344,6 @@
 
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
-<span class="c1"># Map from split size to computation_shape for TPU model parallelism.</span>
-<span class="n">SUPPORTED_SPLIT_SIZE</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="mi">1</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-    <span class="mi">2</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">4</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">8</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">16</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">32</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">64</span><span class="p">:</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span>
-    <span class="mi">128</span><span class="p">:</span> <span class="p">[</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span>
-<span class="p">}</span>
-
-
-<div class="viewcode-block" id="ComputationShape"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.ComputationShape">[docs]</a><span class="k">def</span> <span class="nf">ComputationShape</span><span class="p">(</span><span class="n">split_size</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Decides the computation shape based on the split_size.&quot;&quot;&quot;</span>
-  <span class="k">assert</span> <span class="p">(</span><span class="n">split_size</span> <span class="ow">in</span> <span class="n">SUPPORTED_SPLIT_SIZE</span><span class="p">),</span> <span class="p">(</span><span class="s1">&#39;Model parallelism with </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                                                <span class="s1">&#39;devices is currently not&#39;</span>
-                                                <span class="s1">&#39; supported.&#39;</span> <span class="o">%</span> <span class="n">split_size</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">SUPPORTED_SPLIT_SIZE</span><span class="p">[</span><span class="n">split_size</span><span class="p">]</span></div>
-
 
 <span class="c1"># useful for debugging.</span>
 <div class="viewcode-block" id="_StartShell"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._StartShell">[docs]</a><span class="k">def</span> <span class="nf">_StartShell</span><span class="p">(</span><span class="n">local_ns</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -720,7 +700,7 @@
 
         <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
             <span class="n">topology</span><span class="p">,</span>
-            <span class="n">computation_shape</span><span class="o">=</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">),</span>
+            <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">),</span>
             <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
