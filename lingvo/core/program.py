@@ -538,14 +538,17 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       self._ml_perf_epoch = -1
     else:
       self._ml_perf_log = False
-
     self._program_name = 'TrainAndDecodeProgram'
     self._train_steps_per_loop = params.train_steps_per_loop
     self._decode_steps_per_loop = params.decode_steps_per_loop
+    assert self._decode_steps_per_loop == 1, ('Only supports a single decode '
+                                              'step right now.')
     self._train_task_params = params.train_task
     self._decode_task_params = params.decode_task
     self._run_start = None
     self._run_stop = None
+    self._train_pool = multiprocessing.dummy.Pool(1)
+    self._warmup_seconds = 60
 
   def BuildTpuSubgraph(self):
     if self._ml_perf_log:
@@ -637,9 +640,27 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
       raise
 
+  def _TrainAndDecode(self, sess):
+    metrics_values = sess.run(self.metrics)
+    self._decode_model_task.PostProcessDecodeOut(metrics_values,
+                                                 self.dec_metrics)
+
   def Run(self, sess):
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
+    self.dec_metrics = self._decode_model_task.CreateDecoderMetrics()
+    # Start TPU program thread.
+    train_future = self._train_pool.apply_async(
+        self._TrainAndDecode, args=(sess,))
+
+    if self._warmup_seconds > 0:
+      # The first execution of the TPU program has a warm-up
+      # so we delay feeding data yet as that's when the MLPerf timing
+      # starts. This way, when we actually infeed, the TPU program
+      # is immediately ready to execute/dequeue data.
+      tf.logging.info('Waiting before first infeed.')
+      time.sleep(self._warmup_seconds)
+      self._warmup_seconds = 0
 
     if self._ml_perf_log:
       if not self._run_start:
@@ -655,28 +676,19 @@ class MLPerfTrainDecodeProgram(BaseProgram):
                 'first_epoch_num': epoch + 1,
                 'epoch_count': 1
             })
-
-        self.SetStatusMessage('MLPerf epoch: %d' % self._ml_perf_epoch)
-
+      self.SetStatusMessage('MLPerf epoch: %d' % self._ml_perf_epoch)
+    # Start infeed thread.
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
-    dec_metrics = self._decode_model_task.CreateDecoderMetrics()
-    buffered_decode_out = []
-    for i in range(self._decode_steps_per_loop):
-      metrics_values = sess.run(self.metrics)
-      decode_out = self._decode_model_task.PostProcessDecodeOut(
-          metrics_values, dec_metrics)
-      tf.logging.info('step: %d %f' %
-                      (i, dec_metrics['num_samples_in_batch'].total_value))
-      if decode_out:
-        buffered_decode_out.extend(decode_out)
+
     infeed_future.wait()
+    train_future.wait()
 
     if self._ml_perf_log:
       mlp_log.mlperf_print(
           'eval_stop', None, metadata={'epoch_num': (epoch + 1)})
       mlperf_metric = self._ml_perf.decoder_metric_name
-      mlperf_metric_value = float(dec_metrics[mlperf_metric].value)
+      mlperf_metric_value = float(self.dec_metrics[mlperf_metric].value)
       mlp_log.mlperf_print(
           'eval_accuracy', mlperf_metric_value, metadata={'epoch_num': epoch})
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
