@@ -753,6 +753,30 @@ py_library(
     }),
 )
 
+py_library(
+    name = "ml_perf_bleu_metric",
+    srcs = ["ml_perf_bleu_metric.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":metrics",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "ml_perf_bleu_metric_test",
+    srcs = ["ml_perf_bleu_metric_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":ml_perf_bleu_metric",
+        ":test_utils",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
 py_test(
     name = "metrics_test",
     srcs = ["metrics_test.py"],

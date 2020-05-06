@@ -676,7 +676,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       mlp_log.mlperf_print(
           'eval_stop', None, metadata={'epoch_num': (epoch + 1)})
       mlperf_metric = self._ml_perf.decoder_metric_name
-      mlperf_metric_value = dec_metrics[mlperf_metric].value
+      mlperf_metric_value = float(dec_metrics[mlperf_metric].value)
       mlp_log.mlperf_print(
           'eval_accuracy', mlperf_metric_value, metadata={'epoch_num': epoch})
       if mlperf_metric_value > self._ml_perf.decoder_metric_success_threshold:
