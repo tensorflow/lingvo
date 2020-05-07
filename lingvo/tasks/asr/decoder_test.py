@@ -14,8 +14,6 @@
 # limitations under the License.
 """Tests for speech decoder."""
 
-import os
-import re
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import layers as lingvo_layers
@@ -202,7 +200,7 @@ class DecoderTest(test_utils.TestCase):
       metrics_val, per_sequence_loss_val = sess.run(
           [metrics, per_sequence_loss])
       tf.logging.info('metrics=%s, per_sequence_loss=%s', metrics_val,
-                           per_sequence_loss_val)
+                      per_sequence_loss_val)
 
       self.assertEqual(metrics_val['loss'], metrics_val['log_pplx'])
       # Target batch size is 4. Therefore, we should expect 4 here.

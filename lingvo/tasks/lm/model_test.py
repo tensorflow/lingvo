@@ -16,7 +16,6 @@
 """Tests for lm.model."""
 
 
-import os
 import lingvo.compat as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
@@ -112,7 +111,7 @@ class ModelTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       mdl = p.Instantiate()
       subgraphs = mdl.Inference()
-      self.assertTrue('default' in subgraphs)
+      self.assertIn('default', subgraphs)
       fetches, feeds = subgraphs['default']
       tf.global_variables_initializer().run()
       vals = sess.run(
@@ -142,7 +141,7 @@ class ModelTest(test_utils.TestCase):
     with self.session(use_gpu=False) as sess:
       mdl = p.Instantiate()
       subgraphs = mdl.Inference()
-      self.assertTrue('default' in subgraphs)
+      self.assertIn('default', subgraphs)
       fetches, feeds = subgraphs['default']
       tf.global_variables_initializer().run()
       vals = sess.run(

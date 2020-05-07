@@ -1031,16 +1031,16 @@ class ConvLayerTest(test_utils.TestCase):
     # pyformat: disable
     # pylint: disable=bad-whitespace
     expected_output = [
-       [[[ 0.36997819,  0.91361964],
-         [ 0.07550576,  0.        ]],
+        [[[ 0.36997819,  0.91361964],
+          [ 0.07550576,  0.        ]],
 
-        [[ 0.35487702,  0.        ],
-         [ 1.92539668,  0.        ]]],
-       [[[ 0.27937129,  0.        ],
-         [ 0.        ,  0.        ]],
+         [[ 0.35487702,  0.        ],
+          [ 1.92539668,  0.        ]]],
+        [[[ 0.27937129,  0.        ],
+          [ 0.        ,  0.        ]],
 
-        [[ 0.        ,  0.86831617],
-         [ 0.        ,  1.59317136]]]]
+         [[ 0.        ,  0.86831617],
+          [ 0.        ,  1.59317136]]]]
     # pyformat: enable
     # pylint: enable=bad-whitespace
 
@@ -2370,9 +2370,9 @@ class EmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[1], [2]])
       outputs = emb_layer.EmbLookupDefaultTheta(ids)
 
-      self.assertTrue('wm' in emb_layer.vars.wm.name)
-      self.assertTrue('mask' in emb_layer.vars.mask.name)
-      self.assertTrue('threshold' in emb_layer.vars.threshold.name)
+      self.assertIn('wm', emb_layer.vars.wm.name)
+      self.assertIn('mask', emb_layer.vars.mask.name)
+      self.assertIn('threshold', emb_layer.vars.threshold.name)
 
       self.assertEqual(emb_layer.theta.wm.get_shape(), tf.TensorShape([10, 5]))
       self.assertEqual(emb_layer.theta.mask.get_shape(), tf.TensorShape([10,
@@ -2765,12 +2765,12 @@ class SoftmaxLayerTest(test_utils.TestCase):
     params.random_seed = 12345678
     softmax_layer = layers.SimpleFullSoftmax(params)
 
-    self.assertTrue('weight_0' in softmax_layer.vars.weight_0.name)
-    self.assertTrue('weight_1' in softmax_layer.vars.weight_1.name)
-    self.assertTrue('mask_0' in softmax_layer.vars.mask_0.name)
-    self.assertTrue('mask_1' in softmax_layer.vars.mask_1.name)
-    self.assertTrue('threshold_0' in softmax_layer.vars.threshold_0.name)
-    self.assertTrue('threshold_1' in softmax_layer.vars.threshold_1.name)
+    self.assertIn('weight_0', softmax_layer.vars.weight_0.name)
+    self.assertIn('weight_1', softmax_layer.vars.weight_1.name)
+    self.assertIn('mask_0', softmax_layer.vars.mask_0.name)
+    self.assertIn('mask_1', softmax_layer.vars.mask_1.name)
+    self.assertIn('threshold_0', softmax_layer.vars.threshold_0.name)
+    self.assertIn('threshold_1', softmax_layer.vars.threshold_1.name)
 
     self.assertEqual(softmax_layer.theta.weight_0.get_shape(),
                      tf.TensorShape([10, 16]))
@@ -3182,7 +3182,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
     np.random.seed(12345)
     class_ids = [[1], [5], [10]]
     class_weights = [[1.0], [0.4], [0.8]]
-    inputs=np.random.rand(3, 10)
+    inputs = np.random.rand(3, 10)
     per_example_xent = None
     per_example_argmax = None
     for chunk_size in (0, 1, 3):
@@ -4283,7 +4283,7 @@ class DeconvLayerTest(test_utils.TestCase):
 
       summary = np.sum(np.square(out_v), axis=(1, 2, 3))
       tf.logging.info('testDeconvLaye rFProp actual = %s',
-                           np.array_repr(summary))
+                      np.array_repr(summary))
       self.assertAllClose([4.77159977, 5.47860432], summary)
 
 

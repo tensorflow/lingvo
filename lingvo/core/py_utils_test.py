@@ -603,8 +603,8 @@ class PyUtilsTest(test_utils.TestCase):
       _ = py_utils.CreateVariable('v1', pc)
 
     for v in [v2, v3]:
-      self.assertTrue(v1 is v)
-    self.assertTrue(v1 is not x1)
+      self.assertIs(v1, v)
+    self.assertIsNot(v1, x1)
 
   def testGetOrCreateGlobalStepVar(self):
     with tf.variable_scope('s1'):
@@ -616,7 +616,7 @@ class PyUtilsTest(test_utils.TestCase):
     gs5 = py_utils.GetOrCreateGlobalStepVar()
     gs6 = tf.train.get_global_step()
     for gs in [gs2, gs3, gs4, gs5, gs6]:
-      self.assertTrue(gs1 is gs)
+      self.assertIs(gs1, gs)
     self.assertEqual(gs1.name, 'global_step:0')
 
   def testCreateLocalTheta(self):
@@ -639,7 +639,7 @@ class PyUtilsTest(test_utils.TestCase):
 
     # assert the name is now Identity*
     for v in sharded_local_vars_list:
-      self.assertTrue('Identity' in v.name)
+      self.assertIn('Identity', v.name)
 
     # assert proper device placement
     for i, v in enumerate(sharded_local_vars_list):

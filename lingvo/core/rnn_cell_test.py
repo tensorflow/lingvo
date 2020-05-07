@@ -49,14 +49,14 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       gru = rnn_cell.GRUCell(params)
 
       print('gru vars = ', gru.vars)
-      self.assertTrue('w_r' in gru.vars.w_r.name)
-      self.assertTrue('w_u' in gru.vars.w_u.name)
-      self.assertTrue('w_n' in gru.vars.w_n.name)
+      self.assertIn('w_r', gru.vars.w_r.name)
+      self.assertIn('w_u', gru.vars.w_u.name)
+      self.assertIn('w_n', gru.vars.w_n.name)
 
       if enable_gru_bias:
-        self.assertTrue('b_n' in gru.vars.b_n.name)
-        self.assertTrue('b_r' in gru.vars.b_r.name)
-        self.assertTrue('b_u' in gru.vars.b_u.name)
+        self.assertIn('b_n', gru.vars.b_n.name)
+        self.assertIn('b_r', gru.vars.b_r.name)
+        self.assertIn('b_u', gru.vars.b_u.name)
 
       self.assertEqual(
           gru.theta.w_n.get_shape(),
@@ -149,10 +149,10 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.LSTMCellSimple(params)
 
       print('lstm vars = ', lstm.vars)
-      self.assertTrue('wm' in lstm.vars.wm.name)
+      self.assertIn('wm', lstm.vars.wm.name)
 
       if enable_lstm_bias:
-        self.assertTrue('b' in lstm.vars.b.name)
+        self.assertIn('b', lstm.vars.b.name)
 
       num_param_vectors = 6 if couple_input_forget_gates else 8
       self.assertEqual(lstm.theta.wm.get_shape(),
@@ -292,10 +292,10 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.LSTMCellSimple(params)
 
       print('lstm vars = ', lstm.vars)
-      self.assertTrue('wm' in lstm.vars.wm.name)
+      self.assertIn('wm', lstm.vars.wm.name)
 
       if enable_lstm_bias:
-        self.assertTrue('b' in lstm.vars.b.name)
+        self.assertIn('b', lstm.vars.b.name)
 
       num_param_vectors = 8
       self.assertEqual(lstm.theta.wm.get_shape(),
@@ -370,10 +370,10 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.LSTMCellSimple(params)
 
       print('lstm vars = ', lstm.vars)
-      self.assertTrue('wm' in lstm.vars.wm.name)
-      self.assertTrue('b' in lstm.vars.b.name)
-      self.assertTrue('mask' in lstm.vars.mask.name)
-      self.assertTrue('threshold' in lstm.vars.threshold.name)
+      self.assertIn('wm', lstm.vars.wm.name)
+      self.assertIn('b', lstm.vars.b.name)
+      self.assertIn('mask', lstm.vars.mask.name)
+      self.assertIn('threshold', lstm.vars.threshold.name)
 
       num_param_vectors = 8
       self.assertEqual(lstm.theta.wm.get_shape(),
@@ -489,8 +489,8 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.LSTMCellSimple(params)
 
       print('lstm vars = ', lstm.vars)
-      self.assertTrue('wm' in lstm.vars.wm.name)
-      self.assertTrue('b' in lstm.vars.b.name)
+      self.assertIn('wm', lstm.vars.wm.name)
+      self.assertIn('b', lstm.vars.b.name)
 
       self.assertEqual(lstm.theta.wm.get_shape(), tf.TensorShape([3, 8]))
       self.assertEqual(lstm.theta.b.get_shape(), tf.TensorShape([8]))
@@ -543,8 +543,8 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       print('lstm vars = ', lstm.vars)
       for child_lstm in lstm.groups:
-        self.assertTrue('wm' in child_lstm.vars.wm.name)
-        self.assertTrue('b' in child_lstm.vars.b.name)
+        self.assertIn('wm', child_lstm.vars.wm.name)
+        self.assertIn('b', child_lstm.vars.b.name)
 
         self.assertEqual(child_lstm.theta.wm.get_shape(), tf.TensorShape([4,
                                                                           8]))
@@ -915,8 +915,8 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
-      self.assertTrue('wm' in lstm_vars.wm.name)
-      self.assertTrue('b' in lstm_vars.b.name)
+      self.assertIn('wm', lstm_vars.wm.name)
+      self.assertIn('b', lstm_vars.b.name)
 
       w = lstm.theta.wm
       b = lstm.theta.b
@@ -1065,7 +1065,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       b_value = lstm._GetBias(lstm.theta).eval()
       tf.logging.info('testLSTMSimpleWithForgetGateInitBias b = %s',
-                           np.array_repr(b_value))
+                      np.array_repr(b_value))
       # pyformat: disable
       # pylint: disable=bad-whitespace
       expected_b_value = [ 0.1,  0.1,  0.1,  0.1,  0.1,  0.1,  2.1,  2.1,  2.1,
@@ -1541,7 +1541,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.QuantizedLSTMCell(params)
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
-      self.assertTrue('wm' in lstm_vars.wm.name)
+      self.assertIn('wm', lstm_vars.wm.name)
 
       wm = lstm.theta.wm
       self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
@@ -1578,7 +1578,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     lstm = rnn_cell.LayerNormalizedLSTMCell(params)
     lstm_vars = lstm.vars
     print('lstm vars = ', lstm_vars)
-    self.assertTrue('wm' in lstm_vars.wm.name)
+    self.assertIn('wm', lstm_vars.wm.name)
 
     wm = lstm.theta.wm
     self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
@@ -1626,7 +1626,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.QuantizedLSTMCell(params)
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
-      self.assertTrue('wm' in lstm_vars.wm.name)
+      self.assertIn('wm', lstm_vars.wm.name)
 
       wm = lstm.theta.wm
       self.assertEqual(wm.get_shape(), tf.TensorShape([4, 8]))
@@ -1754,11 +1754,11 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       lstm = rnn_cell.LSTMCellSimple(params)
       lstm_vars = lstm.vars
       print('lstm vars = ', lstm_vars)
-      self.assertTrue('wm' in lstm_vars.wm.name)
+      self.assertIn('wm', lstm_vars.wm.name)
       if num_hidden_nodes:
-        self.assertTrue('w_proj' in lstm_vars.w_proj.name)
+        self.assertIn('w_proj', lstm_vars.w_proj.name)
       else:
-        self.assertFalse('w_proj' in lstm_vars)
+        self.assertNotIn('w_proj', lstm_vars)
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       if padding is None:
@@ -2205,9 +2205,9 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       tf.global_variables_initializer().run()
       init_state_value = sess.run(lstm.zero_state(lstm.theta, 1))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
-                           np.array_repr(init_state_value['m']))
+                      np.array_repr(init_state_value['m']))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn c = %s',
-                           np.array_repr(init_state_value['c']))
+                      np.array_repr(init_state_value['c']))
       self.assertAllClose(init_state_value['m'], expected_init_states['m'])
       self.assertAllClose(init_state_value['c'], expected_init_states['c'])
 
