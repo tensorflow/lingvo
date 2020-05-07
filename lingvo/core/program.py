@@ -664,6 +664,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     if self._ml_perf_log:
       if not self._run_start:
+        mlp_log.mlperf_print(key='init_stop', value=None)
         self._run_start = mlp_log.mlperf_print(key='run_start', value=None)
       steps_per_epoch = self._ml_perf.steps_per_epoch
       epoch = int(global_step) // steps_per_epoch
