@@ -202,6 +202,20 @@ lingvo_cc_test_library(
     ],
 )
 
+lingvo_cc_library(
+    name = "text_packing",
+    srcs = ["text_packing.cc"],
+    hdrs = ["text_packing.h"],
+)
+
+lingvo_cc_test(
+    name = "text_packing_test",
+    srcs = ["text_packing_test.cc"],
+    deps = [
+        ":text_packing",
+    ],
+)
+
 ###################### Op kernel implementations.
 
 custom_kernel_library(
