@@ -32,6 +32,36 @@ import numpy as np
 from six.moves import range
 
 
+def _FindMaximumRecall(precision_recall):
+  """Find the maximum recall in all precision recall curves.
+
+  Args:
+    precision_recall: np.array of shape [n, m, 2] where n is the number of
+      classes, m is then number of values in the curve, 2 indexes between
+      precision [0] and recall [1]. np.float32.
+
+  Returns:
+    max_recall: np.array of shape [n] consisting of max recall for all classes
+      where the values are 0.0 if objects are found.
+  """
+  # The method for computing precision-recall inserts precision = 0.0
+  # when a particular recall value has not been achieved. The maximum
+  # recall value is therefore the highest recall value when the associated
+  # precision > 0.
+  assert len(precision_recall.shape) == 3, 'Invalid precision recall curve.'
+  assert precision_recall.shape[-1] == 2, 'Invalid precision recall curve.'
+  num_classes = precision_recall.shape[0]
+
+  max_recall = np.zeros(shape=(num_classes), dtype=np.float32)
+
+  valid_precisions = precision_recall[:, :, 0] > 0.0
+  for i in range(num_classes):
+    valid_precisions_indices = valid_precisions[i, :]
+    if np.any(valid_precisions_indices):
+      max_recall[i] = np.max(precision_recall[i, valid_precisions_indices, 1])
+  return max_recall
+
+
 class BreakdownMetric(object):
   """Base class for calculating precision recall conditioned on a variate."""
 
@@ -350,31 +380,17 @@ class ByNumPoints(BreakdownMetric):
     image_summaries = self._GenerateCumulativeSummaries(name)
     p = self.params
 
+    legend_names = []
+    for j in p.metadata.EvalClassIndices():
+      legend_names.append(p.metadata.ClassNames()[j])
+
     num_points_bins = self._values.shape[0]
     ys = np.zeros(
         shape=(num_points_bins, len(p.metadata.EvalClassIndices())),
         dtype=np.float32)
 
-    # The method for computing precision-recall inserts precision = 0.0
-    # when a particular recall value has not been achieved. The maximum
-    # recall value is therefore the highest recall value when the associated
-    # precision > 0.
-    valid_precisions = {}
     for num_points in self._precision_recall:
-      valid_precisions[num_points] = (
-          self._precision_recall[num_points][:, :, 0] > 0.0)
-
-    legend_names = []
-    for i, j in enumerate(p.metadata.EvalClassIndices()):
-      legend_names.append(p.metadata.ClassNames()[j])
-      for num_points in self._precision_recall:
-        valid_precisions_indices = valid_precisions[num_points][i]
-        if not np.any(valid_precisions_indices):
-          v = 0.0
-        else:
-          v = np.max(self._precision_recall[num_points]
-                     [i, valid_precisions_indices, 1])
-        ys[num_points, i] = v
+      ys[num_points, :] = _FindMaximumRecall(self._precision_recall[num_points])
 
     def _Setter(fig, axes):
       """Configure the plot for max recall versus number of points."""
@@ -667,7 +683,7 @@ class ByDifficulty(BreakdownMetric):
         num_objects = self._histogram[i][class_id]
         legend[class_id].append('%s (%d)' % (difficulty, num_objects))
 
-    image_summaries = []
+    summaries = []
     for i, j in enumerate(p.metadata.EvalClassIndices()):
 
       def _PRSetter(fig, axes):
@@ -678,7 +694,9 @@ class ByDifficulty(BreakdownMetric):
         axes.set_xticks(ticks)
         axes.set_ylabel('Precision')
         axes.set_yticks(ticks)
+        # pylint: disable=undefined-loop-variable
         axes.legend(legend[j], numpoints=1)  # pylint: disable=cell-var-from-loop
+        # pylint: enable=undefined-loop-variable
         fig.tight_layout()
 
       classname = p.metadata.ClassNames()[j]
@@ -700,12 +718,23 @@ class ByDifficulty(BreakdownMetric):
           linestyle='-',
           linewidth=2,
           alpha=0.5)
-      image_summaries.append(image_summary)
+      summaries.append(image_summary)
 
     for difficulty, c in self._calibration.items():
       # Note that we only generate a calibration for a single difficulty level.
       calibration_summaries = c.Summary(name)
       for calibration_summary in calibration_summaries:
-        image_summaries.append(calibration_summary)
+        summaries.append(calibration_summary)
 
-    return image_summaries
+    # Generate scalar summaries for the maximum recall for each difficulty.
+    for difficulty in p.metadata.DifficultyLevels():
+      max_recall = _FindMaximumRecall(self._precision_recall[difficulty])
+      for i, j in enumerate(p.metadata.EvalClassIndices()):
+        classname = p.metadata.ClassNames()[j]
+        summary = tf.Summary(value=[
+            tf.Summary.Value(
+                tag='{}/{}/max_recall_{}'.format(name, classname, difficulty),
+                simple_value=max_recall[i])
+        ])
+        summaries.append(summary)
+    return summaries
