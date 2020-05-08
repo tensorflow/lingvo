@@ -1740,6 +1740,10 @@ class RunnerManager(object):
     else:
       print('')
 
+  def SetModelName(self, model_name):
+    """Sets the model name."""
+    self._model_name = model_name
+
   def WriteInferenceGraph(self):
     """Generates the inference graphs for a given model."""
     inference_graph_dir = os.path.join(FLAGS.logdir, 'inference_graphs')
