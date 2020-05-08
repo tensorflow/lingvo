@@ -445,8 +445,8 @@ def IsWithinBBox(points, bbox):
   """
   bshape = py_utils.GetShape(bbox)[:-2]
   pshape = py_utils.GetShape(points)[:-1]
-  bbox = py_utils.HasShape(bbox, bshape + [4, 2])
-  points = py_utils.HasShape(points, pshape + [2])
+  bbox = py_utils.HasShape(bbox, tf.concat([bshape, [4, 2]], axis=0))
+  points = py_utils.HasShape(points, tf.concat([pshape, [2]], axis=0))
   # Enumerate all 4 edges:
   v1, v2, v3, v4 = (bbox[..., 0, :], bbox[..., 1, :], bbox[..., 2, :],
                     bbox[..., 3, :])
@@ -468,9 +468,8 @@ def IsWithinBBox(points, bbox):
             _IsOnLeftHandSideOrOn(points, v3, v4),
             _IsOnLeftHandSideOrOn(points, v4, v1)))
   # Swap the last two dimensions.
-  ndims = is_inside.shape.ndims
-  return tf.transpose(is_inside,
-                      list(range(ndims - 2)) + [ndims - 1, ndims - 2])
+  is_inside = tf.einsum('...ij->...ji', tf.cast(is_inside, tf.int32))
+  return tf.cast(is_inside, tf.bool)
 
 
 def BBoxCorners2D(bboxes):
