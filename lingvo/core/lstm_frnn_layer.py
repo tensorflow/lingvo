@@ -162,6 +162,8 @@ class LstmFRNN(base_layer.BaseLayer):
         'cell', None,
         'Configs for the RNN cell. Supported classes are LSTMCellSimpleExt, '
         'LayerNormalizedLSTMCellLeanExt.')
+    p.Define('reverse', False,
+             'Whether or not to unroll the sequence in reversed order.')
     return p
 
   @base_layer.initializer
@@ -222,6 +224,11 @@ class LstmFRNN(base_layer.BaseLayer):
     else:
       reset_mask = tf.zeros_like(paddings)
 
+    if p.reverse:
+      inputs = [tf.reverse(x, [0]) for x in inputs]
+      paddings = tf.reverse(paddings, [0])
+      reset_mask = tf.reverse(reset_mask, [0])
+
     if not state0:
       batch_size = py_utils.GetShape(paddings)[1]
       state0 = rcell.zero_state(cell_theta, batch_size)
@@ -242,4 +249,6 @@ class LstmFRNN(base_layer.BaseLayer):
         allow_implicit_capture=p.allow_implicit_capture)
 
     act = rcell.GetOutput(acc_state)
+    if p.reverse:
+      act = tf.reverse(act, [0])
     return act, final_state

@@ -464,6 +464,7 @@ class BidirectionalFRNN(base_layer.BaseLayer):
              'Configs for the forward RNN cell.')
     p.Define('bak', rnn_cell.LSTMCellSimple.Params(),
              'Configs for the backward RNN cell.')
+    p.Define('rnn', FRNN.Params(), 'Config for underlying RNNs')
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
@@ -479,7 +480,7 @@ class BidirectionalFRNN(base_layer.BaseLayer):
       fwd_device = ''
       bwd_device = ''
     with tf.device(fwd_device):
-      params_forward = FRNN.Params()
+      params_forward = p.rnn.Copy()
       params_forward.name = 'fwd'
       params_forward.dtype = p.dtype
       params_forward.reverse = False
@@ -488,7 +489,7 @@ class BidirectionalFRNN(base_layer.BaseLayer):
       self.CreateChild('fwd_rnn', params_forward)
 
     with tf.device(bwd_device):
-      params_backward = FRNN.Params()
+      params_backward = p.rnn.Copy()
       params_backward.name = 'bak'
       params_backward.dtype = p.dtype
       params_backward.reverse = True
