@@ -71,7 +71,7 @@ class AsrModelTest(test_utils.TestCase):
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 4.472597, mdl.loss.eval())
 
       actual_var_names = [_.name for _ in tf.trainable_variables()]
@@ -126,7 +126,7 @@ class AsrModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.DecodeWithTheta(mdl.theta, input_batch)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       dec_out = sess.run(dec_out_dict)
       print('dec_out', dec_out)
       metrics_dict = mdl.CreateDecoderMetrics()
@@ -255,7 +255,7 @@ class AsrModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 4.472597, mdl.loss.eval())
       mdl.train_op.run()
 
@@ -269,7 +269,7 @@ class AsrModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 4.472597, mdl.loss.eval())
       mdl.train_op.run()
 
@@ -360,7 +360,7 @@ class AsrModelTest(test_utils.TestCase):
         with cluster_factory.ForTestingWorker(gpus=num_splits, do_eval=True):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         return sess.run(metrics['loss'])
 
     res1, res2 = Run(1), Run(2)
@@ -412,7 +412,7 @@ class AsrModelTest(test_utils.TestCase):
           test_helper.test_src_dir_path('tools/testdata/gan_or_vae.16k.wav'),
           'rb') as f:
         wav = f.read()
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       fetches = sess.run(fetches, {feeds['wav']: wav})
 
       self.assertAllEqual((1, p.decoder.beam_search.num_hyps_per_beam),

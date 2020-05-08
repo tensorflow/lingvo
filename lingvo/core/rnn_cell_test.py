@@ -96,7 +96,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = gru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 11 if enable_gru_bias else 8
       wts = tf.get_collection('GRUCell_vars')
@@ -173,7 +173,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 2 if enable_lstm_bias else 1
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -316,7 +316,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 2 if enable_lstm_bias else 1
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -392,7 +392,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 2
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -454,7 +454,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 3  # weights, biases, projection.
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -506,7 +506,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 3  # weights, biases, projection.
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -566,7 +566,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       out1 = lstm.GetOutput(state1)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 2 * params.num_groups  # one for weights, one for biases.
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -669,7 +669,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       out1 = lstm.GetOutput(state1)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variable_count = 3 * params.num_groups  # [wm, b, w_proj] for each group.
       wts = tf.get_collection('LSTMCellSimple_vars')
@@ -757,7 +757,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       m_expected = [
@@ -802,7 +802,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       m_expected = [
@@ -843,7 +843,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       wts = tf.get_collection('LSTMCellSimple_vars')
       self.assertLen(wts, 2)
@@ -888,7 +888,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       wts = tf.get_collection('LSTMCellSimple_vars')
       self.assertLen(wts, 2)
@@ -936,7 +936,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       c1 = tf.reduce_sum(state1.c, [1, 2, 3])
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       wts = tf.get_collection('ConvLSTMCell_vars')
       self.assertLen(wts, 2)
@@ -988,7 +988,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       c1 = tf.reduce_sum(state1.c, [1, 2, 3])
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       m_expected = [
@@ -1032,7 +1032,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       m_expected = [
@@ -1062,7 +1062,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       # Initialize all the variables, and then inspect.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       b_value = lstm._GetBias(lstm.theta).eval()
       tf.logging.info('testLSTMSimpleWithForgetGateInitBias b = %s',
                       np.array_repr(b_value))
@@ -1090,7 +1090,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       # Initialize all the variables, and then inspect.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       b_value = lstm._GetBias(lstm.theta).eval()
       tf.logging.info(
           'testLSTMSimpleWithForgetGateInitBiasCoupledInputForget b = %s',
@@ -1198,7 +1198,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.0083883, 0.10644437], [0.04662009, 0.18058866],
                     [0.0016561, 0.37414068]]
@@ -1234,7 +1234,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[-0.145889, 0.], [-0.008282, 0.073219], [-0.041057, 0.]]
       c_expected = [[0., 0.532332], [-0.016117, 0.13752], [0., 0.]]
@@ -1402,7 +1402,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=False):
       _, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_v = state1.m.eval()
       c_v = state1.c.eval()
@@ -1420,7 +1420,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
               tf.reduce_sum(state1.m * state1.c * state1.c)))
       grads = tf.gradients(loss, lstm.vars.Flatten())
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_v, c_v, grads_v = sess.run([state1.m, state1.c, grads])
       print('m_v', np.array_repr(m_v))
@@ -1505,7 +1505,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       wts = tf.get_collection('DoubleProjectionLSTMCell_vars')
       if enable_ln_on_c:
@@ -1554,7 +1554,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
           c=tf.zeros([3, 2], tf.float32), m=tf.zeros([3, 2], tf.float32))
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.0, 0.], [0.0, 0.], [0.0, 0.]]
       c_expected = [[0.0, 0.], [0.0, 0.], [0.0, 0.]]
@@ -1593,7 +1593,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
     with self.session(use_gpu=False) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # pylint: disable=bad-whitespace
       m_expected = [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
                     [-0.00272907, 0.31641623]]
@@ -1640,7 +1640,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
           m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.097589, 0.579055], [0.046737, 0.187892],
                     [0.001656, 0.426245]]
@@ -1775,7 +1775,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
               np.random.uniform(size=(3, lstm.output_size)), tf.float32))
       state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       if set_training_step:
         # Get it into the fully clipped/quantized part of the schedule.
@@ -1814,7 +1814,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.58657289, 0.70520258], [0.32375532, 0.29133356],
                     [0.58900255, 0.58398587]]
@@ -1849,7 +1849,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.569023, 0.472208], [0.314541, 0.260022],
                     [0.543097, 0.379774]]
@@ -1884,7 +1884,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.18558595, 0.81267989], [0.30404502, 0.35851872],
                     [0.51972485, 0.77677751]]
@@ -1920,7 +1920,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.04926362, 0.54914111], [-0.0501487, 0.32742232],
                     [-0.19329719, 0.28332305]]
@@ -1958,7 +1958,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[-0.012749, 0.788564], [-0.215866, 0.891125],
                     [-0.420648, 0.713777]]
@@ -1995,7 +1995,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.301535, 0.744214], [0.38422, -0.524064],
                     [0.328908, 0.658833]]
@@ -2030,7 +2030,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.586573, 0.705203], [0.323755, 0.291334],
                     [0.589002, 0.583986]]
@@ -2081,7 +2081,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.049264, 0.549141], [-0.050149, 0.327422],
                     [-0.193297, 0.283323]]
@@ -2126,7 +2126,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = qrnn.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.40564698, 0.32611847], [0.16975531, 0.45970476],
                     [0.60286027, 0.24542703]]
@@ -2170,7 +2170,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       state1, _ = sru.FPropDefaultTheta(state0, inputs)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       m_expected = [[0.55884922, 0.40396619], [0.71426249, 0.70820922],
                     [0.823457, 0.60304904]]
@@ -2202,7 +2202,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       np.random.seed(_NUMPY_RANDOM_SEED)
       # Initialize all the variables, and then inspect.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       init_state_value = sess.run(lstm.zero_state(lstm.theta, 1))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
                       np.array_repr(init_state_value['m']))

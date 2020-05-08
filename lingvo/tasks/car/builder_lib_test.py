@@ -34,7 +34,7 @@ class BuilderLibTest(test_utils.TestCase):
         self.assertEqual(len(y), 1)
         y = y[0]
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       val = sess.run(y)
     self.assertEqual(val.shape, expected_out_shape)
 
@@ -219,7 +219,7 @@ class BuilderLibTest(test_utils.TestCase):
     grads = tf.gradients(loss, all_vars)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       np_grads = sess.run(grads)
       for np_grad in np_grads:
         self.assertTrue(np.all(np.isfinite(np_grad)))
@@ -253,7 +253,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
@@ -270,7 +270,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
@@ -288,7 +288,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
@@ -303,7 +303,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(
         tf.random.uniform((3, 4, 5, 10)), tf.random.uniform((3, 4, 1, 8)))
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       self.assertAllEqual(actual_y.shape, (3, 4, 5, 12))
       self.assertTrue(np.all(np.isfinite(actual_y)))
@@ -321,7 +321,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
@@ -336,7 +336,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
@@ -354,7 +354,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
@@ -420,7 +420,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
@@ -456,7 +456,7 @@ class BuilderLibTest(test_utils.TestCase):
     y = l.FPropDefaultTheta(x)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       actual_y = sess.run(y)
       self.assertAllEqual(actual_y.shape,
                           (batch_size, num_groups, num_out_channels))

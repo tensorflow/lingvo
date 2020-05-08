@@ -113,7 +113,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       mean_diff = tf.reduce_sum(tf.square(mean3 - mean4))
       var_diff = tf.reduce_sum(tf.square(var3 - var4))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       self.assertAllClose(mean2.eval(), mean1.eval())
       self.assertAllClose(var2.eval(), var1.eval())
@@ -141,7 +141,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
       sig1 = tf.reduce_sum(bn_out)
       sig2 = tf.reduce_sum(bn_out * bn_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.0, sig1.eval(), atol=1e-5)
       self.assertAllClose(47.8371887, sig2.eval())
 
@@ -163,7 +163,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
       sig1 = tf.reduce_sum(bn_out)
       sig2 = tf.reduce_sum(bn_out * bn_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(2.6593573, sig1.eval(), atol=1e-5)
       self.assertAllClose(15.464208, sig2.eval())
 
@@ -189,7 +189,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       mean_diff = tf.reduce_sum(tf.square(mean3 - mean4))
       var_diff = tf.reduce_sum(tf.square(var3 - var4))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       self.assertAllClose(mean2.eval(), mean1.eval())
       self.assertAllClose(var2.eval(), var1.eval())
@@ -215,7 +215,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
       sig1 = tf.reduce_sum(bn_out)
       sig2 = tf.reduce_sum(bn_out * bn_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.0, sig1.eval(), atol=1e-4)
       self.assertAllClose(2039.398681, sig2.eval())
 
@@ -238,7 +238,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
         np_in1 = np.random.normal(0.1, 0.5, [2, 4, 1, 32])
         bn_in1 = tf.constant(np_in1, dtype=tf.float32)
         bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         # Moving mean and variance are set to defaults, we set gamma and beta
         # through assignment such that the outputs are inputs * 2 + 1.
         sess.run([
@@ -551,7 +551,7 @@ class ConvLayerTest(test_utils.TestCase):
       expected_out_padding = [[1, 1, 0, 0, 0, 1, 1, 0],
                               [1, 1, 0, 0, 0, 1, 1, 0]]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(expected_out_padding, out_padding.eval().tolist())
 
   def testConvPoolComputeOutPaddingUnevenStride(self):
@@ -563,7 +563,7 @@ class ConvLayerTest(test_utils.TestCase):
       out_padding = layers._ComputeConvOutputPadding(in_padding, 3, 3)
       expected_out_padding = [[0, 0, 0, 0, 1], [0, 0, 0, 1, 1], [0, 0, 1, 1, 1]]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(expected_out_padding, out_padding.eval().tolist())
 
   def _checkConvLayerShapes(self,
@@ -594,7 +594,7 @@ class ConvLayerTest(test_utils.TestCase):
       out, out_pad = conv_layer.FPropDefaultTheta(inp, inp_pad)
 
     with self.session(use_gpu=True, graph=g) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out, out_pad = sess.run([out, out_pad])
       print(out.shape, out_pad.shape)
       # We expect conv_layer.OutShape can compute the actual output shape.
@@ -705,7 +705,7 @@ class ConvLayerTest(test_utils.TestCase):
 
       output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
       output2, _ = conv_layer.FPropDefaultTheta(inputs1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([output1, output2])
       self.assertAllClose(v1, v2)
       return v1
@@ -1022,7 +1022,7 @@ class ConvLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       y_val = sess.run(y)
 
     self.assertEqual(y_val.shape, (17, 32, 32, 5))
@@ -1073,7 +1073,7 @@ class ConvLayerTest(test_utils.TestCase):
 
       output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
       output2, _ = conv_layer.FPropDefaultTheta(inputs2, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([output1, output2])
       tf.logging.info('CausalConv output: %s', np.array_repr(v1))
       # pylint: disable=bad-whitespace,bad-continuation,line-too-long
@@ -1128,7 +1128,7 @@ class ConvLayerTest(test_utils.TestCase):
           np.random.normal(0.1, 0.5, [2, 4, 3, 3]), dtype=tf.float32)
 
       output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1 = sess.run(output1)
       tf.logging.info('CausalConv output: %s', np.array_repr(v1))
       # pylint: disable=bad-whitespace,bad-continuation,line-too-long
@@ -1187,7 +1187,7 @@ class ConvLayerTest(test_utils.TestCase):
 
       output_causal, _ = causal_conv_layer.FPropDefaultTheta(inputs1)
       output_normal, _ = normal_conv_layer.FPropDefaultTheta(inputs1_pad)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v_causal, v_normal = sess.run([output_causal, output_normal])
       # Normal conv would produce an extra timestep due to SAME padding at the
       # end.
@@ -1219,7 +1219,7 @@ class ConvLayerTest(test_utils.TestCase):
 
       output_causal, _ = causal_conv_layer.FPropDefaultTheta(inputs1)
       output_normal, _ = normal_conv_layer.FPropDefaultTheta(inputs1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v_causal, v_normal = sess.run([output_causal, output_normal])
 
       self.assertAllClose(v_causal, v_normal)
@@ -1245,7 +1245,7 @@ class ConvLayerTest(test_utils.TestCase):
       self.assertEqual(3, len(all_vars))
 
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
@@ -1271,7 +1271,7 @@ class ConvLayerTest(test_utils.TestCase):
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
 
       output1, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       # pylint: disable=bad-whitespace
@@ -1340,7 +1340,7 @@ class ConvLayerTest(test_utils.TestCase):
           np.random.normal(0.1, 0.5, [2, 4, 4, 6]), dtype=tf.float32)
 
       output1, _ = conv_set_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       if dump_graphdef:
         print('ConvSet GraphDef:', sess.graph.as_graph_def())
@@ -1409,7 +1409,7 @@ class PoolingLayerTest(test_utils.TestCase):
           dtype=tf.float32)
 
       output1, _ = pool_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(output1.eval())])
       # pyformat: disable
       expected_output1 = [
@@ -1457,7 +1457,7 @@ class PoolingLayerTest(test_utils.TestCase):
 
         predicted_out_shape = pool_layer.OutShape(inputs1.shape.as_list())
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         output1_v = output1.eval()
         self.assertAllClose(output2.eval(), output1_v)
         self.assertAllClose(predicted_out_shape, output1_v.shape)
@@ -1482,7 +1482,7 @@ class BlurPoolLayerTest(test_utils.TestCase):
           dtype=tf.float32)
 
       output1, out_padding1 = layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(output1.eval())])
       self.assertAllClose(expected_output, output1.eval())
       self.assertAllClose(expected_out_padding, out_padding1.eval())
@@ -1583,7 +1583,7 @@ class ProjectionLayerTest(test_utils.TestCase):
         self.assertEqual(expect_bn_fold_weights, proj_layer._is_bn_folded)
 
       output = proj_layer.FPropDefaultTheta(inputs, in_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       if quantized:
         # Put it in the fully quantized range.
         sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
@@ -1748,7 +1748,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       self.assertEqual(3, len(all_vars))
 
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
@@ -1905,7 +1905,7 @@ class ProjectionLayerTest(test_utils.TestCase):
           np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32)
 
       output = proj_layer.FPropDefaultTheta(inputs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1945,7 +1945,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       self.assertEqual(2, len(all_vars))
 
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v, 1e-6)
@@ -2006,7 +2006,7 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
           dtype=tf.float32)
 
       outputs, output_paddings = stacker.FProp(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(outputs.eval())])
 
       expected_outputs = [
@@ -2034,7 +2034,7 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
       paddings = tf.expand_dims(paddings, -1)
 
       outputs, output_paddings = stacker.FProp(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       inputs_v, outputs_v, paddings_v = sess.run(
           [inputs, outputs, output_paddings])
@@ -2058,7 +2058,7 @@ class StackingOverTimeLayerTest(test_utils.TestCase):
       paddings = tf.zeros([1, 5, 1], dtype=tf.float32)
 
       outputs, output_paddings = stacker.FProp(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       print([np.array_repr(outputs.eval())])
       expected_outputs = [[[1], [2], [3], [4], [5]]]
       self.assertAllClose(expected_outputs, outputs.eval())
@@ -2125,7 +2125,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 0.126485, embs_sum.eval())
 
   def testCheckedIds(self):
@@ -2145,7 +2145,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
       oov_ids = tf.constant([[params.vocab_size]])
       oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       with self.assertRaises(tf.errors.InvalidArgumentError):
         neg_embs.eval()
@@ -2168,7 +2168,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.126485 * params.embedding_dim**0.5,
                           sess.run(embs_sum))
 
@@ -2191,7 +2191,7 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 1.56561, embs_sum.eval())
 
 
@@ -2213,7 +2213,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, 0.234941, embs_sum.eval())
 
   def testCheckedIds(self):
@@ -2234,7 +2234,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
       oov_ids = tf.constant([[params.vocab_size]])
       oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       with self.assertRaises(tf.errors.InvalidArgumentError):
         neg_embs.eval()
@@ -2258,7 +2258,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.23494134843349457 * params.embedding_dim**0.5,
                           sess.run(embs_sum))
 
@@ -2281,7 +2281,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       ids = tf.constant([[89], [100]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
       embs_sum = tf.reduce_sum(embs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       test_utils.CompareToGoldenSingleFloat(self, -6.807296, embs_sum.eval())
 
   def _testSimpleEmbeddingLayer(self,
@@ -2317,7 +2317,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       fast_outputs = emb_layer.EmbLookupDefaultThetaOnCpu(ids)
 
     with self.session(use_gpu=True, graph=g) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       emb_matrix_val, ids_val, outputs_val, fast_outputs_val = sess.run(
           [emb_matrix, ids, outputs, fast_outputs])
       if scale_sqrt_depth:
@@ -2393,7 +2393,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       self.assertEqual(emebdding_threshold_count, len(threshold))
 
     with self.session(use_gpu=False, graph=g) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       emb_matrix_val, _, outputs_val = sess.run([emb_matrix, ids, outputs])
 
       self.assertAllClose(emb_matrix_val[1:3], outputs_val[:, 0, :])
@@ -2422,7 +2422,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       embs_sum = tf.reduce_sum(embs)
       emb_weight = emb_layer.vars.wm
       emb_grad, = tf.gradients(ys=[embs_sum], xs=[emb_weight])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       emb_grad_val = sess.run(emb_grad)
 
     if not use_matmul:
@@ -2497,7 +2497,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
     ids_val = np.random.randint(0, high=classes, size=(4000,))
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       s_outs, s_grad, o_outs, o_grad = sess.run(
           [simple_outs, simple_grad, original_outs, original_grad],
           feed_dict={ids: ids_val})
@@ -2599,7 +2599,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
 
       pos_emb_layer = layers.PositionalEmbeddingLayer(p)
       position_embs = pos_emb_layer.FPropDefaultTheta(seq_length)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_position_embs, = sess.run([position_embs])
 
       # pylint: disable=bad-whitespace
@@ -2630,7 +2630,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       indices = np.array([-5, -2, 0, 1, 4], dtype=np.int32)
       pos_emb = layer.FPropDefaultTheta(tf.convert_to_tensor(indices))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_pos_emb, full_emb = sess.run([pos_emb, layer.vars.w])
 
       clipped_indices = np.vectorize(lambda x: max(-radius, min(radius, x)))(
@@ -2652,7 +2652,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       emb_layer = layers.OneHotEmbeddingLayer(params)
       ids = tf.constant([[0], [2]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       expected_output = [[[1., 0., 0., 0.]], [[0., 0., 1., 0.]]]
       self.assertAllClose(expected_output, embs.eval())
 
@@ -2667,7 +2667,7 @@ class EmbeddingLayerTest(test_utils.TestCase):
       emb_layer = layers.OneHotEmbeddingLayer(params)
       ids = tf.constant([[0], [2]])
       embs = emb_layer.EmbLookupDefaultTheta(ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       expected_output = [[[0.7, 0.1, 0.1, 0.1]], [[0.1, 0.1, 0.7, 0.1]]]
       self.assertAllClose(expected_output, embs.eval())
 
@@ -2746,7 +2746,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       all_var_names = [v.name for v in all_vars]
       self.assertEqual(sorted(expected_var_names), sorted(all_var_names))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       if training_step >= 0:
         sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), training_step))
       return sess.run(xent_loss)
@@ -2941,7 +2941,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
           inputs,
           class_weights=class_weights,
           class_probabilities=tf.one_hot(class_ids, params.num_classes))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       loss = sess.run(xent_loss.total_xent)
       log_perplexity = sess.run(xent_loss.avg_xent)
       print(['loss', loss])
@@ -2967,7 +2967,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       softmax = layers.SimpleFullSoftmax(params)
       xent_loss = softmax.XentLoss(
           inputs, class_weights=class_weights, class_ids=class_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       loss = sess.run(xent_loss.total_xent)
       log_perplexity = sess.run(xent_loss.avg_xent)
       print(['testSimpleFullSoftmax_GlobalVN loss', loss])
@@ -2994,7 +2994,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
       softmax = layers.SimpleFullSoftmax(params)
       xent_loss = softmax.XentLoss(
           inputs, class_weights=class_weights, class_ids=class_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       loss = sess.run(xent_loss.total_xent)
       log_perplexity = sess.run(xent_loss.avg_xent)
       print(['testShardedFullSoftmax_PerStepVN loss', loss])
@@ -3048,7 +3048,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
         # Now add the backward graph.
         grads = tf.gradients(xent_loss.total_xent, softmax_vars)
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         assert len(softmax_vars) == len(grads)
         for x, grad_x in zip(softmax_vars, grads):
           grad_symbolic = sess.run(grad_x)
@@ -3080,7 +3080,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
         softmax = layers.SimpleFullSoftmax(params)
         xent_loss = softmax.XentLoss(
             inputs, class_weights=class_weights, class_ids=class_ids)
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         sess.run(xent_loss.total_xent)
 
 
@@ -3124,7 +3124,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
           class_ids=class_ids,
           class_probabilities=class_probabilities)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       return sess.run(xent_loss)
 
   def testSimpleFullSoftmax_Non2D_ClassId(self):
@@ -3237,7 +3237,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
         # Now add the backward graph.
         grads = tf.gradients(xent_loss.total_xent, softmax_vars)
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         assert len(softmax_vars) == len(grads)
         for x, grad_x in zip(softmax_vars, grads):
           grad_symbolic = sess.run(grad_x)
@@ -3281,7 +3281,7 @@ class SoftmaxLayerLogitsTest(test_utils.TestCase):
                                    [batch_size, seq_length, params.num_classes])
       else:
         logits = py_utils.HasShape(logits, [batch_size, params.num_classes])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       return logits.eval()
 
   def testConvSoftmaxLogits(self):
@@ -3328,7 +3328,7 @@ class SharedSoftmaxLayerTest(SoftmaxLayerTest):
       outputs = emb_layer.EmbLookup(emb_layer.theta, ids)
 
     with self.session(use_gpu=True, graph=g) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       emb_matrix_val, ids_val, outputs_val = sess.run(
           [emb_matrix, ids, outputs])
       self.assertEqual(emb_matrix_val.shape, (8000, 128))
@@ -3431,7 +3431,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
       out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out1_v, out2_v = sess.run([out1, out2])
       self.assertAllClose(out1_v, out2_v)
 
@@ -3484,7 +3484,7 @@ class FeedForwardNetTest(test_utils.TestCase):
       out1 = feedforward_net.FPropDefaultTheta(a)
       out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       out1_v, out2_v = sess.run([out1, out2])
@@ -3530,7 +3530,7 @@ class FeedForwardNetTest(test_utils.TestCase):
 
       out2 = p2_l.FPropDefaultTheta(p1_l.FPropDefaultTheta(a))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out1_v, out2_v = sess.run([out1, out2])
       self.assertAllClose(out1_v, out2_v)
 
@@ -3550,7 +3550,7 @@ class FeedForwardNetTest(test_utils.TestCase):
       out = tf.reduce_sum(feedforward_net.FPropDefaultTheta(a))
       out_abs = tf.reduce_sum(tf.abs(feedforward_net.FPropDefaultTheta(a)))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # pyformat: disable
       test_utils.CompareToGoldenSingleFloat(self, 8.190775, out.eval(), atol=1e-5)  # pylint: disable=line-too-long
       # pyformat: enable
@@ -3680,7 +3680,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       expected_sig1 = 2.6593573 if is_eval else 0
       expected_sig2 = 15.4642076 if is_eval else 47.850193
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(expected_sig1, sig1.eval(), atol=1e-5)
       self.assertAllClose(expected_sig2, sig2.eval(), atol=1e-5)
 
@@ -3700,7 +3700,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     sig1 = tf.reduce_sum(bn_out)
     sig2 = tf.reduce_sum(bn_out * bn_out)
     with self.session(use_gpu=True):
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(1.19209289551e-06, sig1.eval(), atol=1e-5)
       self.assertAllClose(47.8501930237, sig2.eval(), atol=1e-5)
 
@@ -3719,7 +3719,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     bn_updates = bn_layer.PostTrainingStepUpdate(tf.constant(100))
 
     with self.session(use_gpu=True) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sess.run(bn_updates)
       moving_mean = sess.run(bn_layer.vars.moving_mean)
       moving_std = sess.run(bn_layer.vars.moving_variance)
@@ -3742,7 +3742,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
     sig1 = tf.reduce_sum(bn_out)
     sig2 = tf.reduce_sum(bn_out * bn_out)
     with self.session(use_gpu=True):
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(0.0, sig1.eval(), atol=1e-4)
       self.assertAllClose(2039.398681, sig2.eval())
 
@@ -3808,7 +3808,7 @@ class BatchNormLayerNoPaddingTest(test_utils.TestCase, parameterized.TestCase):
       post_training_step_updates = net.PostTrainingStepUpdate(
           net.theta.global_step)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       _, count_vals, mean_vals, var_vals = sess.run(
           [grads, counts, means, variances])
 
@@ -3842,7 +3842,7 @@ class LayerNormTest(test_utils.TestCase):
       inputs = tf.constant(npy_input, dtype=tf.float32)
       output = layer_norm.FPropDefaultTheta(inputs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_output = sess.run(output)
 
       # Mean should be zero and variance should be close to one.
@@ -3873,7 +3873,7 @@ class LayerNormTest(test_utils.TestCase):
       self.assertEqual(2, len(all_vars))
 
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
@@ -4005,7 +4005,7 @@ class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
       # Construct loss function such that gradients = final activation.
       loss = tf.reduce_sum(y)
       grads = py_utils.ComputeGradients(loss, py_utils.NestedMap(w=w))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       y_val = sess.run(y)
       grads_val = sess.run(grads.w.grad)
       self.assertAllClose(y_val, grads_val)
@@ -4023,7 +4023,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm = tf.placeholder(tf.float32)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       random_normal = np.exp(np.random.normal(5.0, 1.0, size=10000))
       # We are expected to reject 16% of the outliers.
@@ -4051,7 +4051,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       grad_norm = tf.placeholder(tf.float32)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       random_normal = np.exp(np.random.normal(5.0, 1.0, size=10000))
       # We expect no outliers being rejected due to the grad_norm_clip_cap_min.
@@ -4077,7 +4077,7 @@ class GradNormTrackerTest(test_utils.TestCase):
       has_nan = tf.cast(tf.ones([]), dtype=tf.bool)
       grad_norm_clip = grad_norm_tracker.FPropDefaultTheta(grad_norm, has_nan)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       random_normal = np.exp(np.random.normal(5.0, 1.0, size=10000))
       outliers = np.exp(np.random.normal(7.0, 1.0, size=100))
@@ -4122,7 +4122,7 @@ class HighwaySkipLayerTest(test_utils.TestCase):
       a = tf.constant(1.0, shape=[20, 10])
       b = tf.constant(-2.0, shape=[20, 10])
       out = proj_l.FPropDefaultTheta(a, b)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       a, out = sess.run([a, out])
       self.assertAllClose(a, out)
 
@@ -4142,7 +4142,7 @@ class UniformLabelSmootherTest(test_utils.TestCase):
       target_paddings = tf.zeros(tf.shape(target_ids))
       output = smooth_layer.FPropDefaultTheta(target_paddings, target_labels,
                                               target_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [[
@@ -4175,7 +4175,7 @@ class UniformLabelSmootherTest(test_utils.TestCase):
       target_paddings = tf.zeros(tf.shape(target_ids))
       output = smooth_layer.FPropDefaultTheta(target_paddings, target_labels,
                                               target_ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [[
@@ -4213,7 +4213,7 @@ class WeightedSumLayerTest(test_utils.TestCase):
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -4244,7 +4244,7 @@ class WeightedSumLayerTest(test_utils.TestCase):
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -4276,7 +4276,7 @@ class DeconvLayerTest(test_utils.TestCase):
       out = conv_layer.FPropDefaultTheta(inputs)
       out_shape = conv_layer.OutShape(tf.shape(inputs))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out_v, shape_v = sess.run([out, out_shape])
       self.assertAllEqual(shape_v, [2, 8, 8, 2])
       self.assertAllEqual(out_v.shape, shape_v)
@@ -4310,7 +4310,7 @@ class GatedAverageLayerTest(test_utils.TestCase):
       g_avg = p.Instantiate()
 
       avg = g_avg.FProp(g_avg.theta, [inp_1, inp_2, inp_3])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_avg = sess.run(avg)
 
       expected_avg = [[0.092766, 0.092766, 0.092766, 0.092766],
@@ -4336,7 +4336,7 @@ class LHUCLayerTest(test_utils.TestCase):
       lhuc = p.Instantiate()
 
       lhuc = lhuc.FProp(lhuc.theta, inp)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_avg = sess.run(lhuc)
 
       # pylint: disable=bad-whitespace
@@ -4366,7 +4366,7 @@ class ResidualAdapterLayerTest(test_utils.TestCase):
       resadap = p.Instantiate()
 
       resadap = resadap.FProp(resadap.theta, inp)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_avg = sess.run(resadap)
 
       # pylint: disable=bad-whitespace
@@ -4391,7 +4391,7 @@ class GluLayerTest(test_utils.TestCase):
       glu_layer = layers.GluLayer(p)
 
       h = glu_layer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -4424,7 +4424,7 @@ class GluLayerTest(test_utils.TestCase):
       glu_layer = layers.GluLayer(p)
 
       h = glu_layer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -4468,7 +4468,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual = sess.run(output)
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
                    [0.262231, 0.667873, -0.92701, 2.246897],
@@ -4492,7 +4492,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual = sess.run(output)
       # Output is same as above but with shape same as input.
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
@@ -4516,7 +4516,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual = sess.run(output)
       # Output is same as above.
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
@@ -4538,7 +4538,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       p = self._MultitaskAdapterParams()
       adapter = p.Instantiate()
       output = adapter.FProp(adapter.theta, inputs, tasks)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual = sess.run(output)
       expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
                    [0.262231, 0.667873, -0.92701, 2.246897]],
@@ -4560,7 +4560,7 @@ class MultitaskAdapterLayerTest(test_utils.TestCase):
       loss = tf.reduce_sum(output)
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       def DenseGrad(var, grad):
         if isinstance(grad, tf.Tensor):
@@ -4612,7 +4612,7 @@ class CCTGatingNetworkTest(test_utils.TestCase):
       a = tf.constant(np.random.rand(3, 10), dtype=tf.float32)
       out = cct_net.FPropDefaultTheta(a)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out_v = sess.run([out])
       self.assertAllClose(
           out_v,
@@ -4638,7 +4638,7 @@ class CCTGatingNetworkTest(test_utils.TestCase):
       a = tf.constant(np.random.rand(3, 10), dtype=tf.float32)
       out = cct_net.FPropDefaultTheta(a)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out_v = sess.run([out])
       self.assertAllClose(out_v, [[[0., 1., 1.], [0., 0., 1.], [0., 1., 1.]]])
 

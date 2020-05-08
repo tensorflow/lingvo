@@ -31,7 +31,7 @@ class SummaryUtilsTest(test_utils.TestCase):
         val = foo.Value()
         inc = foo.IncBy(100)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(0, val.eval())
       self.assertAllEqual(100, sess.run(inc))
       self.assertAllEqual(100, val.eval())

@@ -110,7 +110,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
     with self.session(use_gpu=True) as sess:
       conv_padding = conv_layers.ComputeConvOutputPadding(
           padding, window=3, stride=stride, padding_algorithm=padding_algorithm)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       conv_padding = py_utils.Debug(conv_padding)
       conv_padding = sess.run(conv_padding)
       tf.logging.info('expected_padding {expected_padding}')
@@ -160,7 +160,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       output = py_utils.Debug(output)
       out_padding = py_utils.Debug(out_padding)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output, out_padding = sess.run([output, out_padding])
 
       self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
@@ -206,7 +206,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       output, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-0.293671, 4.198602], [v1, v2])
@@ -251,7 +251,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       output = py_utils.Debug(output)
       out_padding = py_utils.Debug(out_padding)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output, out_padding = sess.run([output, out_padding])
 
       self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
@@ -288,10 +288,10 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
       output, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-3.584711, 3.324082], [v1, v2])
@@ -320,10 +320,10 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
       output, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-1.455162, 6.813269], [v1, v2])
@@ -345,11 +345,11 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       inputs1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
       output, _ = conv_layer.FPropDefaultTheta(inputs1, in_padding1)
-      tf.global_variables_initializer().run()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-2.031689, 7.911201], [v1, v2])
@@ -363,7 +363,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
           np.random.normal(0.1, 0.5, [2, 4, 4, 3]), dtype=tf.float32)
       in_padding = tf.zeros([2, 4], dtype=tf.float32)
       out, out_padding = l.FProp(l.theta, inputs, in_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2 = sess.run([out, out_padding])
       print(v1, v2)
 
@@ -423,7 +423,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
     with self.session(use_gpu=True) as sess:
       output = self._testNormalizedDepthwiseConv2DHelper()
       output_sum = tf.squeeze(tf.reduce_sum(output, -1))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output_sum_val = sess.run(output_sum)
     self.assertAllClose(expected_output, output_sum_val)
 
@@ -433,7 +433,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
     with self.session(use_gpu=True) as sess:
       output = self._testNormalizedDepthwiseConv2DHelper(is_causal=True)
       output_sum = tf.squeeze(tf.reduce_sum(output, -1))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output_sum_val = sess.run(output_sum)
     self.assertAllClose(expected_output, output_sum_val)
 
@@ -443,7 +443,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       loss = tf.reduce_sum(output)
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
@@ -458,7 +458,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       loss = tf.reduce_sum(output)
       all_vars = tf.trainable_variables()
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
@@ -481,7 +481,7 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
           input_paddings, dtype=tf.float32)
       output, output_paddings = pooling_layer.FPropDefaultTheta(
           inputs, input_paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       if input_paddings is None:
         self.assertIsNone(output_paddings)
         output_val = sess.run(output)

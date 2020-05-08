@@ -142,7 +142,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
 
       h2 = tf.stack(h2)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, h2_v = sess.run([h1, h2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(out_src_task, input_tasks)
@@ -176,7 +176,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
                                              None)
       h = output[0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run([h])[0]
       tf.logging.info(np.array_repr(actual_layer_output))
       # pylint: disable=bad-whitespace
@@ -228,7 +228,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
                                              None, None, None, None, None)
       h = output[0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run([h])[0]
       tf.logging.info(np.array_repr(actual_layer_output))
       # pylint: disable=bad-whitespace
@@ -297,7 +297,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
 
       h2 = tf.stack(h2)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, h2_v = sess.run([h1, h2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(out_src_task, input_tasks)
@@ -527,7 +527,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         labels = tf.ones([batch, tgt_inputs.shape.as_list()[1]], dtype=tf.int32)
         label_weights = tf.ones([batch, tgt_inputs.shape.as_list()[1]])
         tf.random.set_seed(1234)
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                      tgt_inputs, tgt_paddings, None, None,
                                      labels, label_weights, None, None, None,
@@ -581,7 +581,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
             None, None, segment_pos_id, tgt_segment_pos_id)[2]
         packed_output = tf.reshape(packed_output, output.shape)
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         output, packed_output = sess.run([output, packed_output])
         self.assertAllClose(output, packed_output, rtol=1e-05, atol=1e-05)
 
@@ -621,7 +621,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
           batch=batch)
       inputs, paddings, _, _ = _TransformerRandomInputsVecs(batch=batch)
       tf.random.set_seed(1234)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
       dec_output = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                  tgt_inputs, tgt_paddings)[2]
@@ -727,7 +727,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       output = xformer.FProp(xformer.theta, inputs, paddings, tgt_inputs,
                              tgt_paddings)[2]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output_val = sess.run(output)
       self.assertAllCloseAccordingToType(
           expected_output, output_val, rtol=1e-05, atol=1e-05)
@@ -782,7 +782,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       labels = tf.ones([input_ids.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([input_ids.shape.as_list()[0], batch])
       tf.random.set_seed(1234)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings, None,
                                    None, None, None, labels, label_weights)
       xent_out, logits_out = sess.run([xent, logits])
@@ -845,7 +845,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       labels = tf.ones([tgt_inputs.shape.as_list()[0], batch], dtype=tf.int32)
       label_weights = tf.ones([tgt_inputs.shape.as_list()[0], batch])
       tf.random.set_seed(1234)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                    tgt_inputs, tgt_paddings, None, None, labels,
                                    label_weights, None, None, input_task_ids,

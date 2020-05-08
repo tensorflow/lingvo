@@ -110,7 +110,7 @@ class LayersTestBase(test_utils.TestCase):
           paddings[-trailing_pad_len - 3:-trailing_pad_len - 1, :] = 1.0
         paddings = tf.constant(paddings, dtype)
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         if bi_directional:
           sfrnn_outputs = sfrnn.FPropFullSequence(sfrnn.theta, inputs, paddings)
           sfrnn_outputs = py_utils.HasShape(sfrnn_outputs,
@@ -170,7 +170,7 @@ class LayersTestBase(test_utils.TestCase):
       dxs = tf.gradients(loss, xs)
 
       # Compares the sym grad against the numeric grads.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       grad_step = 17
       sym_grads = sess.run(dxs)
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
@@ -210,7 +210,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       outputs = rnn.FPropFullSequence(rnn.theta, inputs, paddings)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       inputs_v, outputs_v = sess.run([inputs, outputs])
       self.assertAllEqual(inputs_v, outputs_v)
@@ -252,7 +252,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       sum_outputs = tf.reduce_sum(outputs, axis=0)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       actual = sess.run(py_utils.NestedMap(sum=sum_outputs, **final))
 
@@ -313,7 +313,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, all_vars)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
@@ -382,7 +382,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       # theta so the results should match
       bak_outputs, _ = bak_rnn.FProp(fwd_rnn.theta, fwd_inputs, fwd_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_reversed_outputs, actual_bak_outputs = sess.run(
           [reversed_outputs, bak_outputs])
       self.assertAllClose(actual_reversed_outputs, actual_bak_outputs)
@@ -428,7 +428,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       sum_final_c = tf.reduce_sum(final.c, [1, 2, 3])
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual = sess.run(
           py_utils.NestedMap(sum=sum_outputs, m=sum_final_m, c=sum_final_c))
 
@@ -500,7 +500,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
                                  tf.concat([tf.shape(paddings), [1, 1]], 0))
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       (rnn_outputs_v, rnn_final_v, frnn_outputs_v,
        frnn_final_v) = sess.run([rnn_outputs, final, frnn_outputs, frnn_final])
@@ -555,7 +555,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, all_vars)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
@@ -598,7 +598,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, all_vars)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
@@ -646,7 +646,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, all_vars)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
@@ -701,7 +701,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
           tf.unstack(inputs), tf.unstack(paddings))
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       frnn_out, frnn_final, rnn_out, rnn_final = sess.run(
           [frnn_outputs, frnn_final, rnn_outputs, rnn_final])
       self.assertAllClose(frnn_out, rnn_out)
@@ -750,7 +750,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       dw, db, dinputs = tf.gradients(loss, [w, b, inputs])
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       grad_step = 7
       sym_grads = sess.run([db, dw, dinputs])
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
@@ -888,7 +888,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
               tf.unstack(inputs), tf.unstack(paddings))
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       rnn_outputs_val, frnn_outputs_val = [
           x[:-trailing_pad_len] for x in sess.run([rnn_outputs, frnn_outputs])
       ]
@@ -948,7 +948,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       dw0, db0, dw1, db1, dinputs = tf.gradients(loss, [w0, b0, w1, b1, inputs])
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       grad_step = 13
       sym_grads = sess.run([dw0, db0, dw1, db1, dinputs])
       sym_grads = [test_utils.PickEveryN(_, grad_step) for _ in sym_grads]
@@ -1072,7 +1072,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       msrc_frnn_out = tf.concat([a, m], 2)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       ys = sess.run([msrc_frnn_out])[0]
       self.assertEqual(ys.shape, (7, 6, 8))
       print(np.sum(ys, axis=(1, 2)), np.sum(ys, axis=(0, 1)),
@@ -1109,7 +1109,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       msrc_frnn_out = tf.concat([a, m], 2)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       ys = sess.run([msrc_frnn_out])[0]
       self.assertEqual(ys.shape, (7, 6, 8))
       print(np.sum(ys, axis=(1, 2)), np.sum(ys, axis=(0, 1)),
@@ -1148,7 +1148,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       frnn_out = tf.concat([a, m], 2)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       ys, = sess.run([frnn_out])
       self.assertEqual(ys.shape, (7, 6, 8))
       print(np.sum(ys, axis=(1, 2)), np.sum(ys, axis=(0, 1)),
@@ -1197,7 +1197,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, parameters)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = sess.run(grads)
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
@@ -1255,7 +1255,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, parameters)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = sess.run(grads)
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
@@ -1318,7 +1318,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       grads = tf.gradients(loss, parameters)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = sess.run(grads)
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v, delta=1e-5)
@@ -1430,7 +1430,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
           [atten_ctx_src_ctx, rnn_out_src_ctx, atten_prob_src_ctx], 2)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       frnn_out_v, frnn_out_src_ctx_v = sess.run([frnn_out, frnn_out_src_ctx])
 
       # Expected last dimensions for atten_ctx_src_ctx, rnn_out_src_ctx,
@@ -1485,7 +1485,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
           src_encs, src_paddings, inputs, paddings, src_contexts=src_contexts)
 
       # Initialize all the variables, and then run one step.
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_ctx_v = sess.run(atten_ctx)
 
       self.assertEqual(atten_ctx_v.shape, (tlen, tbatch, dims))
@@ -1529,7 +1529,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
       atten_ctx, rnn_out, atten_prob, _ = frnn.FPropDefaultTheta(
           src_encs, src_paddings, inputs, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_ctx, rnn_out, atten_prob = sess.run(
           [atten_ctx, rnn_out, atten_prob])
 

@@ -72,7 +72,7 @@ class ClassifierTest(test_utils.TestCase):
         model = p.Instantiate()
         model.ConstructFPropBPropGraph()
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
       CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model, sess))
 
@@ -88,7 +88,7 @@ class ClassifierTest(test_utils.TestCase):
         model = p.Instantiate()
         model.ConstructFPropBPropGraph()
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
       CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model, sess))
 
@@ -106,7 +106,7 @@ class ClassifierTest(test_utils.TestCase):
       self.assertCountEqual(['normalized_image'], list(feeds.keys()))
       self.assertCountEqual(['logits', 'probs', 'prediction'],
                             list(fetches.keys()))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       fetch_results = sess.run(
           fetches, {feeds['normalized_image']: np.zeros(p.input.data_shape)})
       self.assertAllEqual([p.task.softmax.num_classes],

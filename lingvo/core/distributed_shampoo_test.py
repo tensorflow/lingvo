@@ -55,7 +55,7 @@ class DistributedShampooTest(test_utils.TestCase):
       assign_preconditioners_to_vars_op = (
           opt.assign_preconditioner_to_host_vars())
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
       init_val = sess.run(var)
@@ -161,7 +161,7 @@ class DistributedShampooTest(test_utils.TestCase):
       assign_preconditioners_to_vars_op = (
           opt.assign_preconditioner_to_host_vars())
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
       init_val = sess.run(var)
@@ -255,7 +255,7 @@ class DistributedShampooTest(test_utils.TestCase):
       assign_preconditioners_to_vars_op = (
           opt.assign_preconditioner_to_host_vars())
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
       init_val = sess.run(var)
@@ -393,7 +393,7 @@ class TensorPartitionerTest(test_utils.TestCase):
   def testTensorPartitioner(self):
     with tf.Session():
       w1 = tf.get_variable('w1', [255, 255], tf.float32)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       partition_info = distributed_shampoo.PartitionConfig(200, 128)
       grad = tf.constant(w1.eval())
       metadata = distributed_shampoo.TensorPartitioner.partition_metadata(

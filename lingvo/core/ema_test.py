@@ -80,7 +80,7 @@ class EmaTest(test_utils.TestCase):
     mean_1_ema = mean_1 * .1
     with self.session() as sess:
       # Test EMA values.
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
       sess.run(tf.assign(beta, beta_1))
       sess.run(tf.assign(mean, mean_1))

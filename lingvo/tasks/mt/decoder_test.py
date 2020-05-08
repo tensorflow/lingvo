@@ -123,7 +123,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       fprop_out = dec.FPropDefaultTheta(encoder_outputs, targets)
       loss = fprop_out.metrics['loss'][0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       CompareToGoldenSingleFloat(self, expected_loss, actual_loss)
@@ -155,7 +155,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
 
       grads = [DenseGrad(x, y) for x, y in zip(all_vars, grads)]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       symbolic_grads = [gd.eval() for gd in grads]
       numerical_grads = []
       for v in all_vars:
@@ -182,7 +182,7 @@ class DecoderTestCaseBase(test_utils.TestCase):
       dec = p.Instantiate()
       encoder_outputs, targets = self._Inputs()
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       if p.feed_attention_context_vec_to_softmax:
@@ -251,7 +251,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       # sess.run(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     self.assertTupleEqual(
@@ -294,7 +294,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
       # sess.run(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
@@ -345,7 +345,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       # sess.run(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
@@ -395,7 +395,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       # sess.run(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     self.assertTupleEqual(
@@ -436,7 +436,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
       # sess.run(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode_feeding_att_context = sess.run(decode)
 
     self.assertTupleEqual(
@@ -483,7 +483,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
           dec.theta,
           encoder_outputs,
           random_seed=tf.constant(1, dtype=tf.int32))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_sample = sess.run(sample)
 
     self.assertTupleEqual((src_batch, p.target_seq_len),
@@ -737,7 +737,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         loss_packed, _ = dec_packed.FProp(dec_packed.theta,
                                           encoder_outputs_packed,
                                           target_packed).metrics['loss']
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         actual_loss, packed_loss = sess.run([loss, loss_packed])
         self.assertAlmostEqual(
             np.float32(packed_loss), np.float32(actual_loss), delta=1e-4)
@@ -749,7 +749,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._testTransparentInputs(dtype=dtype)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss = loss.eval()
       print('actual loss = ', actual_loss)
       CompareToGoldenSingleFloat(self, 19.725393, actual_loss)
@@ -797,7 +797,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._Inputs(dtype=dtype, has_task_ids=True)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss = loss.eval()
       CompareToGoldenSingleFloat(self, 18.374338, actual_loss)
 
@@ -810,7 +810,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, _ = self._Inputs(dtype=dtype, has_task_ids=True)
       loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss = loss.eval()
       CompareToGoldenSingleFloat(self, 16.200066, actual_loss)
 
@@ -853,7 +853,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
     attention_map_bs = attention_map_bs.Transform(_TransposeAttentions)
 
-    tf.global_variables_initializer().run()
+    self.evaluate(tf.global_variables_initializer())
 
     l_out1_v, l_out2_v, attention_map_fprop_v, attention_map_bs_v, src_enc_len_v = sess.run(
         [l_out1, l_out2, attention_map_fprop, attention_map_bs, src_enc_len])
@@ -955,7 +955,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       loss2, _ = dec.FPropDefaultTheta(encoder_outputs2,
                                        targets2).metrics['loss']
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_loss, actual_loss1, actual_loss2 = sess.run([loss, loss1, loss2])
       print('actual loss = ', actual_loss)
       print('actual loss1 = ', actual_loss1)
@@ -984,7 +984,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
     with self.session(use_gpu=True) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     self.assertTupleEqual(
@@ -1091,7 +1091,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     decode = dec.SampleSequenceDecode(encoder_outputs)
 
     with self.session(use_gpu=True) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_decode = sess.run(decode)
 
     self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),

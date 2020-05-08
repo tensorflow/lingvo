@@ -199,7 +199,7 @@ class TransformerModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
@@ -217,7 +217,7 @@ class TransformerModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
@@ -240,7 +240,7 @@ class TransformerModelTest(test_utils.TestCase):
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
@@ -290,7 +290,7 @@ class TransformerModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       mdl.BProp()
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       for _ in range(2):
         sess.run(mdl.train_op)
@@ -307,7 +307,7 @@ class TransformerModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       mdl.BProp()
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       sess.run(mdl.train_op)
 
@@ -327,7 +327,7 @@ class TransformerModelTest(test_utils.TestCase):
         with cluster_factory.ForTestingWorker(gpus=num_splits):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         return sess.run(metrics['loss'])
 
     res1, res2 = Run(1), Run(2)
@@ -343,7 +343,7 @@ class TransformerModelTest(test_utils.TestCase):
         mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
         loss = mdl.loss
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         _ = sess.run(loss)
         self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
@@ -354,7 +354,7 @@ class TransformerModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       dec_out = sess.run(dec_out_dict)
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
@@ -443,7 +443,7 @@ class RNMTModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
@@ -463,7 +463,7 @@ class RNMTModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp))]
@@ -485,7 +485,7 @@ class RNMTModelTest(test_utils.TestCase):
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
@@ -505,7 +505,7 @@ class RNMTModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       dec_out = sess.run(dec_out_dict)
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
@@ -526,7 +526,7 @@ class RNMTModelTest(test_utils.TestCase):
         with cluster_factory.ForTestingWorker(gpus=num_splits):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         return sess.run(metrics['loss'])
 
     res1, res2 = Run(1), Run(2)
@@ -549,7 +549,7 @@ class RNMTModelTest(test_utils.TestCase):
         mdl = p.Instantiate()
         mdl.FPropDefaultTheta()
         loss = mdl.loss
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         _ = sess.run(loss)
         self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
@@ -699,7 +699,7 @@ class InsertionModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sess.run(mdl.loss)
 
 

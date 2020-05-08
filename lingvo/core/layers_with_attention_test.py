@@ -57,7 +57,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
 
       h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -90,7 +90,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       transformer_fflayer = layers_with_attention.TransformerFeedForwardLayer(p)
 
       h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -146,7 +146,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -191,7 +191,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
@@ -244,7 +244,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FProp(transformer_atten.theta, source_vecs,
                                            source_padding)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
 
       # pylint: disable=bad-whitespace
@@ -314,7 +314,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx2 = tf.stack(ctx2)
       probs2 = tf.stack(probs2)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       ctx1_v, probs1_v, ctx2_v, probs2_v = sess.run(
           [ctx1, probs1, ctx2, probs2])
       tf.logging.info(np.array_repr(ctx1_v))
@@ -339,7 +339,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx, probs = transformer_atten.FPropDefaultTheta(query_vec, aux_paddings,
                                                        aux_vecs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
@@ -398,7 +398,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           source_paddings=aux_paddings,
           source_vecs=aux_vecs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx1, actual_probs1, actual_ctx2, actual_probs2 = sess.run(
           [ctx1, probs1, ctx2, probs2])
       self.assertAllEqual(actual_ctx1, actual_ctx2)
@@ -425,7 +425,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           source_vecs=aux_vecs,
           context_vecs=context_vecs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
@@ -483,7 +483,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           source_vecs=aux_vecs,
           context_vecs=context_vecs)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
@@ -532,7 +532,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
@@ -581,7 +581,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
        _) = self._testTransformerAttentionLayerInputs(depth=depth)
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx, actual_probs = sess.run([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info('actual_probs=%r', np.array_repr(actual_probs))
@@ -654,7 +654,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_vecs=aux_vecs,
           aux_paddings=aux_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -711,7 +711,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_vecs=aux_vecs,
           aux_paddings=aux_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -770,7 +770,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings,
           atten_idx=atten_idx)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -861,7 +861,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
             aux_segment_id=aux_segment_id)
         h_packed = tf.reshape(h_packed, tf.shape(h))
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         actual_layer, p_layer = sess.run([h, h_packed])
         self.assertAllClose(actual_layer, p_layer)
 
@@ -903,7 +903,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h2 = tf.stack(h2)
       probs2 = tf.concat(probs2, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
@@ -953,7 +953,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h2 = tf.stack(h2)
       probs2 = tf.concat(probs2, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
@@ -997,7 +997,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h2 = tf.stack(h2)
       probs2 = tf.concat(probs2, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
@@ -1014,7 +1014,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       et_branched_convs = layer(p)
 
       h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1046,7 +1046,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       et_branched_convs = layer(p)
 
       h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1093,7 +1093,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_vecs=aux_vecs,
           aux_paddings=aux_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -1158,7 +1158,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_vecs=aux_vecs,
           aux_paddings=aux_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -1240,7 +1240,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h2 = tf.stack(h2)
       probs2 = tf.concat(probs2, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
@@ -1264,7 +1264,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run([ctx])[0]
 
       expected_ctx = np.mean(p_ctxs, axis=0)
@@ -1293,7 +1293,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -1336,7 +1336,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -1374,7 +1374,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run([ctx])[0]
 
       # pylint: disable=bad-whitespace
@@ -1420,7 +1420,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, ctxs)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run([ctx])[0]
 
       # pylint: disable=bad-whitespace
@@ -1475,7 +1475,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -1508,7 +1508,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       merger = p.Instantiate()
 
       ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx = sess.run(ctx)
 
       # pylint: disable=bad-whitespace
@@ -1535,7 +1535,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       sl = p.Instantiate()
       features = tf.random.normal([2, 10], seed=28384)
       latent, atten_probs = sl.FPropDefaultTheta(features)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       latent_v, atten_probs_v = sess.run([latent, atten_probs])
       CompareToGoldenSingleFloat(self, -1.208686, np.sum(latent_v))
       CompareToGoldenSingleFloat(self, 2.0, np.sum(atten_probs_v))
@@ -1558,7 +1558,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ids = tf.constant([0, 0], dtype=tf.int32)
       latent_from_probs = sl.StyleEmbFromProbs(sl.theta, atten_probs)
       latent_from_lookup = sl.EmbLookup(sl.theta, ids)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       latent_p, latent_l = sess.run([latent_from_probs, latent_from_lookup])
       self.assertAllClose(latent_p, latent_l)
 
@@ -1576,7 +1576,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       features = tf.random.normal([2, 10])
       features = tf.concat([features, features], 0)
       latent, _ = sl.FPropDefaultTheta(features)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       latent_v = sess.run(latent)
       # Makes sure identical input results in identical style output.
       self.assertAllClose(latent_v[:2], latent_v[2:])
@@ -1636,7 +1636,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings,
           source_task_id=source_task_id)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, actual_prob_output = sess.run([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
@@ -1737,7 +1737,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
             source_task_id=source_task_id_packed)
         h_packed = tf.reshape(h_packed, tf.shape(h))
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         actual_layer, p_layer = sess.run([h, h_packed])
         self.assertAllClose(actual_layer, p_layer)
 
@@ -1788,7 +1788,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h2 = tf.stack(h2)
       probs2 = tf.concat(probs2, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
@@ -1820,7 +1820,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       cct_fflayer = layers_with_attention.CCTFeedForwardLayer(p)
 
       h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, p_c_val = sess.run([h, p_c])
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1871,7 +1871,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       cct_fflayer = layers_with_attention.CCTFeedForwardLayer(p)
 
       h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output, p_c_val = sess.run([h, p_c])
       # pylint: disable=bad-whitespace
       # pyformat: disable

@@ -65,7 +65,7 @@ class CheckpointerTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       model = p.Instantiate()
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       w, b = sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
       self.assertAllClose(expected_w, w)
       self.assertAlmostEqual(initial_b, b, places=5)
@@ -109,7 +109,7 @@ class CheckpointerTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       global_step = tf.compat.v1.train.get_or_create_global_step()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       model = p.Instantiate()
       saver = checkpointer.Checkpointer(train_dir, model)
@@ -190,7 +190,7 @@ class CheckpointerTest(test_utils.TestCase):
 
     with self.session(graph=tf.Graph()) as sess:
       model = p.Instantiate()
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       saver = checkpointer.Checkpointer(train_dir, model, save_only=True)
       saver.Save(sess, model.global_step)
       with self.assertRaises(AssertionError):

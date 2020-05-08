@@ -74,7 +74,7 @@ class LayersTest(test_utils.TestCase):
 
       output, _, _ = xformer.FProp(xformer.theta, inputs, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output = sess.run(output)
 
       self.assertAllCloseAccordingToType(
@@ -116,7 +116,7 @@ class LayersTest(test_utils.TestCase):
           paddings_arr.tolist(), dtype=py_utils.FPropDtype(params))
       output, _, _ = xformer.FProp(xformer.theta, inputs, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output = sess.run(output)
       print(repr(output))
       self.assertAllCloseAccordingToType(
@@ -150,7 +150,7 @@ class LayersTest(test_utils.TestCase):
             xformer_packed.theta, inputs_packed, paddings_packed, seg_id)
         output_packed = tf.reshape(output_packed, tf.shape(output))
 
-        tf.global_variables_initializer().run()
+        self.evaluate(tf.global_variables_initializer())
         output, output_packed = sess.run([output, output_packed])
 
         self.assertAllClose(output_packed, output)
@@ -170,7 +170,7 @@ class LayersTest(test_utils.TestCase):
       inputs = tf.constant(input_arr.tolist(), dtype=tf.float32)
       paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       outputs, _, _ = xformer.FPropDefaultTheta(inputs, paddings)
       out_1, out_2 = sess.run(outputs)
       self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
@@ -193,7 +193,7 @@ class LayersTest(test_utils.TestCase):
       inputs = tf.constant(input_arr.tolist(), dtype=tf.float32)
       paddings = tf.constant(paddings_arr.tolist(), dtype=tf.float32)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       outputs, _, _ = xformer.FPropDefaultTheta(inputs, paddings)
       out = sess.run(outputs)
       self.assertAllClose([[[1.38054, -1.37836]], [[-0.811525, 1.183977]]],
@@ -278,7 +278,7 @@ class LayersTest(test_utils.TestCase):
 
     expected_ctx, expected_probs = self._ExpectedSingleSourceResults()
     with self.session(use_gpu=True) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_ctx_ref, actual_probs_ref = sess.run([ctx_ref, probs_ref])
       tf.logging.info(np.array_repr(actual_ctx_ref))
       tf.logging.info(np.array_repr(actual_probs_ref))
@@ -325,7 +325,7 @@ class LayersTest(test_utils.TestCase):
           aux_vecs=context,
           aux_paddings=context_paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output = sess.run(output)
       self.assertAllCloseAccordingToType(
           [[[-2.622666, 3.367474]] * batch, [[2.719156, -3.707336]] * batch],
@@ -355,7 +355,7 @@ class LayersTest(test_utils.TestCase):
 
       output, _, _ = xformer.FProp(xformer.theta, inputs, paddings)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output = sess.run(output)
       self.assertAllClose(
           [[[2.761103, -3.756748]] * batch, [[-2.623049, 3.367954]] * batch],

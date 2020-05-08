@@ -37,7 +37,7 @@ class AdagraftTest(test_utils.TestCase):
       loss = (var0 - 1) * (var0 - 1) + (var1 - 1) * (var1 - 1)
       o = opt.minimize(loss)
       oo = opt3.minimize(loss)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sess.run(o)
       l1 = sess.run([loss, var0, var1])
       print(l1)
@@ -70,7 +70,7 @@ class AdagraftTest(test_utils.TestCase):
       var1 = tf.Variable(3.0, name="var1")
       loss = (var0 - 1) * (var0 - 1) + (var1 - 1) * (var1 - 1)
       o = opt.minimize(loss)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       correct_values = [[1.058, 1.46, 1.92], [0.22387284, 1.2116001, 1.4232]]
 

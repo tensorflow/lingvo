@@ -91,7 +91,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -148,7 +148,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -223,7 +223,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -279,7 +279,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertLen(atten.vars.Flatten(), 3)
 
     with self.session(use_gpu=True, graph=g) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
     return atten_vec_out, prob_out
 
@@ -331,7 +331,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -413,7 +413,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -463,7 +463,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('AdditiveAttention_vars')
       self.assertLen(atten_vars, 3)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       all_vars = tf.trainable_variables()
       for v in all_vars:
@@ -534,7 +534,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = attention.DotProductAttention(params)
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding, source_segment_id)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, query_segment_id=query_segment_id)
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
@@ -609,7 +609,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = params.Instantiate()
       packed_src = atten.InitForSourcePacked(atten.theta, source_vecs,
                                              source_contexts, source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_probs = tf.constant([[1.0] + [0.0] * 5] * 3 * 2, dtype=tf.float32)
       atten_vec_proj, atten_vec = atten.ComputeContextVectorWithAttenProbs(
           atten.theta, packed_src.source_contexts, atten_probs)
@@ -666,7 +666,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                               source_padding[i, :],
                                               source_seg_id[i, :], cached_src)
       packed_src2 = atten.PackCachedSource(cached_src)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_1, prob_1, _ = atten.ComputeContextVectorWithSource(
           theta, packed_src1, query_vec, query_segment_id=query_seg_id)
@@ -742,7 +742,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                               source_contexts[i, :, :], None,
                                               None, cached_src)
       packed_src2 = atten.PackCachedSource(cached_src)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_1, prob_1, _ = atten.ComputeContextVectorWithSource(
           atten.theta, packed_src1, query_vec)
@@ -784,7 +784,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
 
@@ -840,7 +840,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding, source_seg_id)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, query_segment_id=query_seg_id)
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
@@ -898,7 +898,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_state)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
 
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
@@ -959,7 +959,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_init_state = self._attentionStateWithRandomEmitProbabilities(
           atten, 12, 6)
       print('atten_init_state', atten_init_state)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
@@ -1012,7 +1012,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten = params.Instantiate()
       atten.InitForSourcePacked(atten.theta, source_vecs, source_contexts,
                                 source_padding)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec)
 
@@ -1074,7 +1074,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                              source_contexts, source_padding)
       # Duplicate atten_idx n=2 times.
       atten_idx = tf.constant([0, 1, 1] * 2, dtype=tf.int32)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVectorWithSource(
           atten.theta, packed_src, query_vec, atten_idx=atten_idx)
 
@@ -1129,7 +1129,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           source_length=source_contexts.shape[0],
           context_dim=source_contexts.shape[2])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose(expected_vec, np.sum(atten_vec_out, axis=1))
@@ -1184,7 +1184,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_state)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec_out, _, atten_state = sess.run(
           [atten_vec, atten_prob, atten_state])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
@@ -1257,7 +1257,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('LocationSensitiveAttention_vars')
       self.assertLen(atten_vars, 5)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
           [atten_vec, atten_prob, atten_init_state, atten_state])
@@ -1335,7 +1335,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('LocationSensitiveAttention_vars')
       self.assertLen(atten_vars, 5)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_init_state_out, atten_state_out = sess.run(
           [atten_init_state, atten_state])
@@ -1395,7 +1395,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('LocationSensitiveAttention_vars')
       self.assertLen(atten_vars, 5)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
           [atten_vec, atten_prob, atten_init_state, atten_state])
@@ -1489,7 +1489,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('MonotonicAttention_vars')
       self.assertLen(atten_vars, 6)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
           [atten_vec, atten_prob, atten_init_state, atten_state])
@@ -1553,7 +1553,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vars = tf.get_collection('MonotonicAttention_vars')
       self.assertLen(atten_vars, 6)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       prob_out, atten_state_out = sess.run([atten_prob, atten_state])
       print(['hard monotonic prob', np.array_repr(prob_out)])
@@ -1623,7 +1623,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertLen(all_vars, 6)
 
       grads = tf.gradients(loss, all_vars)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       sym_grads = [sg.eval() for sg in grads]
       num_grads = [
           test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
@@ -1670,7 +1670,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           attention_state=atten_state,
           per_step_source_padding=per_step_padding)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       atten_vec1_out, atten_prob1_out = sess.run([atten_vec1, atten_prob1])
       atten_vec2_out, atten_prob2_out = sess.run([atten_vec2, atten_prob2])
       print('atten_prob1_out', atten_prob1_out)
@@ -1827,7 +1827,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
           [atten_vec, atten_prob, atten_init_state, atten_state])

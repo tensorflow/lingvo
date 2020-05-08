@@ -220,7 +220,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
                                           PreBeamSearchStepCallback,
                                           PostBeamSearchStepCallback)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       ids, lens = sess.run([
           decoder_output.ids,
           tf.reduce_sum(1 - decoder_output.paddings, 1),

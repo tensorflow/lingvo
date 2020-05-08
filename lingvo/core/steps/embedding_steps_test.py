@@ -45,7 +45,7 @@ class EmbeddingStepsTest(test_utils.TestCase):
           py_utils.NestedMap(inputs=[tf.constant([4, 3], tf.int32)]),
           tf.constant([0.0], dtype=tf.float32), state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out1, state1 = sess.run([out1, state1])
 
       self.assertEqual({}, state1)

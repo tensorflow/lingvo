@@ -65,7 +65,7 @@ class AttentionStepsTest(test_utils.TestCase):
       output, state1 = step.FProp(step.theta, packed, step_inputs, step_padding,
                                   state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output, state1 = sess.run([output, state1])
 
       self.assertAllClose(
@@ -131,7 +131,7 @@ class AttentionStepsTest(test_utils.TestCase):
       output, state1 = step.FProp(step.theta, packed, None, step_padding,
                                   state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output, state1 = sess.run([output, state1])
 
       self.assertAllClose(

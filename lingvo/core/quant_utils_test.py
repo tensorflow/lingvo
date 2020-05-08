@@ -294,7 +294,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     inputs = tf.constant(
         np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32)
     output = l.FPropDefaultTheta(inputs, in_padding)
-    tf.global_variables_initializer().run()
+    self.evaluate(tf.global_variables_initializer())
 
     if global_step >= 0:
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
@@ -347,7 +347,7 @@ class ClippingCapScheduleTest(object):
     p.end_cap = 1.0
     with self.session() as sess:
       cc_schedule = p.Instantiate()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # Move to fully quantized part of schedule
       sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
 
@@ -397,7 +397,7 @@ class ClippingCapScheduleTest(object):
     p.end_cap = 1.0
     with self.session() as sess:
       cc_schedule = p.Instantiate()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # Step 0: No clipping.
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0), (-100.0, 100.0))

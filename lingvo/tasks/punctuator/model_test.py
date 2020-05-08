@@ -96,7 +96,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
         vals += [sess.run((loss, logp))]
@@ -119,7 +119,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
         vals += [sess.run((loss, logp, mdl.train_op))[:2]]
@@ -139,7 +139,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       loss = mdl.loss
       logp = mdl.eval_metrics['log_pplx'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
         vals += [sess.run((loss, logp))]
@@ -158,7 +158,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       mdl = p.Instantiate()
       fetches, feeds = mdl.Inference()['default']
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       src_strings = ['the cat sat on the mat', 'the dog sat on the mat']
       dec_out = sess.run(fetches, {feeds['src_strings']: src_strings})
       print('dec_out', dec_out)

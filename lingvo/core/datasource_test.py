@@ -166,7 +166,7 @@ class DatasourceTest(test_utils.TestCase):
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
     with tf.Session() as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       ret.data = sess.run([ret.data])
 
     self.assertCountEqual(
@@ -188,7 +188,7 @@ class DatasourceTest(test_utils.TestCase):
     with tf.Session() as sess:
       # Advance the global step to the next curriculum stage
       global_step = py_utils.GetOrCreateGlobalStepVar()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       set_global_step = tf.assign(global_step, boundary, name='advance_step')
       sess.run(set_global_step)
 
@@ -215,7 +215,7 @@ class DatasourceTest(test_utils.TestCase):
     with tf.Session() as sess:
       # Advance the global step to the next curriculum stage
       global_step = py_utils.GetOrCreateGlobalStepVar()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       set_global_step = tf.assign(global_step, boundary, name='advance_step')
       sess.run(set_global_step)
 

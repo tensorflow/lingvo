@@ -51,7 +51,7 @@ class PreconditionerTest(tf.test.TestCase):
     preconditioner_compute_graphdef = self.inverse_pth_root_graph()
     with tf.Session() as sess:
       global_step = tf.train.get_or_create_global_step()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       rand_input_1_t = np.random.rand(4, 4)
       rand_input_2_t = np.random.rand(4, 4)
       exponents = [-0.25, -0.25]

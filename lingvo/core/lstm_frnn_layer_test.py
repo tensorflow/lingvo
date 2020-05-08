@@ -65,7 +65,7 @@ class LSTMCellExtTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session() as sess:
       cell = cell_p.Instantiate()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # The canonical path
       state = state0
@@ -140,7 +140,7 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
     frnn = frnn_p.Instantiate()
 
     with self.session() as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       state0 = py_utils.NestedMap(m=m0, c=c0)
       act, state = base_frnn.FPropDefaultTheta(

@@ -44,7 +44,7 @@ class RevNetLayerTest(test_utils.TestCase):
 
       h, _, _ = revnet_layer.FPropDefaultTheta(
           py_utils.NestedMap(split1=input_1, split2=input_2))
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       actual_layer_output = sess.run(h)
       expected_split1 = np.array([[-0.7262997, 0.9276514, -0.20907314],
                                   [-0.7089523, 0.24923629, 2.5001974],
@@ -96,7 +96,7 @@ class RevNetLayerTest(test_utils.TestCase):
           g_seed,
       )
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # Tests the reverse.
       x1r, x2r = sess.run(
@@ -166,7 +166,7 @@ class StackedRevNetLayerTest(test_utils.TestCase, parameterized.TestCase):
           revnet.theta.Flatten(),
           unconnected_gradients=tf.UnconnectedGradients.ZERO)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       dfx_val, dfw_val, h_val = sess.run([dfx, dfw, h],
                                          feed_dict={
                                              input_1: input_1_val,

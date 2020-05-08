@@ -75,7 +75,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     act = x_val
@@ -97,7 +97,7 @@ class BuilderLayerTest(test_utils.TestCase):
       self.assertIsInstance(y, tf.Tensor)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val = sess.run([x, y])
       self.assertAllEqual(x_val, y_val)
 
@@ -137,7 +137,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     act = x_val
@@ -173,7 +173,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     out = []
@@ -221,7 +221,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     out = []
@@ -271,7 +271,7 @@ class BuilderLayerTest(test_utils.TestCase):
       self.assertEqual(None, y1)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       y_sum_val = sess.run(y_sum)
 
     self.assertEqual(y_sum_val, 0.)
@@ -287,7 +287,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y0, y1 = l.FPropDefaultTheta(x0, x1)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       vx0, vx1, vy0, vy1 = sess.run([x0, x1, y0, y1])
 
     self.assertAllClose(np.max(vx0, 1), vy0)
@@ -309,7 +309,7 @@ class BuilderLayerTest(test_utils.TestCase):
         ys += [y]
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xs_val, ys_val, w_val = sess.run([xs, ys, l.vars])
 
     self.assertEqual(w_val.w.shape, (10, 5))
@@ -326,7 +326,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w_val = sess.run([x, y, l.vars])
 
     self.assertEqual(w_val.b.shape, (10,))
@@ -397,7 +397,7 @@ class BuilderLayerTest(test_utils.TestCase):
           py_utils.Transform(lambda t: t.ToTensorShape().as_list(), y_shape))
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       y_val = sess.run(y)
       print(y_val)
       self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0, f=-2.0), y_val)
@@ -414,7 +414,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l = p.Instantiate()
       x = tf.random.normal(shape=[1, 2, 2])
       y = l.FPropDefaultTheta(x)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, vars_val = sess.run([x, y, l.vars])
 
       p_nz = layers.SoftCondLayer.Params().Set(
@@ -426,7 +426,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l_nz = p_nz.Instantiate()
       x_nz = tf.random.normal(shape=[1, 2, 2])
       y_nz = l_nz.FPropDefaultTheta(x_nz)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       x_nz_val, y_nz_val, vars_nz_val = sess.run([x_nz, y_nz, l_nz.vars])
 
     np_val = x_val[0]
@@ -460,7 +460,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l = p.Instantiate()
       x = tf.random.normal(shape=[2, 2])
       y = l.FPropDefaultTheta(x)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     np_val = x_val
@@ -491,7 +491,7 @@ class BuilderLayerTest(test_utils.TestCase):
       l = p.Instantiate()
       x = tf.random.normal(shape=[repeat, 2, 2])
       y = l.FPropDefaultTheta(x)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val, w = sess.run([x, y, l.vars])
 
     np_val = []
@@ -533,7 +533,7 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.constant(1.0)
       y = tf.constant(2.0)
       z = l.FProp(l.theta, x, y)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       z_val = sess.run(z)
       print(z_val)
       self.assertAllClose(6.0, z_val)
@@ -547,7 +547,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
 
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       x_val, y_val = sess.run([x, y])
     self.assertEqual(x_val, y_val)
 

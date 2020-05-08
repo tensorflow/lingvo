@@ -53,7 +53,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(
           np.random.randint(vocab, size=(time, batch)), tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -86,7 +86,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(
           np.random.randint(vocab, size=(time, batch)), tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -129,7 +129,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       # Now add the backward graph.
       grads = tf.gradients(xent_output.avg_xent, lm_vars)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
@@ -159,7 +159,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(
           np.random.randint(vocab, size=(time, batch)), tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -190,7 +190,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(
           np.random.randint(vocab, size=(time, batch)), tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
 
       state0 = lm.zero_state(lm.theta, batch)
       _, state1 = lm.FPropDefaultTheta(
@@ -242,7 +242,7 @@ class RnnLmTest(test_utils.TestCase):
       paddings[-1] = 1.0
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -287,7 +287,7 @@ class RnnLmTest(test_utils.TestCase):
       paddings[-1] = 1.0
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -328,7 +328,7 @@ class RnnLmTest(test_utils.TestCase):
       paddings[-1] = 1.0
       paddings = tf.constant(paddings, tf.float64)
       targets = tf.constant(targets, tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -345,7 +345,7 @@ class RnnLmTest(test_utils.TestCase):
           grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
                                                   x.dense_shape[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
@@ -383,7 +383,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
       condition = tf.constant(np.ones([batch, condition_dim]), tf.float64)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -432,7 +432,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
       condition = tf.constant(np.ones([batch, condition_dim]), tf.float64)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -477,7 +477,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       paddings = tf.constant(paddings, tf.float64)
       targets = tf.constant(targets, tf.int32)
       condition = tf.constant(np.ones([batch, condition_dim]), tf.float64)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -495,7 +495,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
           grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
                                                   x.dense_shape[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
@@ -545,7 +545,7 @@ class MoeLmTest(test_utils.TestCase):
       tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -569,7 +569,7 @@ class MoeLmTest(test_utils.TestCase):
       tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -593,7 +593,7 @@ class MoeLmTest(test_utils.TestCase):
       tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, state1 = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -618,7 +618,7 @@ class MoeLmTest(test_utils.TestCase):
       tf.random.set_seed(123456)
       lm = p.Instantiate()
       inputs, paddings, labels = self._GetData(vocab, time, batch)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=tf.cast(paddings, p.dtype),
@@ -634,7 +634,7 @@ class MoeLmTest(test_utils.TestCase):
           grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
                                                   x.dense_shape[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       step = 11  # Speed up the test.
       for x, grad_x in zip(lm_vars, grads):
@@ -682,7 +682,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
     with self.session(use_gpu=True) as sess:
       lm = p.Instantiate()
       inputs, paddings, targets = self._testInputs(dtype=tf.float32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -709,7 +709,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       # Now add the backward graph.
       grads = tf.gradients(xent_output.avg_xent, lm_vars)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
@@ -723,7 +723,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       lm = p.Instantiate()
       inputs, paddings, _ = self._testInputs(dtype=tf.float32, last_padding=0.0)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(inputs=inputs, paddings=paddings)
       logits1 = xent_output.logits
 
@@ -736,7 +736,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
         logits2.append(l_i_out.logits)
       logits2 = tf.stack(logits2)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       logits1_v, logits2_v = sess.run([logits1, logits2])
       print('xformer logits1_v', logits1_v)
       print('xformer logits2_v', logits2_v)
@@ -773,7 +773,7 @@ class TransformerLmTest(test_utils.TestCase):
       paddings[-1] = 1.0
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -817,7 +817,7 @@ class TransformerLmTest(test_utils.TestCase):
       paddings[-1] = 1.0
       paddings = tf.constant(paddings, tf.float32)
       targets = tf.constant(targets, tf.int32)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output, _ = lm.FPropDefaultTheta(
           inputs=inputs,
           paddings=paddings,
@@ -873,7 +873,7 @@ class TransformerLmTest(test_utils.TestCase):
           grads[i] = tf.math.unsorted_segment_sum(x.values, x.indices,
                                                   x.dense_shape[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
@@ -935,7 +935,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     xent_output = self._SetupGraph(p, time, batch, vocab)
     assert p.stack.encoder_tpl.tr_atten_tpl.is_masked
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       xent_output_val = sess.run(xent_output)
 
       print('xent_output_val', xent_output_val)
@@ -951,7 +951,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     xent_output, lm_vars, grads = self._SetupGraph(
         p, time, batch, vocab, return_grad=True)
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       for x, grad_x in zip(lm_vars, grads):
         grad_symbolic = sess.run(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(

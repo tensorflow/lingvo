@@ -38,7 +38,7 @@ class CarLayersTest(test_utils.TestCase):
                                   dtype=tf.int32))
       result = net.FPropDefaultTheta(input_data)
     with self.session(graph=g) as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       np_result = sess.run(result)
     grouped_points_result = np_result.grouped_points
     self.assertEqual(grouped_points_result.features.shape,

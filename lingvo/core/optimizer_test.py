@@ -67,7 +67,7 @@ class OptimizerTest(test_utils.TestCase):
           var_update_op2 = opt.Apply(
               lr, py_utils.ApplyGradMultiplier(var_grads2, 1. / 2.))
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       vars1 = sess.run(proj_layer.vars.Flatten())
       loss1_1, grads1_1, loss1_2, grads1_2 = sess.run(
           [
@@ -111,7 +111,7 @@ class OptimizerTest(test_utils.TestCase):
       increment_global_step_op = tf.assign_add(
           py_utils.GetOrCreateGlobalStepVar(), 1)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       vars2 = sess.run(proj_layer.vars.Flatten())
       loss2_1, grads2_1 = sess.run([loss, var_grads.Transform(tuple)],
                                    feed_dict={

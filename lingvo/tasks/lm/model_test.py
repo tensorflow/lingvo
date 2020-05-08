@@ -72,7 +72,7 @@ class ModelTest(test_utils.TestCase):
       logp = mdl.eval_metrics['log_pplx'][0]
       logp_per_word = mdl.eval_metrics['log_pplx_per_word'][0]
       accuracy = mdl.eval_metrics['fraction_of_correct_next_step_preds'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       loss, logp, logp_per_word, accuracy = sess.run(
           [loss, logp, logp_per_word, accuracy])
@@ -92,7 +92,7 @@ class ModelTest(test_utils.TestCase):
       mdl.FPropDefaultTheta()
       mdl.BProp()
       loss = mdl.eval_metrics['loss'][0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # Run some steps and we expect the loss goes down.
       loss_val, _ = sess.run([loss, mdl.train_op])
@@ -113,7 +113,7 @@ class ModelTest(test_utils.TestCase):
       subgraphs = mdl.Inference()
       self.assertIn('default', subgraphs)
       fetches, feeds = subgraphs['default']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = sess.run(
           fetches=fetches,
           feed_dict={feeds['text']: ['pray for world peace', 'happy birthday']})
@@ -143,7 +143,7 @@ class ModelTest(test_utils.TestCase):
       subgraphs = mdl.Inference()
       self.assertIn('default', subgraphs)
       fetches, feeds = subgraphs['default']
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       vals = sess.run(
           fetches=fetches,
           feed_dict={

@@ -131,7 +131,7 @@ class PyUtilsTest(test_utils.TestCase):
         pc = py_utils.WeightParams(sp, m(), dt, col)
         all_vars_copy.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       for v1, v2 in zip(all_vars, all_vars_copy):
         v1_v = v1.eval()
         v2_v = v2.eval()
@@ -159,7 +159,7 @@ class PyUtilsTest(test_utils.TestCase):
                                    tf.float32, ['col1', 'col2'])
         var_copy = py_utils.CreateVariable('var', pc)[0]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(var.eval(), var_copy.eval())
 
   def testCreateVariableUniform(self):
@@ -187,7 +187,7 @@ class PyUtilsTest(test_utils.TestCase):
           [-0.047435 + 0.035301j, 0.041994 + 0.000279j, -0.029097 + 0.084902j],
       ]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       v2_v = all_vars[1].eval()
       v4_v = all_vars[3].eval()
@@ -219,7 +219,7 @@ class PyUtilsTest(test_utils.TestCase):
           [0.865386 + 0.301172j, 0.876698 - 0.907293j, 1.996337 + 1.840192j],
       ]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       v2_v = all_vars[1].eval()
       v3_v = all_vars[2].eval()
@@ -244,7 +244,7 @@ class PyUtilsTest(test_utils.TestCase):
         pc = py_utils.WeightParams(sp, m(scale=2), dt)
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       var_values = sess.run(all_vars)
       tf.logging.info('var_values=%s', var_values)
       self.assertAllClose(
@@ -279,7 +279,7 @@ class PyUtilsTest(test_utils.TestCase):
       with self.assertRaises(AssertionError):
         py_utils.CreateVariable('var1', pc)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(var1.eval(), var2.eval())
 
   def testCreateVariableDifferentSeed(self):
@@ -290,7 +290,7 @@ class PyUtilsTest(test_utils.TestCase):
         w0, _ = py_utils.CreateVariable('w', pc)
       with tf.variable_scope('layer1'):
         w1, _ = py_utils.CreateVariable('w', pc)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
 
       # w0_val, w1_val should be sufficient different.
       w0_val, w1_val = sess.run([w0, w1])
@@ -316,7 +316,7 @@ class PyUtilsTest(test_utils.TestCase):
           [0.519782 + 0.470412j, 0.738902 - 0.054006j, 0.028603 + 0.471832j],
       ]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       v3_v = all_vars[2].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
@@ -336,7 +336,7 @@ class PyUtilsTest(test_utils.TestCase):
 
       v1_v_expted = [1.175317, -1.072416]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
@@ -354,7 +354,7 @@ class PyUtilsTest(test_utils.TestCase):
 
       v1_v_expted = [[[1.357139, -1.23832]]]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
 
@@ -386,7 +386,7 @@ class PyUtilsTest(test_utils.TestCase):
           0.151534 - 0.065029j, 0.696214 + 0.017434j, -0.507220 - 0.371455j
       ], [0.525114 + 0.475238j, 0.746481 - 0.05456j, 0.028896 + 0.476672j]]
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1_v = all_vars[0].eval()
       v3_v = all_vars[2].eval()
       self.assertAllClose(v1_v_expted, v1_v.tolist())
@@ -434,7 +434,7 @@ class PyUtilsTest(test_utils.TestCase):
       x = tf.constant([[1, 2], [3, 4]])
       y = tf.constant([10] * 4)
       x = py_utils.Save(x, '%s/test' % self.get_temp_dir(), x=x, y=y)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(sess.run(x), [[1, 2], [3, 4]])
 
     # Reads npy files and check the values.
@@ -685,7 +685,7 @@ class PyUtilsTest(test_utils.TestCase):
                            tf.ones_like(b) * 0.5))
     clipped = py_utils.ApplyGradNormClipping(vs_gs, norm=1.0)
     with self.session(use_gpu=False) as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       clipped_np = sess.run(clipped.Transform(tuple))
       # Each variable is clipped indipendently to grad scale of 1.
       self.assertAllClose(clipped_np.a[1], 1.0)
@@ -715,7 +715,7 @@ class PyUtilsTest(test_utils.TestCase):
       }
       var_grads = py_utils.ComputeGradients(l, vmap)
       var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask)
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       _, var_grads_mask_vals = sess.run(
           [var_grads.Transform(tuple),
            var_grads_mask.Transform(tuple)])
@@ -743,7 +743,7 @@ class PyUtilsTest(test_utils.TestCase):
       l2_loss, var_grads_with_l2 = py_utils.AdjustGradientsWithLpLoss(
           var_grads, 0.1, p=2.0)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
           var_grads.Transform(tuple), l2_loss,
           var_grads_with_l2.Transform(tuple)
@@ -787,7 +787,7 @@ class PyUtilsTest(test_utils.TestCase):
               var_grads.Flatten(), 0.1, p=2.0)
           var_grads_with_l2 = py_utils.Pack(var_grads, var_grads_with_l2)
 
-        sess.run(tf.global_variables_initializer())
+        self.evaluate(tf.global_variables_initializer())
         var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
             var_grads.Transform(tuple), l2_loss,
             var_grads_with_l2.Transform(tuple)
@@ -835,7 +835,7 @@ class PyUtilsTest(test_utils.TestCase):
       l1_loss, var_grads_with_l1 = py_utils.AdjustGradientsWithLpLoss(
           var_grads, 0.1, p=1.0)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
           var_grads.Transform(tuple), l1_loss,
           var_grads_with_l1.Transform(tuple)
@@ -866,7 +866,7 @@ class PyUtilsTest(test_utils.TestCase):
       l1_loss, var_grads_with_l1 = py_utils.AdjustGradientsWithLpLoss(
           var_grads, 0.1, p=1.0)
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
           var_grads.Transform(tuple), l1_loss,
           var_grads_with_l1.Transform(tuple)
@@ -1022,7 +1022,7 @@ class PyUtilsTest(test_utils.TestCase):
               z=py_utils.NestedMap(a=tf.constant([10, 20]),),
           ),
       ])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(stacked.x, tf.constant([[1, 2], [3, 4]]))
       self.assertAllEqual(stacked.z.a, tf.constant([[1, 2], [10, 20]]))
 
@@ -1250,7 +1250,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         cfg.Instantiate()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(
           # These are initialized values before overriding with checkpoint.
           self._GetLeNetVarsFirstVal(sess),
@@ -1276,7 +1276,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       cfg = model_registry.GetParams('image.mnist.LeNet5', 'Train')
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         cfg.Instantiate()
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAllClose(
           # These are initialized values before overriding with checkpoint.
           self._GetLeNetVarsFirstVal(sess),
@@ -2186,7 +2186,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_b = tf.get_variable('b', trainable=False, initializer=0)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
@@ -2206,7 +2206,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_w = tf.get_variable('w', trainable=False, dtype=tf.float32, shape=[2])
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
@@ -2234,7 +2234,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_b = tf.get_variable('b', trainable=False, initializer=0)
 
     with self.session() as sess:
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
         return lambda: tf.assign_add(var, 1)
@@ -2281,7 +2281,7 @@ class StepSeedTest(test_utils.TestCase):
     accumulated_states, _ = recurrent.Recurrent(p.Instantiate().theta, state0,
                                                 inputs, step_fn)
 
-    sess.run(tf.global_variables_initializer())
+    self.evaluate(tf.global_variables_initializer())
     accumulated_states = accumulated_states.Pack(
         sess.run(accumulated_states.Flatten()))
     self.assertAllEqual(np.arange(10), accumulated_states.input)
@@ -2348,7 +2348,7 @@ class WeightInitTest(test_utils.TestCase):
                                  py_utils.WeightInit.UniformPositive(1.0),
                                  tf.float32)
       var = py_utils.CreateVariable('var', pc)[0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       self.assertTrue(np.all(var_v >= 0.0))
       self.assertTrue(np.all(var_v <= 1.0))
@@ -2359,7 +2359,7 @@ class WeightInitTest(test_utils.TestCase):
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInRelu(1.0),
           tf.float32)
       var = py_utils.CreateVariable('var', pc)[0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       # With Relu initialization, uniform bounds are
       # sqrt(3) * sqrt(2) / sqrt(fan_in)
@@ -2373,7 +2373,7 @@ class WeightInitTest(test_utils.TestCase):
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInLeakyRelu(),
           tf.float32)
       var = py_utils.CreateVariable('var', pc)[0]
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       # With LeakyRelu initialization, uniform bounds are
       # sqrt(3) * sqrt(2 / (1 + scale**2)) / sqrt(fan_in)
@@ -2391,7 +2391,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
       tf.random.set_seed(12345678)
       zero_state = py_utils.InitRNNCellState(
           [2, 3], init=py_utils.RNNCellStateInit.Zeros(), dtype=tf.float32)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       zero_state_v = zero_state.eval()
       expected_zero_state = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
       self.assertAllClose(zero_state_v, expected_zero_state)
@@ -2403,7 +2403,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
           [2, 3],
           init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
           dtype=tf.float32)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       zero_state_v = zero_state.eval()
       expected_zero_state = [[1.621003, -1.097501, 0.493424],
                              [-1.048426, 2.73048, 0.091445]]
@@ -2417,7 +2417,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
           init=py_utils.RNNCellStateInit.RandomNormal(seed=12345),
           dtype=tf.float32,
           is_eval=True)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       zero_state_v = zero_state.eval()
       expected_zero_state = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0]]
       self.assertAllClose(zero_state_v, expected_zero_state)
@@ -2443,7 +2443,7 @@ class RematerializeFnTest(test_utils.TestCase):
       self.assertEqual(e2.shape.as_list(), [2, 4])
       da1, db1 = tf.gradients([d1, e1], [a, b])
       da2, db2 = tf.gradients([d2, e2], [a, b])
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       v1, v2, v3, v4 = sess.run([da1, db1, da2, db2])
       self.assertAllEqual(v1, v3)
       self.assertAllEqual(v2, v4)

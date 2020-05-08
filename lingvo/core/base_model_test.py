@@ -69,7 +69,7 @@ class BaseTaskTest(test_utils.TestCase):
 
     FLAGS.enable_check_numerics = False
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(1.0, scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(
@@ -91,7 +91,7 @@ class BaseTaskTest(test_utils.TestCase):
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(
@@ -114,7 +114,7 @@ class BaseTaskTest(test_utils.TestCase):
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # The final gradient must be finite.
       self.assertFalse(
@@ -138,7 +138,7 @@ class BaseTaskTest(test_utils.TestCase):
     scaled_grads_map = task.learners[0].ScaleGradients(var_grads)
 
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertEqual(0., scaled_grads_map.grad_scale.eval())
       # Fetching the gradient raises an exception with enable_check_numerics.
       with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
@@ -183,7 +183,7 @@ class BaseTaskTest(test_utils.TestCase):
 
     FLAGS.enable_check_numerics = False
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # Each variable is clipped indipendently to grad scale of 1.
       self.assertAllClose(scaled_grads_map.final_var_grads.a[1].eval(), 1.0)
@@ -268,7 +268,7 @@ class DistillationTaskTest(test_utils.TestCase):
     self.assertIsNotNone(task.train_op)
 
     with self.session() as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       variables = {}
       values_before_training = {}
@@ -447,7 +447,7 @@ class MultiTaskModelTest(test_utils.TestCase):
 
     # initialize tensorflow graph and global step
     with self.session() as sess:
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       global_step = sess.run(model.global_step)
       for _ in range(100):
         task = model.SampleTask(global_step)

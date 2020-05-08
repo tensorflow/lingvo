@@ -428,7 +428,7 @@ class LearningRateScheduleTest(test_utils.TestCase):
     mh = lrs._metric_history
     mh.params.local_filesystem = True
     with self.session():
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       mh.ConditionalAppend(mh.params.jobname, mh.params.metric, 1, 10.0)
       # best = 1
       self.assertAllClose(lrs.Value(0).eval(), 1.0)

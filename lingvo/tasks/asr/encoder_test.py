@@ -74,7 +74,7 @@ class EncoderTest(test_utils.TestCase):
       p = self._EncoderParams(vn_config)
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out, 0)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       # pylint: disable=bad-whitespace
@@ -114,7 +114,7 @@ class EncoderTest(test_utils.TestCase):
       p.num_conv_lstm_layers = 1
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -128,7 +128,7 @@ class EncoderTest(test_utils.TestCase):
       p.num_conv_lstm_layers = 2
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -142,7 +142,7 @@ class EncoderTest(test_utils.TestCase):
       p.residual_start = 1
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -156,7 +156,7 @@ class EncoderTest(test_utils.TestCase):
       p.residual_start = 2
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -171,7 +171,7 @@ class EncoderTest(test_utils.TestCase):
       p.residual_stride = 2
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -188,7 +188,7 @@ class EncoderTest(test_utils.TestCase):
       p.layer_index_before_stacking = 1
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out, 0)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       # pyformat: disable
       # pylint: disable=bad-whitespace
       expected_enc_out = [
@@ -241,7 +241,7 @@ class EncoderTest(test_utils.TestCase):
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out, 0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       # pylint: disable=bad-whitespace
@@ -275,7 +275,7 @@ class EncoderTest(test_utils.TestCase):
       p.highway_skip = True
       enc_out = self._ForwardPass(p).encoded
       enc_out_sum = tf.reduce_sum(enc_out)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       enc_out_sum_val = enc_out_sum.eval()
       print('expected enc_out_sum_val', enc_out_sum_val)
@@ -296,7 +296,7 @@ class EncoderTest(test_utils.TestCase):
       conv_lstm_0_encoded_sum = tf.reduce_sum(enc_out.conv_lstm_0.encoded)
       rnn_0_encoded_sum = tf.reduce_sum(enc_out.rnn_0.encoded)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
 
       # pyformat: disable
       self.assertAllEqual(tf.shape(enc_out.conv_0.encoded).eval(),

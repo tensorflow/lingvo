@@ -52,7 +52,7 @@ class RnnStepsTest(test_utils.TestCase):
           py_utils.NestedMap(inputs=[tf.constant([[4]], tf.float32)]),
           tf.constant([0.0], dtype=tf.float32), state1)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       out2, state2 = sess.run([out2, state2])
 
       self.assertAllClose(state2.m, [[-0.32659757, 0.87739915]])
@@ -93,7 +93,7 @@ class RnnStepsTest(test_utils.TestCase):
           padding=padding,
           state0=state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output, state2 = sess.run([output, state2])
       self.assertAllClose(state2.m,
                           [[[-0.20144, 0.741861]], [[-0.326598, 0.877399]]])
@@ -128,7 +128,7 @@ class RnnStepsTest(test_utils.TestCase):
               context=tf.constant([[5]], tf.float32)),
           tf.constant([0.0], dtype=tf.float32), state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output1, state1 = sess.run([output1, state1])
 
       self.assertAllClose(output1.output,
@@ -171,7 +171,7 @@ class RnnStepsTest(test_utils.TestCase):
               context=tf.constant([[5]], tf.float32)),
           tf.constant([0.0], dtype=tf.float32), state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output1, state1 = sess.run([output1, state1])
 
       # Because there are residual connections, we expect the output to
@@ -214,7 +214,7 @@ class RnnStepsTest(test_utils.TestCase):
           py_utils.NestedMap(inputs=[tf.constant([[4]], tf.float32)]),
           tf.constant([0.0], dtype=tf.float32), state0)
 
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       output1, state1 = sess.run([output1, state1])
 
       self.assertAllClose(output1.output, [[5.900284, 3.0231729, 3.0207822]])

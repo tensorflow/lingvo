@@ -32,7 +32,7 @@ class Bfloat16VariablesTest(test_utils.TestCase):
     fl = 0.99
     with self.session(graph=g_for_save_graph) as sess:
       v0 = tf.Variable(fl, name="v0", dtype=tf.float32, use_resource=True)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAlmostEqual(fl, v0.eval())
 
       saver = tf.train.Saver({
@@ -45,7 +45,7 @@ class Bfloat16VariablesTest(test_utils.TestCase):
     g_for_restore_graph = tf.Graph()
     with self.session(graph=g_for_restore_graph) as sess:
       v0 = tf.Variable(0.0, name="v0", dtype=tf.bfloat16, use_resource=True)
-      tf.global_variables_initializer().run()
+      self.evaluate(tf.global_variables_initializer())
       self.assertAlmostEqual(0.0, v0.eval())
       saveable = bfloat16_variables.Bfloat16VariableSaveable(
           v0, tf.float32, "", "v0")

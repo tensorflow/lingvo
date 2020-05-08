@@ -189,7 +189,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
       grad_norm = tf.sqrt(py_utils.SumSquared(grads))
       ts = net.GetAccumulatorValues().Flatten()
 
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       grad_norm_val, ts_vals = sess.run([grad_norm, ts])
       test_utils.CompareToGoldenSingleFloat(self, 0.268087, grad_norm_val)
       # Accumulator values should be equal to number of time steps in pipeline.
@@ -242,7 +242,7 @@ class DummyPipelineCnnTest(test_utils.TestCase):
       inputs = tf.random.uniform([batch_size, 8, 8, 1], seed=12345)
       outputs = layer.FPropDefaultTheta(
           py_utils.NestedMap(vec=inputs, paddings=None))
-      sess.run(tf.global_variables_initializer())
+      self.evaluate(tf.global_variables_initializer())
       sess.run(outputs.vec)
       self.assertEqual(outputs.vec.shape, (batch_size, 8, 8, 1))
 
