@@ -41,7 +41,7 @@ class BaseSchedule(base_layer.BaseLayer):
   def __init__(self, params):
     super(BaseSchedule, self).__init__(params)
 
-  def Value(self, current_step):
+  def Value(self, current_step=None):
     """Returns the current learning rate schedule value.
 
     Args:
@@ -53,6 +53,8 @@ class BaseSchedule(base_layer.BaseLayer):
       multiplied by the returned schedule value is used as the
       effective learning rate.
     """
+    if current_step is None:
+      current_step = self.theta.global_step
     return self.FProp(self.theta, current_step)
 
 
