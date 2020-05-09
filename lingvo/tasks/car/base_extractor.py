@@ -217,14 +217,16 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
       structure.
 
       Returns:
-        A structure with the same Tensor dtype and shape as the output of
+        A structure with the same Tensor dtype as the output of
         Preprocess.
       """
       shapes = self.Shape()
-      rets = [
-          tf.zeros(dtype=dtype, shape=shape)
-          for (dtype, shape) in zip(self.DType().Flatten(), shapes.Flatten())
-      ]
+      rets = []
+      for dtype, shape in zip(self.DType().Flatten(), shapes.Flatten()):
+        if shape.is_fully_defined():
+          rets += [tf.zeros(dtype=dtype, shape=shape)]
+        else:
+          rets += [tf.zeros(dtype=dtype, shape=[])]  # Our best guess.
       return shapes.Pack(rets)
 
     def Preprocess(extracted):
@@ -238,6 +240,9 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     #
     # Preprocessors can then assume that only examples that pass filtering will
     # be executed.
+    #
+    # Note that the NullLike branch may return tensors with shapes different
+    # from self.Shape().
     final_output = tf.cond(
         tf.less(max_bucket, BUCKET_UPPER_BOUND), lambda: Preprocess(extracted),
         NullLike)
