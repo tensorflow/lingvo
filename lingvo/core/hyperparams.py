@@ -632,7 +632,8 @@ class Params(object):
       type_overrides: Overrides for the types of the params.
     Raises:
       AttributeError: text contains invalid parameter key
-      ValueError: text contains invalid parameter value
+      ValueError: text contains invalid parameter value, or the format is
+                  wrong.
     """
     if self._immutable:
       raise TypeError('This Params instance is immutable.')
@@ -671,6 +672,8 @@ class Params(object):
             string_continue = (key, quote_char, value)
             continue
         kv[key] = value_stripped
+      else:
+        raise ValueError('Line {} is not in <key>:<value> format'.format(line))
 
     def _ValueFromText(key, old_val, val):
       """Returns the new param value from its text representation."""

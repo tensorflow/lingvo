@@ -107,6 +107,11 @@ class ModelRegistryTest(test_utils.TestCase):
     with self.assertRaises(AttributeError):
       _ = model_registry.GetParams('test.DummyModel', 'Train')
 
+  def testGetParamsCanOverrideWithFlagsBadSyntax(self):
+    FLAGS.model_params_override = 'task.SOME_UNKNOWN_PARAM=10'
+    with self.assertRaises(ValueError):
+      _ = model_registry.GetParams('test.DummyModel', 'Train')
+
   def testGetParamsCanOverrideInputParamsWithFlags(self):
     cfg = model_registry.GetParams('test.DummyModel', 'Train')
     FLAGS.model_params_override = 'input.num_samples: 100'

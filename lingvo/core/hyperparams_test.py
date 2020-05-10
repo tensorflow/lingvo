@@ -470,6 +470,15 @@ escaping_single : 'In "quotes"'
     np2.FromText(text, type_overrides=types)
     self.assertEqual(np2.scale, 1.0)
 
+  def testFromTextBadFormat(self):
+    p = _params.Params()
+    p.Define('scale', 1.0, 'A float parameter.')
+    np1 = p.Copy()
+    self.assertRaises(ValueError, lambda: np1.FromText('scale=2.0'))
+    np2 = p.Copy()
+    np2.FromText('scale:2.0')
+    self.assertEqual(np2.scale, 2.0)
+
   def testTypeOverride(self):
     p = _params.Params()
     p.Define('scale', '1', 'A str that will be overriden by float.')
