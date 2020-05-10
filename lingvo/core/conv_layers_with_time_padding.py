@@ -291,6 +291,7 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
       if p.bias:
+        # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
         self.CreateVariable(
             'b',
             py_utils.WeightParams(
@@ -318,7 +319,7 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     out = self._EvaluateConvKernel(theta, conv_input)
     p = self.params
     if p.bias:
-      out = tf.nn.bias_add(out, self.theta.b)
+      out = tf.nn.bias_add(out, theta.b)
     return out
 
   def _EvaluateConvKernel(self, theta, inputs):
@@ -384,6 +385,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
         'Filter shape. Must be a sequence of length 4. Elements are in'
         ' the order of height (time), width (frequency), in_channel,'
         ' channel_multipliers. ')
+    p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
   @base_layer.initializer
@@ -407,6 +409,15 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
                 init=py_utils.WeightInit.Constant(0.0),
                 dtype=p.dtype,
                 collections=[self.__class__.__name__ + '_vars']))
+      if p.bias:
+        # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
+        self.CreateVariable(
+            'b',
+            py_utils.WeightParams(
+                shape=[self.output_channels],
+                init=py_utils.WeightInit.Constant(0.0),
+                dtype=p.dtype,
+                collections=[self.__class__.__name__ + '_vars']))
 
   @classmethod
   def OutputChannels(cls, p):
@@ -424,6 +435,13 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     else:
       filter_w = theta.w
     return filter_w
+
+  def _ApplyConv(self, theta, conv_input):
+    out = self._EvaluateConvKernel(theta, conv_input)
+    p = self.params
+    if p.bias:
+      out = tf.nn.bias_add(out, theta.b)
+    return out
 
   def _EvaluateConvKernel(self, theta, inputs):
     """Apply convolution to inputs."""

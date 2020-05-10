@@ -301,6 +301,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       params = conv_layers.DepthwiseConv2DLayer.Params()
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 2]
+      params.bias = True
       actual_output_channels = params.cls.OutputChannels(params)
       self.assertEqual(6, actual_output_channels)
 
