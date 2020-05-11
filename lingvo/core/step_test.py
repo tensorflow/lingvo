@@ -57,7 +57,7 @@ class TextStep(step.Step):
 class StepTest(test_utils.TestCase):
 
   def testStatelessLayerStep(self):
-    with self.session() as sess:
+    with self.session():
       p = step.StatelessLayerStep.Params()
       p.name = 'sum'
       p.layer = builder_layers.FnLayer.Params().Set(fn=lambda x: x[0] + x[1])
@@ -74,7 +74,7 @@ class StepTest(test_utils.TestCase):
               tf.constant([11], dtype=tf.int32)
           ]), None, None)
       self.assertEqual(py_utils.NestedMap(), state1)
-      value = sess.run(out)
+      value = self.evaluate(out)
       self.assertEqual([15], value)
 
   def testGraphStep(self):
@@ -181,7 +181,7 @@ class StepTest(test_utils.TestCase):
       p.layer = builder_layers.FnLayer.Params().Set(fn=lambda x: x + n)
       return p
 
-    with self.session() as sess:
+    with self.session():
       p = step.ParallelStep.Params()
       p.name = 'concat'
       p.sub = [PlusConstantParams(1), PlusConstantParams(2)]
@@ -194,14 +194,14 @@ class StepTest(test_utils.TestCase):
           inputs=tf.constant([[5], [10], [15]], dtype=tf.float32))
       output, _ = concat.FProp(concat.theta, prepared, step_inputs, None,
                                state0)
-      output = sess.run(output)
+      output = self.evaluate(output)
       # Input is batch size 3: [[5], [10], [15]].
       # Two separate steps run on each input, +1 and +2, and the result is
       # concatenated.
       self.assertAllClose(output.output, [[6, 7], [11, 12], [16, 17]])
 
   def testIteratorStep(self):
-    with self.session() as sess:
+    with self.session():
       p = step.IteratorStep.Params()
       p.name = 'iterator'
       iterator = p.Instantiate()
@@ -219,7 +219,7 @@ class StepTest(test_utils.TestCase):
         out, state = iterator.FProp(iterator.theta, prepared,
                                     py_utils.NestedMap(), None, state)
         outputs.append(out)
-      outputs = sess.run(outputs)
+      outputs = self.evaluate(outputs)
       self.assertAllClose([{
           'a': [[1, 2], [7, 8]]
       }, {

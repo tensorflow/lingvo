@@ -46,26 +46,26 @@ class LrUtilTest(test_utils.TestCase):
         total_epoch=10,
         warmup_init=0.)
     schedule_layer = p.train.lr_schedule.Instantiate()
-    with self.session() as sess:
+    with self.session():
       # Linear ramp up.
-      self.assertLess(sess.run(schedule_layer.Value(8)), 1.)
+      self.assertLess(self.evaluate(schedule_layer.Value(8)), 1.)
       # Peak learning rate.
-      self.assertEqual(sess.run(schedule_layer.Value(16)), 1.)
+      self.assertEqual(self.evaluate(schedule_layer.Value(16)), 1.)
       # Still at peak learning rate.
-      self.assertEqual(sess.run(schedule_layer.Value(24)), 1.)
+      self.assertEqual(self.evaluate(schedule_layer.Value(24)), 1.)
       # Exponential ramp down.
-      self.assertLess(sess.run(schedule_layer.Value(48)), 1.)
+      self.assertLess(self.evaluate(schedule_layer.Value(48)), 1.)
 
   def testExponentialWithoutLinearRamp(self):
     p = self._testParams()
     lr_util.SetExponentialLR(
         p.train, p.input, exp_start_epoch=0, total_epoch=10)
     schedule_layer = p.train.lr_schedule.Instantiate()
-    with self.session() as sess:
+    with self.session():
       # Peak learning rate at 0.
-      self.assertEqual(sess.run(schedule_layer.Value(0)), 1.)
+      self.assertEqual(self.evaluate(schedule_layer.Value(0)), 1.)
       # Exponential ramp down within first epoch.
-      self.assertLess(sess.run(schedule_layer.Value(4)), 1.)
+      self.assertLess(self.evaluate(schedule_layer.Value(4)), 1.)
 
 
 if __name__ == '__main__':

@@ -31,8 +31,8 @@ class WpmTokenizerTest(test_utils.TestCase):
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
     wpm_tokenizer = p.Instantiate()
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           wpm_tokenizer.StringsToIds(
               tf.constant(['would that it were so simple', 'this is it', ''],
                           dtype=tf.string), 6, True))
@@ -51,16 +51,16 @@ class WpmTokenizerTest(test_utils.TestCase):
     p.vocab_filepath = test_helper.test_src_dir_path('tasks/mt/wpm-ende.voc')
     p.vocab_size = 32000
     wpm_tokenizer = p.Instantiate()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       ref = tf.constant([
           'would that it were so simple',
           'this is it',
           '',
       ])
-      token_ids, target_ids, paddings = sess.run(
+      _, target_ids, paddings = self.evaluate(
           wpm_tokenizer.StringsToIds(ref, 100, True))
       lens = np.argmax(paddings > 0.0, axis=1) - 1
-      found = sess.run(wpm_tokenizer.IdsToStrings(target_ids, lens))
+      found = self.evaluate(wpm_tokenizer.IdsToStrings(target_ids, lens))
       self.assertAllEqual(ref, found)
 
 

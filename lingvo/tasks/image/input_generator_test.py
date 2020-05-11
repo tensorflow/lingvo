@@ -44,11 +44,11 @@ class InputGeneratorTest(test_utils.TestCase):
 
   def testMnistTrain(self):
     p = self._trainInput()
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       inp_batch = inp.GetPreprocessedInputBatch()
       for _ in range(10):
-        batch = sess.run(inp_batch)
+        batch = self.evaluate(inp_batch)
         self.assertEqual(batch.data.shape, (100, 28, 28, 1))
         self.assertEqual(batch.data.dtype, np.float32)
         self.assertEqual(batch.label.shape, (100,))
@@ -56,18 +56,18 @@ class InputGeneratorTest(test_utils.TestCase):
 
   def testMnistTest(self):
     p = self._testInput()
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       inp_batch = inp.GetPreprocessedInputBatch()
       ids = []
       for _ in range(39):
-        batch = sess.run(inp_batch)
+        batch = self.evaluate(inp_batch)
         self.assertEqual(batch.data.shape, (256, 28, 28, 1))
         self.assertEqual(batch.data.dtype, np.float32)
         self.assertEqual(batch.label.shape, (256,))
         self.assertEqual(batch.label.dtype, np.float32)
         ids += batch.sample_ids.tolist()
-      batch = sess.run(inp_batch)
+      batch = self.evaluate(inp_batch)
       self.assertEqual(batch.data.shape, (256, 28, 28, 1))
       self.assertEqual(batch.data.dtype, np.float32)
       self.assertEqual(batch.label.shape, (256,))
@@ -78,23 +78,23 @@ class InputGeneratorTest(test_utils.TestCase):
 
       # repeat=False. We should see OutOfRange error.
       with self.assertRaises(tf.errors.OutOfRangeError):
-        _ = sess.run(inp_batch)
+        _ = self.evaluate(inp_batch)
 
-  def _GetIds(self, sess, p, sample_ids):
+  def _GetIds(self, p, sample_ids):
     """Goes through one epoch of inp and returns the sample ids."""
     iters = int((p.num_samples + p.batch_size - 1) / p.batch_size)
     ids = []
     for _ in range(iters):
-      ids += sess.run(sample_ids).tolist()
+      ids += self.evaluate(sample_ids).tolist()
     return ids
 
   def testMnistTrainRandomness(self):
     p = self._trainInput()
-    with self.session() as sess:
+    with self.session():
       inp = p.Instantiate()
       batch = inp.GetPreprocessedInputBatch()
-      epoch0 = self._GetIds(sess, p, batch.sample_ids)
-      epoch1 = self._GetIds(sess, p, batch.sample_ids)
+      epoch0 = self._GetIds(p, batch.sample_ids)
+      epoch1 = self._GetIds(p, batch.sample_ids)
       self.assertEqual(list(range(p.num_samples)), sorted(epoch0))
       self.assertEqual(list(range(p.num_samples)), sorted(epoch1))
       self.assertNotEqual(epoch0, epoch1)

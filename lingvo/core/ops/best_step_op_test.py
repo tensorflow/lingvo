@@ -40,8 +40,8 @@ class BestStepOp(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = ops.best_step(self._HistFile())
-    with self.session(graph=g) as sess:
-      best_step, last_step = sess.run(output)
+    with self.session(graph=g):
+      best_step, last_step = self.evaluate(output)
       self.assertEqual(best_step, 42122)
       self.assertEqual(last_step, 42792)
 
@@ -49,8 +49,8 @@ class BestStepOp(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = ops.best_step(self._HistFile(), 0.1)
-    with self.session(graph=g) as sess:
-      best_step, last_step = sess.run(output)
+    with self.session(graph=g):
+      best_step, last_step = self.evaluate(output)
       self.assertEqual(best_step, 37553)
       self.assertEqual(last_step, 42792)
 
@@ -58,8 +58,8 @@ class BestStepOp(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = ops.best_step('')
-    with self.session(graph=g) as sess:
-      best_step, last_step = sess.run(output)
+    with self.session(graph=g):
+      best_step, last_step = self.evaluate(output)
       self.assertEqual(best_step, 0)
       self.assertEqual(last_step, 0)
 
@@ -67,8 +67,8 @@ class BestStepOp(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = ops.best_step(self._BleuFile(), 0.0, False)
-    with self.session(graph=g) as sess:
-      best_step, last_step = sess.run(output)
+    with self.session(graph=g):
+      best_step, last_step = self.evaluate(output)
       self.assertEqual(best_step, 41500)
       self.assertEqual(last_step, 46800)
 
@@ -76,8 +76,8 @@ class BestStepOp(test_utils.TestCase):
     g = tf.Graph()
     with g.as_default():
       output = ops.best_step(self._TfEventFile(), 0.0, False, 'bleu/dev')
-    with self.session(graph=g) as sess:
-      best_step, last_step = sess.run(output)
+    with self.session(graph=g):
+      best_step, last_step = self.evaluate(output)
       self.assertEqual(best_step, 102600)
       self.assertEqual(last_step, 185200)
 

@@ -33,9 +33,9 @@ class BuilderLibTest(test_utils.TestCase):
       if isinstance(y, (list, tuple)):
         self.assertEqual(len(y), 1)
         y = y[0]
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      val = sess.run(y)
+      val = self.evaluate(y)
     self.assertEqual(val.shape, expected_out_shape)
 
   def testLN(self):
@@ -80,8 +80,8 @@ class BuilderLibTest(test_utils.TestCase):
         'ignore_key': tf.constant(1.0)
     })
     y = l.FPropDefaultTheta(x)
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertEqual(actual_y, 2.0)
 
   def testGetValueDefault(self):
@@ -93,8 +93,8 @@ class BuilderLibTest(test_utils.TestCase):
         'ignore_key': tf.constant(1.0)
     })
     y = l.FPropDefaultTheta(x)
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertEqual(actual_y, 3.0)
 
   def testSeqToKeyFeaturesOnly(self):
@@ -108,8 +108,8 @@ class BuilderLibTest(test_utils.TestCase):
         'padding': tf.constant(1.0),
     })
     y = l.FPropDefaultTheta(x)
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertDictEqual(
           actual_y, {
               'points': np.asarray([3.0]),
@@ -140,8 +140,8 @@ class BuilderLibTest(test_utils.TestCase):
         'extra_key': tf.constant(1.0),
     })
     y = l.FPropDefaultTheta(x)
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertDictEqual(
           actual_y, {
               'points': np.asarray([3.0]),
@@ -182,8 +182,8 @@ class BuilderLibTest(test_utils.TestCase):
         # Third example should be all zeros, since all points are padded.
         np.zeros_like(np_x.features[2, 0, :]),
     ], axis=0)  # pyformat: disable
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertAllClose(actual_y, expected_y)
 
   def testPaddedMean(self):
@@ -202,8 +202,8 @@ class BuilderLibTest(test_utils.TestCase):
         # Third example should be all zeros, since all points are padded.
         np.zeros_like(np_x.features[2, 0, :]),
     ], axis=0)  # pyformat: disable
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertAllClose(actual_y, expected_y)
 
   def testPaddedMeanGrad(self):
@@ -218,9 +218,9 @@ class BuilderLibTest(test_utils.TestCase):
     all_vars = tf.trainable_variables()
     grads = tf.gradients(loss, all_vars)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      np_grads = sess.run(grads)
+      np_grads = self.evaluate(grads)
       for np_grad in np_grads:
         self.assertTrue(np.all(np.isfinite(np_grad)))
 
@@ -240,8 +240,8 @@ class BuilderLibTest(test_utils.TestCase):
         # Third example should be all zeros, since all points are padded.
         np.zeros_like(np_x.features[2, 0, :]),
     ], axis=0)  # pyformat: disable
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       self.assertAllClose(actual_y, expected_y)
 
   def testFeaturesFC(self):
@@ -252,9 +252,9 @@ class BuilderLibTest(test_utils.TestCase):
     np_x, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
       self.assertAllEqual(actual_y.padding, np_x.padding)
@@ -269,9 +269,9 @@ class BuilderLibTest(test_utils.TestCase):
     np_x, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
       self.assertAllEqual(actual_y.padding, np_x.padding)
@@ -287,9 +287,9 @@ class BuilderLibTest(test_utils.TestCase):
     np_x, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
       self.assertAllEqual(actual_y.padding, np_x.padding)
@@ -302,9 +302,9 @@ class BuilderLibTest(test_utils.TestCase):
     l = p.Instantiate()
     y = l.FPropDefaultTheta(
         tf.random.uniform((3, 4, 5, 10)), tf.random.uniform((3, 4, 1, 8)))
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       self.assertAllEqual(actual_y.shape, (3, 4, 5, 12))
       self.assertTrue(np.all(np.isfinite(actual_y)))
 
@@ -320,9 +320,9 @@ class BuilderLibTest(test_utils.TestCase):
     _, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
       self.assertTrue(np.all(np.isfinite(actual_y)))
@@ -335,9 +335,9 @@ class BuilderLibTest(test_utils.TestCase):
     np_x, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # Points and padding should be equal, and features should be transformed.
       self.assertAllClose(actual_y.points, np_x.points)
       self.assertAllEqual(actual_y.padding, np_x.padding)
@@ -353,9 +353,9 @@ class BuilderLibTest(test_utils.TestCase):
     _, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
       self.assertTrue(np.all(np.isfinite(actual_y)))
@@ -396,8 +396,8 @@ class BuilderLibTest(test_utils.TestCase):
         np.broadcast_to(x1, [2, 4, 3]),
         np.broadcast_to(x2, [2, 4, 2]),
     ], axis=-1)  # pyformat: disable
-    with self.session() as sess:
-      actual_y = sess.run(y)
+    with self.session():
+      actual_y = self.evaluate(y)
       # x1 will be broadcasted to [2, 4, 3]
       # x2 will be broadcasted to [2, 4, 2]
       # Concatenation on axis=-1 should result in a tensor of shape [2, 4, 5]
@@ -419,9 +419,9 @@ class BuilderLibTest(test_utils.TestCase):
     _, x = self._getNestedMapTestData()
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       # We expect the output to have all the features concatenated together.
       self.assertAllEqual(actual_y.shape, (3, 5 + 6 + 7))
       self.assertTrue(np.all(np.isfinite(actual_y)))
@@ -455,9 +455,9 @@ class BuilderLibTest(test_utils.TestCase):
                               dtype=tf.int32), tf.float32))
     y = l.FPropDefaultTheta(x)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      actual_y = sess.run(y)
+      actual_y = self.evaluate(y)
       self.assertAllEqual(actual_y.shape,
                           (batch_size, num_groups, num_out_channels))
 

@@ -43,7 +43,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     time, batch, dims, vocab = 5, 3, 6, 8
     p = self._testParams(dims, vocab)
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -61,7 +61,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -76,7 +76,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p.rnns.cell_tpl.num_hidden_nodes = dims
     p.softmax.input_dim = proj
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -94,7 +94,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -132,7 +132,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
@@ -144,7 +144,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     p.direct_features_dim = direct_features_dim
     p.softmax.input_dim = dims + direct_features_dim
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -168,7 +168,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
               class_weights=1 - paddings, class_ids=targets),
           direct_features=direct_features)
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -180,7 +180,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
     time, batch, dims, vocab = 5, 3, 6, 8
     p = self._testParams(dims, vocab)
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.normal(size=[time, batch, dims])
@@ -201,7 +201,7 @@ class RnnLmNoEmbeddingTest(test_utils.TestCase):
               class_weights=1 - paddings, class_ids=targets))
       switch = tf.constant([True, True, False], dtype=tf.bool)
       combined_state = lm.CombineStates(state0, state1, switch)
-      state0_val, state1_val, combined_state_val = sess.run(
+      state0_val, state1_val, combined_state_val = self.evaluate(
           [state0, state1, combined_state])
 
       print('state1_val', state1_val)
@@ -231,7 +231,7 @@ class RnnLmTest(test_utils.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -250,7 +250,7 @@ class RnnLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -277,7 +277,7 @@ class RnnLmTest(test_utils.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -295,7 +295,7 @@ class RnnLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -348,7 +348,7 @@ class RnnLmTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
@@ -371,7 +371,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
     p.condition_dim = condition_dim
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -392,7 +392,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -421,7 +421,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
     p.softmax.num_classes = vocab
     p.condition_dim = condition_dim
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -441,7 +441,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -498,7 +498,7 @@ class ConditionalRnnLmTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
@@ -540,7 +540,7 @@ class MoeLmTest(test_utils.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False)
 
-    with self.session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()):
       np.random.seed(54321)
       tf.random.set_seed(123456)
       lm = p.Instantiate()
@@ -552,7 +552,7 @@ class MoeLmTest(test_utils.TestCase):
           state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -564,7 +564,7 @@ class MoeLmTest(test_utils.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False)
 
-    with self.session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()):
       np.random.seed(54321)
       tf.random.set_seed(123456)
       lm = p.Instantiate()
@@ -576,7 +576,7 @@ class MoeLmTest(test_utils.TestCase):
           state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -588,7 +588,7 @@ class MoeLmTest(test_utils.TestCase):
     vocab, time, batch = 7, 13, 3
     p = self._MoeLmParams(vocab, False, False)
 
-    with self.session(graph=tf.Graph()) as sess:
+    with self.session(graph=tf.Graph()):
       np.random.seed(54321)
       tf.random.set_seed(123456)
       lm = p.Instantiate()
@@ -600,7 +600,7 @@ class MoeLmTest(test_utils.TestCase):
           state0=lm.zero_state(lm.theta, batch),
           labels=labels)
 
-      xent_output_val, state1_val = sess.run([xent_output, state1])
+      xent_output_val, state1_val = self.evaluate([xent_output, state1])
 
       print('xent_output_val', xent_output_val)
       print('state1', state1_val)
@@ -638,7 +638,7 @@ class MoeLmTest(test_utils.TestCase):
       self.assertEqual(len(lm_vars), len(grads))
       step = 11  # Speed up the test.
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, step=step, delta=1e-6)
         self.assertAllClose(
@@ -679,7 +679,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
 
   def testBasic(self):
     p = self._testParams(dtype=tf.float32)
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       inputs, paddings, targets = self._testInputs(dtype=tf.float32)
       self.evaluate(tf.global_variables_initializer())
@@ -688,7 +688,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
           paddings=paddings,
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
-      xent_output_val = sess.run(xent_output)
+      xent_output_val = self.evaluate(xent_output)
       print('xformer xent_output_val.avg_xent', xent_output_val.avg_xent)
       test_utils.CompareToGoldenSingleFloat(self, 3.018613, xent_output_val.avg_xent)  # pyformat: disable pylint: disable=line-too-long
       self.assertAllEqual(xent_output_val.per_example_argmax,
@@ -712,14 +712,14 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
 
   def testStep(self):
     p = self._testParams(dtype=tf.float32)
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       inputs, paddings, _ = self._testInputs(dtype=tf.float32, last_padding=0.0)
 
@@ -737,7 +737,7 @@ class TransformerLmNoEmbeddingTest(test_utils.TestCase):
       logits2 = tf.stack(logits2)
 
       self.evaluate(tf.global_variables_initializer())
-      logits1_v, logits2_v = sess.run([logits1, logits2])
+      logits1_v, logits2_v = self.evaluate([logits1, logits2])
       print('xformer logits1_v', logits1_v)
       print('xformer logits2_v', logits2_v)
       self.assertAllClose(logits1_v, logits2_v)
@@ -762,7 +762,7 @@ class TransformerLmTest(test_utils.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       np.random.seed(12345)
       inputs = np.random.randint(vocab, size=[time, batch])
@@ -780,7 +780,7 @@ class TransformerLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val = sess.run(xent_output)
+      xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
       test_utils.CompareToGoldenSingleFloat(self, 3.0489848, xent_output_val.avg_xent)  # pyformat: disable pylint: disable=line-too-long
@@ -807,7 +807,7 @@ class TransformerLmTest(test_utils.TestCase):
     p.softmax.input_dim = dims
     p.softmax.num_classes = vocab
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       lm = p.Instantiate()
       inputs = np.random.randint(vocab, size=[time, batch])
       targets = np.zeros([time, batch])
@@ -824,7 +824,7 @@ class TransformerLmTest(test_utils.TestCase):
           labels=py_utils.NestedMap(
               class_weights=1 - paddings, class_ids=targets))
 
-      xent_output_val = sess.run(xent_output)
+      xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
       test_utils.CompareToGoldenSingleFloat(self, 3.038596, xent_output_val.avg_xent)  # pyformat: disable pylint: disable=line-too-long
@@ -876,7 +876,7 @@ class TransformerLmTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       self.assertEqual(len(lm_vars), len(grads))
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
@@ -934,9 +934,9 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p = self._testParams(batch, dims, hidden_dim, vocab)
     xent_output = self._SetupGraph(p, time, batch, vocab)
     assert p.stack.encoder_tpl.tr_atten_tpl.is_masked
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      xent_output_val = sess.run(xent_output)
+      xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
       test_utils.CompareToGoldenSingleFloat(self, 3.15886855,
@@ -953,7 +953,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     with self.session() as sess:
       self.evaluate(tf.global_variables_initializer())
       for x, grad_x in zip(lm_vars, grads):
-        grad_symbolic = sess.run(grad_x)
+        grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
         self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)

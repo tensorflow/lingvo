@@ -50,8 +50,8 @@ class DetectionDecoderTest(test_utils.TestCase):
           score_threshold=score_threshold,
           use_oriented_per_class_nms=True)
 
-      with self.session() as sess:
-        outputs = sess.run([
+      with self.session():
+        outputs = self.evaluate([
             predicted_bboxes, classification_scores, bboxes, bbox_scores,
             valid_mask
         ])
@@ -96,8 +96,8 @@ class DetectionDecoderTest(test_utils.TestCase):
           score_threshold=score_threshold,
           use_oriented_per_class_nms=False)
 
-      with self.session() as sess:
-        outputs = sess.run([
+      with self.session():
+        outputs = self.evaluate([
             predicted_bboxes, classification_scores, bboxes, bbox_scores,
             valid_mask
         ])

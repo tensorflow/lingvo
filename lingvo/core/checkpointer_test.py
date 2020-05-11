@@ -66,17 +66,17 @@ class CheckpointerTest(test_utils.TestCase):
     with self.session(graph=tf.Graph()) as sess:
       model = p.Instantiate()
       self.evaluate(tf.global_variables_initializer())
-      w, b = sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+      w, b = self.evaluate([model.GetTask().vars.w, model.GetTask().vars.b])
       self.assertAllClose(expected_w, w)
       self.assertAlmostEqual(initial_b, b, places=5)
 
       saver = checkpointer.Checkpointer(train_dir, model)
-      sess.run(
+      self.evaluate(
           tf.assign(py_utils.GetOrCreateGlobalStepVar(), final_global_step))
-      sess.run(tf.assign(model.GetTask().vars.b, final_b))
+      self.evaluate(tf.assign(model.GetTask().vars.b, final_b))
       saver.Save(sess, model.global_step)
 
-      w, b = sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+      w, b = self.evaluate([model.GetTask().vars.w, model.GetTask().vars.b])
       self.assertAllClose(expected_w, w)
       self.assertEqual(final_b, b)
 
@@ -89,7 +89,7 @@ class CheckpointerTest(test_utils.TestCase):
       saver = checkpointer.Checkpointer(train_dir, model)
       saver.RestoreIfNeeded(sess)
 
-      w, b, global_step = sess.run(
+      w, b, global_step = self.evaluate(
           [model.GetTask().vars.w,
            model.GetTask().vars.b, model.global_step])
       self.assertAllClose(expected_w, w)
@@ -115,10 +115,10 @@ class CheckpointerTest(test_utils.TestCase):
       saver = checkpointer.Checkpointer(train_dir, model)
 
       with self.assertRaises(tf.errors.FailedPreconditionError):
-        sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+        self.evaluate([model.GetTask().vars.w, model.GetTask().vars.b])
 
       saver.RestoreIfNeeded(sess)
-      w, b, global_step = sess.run(
+      w, b, global_step = self.evaluate(
           [model.GetTask().vars.w,
            model.GetTask().vars.b, model.global_step])
       self.assertAllClose([0.38615, 2.975221, -0.852826], w)
@@ -139,10 +139,10 @@ class CheckpointerTest(test_utils.TestCase):
       saver = checkpointer.Checkpointer(train_dir, model)
 
       with self.assertRaises(tf.errors.FailedPreconditionError):
-        sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+        self.evaluate([model.GetTask().vars.w, model.GetTask().vars.b])
 
       saver.RestoreIfNeeded(sess)
-      w, b, global_step = sess.run(
+      w, b, global_step = self.evaluate(
           [model.GetTask().vars.w,
            model.GetTask().vars.b, model.global_step])
       self.assertAllClose([0.38615, 2.975221, -0.852826], w)
@@ -169,10 +169,10 @@ class CheckpointerTest(test_utils.TestCase):
       saver = checkpointer.Checkpointer(train_dir, model)
 
       with self.assertRaises(tf.errors.FailedPreconditionError):
-        sess.run([model.GetTask().vars.w, model.GetTask().vars.b])
+        self.evaluate([model.GetTask().vars.w, model.GetTask().vars.b])
 
       saver.RestoreIfNeeded(sess)
-      w, b, global_step = sess.run(
+      w, b, global_step = self.evaluate(
           [model.GetTask().vars.w,
            model.GetTask().vars.b, model.global_step])
       self.assertAllClose([0.38615, 2.975221, -0.852826], w)

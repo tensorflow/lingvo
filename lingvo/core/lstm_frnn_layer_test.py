@@ -63,7 +63,7 @@ class LSTMCellExtTest(test_utils.TestCase, parameterized.TestCase):
         np.random.rand(batch, input_dim).astype(np.float32))
     state0 = py_utils.NestedMap(m=m0, c=c0)
 
-    with self.session() as sess:
+    with self.session():
       cell = cell_p.Instantiate()
       self.evaluate(tf.global_variables_initializer())
 
@@ -76,7 +76,7 @@ class LSTMCellExtTest(test_utils.TestCase, parameterized.TestCase):
                 act=[inputs[i, :, :]],
                 padding=paddings[i, :, tf.newaxis],
                 reset_mask=reset_mask[i, :, tf.newaxis]))
-      expected_state = sess.run(state)
+      expected_state = self.evaluate(state)
 
       # Taking input projection outside of the loop.
       cell_theta = cell.theta.copy()
@@ -92,7 +92,7 @@ class LSTMCellExtTest(test_utils.TestCase, parameterized.TestCase):
                 proj_inputs=proj_inputs[i, :, :],
                 padding=paddings[i, :, tf.newaxis],
                 reset_mask=reset_mask[i, :, tf.newaxis]))
-      actual_state = sess.run(state)
+      actual_state = self.evaluate(state)
 
     tf.logging.info('expected_state:{}'.format(expected_state))
     tf.logging.info('actual_state:{}'.format(actual_state))
@@ -139,7 +139,7 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
     base_frnn = base_frnn_p.Instantiate()
     frnn = frnn_p.Instantiate()
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
 
       state0 = py_utils.NestedMap(m=m0, c=c0)
@@ -151,7 +151,7 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
                       tf.reduce_sum(state.m * state.c * state.c))))
       grads = tf.gradients(loss, base_frnn.vars.Flatten())
 
-      expected_act, expected_state, expected_grads = sess.run(
+      expected_act, expected_state, expected_grads = self.evaluate(
           [act, state, grads])
 
       act, state = frnn.FPropDefaultTheta(
@@ -162,7 +162,8 @@ class LstmFRNNTest(test_utils.TestCase, parameterized.TestCase):
                       tf.reduce_sum(state.m * state.c * state.c))))
       grads = tf.gradients(loss, frnn.vars.Flatten())
 
-      actual_act, actual_state, actual_grads = sess.run([act, state, grads])
+      actual_act, actual_state, actual_grads = self.evaluate(
+          [act, state, grads])
 
     tf.logging.info('expected_act:{}'.format(expected_act))
     tf.logging.info('actual_act:{}'.format(actual_act))

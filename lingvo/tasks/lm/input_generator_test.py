@@ -39,9 +39,9 @@ class InputGeneratorTest(test_utils.TestCase):
   def testLmInputGen(self):
     p = self._InputParams()
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = p.Instantiate()
-      inp_batch = sess.run(inp.GetPreprocessedInputBatch())
+      inp_batch = self.evaluate(inp.GetPreprocessedInputBatch())
       print(inp_batch)
       # pyformat: disable
       # pylint: disable=line-too-long

@@ -48,8 +48,8 @@ class DatasourceTest(test_utils.TestCase):
         file_pattern='path_to_file')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -60,8 +60,8 @@ class DatasourceTest(test_utils.TestCase):
         file_pattern='pattern1,pattern2', file_type='tfrecord')
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertAllEqual(ret.data, [[b'tfrecord:pattern1,pattern2']])
 
@@ -79,8 +79,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -103,8 +103,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -131,8 +131,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()),
@@ -165,9 +165,9 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-    with tf.Session() as sess:
+    with tf.Session():
       self.evaluate(tf.global_variables_initializer())
-      ret.data = sess.run([ret.data])
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -185,14 +185,14 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-    with tf.Session() as sess:
+    with tf.Session():
       # Advance the global step to the next curriculum stage
       global_step = py_utils.GetOrCreateGlobalStepVar()
       self.evaluate(tf.global_variables_initializer())
       set_global_step = tf.assign(global_step, boundary, name='advance_step')
-      sess.run(set_global_step)
+      self.evaluate(set_global_step)
 
-      ret.data = sess.run([ret.data])
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -212,14 +212,14 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
 
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
-    with tf.Session() as sess:
+    with tf.Session():
       # Advance the global step to the next curriculum stage
       global_step = py_utils.GetOrCreateGlobalStepVar()
       self.evaluate(tf.global_variables_initializer())
       set_global_step = tf.assign(global_step, boundary, name='advance_step')
-      sess.run(set_global_step)
+      self.evaluate(set_global_step)
 
-      ret.data = sess.run([ret.data])
+      ret.data = self.evaluate([ret.data])
 
     self.assertCountEqual(
         sorted(ret.keys()), ['bprop_variable_filters', 'data'])
@@ -247,8 +247,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertAllEqual(ret.data, [[b'/dir/filename-*.tfrecord']])
 
@@ -260,8 +260,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertAllEqual(
         ret.data, [[b'/dir/filename-*.tfrecord,/dir/other/file/pattern/*']])
@@ -274,8 +274,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertAllEqual(ret.data, [[b'gs://bucket/dir/filename-*.tfrecord']])
 
@@ -287,8 +287,8 @@ class DatasourceTest(test_utils.TestCase):
     ds = ds_params.Instantiate()
     ret = ds.BuildDataSource(_MockDataSourceFromFilePattern)
 
-    with tf.Session() as sess:
-      ret.data = sess.run([ret.data])
+    with tf.Session():
+      ret.data = self.evaluate([ret.data])
 
     self.assertAllEqual(ret.data, [[b'tfrecord:dir/filename-*.tfrecord']])
 

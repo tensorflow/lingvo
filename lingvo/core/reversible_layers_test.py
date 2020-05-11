@@ -32,7 +32,7 @@ class RevNetLayerTest(test_utils.TestCase):
   """Test single revnet layer."""
 
   def testRevNetLayerFProp(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(321)
       input_1 = tf.random.normal([5, 3], seed=89122)
       input_2 = tf.random.normal([5, 3], seed=19438)
@@ -45,7 +45,7 @@ class RevNetLayerTest(test_utils.TestCase):
       h, _, _ = revnet_layer.FPropDefaultTheta(
           py_utils.NestedMap(split1=input_1, split2=input_2))
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       expected_split1 = np.array([[-0.7262997, 0.9276514, -0.20907314],
                                   [-0.7089523, 0.24923629, 2.5001974],
                                   [1.6766014, 0.26847264, -0.2510258],

@@ -34,7 +34,7 @@ class DistributedShampooTest(test_utils.TestCase):
     # Initialize gradient as random tensor.
     grad_np = np.random.rand(size[0], size[1])
 
-    with tf.Session() as sess:
+    with tf.Session():
       global_step = tf.Variable(0, dtype=tf.int64)
       var = tf.Variable(init_var_np, dtype=tf.float32)
       grad = tf.constant(grad_np, dtype=tf.float32)
@@ -58,7 +58,7 @@ class DistributedShampooTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
-      init_val = sess.run(var)
+      init_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, init_val)
 
       def np_power(mat_g, alpha, matrix_epsilon=1e-6):
@@ -75,33 +75,35 @@ class DistributedShampooTest(test_utils.TestCase):
       update.run()
 
       mat_g1 = np.dot(grad_np, grad_np.transpose())
-      expected_mat_g1 = sess.run(opt.get_slot(var, 'mat_statistics_0'))
+      expected_mat_g1 = self.evaluate(opt.get_slot(var, 'mat_statistics_0'))
       self.assertAllCloseAccordingToType(mat_g1, expected_mat_g1, atol=1e-1)
 
       mat_g2 = np.dot(grad_np.transpose(), grad_np)
-      expected_mat_g2 = sess.run(opt.get_slot(var, 'mat_statistics_1'))
+      expected_mat_g2 = self.evaluate(opt.get_slot(var, 'mat_statistics_1'))
       self.assertAllCloseAccordingToType(mat_g2, expected_mat_g2, atol=1e-1)
 
       compute_preconditioner_op.run()
       assign_preconditioners_to_vars_op.run()
 
       mat_left = np_power(mat_g1, -0.25)
-      expected_mat_left = sess.run(opt.get_slot(var, 'mat_preconditioner_0'))
+      expected_mat_left = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(mat_left, expected_mat_left, atol=1e-1)
 
       mat_right = np_power(mat_g2, -0.25)
-      expected_mat_right = sess.run(opt.get_slot(var, 'mat_preconditioner_1'))
+      expected_mat_right = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           mat_right, expected_mat_right, atol=1e-1)
 
       # As the preconditioners are initialized to all zero. We don't make
       # any update.
-      var_step_0_val = sess.run(var)
+      var_step_0_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, var_step_0_val, atol=1e-1)
 
       # Run another step of training.
       update.run()
-      var_step_1_val = sess.run(var)
+      var_step_1_val = self.evaluate(var)
 
       # New update has the scale of the second diagonal adagrad update.
       adagrad_update = grad_np / np.sqrt(2 * np.square(grad_np))
@@ -120,12 +122,14 @@ class DistributedShampooTest(test_utils.TestCase):
       # Gradients are summed over time.
       mat_g1 += np.dot(grad_np, grad_np.transpose())
       mat_left = np_power(mat_g1, -0.25)
-      expected_mat_left = sess.run(opt.get_slot(var, 'mat_preconditioner_0'))
+      expected_mat_left = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(mat_left, expected_mat_left, atol=1e-1)
 
       mat_g2 += np.dot(grad_np.transpose(), grad_np)
       mat_right = np_power(mat_g2, -0.25)
-      expected_mat_right = sess.run(opt.get_slot(var, 'mat_preconditioner_1'))
+      expected_mat_right = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           mat_right, expected_mat_right, atol=1e-1)
 
@@ -139,7 +143,7 @@ class DistributedShampooTest(test_utils.TestCase):
     # Initialize gradient as random tensor.
     grad_np = np.random.rand(size[0], size[1])
 
-    with tf.Session() as sess:
+    with tf.Session():
       global_step = tf.Variable(0, dtype=tf.int64)
       var = tf.Variable(init_var_np, dtype=tf.float32)
       grad = tf.constant(grad_np, dtype=tf.float32)
@@ -164,7 +168,7 @@ class DistributedShampooTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
-      init_val = sess.run(var)
+      init_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, init_val)
 
       def np_power(mat_g, alpha, matrix_epsilon=1e-6):
@@ -181,25 +185,26 @@ class DistributedShampooTest(test_utils.TestCase):
       update.run()
 
       mat_g2 = np.dot(grad_np.transpose(), grad_np)
-      expected_mat_g2 = sess.run(opt.get_slot(var, 'mat_statistics_1'))
+      expected_mat_g2 = self.evaluate(opt.get_slot(var, 'mat_statistics_1'))
       self.assertAllCloseAccordingToType(mat_g2, expected_mat_g2, atol=1e-1)
 
       compute_preconditioner_op.run()
       assign_preconditioners_to_vars_op.run()
 
       mat_right = np_power(mat_g2, -0.5)
-      expected_mat_right = sess.run(opt.get_slot(var, 'mat_preconditioner_1'))
+      expected_mat_right = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           mat_right, expected_mat_right, atol=1e-1)
 
       # As the preconditioners are initialized to all zero. We don't make
       # any update.
-      var_step_0_val = sess.run(var)
+      var_step_0_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, var_step_0_val, atol=1e-1)
 
       # Run another step of training.
       update.run()
-      var_step_1_val = sess.run(var)
+      var_step_1_val = self.evaluate(var)
 
       # New update has the scale of the second diagonal adagrad update.
       adagrad_update = grad_np / np.sqrt(2 * np.square(grad_np))
@@ -220,7 +225,8 @@ class DistributedShampooTest(test_utils.TestCase):
 
       mat_g2 += np.dot(grad_np.transpose(), grad_np)
       mat_right = np_power(mat_g2, -0.5)
-      expected_mat_right = sess.run(opt.get_slot(var, 'mat_preconditioner_1'))
+      expected_mat_right = self.evaluate(
+          opt.get_slot(var, 'mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           mat_right, expected_mat_right, atol=1e-1)
 
@@ -232,7 +238,7 @@ class DistributedShampooTest(test_utils.TestCase):
     # Initialize gradient as random tensor.
     grad_np = np.random.rand(size[0], size[1])
 
-    with tf.Session() as sess:
+    with tf.Session():
       global_step = tf.Variable(0, dtype=tf.int64)
       var = tf.Variable(init_var_np, dtype=tf.float32)
       grad = tf.constant(grad_np, dtype=tf.float32)
@@ -258,7 +264,7 @@ class DistributedShampooTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       tf.tables_initializer().run()
 
-      init_val = sess.run(var)
+      init_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, init_val)
 
       def np_power(mat_g, alpha, matrix_epsilon=1e-6):
@@ -278,26 +284,26 @@ class DistributedShampooTest(test_utils.TestCase):
       block_1_grad_np = grad_np[2:4, :2]
 
       block_0_mat_g1 = np.dot(block_0_grad_np, block_0_grad_np.transpose())
-      expected_block_0_mat_g1 = sess.run(
+      expected_block_0_mat_g1 = self.evaluate(
           opt.get_slot(var, '0_mat_statistics_0'))
 
       self.assertAllCloseAccordingToType(
           block_0_mat_g1, expected_block_0_mat_g1, atol=1e-1)
 
       block_0_mat_g2 = np.dot(block_0_grad_np.transpose(), block_0_grad_np)
-      expected_block_0_mat_g2 = sess.run(
+      expected_block_0_mat_g2 = self.evaluate(
           opt.get_slot(var, '0_mat_statistics_1'))
       self.assertAllCloseAccordingToType(
           block_0_mat_g2, expected_block_0_mat_g2, atol=1e-1)
 
       block_1_mat_g1 = np.dot(block_1_grad_np, block_1_grad_np.transpose())
-      expected_block_1_mat_g1 = sess.run(
+      expected_block_1_mat_g1 = self.evaluate(
           opt.get_slot(var, '1_mat_statistics_0'))
       self.assertAllCloseAccordingToType(
           block_1_mat_g1, expected_block_1_mat_g1, atol=1e-1)
 
       block_1_mat_g2 = np.dot(block_1_grad_np.transpose(), block_1_grad_np)
-      expected_block_1_mat_g2 = sess.run(
+      expected_block_1_mat_g2 = self.evaluate(
           opt.get_slot(var, '1_mat_statistics_1'))
       self.assertAllCloseAccordingToType(
           block_1_mat_g2, expected_block_1_mat_g2, atol=1e-1)
@@ -306,37 +312,37 @@ class DistributedShampooTest(test_utils.TestCase):
       assign_preconditioners_to_vars_op.run()
 
       block_0_mat_left = np_power(block_0_mat_g1, -0.25)
-      expected_block_0_mat_left = sess.run(
+      expected_block_0_mat_left = self.evaluate(
           opt.get_slot(var, '0_mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(
           block_0_mat_left, expected_block_0_mat_left, atol=1e-1)
 
       block_0_mat_right = np_power(block_0_mat_g2, -0.25)
-      expected_block_0_mat_right = sess.run(
+      expected_block_0_mat_right = self.evaluate(
           opt.get_slot(var, '0_mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           block_0_mat_right, expected_block_0_mat_right, atol=1e-1)
 
       block_1_mat_left = np_power(block_1_mat_g1, -0.25)
-      expected_block_1_mat_left = sess.run(
+      expected_block_1_mat_left = self.evaluate(
           opt.get_slot(var, '1_mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(
           block_1_mat_left, expected_block_1_mat_left, atol=1e-1)
 
       block_1_mat_right = np_power(block_1_mat_g2, -0.25)
-      expected_block_1_mat_right = sess.run(
+      expected_block_1_mat_right = self.evaluate(
           opt.get_slot(var, '1_mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           block_1_mat_right, expected_block_1_mat_right, atol=1e-1)
 
       # As the preconditioners are initialized to all zero. We don't make
       # any update.
-      var_step_0_val = sess.run(var)
+      var_step_0_val = self.evaluate(var)
       self.assertAllCloseAccordingToType(init_var_np, var_step_0_val, atol=1e-1)
 
       # Run another step of training.
       update.run()
-      var_step_1_val = sess.run(var)
+      var_step_1_val = self.evaluate(var)
 
       # New update has the scale of the second diagonal adagrad update.
       adagrad_update = grad_np / np.sqrt(2 * np.square(grad_np))
@@ -360,28 +366,28 @@ class DistributedShampooTest(test_utils.TestCase):
       # Gradients are summed over time.
       block_0_mat_g1 += np.dot(block_0_grad_np, block_0_grad_np.transpose())
       block_0_mat_left = np_power(block_0_mat_g1, -0.25)
-      expected_block_0_mat_left = sess.run(
+      expected_block_0_mat_left = self.evaluate(
           opt.get_slot(var, '0_mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(
           block_0_mat_left, expected_block_0_mat_left, atol=1e-1)
 
       block_0_mat_g2 += np.dot(block_0_grad_np.transpose(), block_0_grad_np)
       block_0_mat_right = np_power(block_0_mat_g2, -0.25)
-      expected_block_0_mat_right = sess.run(
+      expected_block_0_mat_right = self.evaluate(
           opt.get_slot(var, '0_mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           block_0_mat_right, expected_block_0_mat_right, atol=1e-1)
 
       block_1_mat_g1 += np.dot(block_1_grad_np, block_1_grad_np.transpose())
       block_1_mat_left = np_power(block_1_mat_g1, -0.25)
-      expected_block_1_mat_left = sess.run(
+      expected_block_1_mat_left = self.evaluate(
           opt.get_slot(var, '1_mat_preconditioner_0'))
       self.assertAllCloseAccordingToType(
           block_1_mat_left, expected_block_1_mat_left, atol=1e-1)
 
       block_1_mat_g2 += np.dot(block_1_grad_np.transpose(), block_1_grad_np)
       block_1_mat_right = np_power(block_1_mat_g2, -0.25)
-      expected_block_1_mat_right = sess.run(
+      expected_block_1_mat_right = self.evaluate(
           opt.get_slot(var, '1_mat_preconditioner_1'))
       self.assertAllCloseAccordingToType(
           block_1_mat_right, expected_block_1_mat_right, atol=1e-1)

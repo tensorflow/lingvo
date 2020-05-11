@@ -55,14 +55,15 @@ class Nms3dOpTest(test_utils.TestCase):
 
   def _TestNMSOp(self, bboxes_3d, class_scores, nms_iou_threshold,
                  score_threshold, max_boxes_per_class, expected_indices):
-    with self.session() as sess:
+    with self.session():
       bbox_indices, bbox_scores, valid_mask = ops.non_max_suppression_3d(
           bboxes_3d,
           class_scores,
           nms_iou_threshold=nms_iou_threshold,
           score_threshold=score_threshold,
           max_boxes_per_class=max_boxes_per_class)
-      bbox_idx, scores, mask = sess.run([bbox_indices, bbox_scores, valid_mask])
+      bbox_idx, scores, mask = self.evaluate(
+          [bbox_indices, bbox_scores, valid_mask])
 
       num_classes = len(expected_indices)
       expected_shape = (num_classes, max_boxes_per_class)
@@ -121,14 +122,14 @@ class Nms3dOpTest(test_utils.TestCase):
     bboxes_3d, class_scores = self._GetData()
     num_classes = 3
     max_boxes_per_class = 5
-    with self.session() as sess:
+    with self.session():
       bbox_indices, bbox_scores, valid_mask = ops.non_max_suppression_3d(
           bboxes_3d,
           class_scores,
           nms_iou_threshold=[0.1, 0.1, 0.1],
           score_threshold=[0.3, 0.3, 0.3],
           max_boxes_per_class=max_boxes_per_class)
-      multiclass_indices, multiclass_scores, multiclass_valid_mask = sess.run(
+      multiclass_indices, multiclass_scores, multiclass_valid_mask = self.evaluate(
           [bbox_indices, bbox_scores, valid_mask])
       self.assertEqual(multiclass_indices.shape,
                        (num_classes, max_boxes_per_class))
@@ -145,7 +146,7 @@ class Nms3dOpTest(test_utils.TestCase):
             nms_iou_threshold=[0.1],
             score_threshold=[0.3],
             max_boxes_per_class=max_boxes_per_class)
-        per_class_indices, per_class_scores, per_class_valid_mask = sess.run(
+        per_class_indices, per_class_scores, per_class_valid_mask = self.evaluate(
             [bbox_idx, bbox_scores, valid_mask])
 
         self.assertEqual(per_class_indices.shape, (1, max_boxes_per_class))
@@ -181,7 +182,7 @@ class Nms3dOpTest(test_utils.TestCase):
         ],
                                  axis=0)
 
-        with self.session() as sess:
+        with self.session():
           outputs = ops.non_max_suppression_3d(
               bboxes_3d,
               class_scores,
@@ -192,7 +193,7 @@ class Nms3dOpTest(test_utils.TestCase):
           timings = []
           for _ in range(10):
             start = time.time()
-            _ = sess.run(outputs)
+            _ = self.evaluate(outputs)
             end = time.time()
             timings.append(end - start)
           avg = sum(timings) / len(timings)

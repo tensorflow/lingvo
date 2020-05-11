@@ -1412,7 +1412,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
   def _testLNLSTMCellFPropBProp(self, params, num_hidden_nodes=0):
     tf.reset_default_graph()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       lstm, _, state1 = self._testLNLSTMCellHelper(params, num_hidden_nodes)
       loss = -tf.math.log(
           tf.sigmoid(
@@ -1422,7 +1422,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       # Initialize all the variables, and then run one step.
       self.evaluate(tf.global_variables_initializer())
 
-      m_v, c_v, grads_v = sess.run([state1.m, state1.c, grads])
+      m_v, c_v, grads_v = self.evaluate([state1.m, state1.c, grads])
       print('m_v', np.array_repr(m_v))
       print('c_v', np.array_repr(c_v))
       grads_val = py_utils.NestedMap()
@@ -1525,7 +1525,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(c_expected, state1.c.eval())
 
   def testQuantizedLSTMCellPadding(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       params = rnn_cell.QuantizedLSTMCell.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1560,7 +1560,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       c_expected = [[0.0, 0.], [0.0, 0.], [0.0, 0.]]
       self.assertAllClose(m_expected, state1.m.eval())
       self.assertAllClose(c_expected, state1.c.eval())
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
 
   def testQuantizedLayerNormalizedLSTMCell(self):
     params = rnn_cell.LayerNormalizedLSTMCell.Params()
@@ -1592,7 +1592,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         m=tf.constant(np.random.uniform(size=(3, 2)), tf.float32))
     state1, _ = lstm.FPropDefaultTheta(state0, inputs)
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       self.evaluate(tf.global_variables_initializer())
       # pylint: disable=bad-whitespace
       m_expected = [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
@@ -1605,12 +1605,12 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertEqual(5.0,
                        lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
       self.assertEqual(3.0,
                        lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
 
   def testQuantizedLSTMCell(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       params = rnn_cell.QuantizedLSTMCell.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Uniform(1.24, _INIT_RANDOM_SEED)
@@ -1651,7 +1651,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertEqual(5.0,
                        lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 1))
       self.assertEqual(3.0,
                        lstm.cc_schedule.GetState(lstm.theta.cc_schedule).eval())
 
@@ -1708,7 +1708,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
                                          c_expected,
                                          num_hidden_nodes=0,
                                          padding=None):
-    with self.session(use_gpu=False) as sess, self.SetEval(is_inference):
+    with self.session(use_gpu=False), self.SetEval(is_inference):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.is_inference = is_inference
@@ -1779,7 +1779,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
 
       if set_training_step:
         # Get it into the fully clipped/quantized part of the schedule.
-        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
+        self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
 
       # Outputs.
       self.assertAllClose(m_expected, state1.m.eval())
@@ -2187,7 +2187,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
                                zero_state_init,
                                expected_init_states=None,
                                is_eval=False):
-    with self.session(use_gpu=False) as sess, self.SetEval(is_eval):
+    with self.session(use_gpu=False), self.SetEval(is_eval):
       params = rnn_cell.LSTMCellSimple.Params()
       params.name = 'lstm'
       params.params_init = py_utils.WeightInit.Constant(0.1)
@@ -2203,7 +2203,7 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
       np.random.seed(_NUMPY_RANDOM_SEED)
       # Initialize all the variables, and then inspect.
       self.evaluate(tf.global_variables_initializer())
-      init_state_value = sess.run(lstm.zero_state(lstm.theta, 1))
+      init_state_value = self.evaluate(lstm.zero_state(lstm.theta, 1))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn m = %s',
                       np.array_repr(init_state_value['m']))
       tf.logging.info('testLSTMSimpleWithStateInitializationFn c = %s',

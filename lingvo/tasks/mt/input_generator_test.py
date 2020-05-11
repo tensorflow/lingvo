@@ -63,18 +63,19 @@ class InputTest(test_utils.TestCase):
 
   def testBasic(self):
     p = self._CreateNmtInputParams()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.NmtInput(p)
       # Runs a few steps.
       for _ in range(10):
-        sess.run(inp.GetPreprocessedInputBatch())
+        self.evaluate(inp.GetPreprocessedInputBatch())
 
   def testMlPerfPackedInput(self):
     p = self._CreateMlPerfPackedInputParams()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.MlPerfInput(p)
       for _ in range(1):
-        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        fetched = py_utils.NestedMap(
+            self.evaluate(inp.GetPreprocessedInputBatch()))
         tf.logging.info(fetched.src.ids.shape)
         tf.logging.info(fetched.src.segment_ids.shape)
         tf.logging.info(fetched.src.segment_pos.shape)
@@ -93,10 +94,11 @@ class InputTest(test_utils.TestCase):
     p.source_max_length = 300
     p.target_max_length = 300
     p.pad_to_max_seq_length = True
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.MlPerfInput(p)
       for _ in range(1):
-        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        fetched = py_utils.NestedMap(
+            self.evaluate(inp.GetPreprocessedInputBatch()))
 
     self.checkPadShape(
         fetched.src.ids, pad=0, batch_size=4, actual_max=240, pad_length=300)
@@ -120,11 +122,12 @@ class InputTest(test_utils.TestCase):
 
   def testMlPerf(self):
     p = self._CreateMlPerfInputParams()
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.MlPerfInput(p)
       # Runs a few steps.
       for _ in range(10):
-        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        fetched = py_utils.NestedMap(
+            self.evaluate(inp.GetPreprocessedInputBatch()))
         tf.logging.info(fetched)
 
   def testMlPerfPadToMax(self):
@@ -135,11 +138,12 @@ class InputTest(test_utils.TestCase):
     p.target_max_length = 30
     p.pad_to_max_seq_length = True
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.MlPerfInput(p)
       # Runs a few steps.
       for _ in range(10):
-        fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+        fetched = py_utils.NestedMap(
+            self.evaluate(inp.GetPreprocessedInputBatch()))
 
     def Check(x, pad):
       # Check the shape: (batch, maxlen)
@@ -160,9 +164,10 @@ class InputTest(test_utils.TestCase):
     p.source_max_length = 30
     p.target_max_length = 30
     p.pad_to_max_seq_length = True
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.NmtInput(p)
-      fetched = py_utils.NestedMap(sess.run(inp.GetPreprocessedInputBatch()))
+      fetched = py_utils.NestedMap(
+          self.evaluate(inp.GetPreprocessedInputBatch()))
 
     def Check(x, pad):
       # Check the shape: (batch, maxlen)
@@ -202,10 +207,10 @@ class InputTest(test_utils.TestCase):
         ],
     ]
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.NmtInput(p)
       splits = inp.SplitInputBatch(num_splits)
-      split_ids = sess.run([splits[0].src.ids, splits[1].src.ids])
+      split_ids = self.evaluate([splits[0].src.ids, splits[1].src.ids])
       self.assertAllEqual(expected_ids_split_1, split_ids[0])
       self.assertAllEqual(expected_ids_split_2, split_ids[1])
 
@@ -213,9 +218,9 @@ class InputTest(test_utils.TestCase):
     p = self._CreateNmtInputParams()
     num_splits = 2
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.NmtInput(p)
-      fetched = sess.run(inp.SplitInputBatch(num_splits))
+      fetched = self.evaluate(inp.SplitInputBatch(num_splits))
 
     expected_ids_split_1 = [
         [

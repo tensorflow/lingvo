@@ -46,8 +46,8 @@ class ImageMetricsOpsTest(test_utils.TestCase):
           prediction_ignore=tf.zeros_like(pd_imgid, dtype=tf.int32),
           num_recall_points=41,
           algorithm=algorithm)
-    with self.session(graph=g) as sess:
-      val = sess.run([iou, pr, score_and_hit])
+    with self.session(graph=g):
+      val = self.evaluate([iou, pr, score_and_hit])
     return val
 
   def testAPKITTI(self):

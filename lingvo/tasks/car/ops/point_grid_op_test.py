@@ -28,7 +28,7 @@ class PointGridOpTest(test_utils.TestCase):
 
   def _testGrid(self, points, num_points_per_cell, grid_size, grid_range):
     points = np.array(points)  # p x (3 + d)
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       out_points, grid_centers, num_points = ops.point_to_grid(
           points,
           num_points_per_cell=num_points_per_cell,
@@ -44,7 +44,7 @@ class PointGridOpTest(test_utils.TestCase):
           list(grid_size) + [num_points_per_cell, -1])
       grid_centers = py_utils.HasShape(grid_centers, list(grid_size) + [3])
       num_points = py_utils.HasShape(num_points, grid_size)
-      out_points, grid_centers, num_points = sess.run(
+      out_points, grid_centers, num_points = self.evaluate(
           [out_points, grid_centers, num_points])
 
       # Test points are in the right cell.

@@ -26,14 +26,14 @@ FLAGS = tf.flags.FLAGS
 class RandomOpsTest(test_utils.TestCase):
 
   def testRandomPermutationSequenceRepeat(self):
-    with self.session() as sess:
+    with self.session():
       out = ops.random_permutation_sequence(num=20, batch=7, repeat=True)
 
       remaining = list(range(20))
       for _ in range(10):
         # Each epoch takes exactly 3 steps.
-        vals = sess.run(out).tolist() + sess.run(out).tolist() + sess.run(
-            out).tolist()
+        vals = self.evaluate(out).tolist() + self.evaluate(
+            out).tolist() + self.evaluate(out).tolist()
         self.assertEqual(len(vals), 21)
 
         # Contains all the remaining values from previous epoch.
@@ -46,17 +46,17 @@ class RandomOpsTest(test_utils.TestCase):
         remaining = list(set(range(20)) - set(vals))
 
   def testRandomPermutationSequenceNoRepeat(self):
-    with self.session() as sess:
+    with self.session():
       out = ops.random_permutation_sequence(num=20, batch=7, repeat=False)
 
       # Each epoch takes exactly 3 steps.
-      vals = sess.run(out).tolist() + sess.run(out).tolist() + sess.run(
-          out).tolist()
+      vals = self.evaluate(out).tolist() + self.evaluate(
+          out).tolist() + self.evaluate(out).tolist()
       self.assertEqual(list(range(20)), sorted(vals))
 
       # repeat=False. We should see OutOfRange error.
       with self.assertRaises(tf.errors.OutOfRangeError):
-        sess.run(out)
+        self.evaluate(out)
 
 
 if __name__ == '__main__':

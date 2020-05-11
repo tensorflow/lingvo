@@ -69,7 +69,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     return params, tensors
 
   def testAdditiveAttention(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params, tensors = self._AdditiveAttentionInputs()
       source_vecs, source_contexts, source_padding, _, query_vec, _ = tensors
       atten = attention.AdditiveAttention(params)
@@ -97,7 +97,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       print(['additive attention prob_out', np.array_repr(prob_out)])
       print(['additive attention atten_vec_out', np.array_repr(atten_vec_out)])
@@ -132,7 +132,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def testAdditiveAttentionWithPackedInputs(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params, tensors = self._AdditiveAttentionInputs(packed_inputs=True)
       (source_vecs, source_contexts, source_padding, source_segment_id,
        query_vec, query_segment_id) = tensors
@@ -154,7 +154,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       self._CheckStaticShapes(
           atten_vec,
@@ -199,7 +199,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def testAdditiveAttentionDeterministicDropout(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params, tensors = self._AdditiveAttentionInputs()
       source_vecs, source_contexts, source_padding, _, query_vec, _ = tensors
       params.atten_dropout_prob = 0.5
@@ -229,7 +229,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       print('additive attention prob_out %r' % prob_out)
       print('additive attention atten_vec_out %r' % atten_vec_out)
@@ -278,9 +278,9 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertLen(atten.vars.Flatten(), 3)
 
-    with self.session(use_gpu=True, graph=g) as sess:
+    with self.session(use_gpu=True, graph=g):
       self.evaluate(tf.global_variables_initializer())
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
     return atten_vec_out, prob_out
 
   def testAdditiveAttentionSameBatchSize(self):
@@ -296,7 +296,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllClose(prob0, prob1)
 
   def testAdditiveAttentionSmallerHiddenLayer(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.constant(np.random.rand(6, 3, 4), dtype=tf.float32)
       source_contexts = tf.constant(np.random.rand(6, 3, 5), dtype=tf.float32)
@@ -337,7 +337,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       print(['prob_out smaller hidden layer', np.array_repr(prob_out)])
       print(
@@ -374,7 +374,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def testAdditiveAttentionFp16NoNaN(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.constant(np.random.rand(6, 3, 4), dtype=tf.float16)
       source_contexts = tf.constant(np.random.rand(6, 3, 5), dtype=tf.float16)
@@ -419,14 +419,14 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print(atten_vec_out.dtype)
       print(prob_out.dtype)
       self.assertTrue(np.all(np.isfinite(atten_vec_out)))
       self.assertTrue(np.all(np.isfinite(prob_out)))
 
   def testAdditiveAttentionVN64bits(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.constant(np.random.rand(5, 3, 4), dtype=tf.float64)
       source_contexts = tf.constant(np.random.rand(5, 3, 5), dtype=tf.float64)
@@ -469,7 +469,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       for v in all_vars:
         print(v.eval())
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       print(['prob_out with vn:', np.array_repr(prob_out)])
       print(['atten_vec_out with vn:', np.array_repr(atten_vec_out)])
@@ -500,7 +500,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def _DotProductAttention(self, packed_inputs=False):
     # TODO(colincherry): Dead code?
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       # source_vecs_p, source_contexts_p, source_padding_p, query_vec_p are used
       # for both TensorFlow and numpy computation.
@@ -537,7 +537,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, query_segment_id=query_segment_id)
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       # Use numpy to perform the same computation to generate expected results.
       source_vecs_p = np.array(source_vecs_p)
       # Dot-product part.
@@ -593,7 +593,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
             query_vec, source_segment_id, query_segment_id)
 
   def testMultiHeadedAttentionDotProductWithFeedinProbs(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, _, _, _,
        _) = self._MultiHeadedAttentionInputs()
       iap = attention.DotProductAttention.Params()
@@ -613,7 +613,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_probs = tf.constant([[1.0] + [0.0] * 5] * 3 * 2, dtype=tf.float32)
       atten_vec_proj, atten_vec = atten.ComputeContextVectorWithAttenProbs(
           atten.theta, packed_src.source_contexts, atten_probs)
-      atten_vec_proj, atten_vec, packed_context = sess.run(
+      atten_vec_proj, atten_vec, packed_context = self.evaluate(
           [atten_vec_proj, atten_vec, packed_src.source_contexts])
       self.assertAllClose(
           atten_vec,
@@ -626,7 +626,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self, additive_atten, dtype, fprop_dtype):
     # source_batch:3, target_batch:6. Test n = 2 case.
     use_gpu = (dtype == tf.float32 and fprop_dtype == tf.float32)
-    with self.session(use_gpu=use_gpu) as sess:
+    with self.session(use_gpu=use_gpu):
       (source_vecs, source_contexts, source_padding, _, query_vec,
        source_seg_id,
        query_seg_id) = self._MultiHeadedAttentionInputs(dtype=fprop_dtype)
@@ -673,7 +673,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vec_2, prob_2, _ = atten.ComputeContextVectorWithCachedSource(
           theta, cached_src, query_vec, query_segment_id=query_seg_id)
 
-      packed_src1_v, packed_src2_v, cached_src_v = sess.run(
+      packed_src1_v, packed_src2_v, cached_src_v = self.evaluate(
           [packed_src1, packed_src2, cached_src])
       tf.logging.info('packed_src1=%s', packed_src1_v)
       tf.logging.info('packed_src2=%s', packed_src2_v)
@@ -685,7 +685,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                           packed_src2_v.source_padding)
       self.assertAllClose(packed_src1_v.source_segment_id,
                           packed_src2_v.source_segment_id)
-      atten_vec1_v, prob1_v, atten_vec2_v, prob2_v = sess.run(
+      atten_vec1_v, prob1_v, atten_vec2_v, prob2_v = self.evaluate(
           [atten_vec_1, prob_1, atten_vec_2, prob_2])
       self.assertAllClose(prob1_v, prob2_v)
       self.assertAllClose(atten_vec1_v, atten_vec2_v)
@@ -710,7 +710,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
   def _testMultiHeadedAttentionExtendCachedSourceVecsNoPaddingsHelper(
       self, additive_attention=False):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, _, _, query_vec, _,
        _) = self._MultiHeadedAttentionInputs()
       source_padding = tf.zeros([6, 3])
@@ -750,7 +750,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           atten.theta, cached_src, query_vec)
 
       (source_vec1_v, source_context1_v, source_vec2_v, source_context2_v,
-       atten_vec1_v, prob1_v, atten_vec2_v, prob2_v) = sess.run([
+       atten_vec1_v, prob1_v, atten_vec2_v, prob2_v) = self.evaluate([
            packed_src1.source_vecs, packed_src1.source_contexts,
            packed_src2.source_vecs, packed_src2.source_contexts, atten_vec_1,
            prob_1, atten_vec_2, prob_2
@@ -768,7 +768,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionDotProduct(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, source_padding_p,
        query_vec, _, _) = self._MultiHeadedAttentionInputs()
       iap = attention.DotProductAttention.Params()
@@ -795,7 +795,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           source_length=source_contexts.shape[0],
           context_dim=source_contexts.shape[2])
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose([
           2.84679317, 2.36924601, 3.54831171, 2.86487937, 2.3537426, 3.54308939
@@ -813,7 +813,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                   source_padding[:, s_index:s_index + 1])
         atten_vec_i, prob_i, _ = atten.ComputeContextVector(
             atten.theta, query_vec[i:i + 1])
-        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
         self.assertAllClose(prob_i_out, prob_out[i:i + 1])
         self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
         padding_i = source_padding_p[s_index]
@@ -822,7 +822,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionDotProductPackedInput(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, source_padding_p,
        query_vec, source_seg_id,
        query_seg_id) = self._MultiHeadedAttentionInputs()
@@ -843,7 +843,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, query_segment_id=query_seg_id)
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose(
           [2.565648, 2.268182, 3.739031, 3.093884, 2.770367, 3.580353],
@@ -864,7 +864,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         qry_seg_id = query_seg_id[i:i + 1]
         atten_vec_i, prob_i, _ = atten.ComputeContextVector(
             atten.theta, query_vec[i:i + 1], query_segment_id=qry_seg_id)
-        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
         self.assertAllClose(prob_i_out, prob_out[i:i + 1])
         self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
         padding_i = source_padding_p[s_index]
@@ -873,7 +873,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionDotProductDeterministicDropout(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       source_vecs, source_contexts, source_padding, _, query_vec, _, _ = (
           self._MultiHeadedAttentionInputs())
       iap = attention.DotProductAttention.Params()
@@ -899,7 +899,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           atten.theta, query_vec, atten_state)
 
       self.evaluate(tf.global_variables_initializer())
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
 
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose(
@@ -939,7 +939,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionMonotonic(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, source_padding_p,
        query_vec, _, _) = self._MultiHeadedAttentionInputs()
       iap = attention.MonotonicAttention.Params()
@@ -962,7 +962,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.evaluate(tf.global_variables_initializer())
       atten_vec, atten_prob, _ = atten.ComputeContextVector(
           atten.theta, query_vec, atten_init_state)
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose(
           [1.494033, 1.120422, 1.699309, 1.508609, 1.1329, 1.670303],
@@ -983,7 +983,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
             emit_probs=atten_init_state.emit_probs[j:j + 2])
         atten_vec_i, prob_i, _ = atten.ComputeContextVector(
             atten.theta, query_vec[i:i + 1], sliced_atten_state)
-        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
         self.assertAllClose(prob_i_out, prob_out[i:i + 1])
         self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
         padding_i = source_padding_p[s_index]
@@ -992,7 +992,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionDotProductWithAllProj(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, source_padding_p,
        query_vec, _, _) = self._MultiHeadedAttentionInputs()
       iap = attention.DotProductAttention.Params()
@@ -1023,7 +1023,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           source_length=source_contexts.shape[0],
           context_dim=params.ctx_post_proj_dim)
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose([
           1.356745, 0.65274805, 1.39460433, 1.34961343, 0.63025361, 1.41543126
@@ -1041,7 +1041,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                   source_padding[:, s_index:s_index + 1])
         atten_vec_i, prob_i, _ = atten.ComputeContextVector(
             atten.theta, query_vec[i:i + 1])
-        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
         self.assertAllClose(prob_i_out, prob_out[i:i + 1])
         self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
         padding_i = source_padding_p[s_index]
@@ -1051,7 +1051,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
   def testMultiHeadedAttentionDotProductMultiPostProj(self):
     # Test for multiple attention post-projection.
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, _, query_vec, _,
        _) = self._MultiHeadedAttentionInputs()
       iap = attention.DotProductAttention.Params()
@@ -1085,7 +1085,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           source_length=source_contexts.shape[0],
           context_dim=source_contexts.shape[2])
 
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       self.assertAllClose([
           0.66697717, 0.52266854, 0.7827165, 0.65693897, 0.51808167, 0.82977116
       ], np.sum(atten_vec_out, axis=1))
@@ -1097,7 +1097,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
                                               expected_vec,
                                               packed_input=False):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, source_padding_p,
        query_vec, source_seg_id,
        query_seg_id) = self._MultiHeadedAttentionInputs(source_dim)
@@ -1130,7 +1130,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           context_dim=source_contexts.shape[2])
 
       self.evaluate(tf.global_variables_initializer())
-      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       self.assertAllClose(expected_vec, np.sum(atten_vec_out, axis=1))
       print('atten_vec_out', atten_vec_out)
@@ -1153,7 +1153,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           qry_seg_id = query_seg_id[i:i + 1]
         atten_vec_i, prob_i, _ = atten.ComputeContextVector(
             atten.theta, query_vec[i:i + 1], query_segment_id=qry_seg_id)
-        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        atten_vec_i_out, prob_i_out = self.evaluate([atten_vec_i, prob_i])
         self.assertAllClose(prob_i_out, prob_out[i:i + 1])
         self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
         padding_i = source_padding_p[s_index]
@@ -1162,7 +1162,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
   def testMultiHeadedAttentionAttStateSingleProb(self):
     # source_batch:3, target_batch:6. Test n = 2 case.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       (source_vecs, source_contexts, source_padding, _, query_vec, _,
        _) = self._MultiHeadedAttentionInputs()
       iap = attention.DotProductAttention.Params()
@@ -1185,7 +1185,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       atten_vec, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_state)
       self.evaluate(tf.global_variables_initializer())
-      atten_vec_out, _, atten_state = sess.run(
+      atten_vec_out, _, atten_state = self.evaluate(
           [atten_vec, atten_prob, atten_state])
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
       print('atten_state', atten_state)
@@ -1217,7 +1217,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         14, [3.189594, 2.462574, 2.912001, 3.19924, 2.462459, 2.909231])
 
   def testLocationSensitiveAttention1(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.stack([
           tf.constant(np.random.rand(3, 4), dtype=tf.float32) for _ in range(6)
@@ -1259,7 +1259,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
           [atten_vec, atten_prob, atten_init_state, atten_state])
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
@@ -1296,7 +1296,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def testLocationSensitiveAttention2(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.stack([
           tf.constant(np.random.rand(3, 4), dtype=tf.float32) for _ in range(6)
@@ -1337,14 +1337,14 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_init_state_out, atten_state_out = sess.run(
+      atten_init_state_out, atten_state_out = self.evaluate(
           [atten_init_state, atten_state])
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
 
   def _testLocationSensitiveAttentionSameBatchSizeHelper(
       self, same_batch_size, quantized=False):
-    with self.session(tf.Graph(), use_gpu=True) as sess:
+    with self.session(tf.Graph(), use_gpu=True):
       np.random.seed(12345)
       dtype = tf.float32 if quantized else tf.float64
       source_vecs = tf.constant(np.random.rand(6, 3, 4), dtype=dtype)
@@ -1397,7 +1397,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
           [atten_vec, atten_prob, atten_init_state, atten_state])
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)
@@ -1450,7 +1450,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
     return atten_state
 
   def testMonotonicAttention(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       batch_size = 3
       source_dim = 4
@@ -1491,7 +1491,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
           [atten_vec, atten_prob, atten_init_state, atten_state])
 
       self.assertEqual(atten_init_state_out.emit_probs.shape,
@@ -1515,7 +1515,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def testMonotonicAttentionHard(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       batch_size = 3
       source_dim = 4
       context_dim = 5
@@ -1555,7 +1555,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      prob_out, atten_state_out = sess.run([atten_prob, atten_state])
+      prob_out, atten_state_out = self.evaluate([atten_prob, atten_state])
       print(['hard monotonic prob', np.array_repr(prob_out)])
       # Make sure all probabilities are binary
       self.assertTrue(np.all(np.logical_or(prob_out == 0, prob_out == 1)))
@@ -1568,7 +1568,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       # Feed state back in
       _, atten_prob, atten_state = atten.ComputeContextVector(
           atten.theta, query_vec, atten_state_out)
-      prob_out2 = sess.run(atten_prob)
+      prob_out2 = self.evaluate(atten_prob)
       print(['hard monotonic prob2', np.array_repr(prob_out2)])
       # Get indices of where attention was assigned at each output timestep
       idx1 = np.argmax(prob_out, 1)
@@ -1636,7 +1636,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-06, atol=1e-06)
 
   def _testPerStepSourcePaddingHelper(self, atten, depth=6, atten_state=None):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       source_vecs = tf.stack([
           tf.constant(np.random.rand(2, depth), dtype=tf.float32)
@@ -1671,8 +1671,8 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           per_step_source_padding=per_step_padding)
 
       self.evaluate(tf.global_variables_initializer())
-      atten_vec1_out, atten_prob1_out = sess.run([atten_vec1, atten_prob1])
-      atten_vec2_out, atten_prob2_out = sess.run([atten_vec2, atten_prob2])
+      atten_vec1_out, atten_prob1_out = self.evaluate([atten_vec1, atten_prob1])
+      atten_vec2_out, atten_prob2_out = self.evaluate([atten_vec2, atten_prob2])
       print('atten_prob1_out', atten_prob1_out)
       print('atten_prob2_out', atten_prob2_out)
       print('atten_vec1_out', atten_vec1_out)
@@ -1794,7 +1794,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       p.Instantiate()
 
   def testGmmMonotonicAttention(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(12345)
       source_vecs = tf.stack([
           tf.constant(np.random.rand(3, 4), dtype=tf.float32) for _ in range(6)
@@ -1829,7 +1829,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = sess.run(
+      atten_vec_out, prob_out, atten_init_state_out, atten_state_out = self.evaluate(
           [atten_vec, atten_prob, atten_init_state, atten_state])
 
       self.assertEqual(atten_init_state_out.shape, atten_state_out.shape)

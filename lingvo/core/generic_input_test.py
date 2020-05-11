@@ -42,10 +42,10 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
                                   ('OutputNestedMap', True))
   def testBasic(self, use_nested_map):
     input_batch = self._RunBasicGraph(use_nested_map=use_nested_map)
-    with self.session() as sess:
+    with self.session():
       record_seen = set()
       for i in range(100):
-        ans_input_batch = sess.run(input_batch)
+        ans_input_batch = self.evaluate(input_batch)
         for s in ans_input_batch.record:
           record_seen.add(s)
         self.assertEqual(ans_input_batch.source_id.shape, (8,))
@@ -112,9 +112,9 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           dynamic_padding_dimensions=[0, 1],
           dynamic_padding_constants=[0] * 2)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       for _ in range(10):
-        vals, transposed_vals = sess.run([vals_t, transposed_vals_t])
+        vals, transposed_vals = self.evaluate([vals_t, transposed_vals_t])
         print(vals, np.transpose(transposed_vals, [0, 2, 1, 3]))
         self.assertEqual(vals.shape[0], 8)
         self.assertEqual(vals.shape[2], 3)
@@ -138,10 +138,10 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
 
     input_batch = self._RunBasicGraph(use_nested_map=False, bucket_fn=bucket_fn)
 
-    with self.session() as sess:
+    with self.session():
       record_seen = set()
       for i in range(100):
-        ans_input_batch = sess.run(input_batch)
+        ans_input_batch = self.evaluate(input_batch)
         for s in ans_input_batch.record:
           record_seen.add(s)
       for i in range(100):
@@ -182,12 +182,12 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           bucket_upper_bound=[1],
           processor=_process)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       source_id_count = collections.defaultdict(int)
       tags_count = collections.defaultdict(int)
       total_count = 10000
       for _ in range(total_count):
-        ans_input_batch, ans_buckets = sess.run([input_batch, buckets])
+        ans_input_batch, ans_buckets = self.evaluate([input_batch, buckets])
         for s in ans_input_batch.source_id:
           source_id_count[s] += 1
         for s in ans_input_batch.record:
@@ -227,9 +227,9 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
       inputs, _ = self.get_test_input(
           tmp, bucket_upper_bound=[1], processor=_process)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       for _ in range(10):
-        inputs_vals = sess.run(inputs)[0]
+        inputs_vals = self.evaluate(inputs)[0]
         self.assertEqual(inputs_vals.dtype, bool)
 
   def testExtraArgs(self):

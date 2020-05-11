@@ -37,8 +37,8 @@ class Utils3DTest(test_utils.TestCase):
         1.0 - 0.5 * delta,
     ]
     loss = utils_3d.ScaledHuberLoss(labels, predictions, delta=delta)
-    with self.session() as sess:
-      actual_loss = sess.run(loss)
+    with self.session():
+      actual_loss = self.evaluate(loss)
       self.assertAllClose(actual_loss, expected_loss)
 
   def testCornerLoss(self):
@@ -63,8 +63,8 @@ class Utils3DTest(test_utils.TestCase):
         8. * ((np.sqrt(0.5 * 0.5 * 3)**2) * 0.5),
     ]]]
     loss = utils_3d.CornerLoss(gt_bboxes, predicted_bboxes)
-    with self.session() as sess:
-      actual_loss = sess.run(loss)
+    with self.session():
+      actual_loss = self.evaluate(loss)
       self.assertAllClose(actual_loss, expected_loss)
 
   def testCornerLossAsym(self):
@@ -80,21 +80,21 @@ class Utils3DTest(test_utils.TestCase):
         8 * (np.sqrt(2) - 0.5),
     ]]]
     loss = utils_3d.CornerLoss(gt_bboxes, predicted_bboxes, symmetric=False)
-    with self.session() as sess:
-      actual_loss = sess.run(loss)
+    with self.session():
+      actual_loss = self.evaluate(loss)
       print(actual_loss)
       self.assertAllClose(actual_loss, expected_loss)
 
   def testCreateDenseCoordinates(self):
     utils_3d = detection_3d_lib.Utils3D()
     one_dim = utils_3d.CreateDenseCoordinates([(0.5, 1.5, 3)])
-    with self.session() as sess:
-      actual_one_dim = sess.run(one_dim)
+    with self.session():
+      actual_one_dim = self.evaluate(one_dim)
       self.assertAllEqual(actual_one_dim, [[0.5], [1.0], [1.5]])
 
     two_by_two = utils_3d.CreateDenseCoordinates([(0, 1, 2), (1, 2, 2)])
-    with self.session() as sess:
-      actual_two_by_two = sess.run(two_by_two)
+    with self.session():
+      actual_two_by_two = self.evaluate(two_by_two)
       self.assertAllEqual(actual_two_by_two, [[0, 1], [0, 2], [1, 1], [1, 2]])
 
     three_dims = utils_3d.CreateDenseCoordinates([(0, 1, 5), (1, 2, 5),
@@ -110,8 +110,8 @@ class Utils3DTest(test_utils.TestCase):
         anchor_box_offsets=tf.constant([[0, 0, 0], [1, 1, 1]],
                                        dtype=tf.float32),
         anchor_box_rotations=None)
-    with self.session() as sess:
-      actual_anchor_bboxes = sess.run(anchor_bboxes)
+    with self.session():
+      actual_anchor_bboxes = self.evaluate(anchor_bboxes)
       self.assertAllEqual(actual_anchor_bboxes,
                           [[[0, 0, 0, 1, 2, 3, 0], [1, 1, 1, 3, 4, 5, 0]],
                            [[1, 1, 1, 1, 2, 3, 0], [2, 2, 2, 3, 4, 5, 0]]])
@@ -125,8 +125,8 @@ class Utils3DTest(test_utils.TestCase):
         anchor_box_offsets=tf.constant([[0, 0, 0], [1, 1, 1]],
                                        dtype=tf.float32),
         anchor_box_rotations=tf.constant([0, 0.5]))
-    with self.session() as sess:
-      actual_anchor_bboxes = sess.run(anchor_bboxes)
+    with self.session():
+      actual_anchor_bboxes = self.evaluate(anchor_bboxes)
       self.assertAllEqual(actual_anchor_bboxes,
                           [[[0, 0, 0, 1, 2, 3, 0], [1, 1, 1, 3, 4, 5, 0.5]],
                            [[1, 1, 1, 1, 2, 3, 0], [2, 2, 2, 3, 4, 5, 0.5]]])
@@ -156,9 +156,9 @@ class Utils3DTest(test_utils.TestCase):
         gt_bboxes_mask,
         foreground_assignment_threshold=0.5,
         background_assignment_threshold=0.25)
-    with self.session() as sess:
-      actual_assigned_anchors, gt_bboxes = sess.run((assigned_anchors,
-                                                     gt_bboxes))
+    with self.session():
+      actual_assigned_anchors, gt_bboxes = self.evaluate(
+          (assigned_anchors, gt_bboxes))
 
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
                           [-1, -1, 0, 1])
@@ -205,9 +205,9 @@ class Utils3DTest(test_utils.TestCase):
         foreground_assignment_threshold=0.5,
         background_assignment_threshold=0.25,
         force_match=False)
-    with self.session() as sess:
-      actual_assigned_anchors, gt_bboxes = sess.run((assigned_anchors,
-                                                     gt_bboxes))
+    with self.session():
+      actual_assigned_anchors, gt_bboxes = self.evaluate(
+          (assigned_anchors, gt_bboxes))
 
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
                           [-1, -1, 0, -1])
@@ -239,9 +239,9 @@ class Utils3DTest(test_utils.TestCase):
 
     assigned_anchors = utils_3d.AssignAnchors(anchor_bboxes, gt_bboxes,
                                               gt_bboxes_labels, gt_bboxes_mask)
-    with self.session() as sess:
-      actual_assigned_anchors, gt_bboxes = sess.run((assigned_anchors,
-                                                     gt_bboxes))
+    with self.session():
+      actual_assigned_anchors, gt_bboxes = self.evaluate(
+          (assigned_anchors, gt_bboxes))
 
       # Last two boxes are padded, thus not assigned.
       self.assertAllEqual(actual_assigned_anchors.assigned_gt_idx,
@@ -284,8 +284,8 @@ class Utils3DTest(test_utils.TestCase):
     ]])
     residuals = utils_3d.LocalizationResiduals(anchor_bboxes, gt_bboxes)
 
-    with self.session() as sess:
-      actual_residuals = sess.run(residuals)
+    with self.session():
+      actual_residuals = self.evaluate(residuals)
       self.assertAllClose(actual_residuals, expected_residuals)
 
   def testResidualsToBBoxes(self):
@@ -302,8 +302,8 @@ class Utils3DTest(test_utils.TestCase):
     ]], dtype=tf.float32)  # pyformat: disable
     predicted_bboxes = utils_3d.ResidualsToBBoxes(anchor_bboxes, residuals)
 
-    with self.session() as sess:
-      actual_predicted_bboxes = sess.run(predicted_bboxes)
+    with self.session():
+      actual_predicted_bboxes = self.evaluate(predicted_bboxes)
       self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
 
   def testResidualsToBBoxesNegPiToPi(self):
@@ -324,8 +324,8 @@ class Utils3DTest(test_utils.TestCase):
     predicted_bboxes = utils_3d.ResidualsToBBoxes(
         anchor_bboxes, residuals, min_angle_rad=-np.pi, max_angle_rad=np.pi)
 
-    with self.session() as sess:
-      actual_predicted_bboxes = sess.run(predicted_bboxes)
+    with self.session():
+      actual_predicted_bboxes = self.evaluate(predicted_bboxes)
       self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
 
   def testZeroResiduals(self):
@@ -337,8 +337,8 @@ class Utils3DTest(test_utils.TestCase):
     residuals = tf.zeros((1, 7))
     predicted_bboxes = utils_3d.ResidualsToBBoxes(anchor_bboxes, residuals)
 
-    with self.session() as sess:
-      actual_predicted_bboxes = sess.run(predicted_bboxes)
+    with self.session():
+      actual_predicted_bboxes = self.evaluate(predicted_bboxes)
       self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
 
   def testResidualsToBBoxPhiFloorMod(self):
@@ -353,8 +353,8 @@ class Utils3DTest(test_utils.TestCase):
     predicted_bboxes = utils_3d.ResidualsToBBoxes(
         anchor_bboxes, residuals, min_angle_rad=0.0)
 
-    with self.session() as sess:
-      actual_predicted_bboxes = sess.run(predicted_bboxes)
+    with self.session():
+      actual_predicted_bboxes = self.evaluate(predicted_bboxes)
       self.assertAllClose(actual_predicted_bboxes, expected_predicted_bboxes)
 
   def testNMSIndices(self):
@@ -373,10 +373,10 @@ class Utils3DTest(test_utils.TestCase):
     # Treat them all as high scores.
     scores = tf.constant([[0.7, 0.8, 0.6]])
 
-    with self.session() as sess:
+    with self.session():
       nms_indices, valid_mask = utils_3d.BatchedNMSIndices(
           anchor_bboxes, scores)
-      indices, mask = sess.run([nms_indices, valid_mask])
+      indices, mask = self.evaluate([nms_indices, valid_mask])
       # One box is filtered out.
       self.assertEqual(2, np.sum(mask))
       # The two boxes that remain are the second one (because of its higher
@@ -389,7 +389,7 @@ class Utils3DTest(test_utils.TestCase):
       scores_2 = tf.constant([[0.8, 0.7, 0.0]])
       nms_indices, valid_mask = utils_3d.BatchedNMSIndices(
           anchor_bboxes, scores_2)
-      indices, mask = sess.run([nms_indices, valid_mask])
+      indices, mask = self.evaluate([nms_indices, valid_mask])
       self.assertEqual(1, np.sum(mask))
       self.assertAllEqual([[0, 0, 0]], indices)
 
@@ -425,14 +425,14 @@ class Utils3DTest(test_utils.TestCase):
     ]],
                               dtype=tf.float32)
 
-    with self.session() as sess:
+    with self.session():
       outputs = utils_3d.BatchedOrientedNMSIndices(
           bboxes_data,
           scores_data,
           nms_iou_threshold=0.1,
           score_threshold=0.3,
           max_boxes_per_class=5)
-      indices, scores, valid_mask = sess.run(outputs)
+      indices, scores, valid_mask = self.evaluate(outputs)
 
       class_masks = [
           valid_mask[0, cls_idx, :].astype(np.bool) for cls_idx in range(3)
@@ -459,7 +459,7 @@ class Utils3DTest(test_utils.TestCase):
           nms_iou_threshold=[0.1, 0.1, 0.1],
           score_threshold=[0.899, 0.5, 0.3],
           max_boxes_per_class=5)
-      indices, scores, valid_mask = sess.run(outputs)
+      indices, scores, valid_mask = self.evaluate(outputs)
 
       class_masks = [
           valid_mask[0, cls_idx, :].astype(np.bool) for cls_idx in range(3)
@@ -487,8 +487,8 @@ class Utils3DTest(test_utils.TestCase):
     points, features = detection_3d_lib.RandomPadOrTrimTo([points, features],
                                                           2,
                                                           seed=123)[0]
-    with self.session() as sess:
-      points_np, features_np = sess.run([points, features])
+    with self.session():
+      points_np, features_np = self.evaluate([points, features])
       # Slicing choose a random 2 points.
       self.assertAllClose([[1., 2., 3.], [10., 11., 12.]], points_np)
       self.assertAllClose([[100.], [400.]], features_np)
@@ -501,8 +501,8 @@ class Utils3DTest(test_utils.TestCase):
     points, features = detection_3d_lib.RandomPadOrTrimTo([points, features],
                                                           10,
                                                           seed=123)[0]
-    with self.session() as sess:
-      points_np, features_np = sess.run([points, features])
+    with self.session():
+      points_np, features_np = self.evaluate([points, features])
       # Padding repeats a random set of points.
       self.assertAllClose([[1., 2., 3.], [1., 2., 3.], [10., 11., 12.],
                            [7., 8., 9.], [7., 8., 9.], [4., 5., 6.]],
@@ -515,8 +515,8 @@ class Utils3DTest(test_utils.TestCase):
     features = tf.constant([[100.]])
     points, features = detection_3d_lib.RandomPadOrTrimTo(
         [points[0:0], features[0:0]], 10, seed=123)[0]
-    with self.session() as sess:
-      points_np, features_np = sess.run([points, features])
+    with self.session():
+      points_np, features_np = self.evaluate([points, features])
       self.assertAllClose(points_np, np.zeros(shape=(10, 3)))
       self.assertAllClose(features_np, np.zeros(shape=(10, 1)))
 

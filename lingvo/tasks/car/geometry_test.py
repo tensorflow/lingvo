@@ -208,8 +208,8 @@ class GeometryTest(test_utils.TestCase):
     points = tf.random.uniform((batch_size, num_points, 3))
     transforms = self._MakeTransformTestRotationMatrices(batch_size)
     points_transformed = geometry.TransformPoints(points, transforms)
-    with self.session() as sess:
-      actual_points, actual_points_transformed = sess.run(
+    with self.session():
+      actual_points, actual_points_transformed = self.evaluate(
           (points, points_transformed))
     # Points are the same on the z-axis (no rotation).
     self.assertAllClose(actual_points[:, :, 2], actual_points_transformed[:, :,
@@ -222,8 +222,8 @@ class GeometryTest(test_utils.TestCase):
     points = tf.random.uniform((batch_size, num_points, 3))
     transforms = self._MakeTransformTestTranslationMatrices(batch_size)
     points_transformed = geometry.TransformPoints(points, transforms)
-    with self.session() as sess:
-      actual_points, actual_points_transformed, actual_transforms = sess.run(
+    with self.session():
+      actual_points, actual_points_transformed, actual_transforms = self.evaluate(
           (points, points_transformed, transforms))
     # Points are transformed, and different.
     self.assertNotAllClose(actual_points, actual_points_transformed)
@@ -238,8 +238,9 @@ class GeometryTest(test_utils.TestCase):
                                maxval=100.,
                                dtype=tf.float32)
     wrapped_angles = geometry.WrapAngleRad(angles)
-    with self.session() as sess:
-      actual_angles, actual_wrapped_angles = sess.run((angles, wrapped_angles))
+    with self.session():
+      actual_angles, actual_wrapped_angles = self.evaluate(
+          (angles, wrapped_angles))
 
     # The sine values of the angles should remain the same after wrapping.
     self.assertAllClose(
@@ -254,8 +255,8 @@ class GeometryTest(test_utils.TestCase):
     bboxes_3d = tf.random.uniform((batch_size, num_boxes, 7))
     transforms = self._MakeTransformTestTranslationMatrices(batch_size)
     bboxes_3d_transformed = geometry.TransformBBoxes3D(bboxes_3d, transforms)
-    with self.session() as sess:
-      actual_bboxes_3d, actual_bboxes_3d_transformed = sess.run(
+    with self.session():
+      actual_bboxes_3d, actual_bboxes_3d_transformed = self.evaluate(
           (bboxes_3d, bboxes_3d_transformed))
 
     self.assertAllEqual(actual_bboxes_3d.shape,
@@ -283,8 +284,8 @@ class GeometryTest(test_utils.TestCase):
     bboxes_3d_transformed = geometry.TransformBBoxes3D(bboxes_3d, transforms)
     in_bboxes_transformed = geometry.IsWithinBBox3D(points_transformed,
                                                     bboxes_3d_transformed)
-    with self.session() as sess:
-      actual_in_bboxes, actual_in_bboxes_transformed = sess.run(
+    with self.session():
+      actual_in_bboxes, actual_in_bboxes_transformed = self.evaluate(
           (in_bboxes, in_bboxes_transformed))
     self.assertAllEqual(actual_in_bboxes, actual_in_bboxes_transformed)
 
@@ -292,12 +293,12 @@ class GeometryTest(test_utils.TestCase):
     v1 = tf.constant([[0., 0.]], dtype=tf.float32)
     v2 = tf.constant([[1., 0.]], dtype=tf.float32)
     p = tf.constant([[.5, .5], [-1., -3], [-1., 1.]], dtype=tf.float32)
-    with self.session() as sess:
-      actual = sess.run(geometry._IsOnLeftHandSideOrOn(p, v1, v2))
+    with self.session():
+      actual = self.evaluate(geometry._IsOnLeftHandSideOrOn(p, v1, v2))
       self.assertAllEqual([[True, False, True]], actual)
-      actual = sess.run(geometry._IsOnLeftHandSideOrOn(v1, v1, v2))
+      actual = self.evaluate(geometry._IsOnLeftHandSideOrOn(v1, v1, v2))
       self.assertAllEqual([[True]], actual)
-      actual = sess.run(geometry._IsOnLeftHandSideOrOn(v2, v1, v2))
+      actual = self.evaluate(geometry._IsOnLeftHandSideOrOn(v2, v1, v2))
       self.assertAllEqual([[True]], actual)
 
   def testIsWithinBBox3D(self):
@@ -358,8 +359,8 @@ class GeometryTest(test_utils.TestCase):
     assert expected_is_inside.shape[0] == num_points
     assert expected_is_inside.shape[1] == num_bboxes
 
-    with self.session() as sess:
-      is_inside = sess.run(geometry.IsWithinBBox3D(points, bboxes))
+    with self.session():
+      is_inside = self.evaluate(geometry.IsWithinBBox3D(points, bboxes))
       self.assertAllEqual([num_points, num_bboxes], is_inside.shape)
       self.assertAllEqual(expected_is_inside, is_inside)
 
@@ -370,8 +371,8 @@ class GeometryTest(test_utils.TestCase):
         [[-.5, -.5], [.5, -.5], [1.5, -.5], [1.5, .5], [1.5, 1.5], [.5, 1.5],
          [-.5, 1.5], [-.5, .5], [1., 1.], [.5, .5]],
         dtype=tf.float32)
-    with self.session() as sess:
-      is_inside = sess.run(geometry.IsWithinBBox(points, bbox))
+    with self.session():
+      is_inside = self.evaluate(geometry.IsWithinBBox(points, bbox))
       expected = [[False]] * 8 + [[True]] * 2
       self.assertAllEqual(expected, is_inside)
 
@@ -380,8 +381,8 @@ class GeometryTest(test_utils.TestCase):
                        dtype=tf.float32)
     points = tf.constant([[0., 0.], [1., 0], [1., 1.], [0., 1.], [.5, .5]],
                          dtype=tf.float32)
-    with self.session() as sess:
-      is_inside = sess.run(geometry.IsWithinBBox(points, bbox))
+    with self.session():
+      is_inside = self.evaluate(geometry.IsWithinBBox(points, bbox))
       expected = [[False]] * 4 + [[True]]
       self.assertAllEqual(expected, is_inside)
 
@@ -394,10 +395,11 @@ class GeometryTest(test_utils.TestCase):
     # points ~ [num points, v1/v2/v3, x/y].
     points = py_utils.HasShape(points, [-1, 3, 2])
     expected = [True, False, True, True, False]
-    with self.session() as sess:
-      dircheck = sess.run(
-          geometry._IsCounterClockwiseDirection(
-              points[:, 0, :], points[:, 1, :], points[:, 2, :]))
+    with self.session():
+      dircheck = self.evaluate(
+          geometry._IsCounterClockwiseDirection(points[:, 0, :],
+                                                points[:, 1, :], points[:,
+                                                                        2, :]))
       self.assertAllEqual(expected, dircheck)
 
   def testBBoxCorners(self):
@@ -409,8 +411,8 @@ class GeometryTest(test_utils.TestCase):
                           [[1, 2, 3, 4, 3, 6, np.pi / 2.],
                            [1, 2, 3, 4, 3, 6, np.pi / 2.]]])
     corners = geometry.BBoxCorners(bboxes)
-    with self.session() as sess:
-      corners_np = sess.run(corners)
+    with self.session():
+      corners_np = self.evaluate(corners)
       self.assertEqual((2, 2, 8, 3), corners_np.shape)
 
       # Extrema of first two boxes are ([-1, 3], [0.5, 3.5], [0, 6])
@@ -437,8 +439,8 @@ class GeometryTest(test_utils.TestCase):
     points_xyz = tf.constant(np_xyz, dtype=tf.float32)
     spherical_coordinates = geometry.SphericalCoordinatesTransform(points_xyz)
 
-    with self.session() as sess:
-      actual_spherical_coordinates = sess.run(spherical_coordinates)
+    with self.session():
+      actual_spherical_coordinates = self.evaluate(spherical_coordinates)
 
     # Convert coordinates back to xyz to verify.
     dist = actual_spherical_coordinates[..., 0]

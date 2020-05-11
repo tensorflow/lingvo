@@ -83,9 +83,9 @@ class CarLibTest(test_utils.TestCase):
     sq_dist_result = car_lib.NeighborSquaredDistanceMatrix(
         points, neighbor_points)
 
-    with self.session() as sess:
-      [np_points, np_neighbor_idx,
-       np_sq_dist_result] = sess.run([points, neighbor_idx, sq_dist_result])
+    with self.session():
+      [np_points, np_neighbor_idx, np_sq_dist_result
+      ] = self.evaluate([points, neighbor_idx, sq_dist_result])
       np_sq_dist_expected = self._np_sq_dis_neighbors(np_points,
                                                       np_neighbor_idx)
       self.assertAllClose(np_sq_dist_result, np_sq_dist_expected)
@@ -107,18 +107,18 @@ class CarLibTest(test_utils.TestCase):
     expected_2nn_padding = np.array([[[0, 0], [0, 0]]], dtype=np.float32)
     expected_3nn = np.array([[[0, 1, 0], [2, 3, 2]]], dtype=np.int32)
     expected_3nn_padding = np.array([[[0, 0, 1], [0, 0, 1]]], dtype=np.float32)
-    with self.session() as sess:
-      output_1nn, output_1nn_padding = sess.run(
+    with self.session():
+      output_1nn, output_1nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 1, valid_num, max_distance))
       self.assertAllEqual(output_1nn, expected_1nn)
       self.assertAllEqual(output_1nn_padding, expected_1nn_padding)
 
-      output_2nn, output_2nn_padding = sess.run(
+      output_2nn, output_2nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 2, valid_num, max_distance))
       self.assertAllEqual(output_2nn, expected_2nn)
       self.assertAllEqual(output_2nn_padding, expected_2nn_padding)
 
-      output_3nn, output_3nn_padding = sess.run(
+      output_3nn, output_3nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 3, valid_num, max_distance))
       self.assertAllEqual(output_3nn, expected_3nn)
       self.assertAllEqual(output_3nn_padding, expected_3nn_padding)
@@ -131,18 +131,18 @@ class CarLibTest(test_utils.TestCase):
     expected_2nn_padding = np.array([[[0, 1], [0, 1]]], dtype=np.float32)
     expected_3nn = np.array([[[0, 0, 0], [2, 2, 2]]], dtype=np.int32)
     expected_3nn_padding = np.array([[[0, 1, 1], [0, 1, 1]]], dtype=np.float32)
-    with self.session() as sess:
-      output_1nn, output_1nn_padding = sess.run(
+    with self.session():
+      output_1nn, output_1nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 1, valid_num, max_distance))
       self.assertAllEqual(output_1nn, expected_1nn)
       self.assertAllEqual(output_1nn_padding, expected_1nn_padding)
 
-      output_2nn, output_2nn_padding = sess.run(
+      output_2nn, output_2nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 2, valid_num, max_distance))
       self.assertAllEqual(output_2nn, expected_2nn)
       self.assertAllEqual(output_2nn_padding, expected_2nn_padding)
 
-      output_3nn, output_3nn_padding = sess.run(
+      output_3nn, output_3nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 3, valid_num, max_distance))
       self.assertAllEqual(output_3nn, expected_3nn)
       self.assertAllEqual(output_3nn_padding, expected_3nn_padding)
@@ -159,16 +159,16 @@ class CarLibTest(test_utils.TestCase):
     expected_1nn = np.array([[[0], [2]]], dtype=np.int32)
     expected_2nn = np.array([[[0, 1], [2, 3]]], dtype=np.int32)
     expected_3nn = np.array([[[0, 1, 2], [2, 3, 1]]], dtype=np.int32)
-    with self.session() as sess:
-      output_1nn, _ = sess.run(
+    with self.session():
+      output_1nn, _ = self.evaluate(
           car_lib.KnnIndices(points, query_points, 1, valid_num))
       self.assertAllEqual(output_1nn, expected_1nn)
 
-      output_2nn, _ = sess.run(
+      output_2nn, _ = self.evaluate(
           car_lib.KnnIndices(points, query_points, 2, valid_num))
       self.assertAllEqual(output_2nn, expected_2nn)
 
-      output_3nn, _ = sess.run(
+      output_3nn, _ = self.evaluate(
           car_lib.KnnIndices(points, query_points, 3, valid_num))
       self.assertAllEqual(output_3nn, expected_3nn)
 
@@ -181,18 +181,18 @@ class CarLibTest(test_utils.TestCase):
     expected_3nn = np.array([[[0, 1, 2], [1, 0, 2]]], dtype=np.int32)
     expected_3nn_padding = np.array([[[0, 0, 1], [0, 0, 1]]], dtype=np.float32)
 
-    with self.session() as sess:
-      output_1nn, output_1nn_padding = sess.run(
+    with self.session():
+      output_1nn, output_1nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 1, valid_num))
       self.assertAllEqual(output_1nn, expected_1nn)
       self.assertAllEqual(output_1nn_padding, expected_1nn_padding)
 
-      output_2nn, output_2nn_padding = sess.run(
+      output_2nn, output_2nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 2, valid_num))
       self.assertAllEqual(output_2nn, expected_2nn)
       self.assertAllEqual(output_2nn_padding, expected_2nn_padding)
 
-      output_3nn, output_3nn_padding = sess.run(
+      output_3nn, output_3nn_padding = self.evaluate(
           car_lib.KnnIndices(points, query_points, 3, valid_num))
       self.assertAllEqual(output_3nn, expected_3nn)
       self.assertAllEqual(output_3nn_padding, expected_3nn_padding)
@@ -205,18 +205,18 @@ class CarLibTest(test_utils.TestCase):
     expected_2nn_padding = np.array([[[0, 0], [0, 0]]], dtype=np.float32)
     expected_3nn = np.array([[[1, 3, 0], [3, 1, 2]]], dtype=np.int32)
     expected_3nn_padding = np.array([[[0, 0, 1], [0, 0, 1]]], dtype=np.float32)
-    with self.session() as sess:
-      output_1nn, output_1nn_padding = sess.run(
+    with self.session():
+      output_1nn, output_1nn_padding = self.evaluate(
           car_lib.NeighborhoodIndices(points, query_points, 1, padding))
       self.assertAllEqual(output_1nn, expected_1nn)
       self.assertAllEqual(output_1nn_padding, expected_1nn_padding)
 
-      output_2nn, output_2nn_padding = sess.run(
+      output_2nn, output_2nn_padding = self.evaluate(
           car_lib.NeighborhoodIndices(points, query_points, 2, padding))
       self.assertAllEqual(output_2nn, expected_2nn)
       self.assertAllEqual(output_2nn_padding, expected_2nn_padding)
 
-      output_3nn, output_3nn_padding = sess.run(
+      output_3nn, output_3nn_padding = self.evaluate(
           car_lib.NeighborhoodIndices(points, query_points, 3, padding))
       self.assertAllEqual(output_3nn, expected_3nn)
       self.assertAllEqual(output_3nn_padding, expected_3nn_padding)
@@ -234,8 +234,8 @@ class CarLibTest(test_utils.TestCase):
     # repeated).
     expected_3nn = np.array([[[1, 1, 1], [3, 3, 3]]], dtype=np.int32)
     expected_paddings = np.array([[[0, 1, 1], [0, 1, 1]]], dtype=np.float32)
-    with self.session() as sess:
-      output_3nn, paddings = sess.run(
+    with self.session():
+      output_3nn, paddings = self.evaluate(
           car_lib.NeighborhoodIndices(
               points,
               query_points,
@@ -265,8 +265,8 @@ class CarLibTest(test_utils.TestCase):
     ], dtype=tf.float32)
     padding = tf.zeros((2, 1), dtype=tf.float32)
     selected_idx, _ = car_lib.FarthestPointSampler(points, padding, 1)
-    with self.session() as sess:
-      selected_idx = sess.run(selected_idx)
+    with self.session():
+      selected_idx = self.evaluate(selected_idx)
       self.assertAllEqual(selected_idx, [[0], [0]])
 
   def testFarthestPointSamplerInsufficientPoints(self):
@@ -275,12 +275,12 @@ class CarLibTest(test_utils.TestCase):
         [[2, 2, 2]],
     ], dtype=tf.float32)
     padding = tf.zeros((2, 1), dtype=tf.float32)
-    with self.session() as sess:
+    with self.session():
       with self.assertRaisesRegex(tf.errors.InvalidArgumentError,
                                   r'.*Condition x >= y did not hold.*'):
         sampled_idx, closest_idx = car_lib.FarthestPointSampler(
             points, padding, 2)
-        sess.run((sampled_idx, closest_idx))
+        self.evaluate((sampled_idx, closest_idx))
 
   def testFarthestPointSamplerSelectMinMax(self):
     points = tf.constant([
@@ -291,8 +291,8 @@ class CarLibTest(test_utils.TestCase):
     ], dtype=tf.float32)  # pyformat: disable
     padding = tf.zeros((4, 6), dtype=tf.float32)
     selected_idx, closest_idx = car_lib.FarthestPointSampler(points, padding, 2)
-    with self.session() as sess:
-      selected_idx, closest_idx = sess.run([selected_idx, closest_idx])
+    with self.session():
+      selected_idx, closest_idx = self.evaluate([selected_idx, closest_idx])
       for batch_idx in range(4):
         self.assertIn(
             selected_idx[batch_idx, 1], [0, 5],
@@ -314,8 +314,8 @@ class CarLibTest(test_utils.TestCase):
     padding = tf.zeros((4, 6), dtype=tf.float32)
     selected_idx, closest_idx = car_lib.FarthestPointSampler(
         points, padding, 3, num_seeded_points=2)
-    with self.session() as sess:
-      selected_idx, closest_idx = sess.run([selected_idx, closest_idx])
+    with self.session():
+      selected_idx, closest_idx = self.evaluate([selected_idx, closest_idx])
       # First two selected points are seeded.
       self.assertTrue(np.all(selected_idx[:, 0] == 0))
       self.assertTrue(np.all(selected_idx[:, 1] == 1))
@@ -335,8 +335,8 @@ class CarLibTest(test_utils.TestCase):
     ], dtype=tf.float32)  # pyformat: disable
     padding = tf.zeros((4, 6), dtype=tf.float32)
     sampled_idx, closest_idx = car_lib.FarthestPointSampler(points, padding, 6)
-    with self.session() as sess:
-      sampled_idx, closest_idx = sess.run([sampled_idx, closest_idx])
+    with self.session():
+      sampled_idx, closest_idx = self.evaluate([sampled_idx, closest_idx])
       for batch_n in range(4):
         self.assertSetEqual(
             set(sampled_idx[batch_n, :]),
@@ -379,8 +379,8 @@ class CarLibTest(test_utils.TestCase):
     ],
                               axis=2)
     sampled_points = tf.gather_nd(points, gather_indices)
-    with self.session() as sess:
-      sampled_points = sess.run(sampled_points)
+    with self.session():
+      sampled_points = self.evaluate(sampled_points)
       self.assertEqual(sampled_points.shape, (n, num_points, 3))
 
   def testFarthestPointSamplerPadding(self):
@@ -403,8 +403,8 @@ class CarLibTest(test_utils.TestCase):
     num_points = 4
     selected_idx, _ = car_lib.FarthestPointSampler(points, padding, num_points)
 
-    with self.session() as sess:
-      np_selected_idx = sess.run(selected_idx)
+    with self.session():
+      np_selected_idx = self.evaluate(selected_idx)
       np_selected_idx.sort(axis=1)
       self.assertAllEqual(np_selected_idx, np_expected_selected_idx)
 
@@ -436,11 +436,11 @@ class CarLibTest(test_utils.TestCase):
         pooling_idx=pooling_idx,
         closest_idx=closest_idx)
 
-    with self.session() as sess:
+    with self.session():
       [
           np_points, np_features, np_pooling_idx, np_closest_idx,
           np_pooled_points, np_pooled_features
-      ] = sess.run([
+      ] = self.evaluate([
           points, features, pooling_idx, closest_idx, pooled_points,
           pooled_features
       ])

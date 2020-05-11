@@ -25,7 +25,7 @@ from lingvo.core import test_utils
 class SummaryUtilsTest(test_utils.TestCase):
 
   def testStatsCounter(self):
-    with self.session() as sess:
+    with self.session():
       with cluster_factory.ForTestingWorker(add_summary=True):
         foo = summary_utils.StatsCounter('foo')
         val = foo.Value()
@@ -33,11 +33,11 @@ class SummaryUtilsTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(0, val.eval())
-      self.assertAllEqual(100, sess.run(inc))
+      self.assertAllEqual(100, self.evaluate(inc))
       self.assertAllEqual(100, val.eval())
-      self.assertAllEqual([100, 200], sess.run([val, inc]))
-      self.assertAllEqual([200, 300], sess.run([val, inc]))
-      summary = tf.Summary.FromString(sess.run(tf.summary.merge_all()))
+      self.assertAllEqual([100, 200], self.evaluate([val, inc]))
+      self.assertAllEqual([200, 300], self.evaluate([val, inc]))
+      summary = tf.Summary.FromString(self.evaluate(tf.summary.merge_all()))
       self.assertTrue(any('foo' in v.tag for v in summary.value))
 
 

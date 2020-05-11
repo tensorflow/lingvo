@@ -118,12 +118,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -165,12 +165,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -213,12 +213,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -271,12 +271,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -334,12 +334,12 @@ class AsrFrontendTest(test_utils.TestCase):
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
 
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -373,8 +373,8 @@ class AsrFrontendTest(test_utils.TestCase):
     outputs = mel_frontend.FPropDefaultTheta(
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
-    with self.session() as sess:
-      log_mel = sess.run(log_mel)
+    with self.session():
+      log_mel = self.evaluate(log_mel)
       # log_mel ~ [batch, time, feature_size, channel]
       tf.logging.info('mel ~ %s', log_mel.shape)
       # Squeeze the batch and channel dimensions out.
@@ -406,12 +406,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])
@@ -449,12 +449,12 @@ class AsrFrontendTest(test_utils.TestCase):
         py_utils.NestedMap(src_inputs=src_inputs, paddings=paddings))
     log_mel = outputs.src_inputs
     paddings = outputs.paddings
-    with self.session() as sess:
-      pcm = sess.run(pcm)
+    with self.session():
+      pcm = self.evaluate(pcm)
       tf.logging.info('pcm: ~ %s = %s', pcm.shape, pcm)
       self.assertGreater(33000, np.amax(pcm))
       self.assertGreater(np.amax(pcm), 2.)
-      log_mel, paddings, sample_rate = sess.run(
+      log_mel, paddings, sample_rate = self.evaluate(
           [log_mel, paddings, sample_rate])
       self.assertEqual(sample_rate, p.sample_rate)
       self.assertEqual(paddings.shape, log_mel.shape[0:2])

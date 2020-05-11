@@ -79,9 +79,9 @@ class BeamSearchOpTest(test_utils.TestCase):
            force_eos_in_last_step=force_eos_in_last_step,
            local_eos_threshold=local_eos_threshold)
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       (best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
-       atten_probs, done, scores, atten_probs) = sess.run([
+       atten_probs, done, scores, atten_probs) = self.evaluate([
            best_scores, cumulative_scores, scores, hyps, prev_hyps, done_hyps,
            atten_probs, done, scores, atten_probs
        ])
@@ -542,7 +542,7 @@ class BeamSearchOpTest(test_utils.TestCase):
       self.assertAllClose(av1.prob, av2.prob)
 
   def testTopKTerminatedHypsOp(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       b_size = 8
       num_beams = 2
       num_hyps_per_beam = b_size / num_beams
@@ -603,7 +603,7 @@ class BeamSearchOpTest(test_utils.TestCase):
       seq_ids, seq_lens, seq_scores = ops.unpack_hyp(
           tf.reshape(topk_hyps, [-1]), max_seq_length=5)
 
-      k1, k2, k3, k4 = sess.run([topk_hyps, seq_ids, seq_lens, seq_scores])
+      k1, k2, k3, k4 = self.evaluate([topk_hyps, seq_ids, seq_lens, seq_scores])
       print(np.array_repr(k1))
       assert k1.size == 4
 

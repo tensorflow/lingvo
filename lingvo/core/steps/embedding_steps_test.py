@@ -24,7 +24,7 @@ from lingvo.core.steps import embedding_steps
 class EmbeddingStepsTest(test_utils.TestCase):
 
   def testEmbeddingStep(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       tf.random.set_seed(398847392)
       p = embedding_steps.EmbeddingStep.Params()
       p.name = 'emb_step'
@@ -46,7 +46,7 @@ class EmbeddingStepsTest(test_utils.TestCase):
           tf.constant([0.0], dtype=tf.float32), state0)
 
       self.evaluate(tf.global_variables_initializer())
-      out1, state1 = sess.run([out1, state1])
+      out1, state1 = self.evaluate([out1, state1])
 
       self.assertEqual({}, state1)
       self.assertAllClose(

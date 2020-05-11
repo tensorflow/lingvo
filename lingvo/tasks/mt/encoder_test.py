@@ -86,7 +86,7 @@ class EncoderTest(test_utils.TestCase):
     return p
 
   def testBiEncoderForwardPassWithInputPacking(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       with tf.variable_scope('bienc_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
@@ -116,7 +116,7 @@ class EncoderTest(test_utils.TestCase):
         packed_enc_out = tf.reshape(packed_enc_out.encoded, tf.shape(enc_out))
 
         self.evaluate(tf.global_variables_initializer())
-        actual_enc_out, actual_packed_enc_out = sess.run(
+        actual_enc_out, actual_packed_enc_out = self.evaluate(
             [enc_out, packed_enc_out])
         self.assertAllClose(actual_packed_enc_out, actual_enc_out)
 
@@ -246,7 +246,7 @@ class TransformerEncoderTest(test_utils.TestCase):
     _ = encoder.TransformerEncoder(p)
 
   def testForwardPass(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       bs = 2
       sl = 21
       tf.random.set_seed(8372749040)
@@ -263,7 +263,7 @@ class TransformerEncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out, actual_enc_out_sum, actual_emb_out_sum, \
-          actual_padding = sess.run(
+          actual_padding = self.evaluate(
               [out.encoded, enc_out_sum, emb_out_sum, enc_padding])
 
       # pyformat: disable
@@ -373,7 +373,7 @@ class TransformerEncoderTest(test_utils.TestCase):
           expected_enc_out, actual_enc_out, rtol=1e-05, atol=1e-05)
 
   def testForwardPassWithInputPacking(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         bs = 3
         sl = 3
@@ -406,13 +406,13 @@ class TransformerEncoderTest(test_utils.TestCase):
         packed_enc_out = tf.reduce_sum(packed_enc_out, axis=0)
 
         self.evaluate(tf.global_variables_initializer())
-        actual_enc_out, actual_packed_enc_out = sess.run(
+        actual_enc_out, actual_packed_enc_out = self.evaluate(
             [enc_out, packed_enc_out])
 
         self.assertAllClose(actual_packed_enc_out, actual_enc_out)
 
   def testForwardPassSplitBatch(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       bs = 8
       sl = 20
       tf.random.set_seed(8372749040)
@@ -445,7 +445,7 @@ class TransformerEncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out, actual_enc_out1, actual_enc_out2, \
-          actual_emb_out, actual_emb_out1, actual_emb_out2 = sess.run(
+          actual_emb_out, actual_emb_out1, actual_emb_out2 = self.evaluate(
               [enc_out, enc_out1, enc_out2, emb_out, emb_out1, emb_out2])
       self.assertAllClose(actual_enc_out,
                           np.concatenate([actual_enc_out1, actual_enc_out2], 1))

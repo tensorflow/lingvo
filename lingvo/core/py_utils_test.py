@@ -228,7 +228,7 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllClose(v3_v_expted, v3_v.tolist())
 
   def testCreateVariableSqrtFanInOut(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(832124)
       methods = [
           py_utils.WeightInit.GaussianSqrtFanIn,
@@ -245,7 +245,7 @@ class PyUtilsTest(test_utils.TestCase):
         all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
 
       self.evaluate(tf.global_variables_initializer())
-      var_values = sess.run(all_vars)
+      var_values = self.evaluate(all_vars)
       tf.logging.info('var_values=%s', var_values)
       self.assertAllClose(
           [
@@ -283,7 +283,7 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllEqual(var1.eval(), var2.eval())
 
   def testCreateVariableDifferentSeed(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       tf.random.set_seed(3251343)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       with tf.variable_scope('layer0'):
@@ -293,7 +293,7 @@ class PyUtilsTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
 
       # w0_val, w1_val should be sufficient different.
-      w0_val, w1_val = sess.run([w0, w1])
+      w0_val, w1_val = self.evaluate([w0, w1])
       print(['diff = ', w0_val - w1_val])
       self.assertTrue(np.max(np.abs(w0_val - w1_val)) > 0.1)
 
@@ -395,21 +395,21 @@ class PyUtilsTest(test_utils.TestCase):
   def testCheckNumerics(self):
     xv = [[1, 2], [3, 4]]
     yv = [10] * 4
-    with self.session() as sess:
+    with self.session():
       x = tf.constant(xv, tf.float32)
       y = tf.constant(yv)
       z = tf.reduce_mean(tf.constant([], tf.float32))
-      self.assertAllClose(xv, sess.run(py_utils.CheckNumerics(x)))
-      self.assertAllClose(yv, sess.run(py_utils.CheckNumerics(y)))
-      actual_xv, actual_yv = sess.run(py_utils.CheckNumerics([x, y]))
+      self.assertAllClose(xv, self.evaluate(py_utils.CheckNumerics(x)))
+      self.assertAllClose(yv, self.evaluate(py_utils.CheckNumerics(y)))
+      actual_xv, actual_yv = self.evaluate(py_utils.CheckNumerics([x, y]))
       self.assertAllClose(xv, actual_xv)
       self.assertAllClose(yv, actual_yv)
-      actual_xv, actual_yv = sess.run(py_utils.CheckNumerics((x, y)))
+      actual_xv, actual_yv = self.evaluate(py_utils.CheckNumerics((x, y)))
       self.assertAllClose(xv, actual_xv)
       self.assertAllClose(yv, actual_yv)
 
       with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'NaN'):
-        sess.run(py_utils.CheckNumerics(z))
+        self.evaluate(py_utils.CheckNumerics(z))
 
   def testLog(self):
     with self.session():
@@ -430,12 +430,12 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertAllEqual(x.eval(), [[1, 2], [3, 4]])
 
   def testSave(self):
-    with self.session() as sess:
+    with self.session():
       x = tf.constant([[1, 2], [3, 4]])
       y = tf.constant([10] * 4)
       x = py_utils.Save(x, '%s/test' % self.get_temp_dir(), x=x, y=y)
       self.evaluate(tf.global_variables_initializer())
-      self.assertAllEqual(sess.run(x), [[1, 2], [3, 4]])
+      self.assertAllEqual(self.evaluate(x), [[1, 2], [3, 4]])
 
     # Reads npy files and check the values.
     read_x = np.load('%s/test.%08d.x.npy' % (self.get_temp_dir(), 0))
@@ -684,15 +684,15 @@ class PyUtilsTest(test_utils.TestCase):
         b=py_utils.VarGrad(b,
                            tf.ones_like(b) * 0.5))
     clipped = py_utils.ApplyGradNormClipping(vs_gs, norm=1.0)
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       self.evaluate(tf.global_variables_initializer())
-      clipped_np = sess.run(clipped.Transform(tuple))
+      clipped_np = self.evaluate(clipped.Transform(tuple))
       # Each variable is clipped indipendently to grad scale of 1.
       self.assertAllClose(clipped_np.a[1], 1.0)
       self.assertAllClose(clipped_np.b[1], 0.5)
 
   def testMaskGradient(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       a = tf.get_variable('a', [])
       b = tf.get_variable('b', [])
       c = tf.get_variable('c', [])
@@ -716,7 +716,7 @@ class PyUtilsTest(test_utils.TestCase):
       var_grads = py_utils.ComputeGradients(l, vmap)
       var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask)
       self.evaluate(tf.global_variables_initializer())
-      _, var_grads_mask_vals = sess.run(
+      _, var_grads_mask_vals = self.evaluate(
           [var_grads.Transform(tuple),
            var_grads_mask.Transform(tuple)])
       # 'a' and 'b' are masked, while 'c' and 'd' are not.
@@ -726,7 +726,7 @@ class PyUtilsTest(test_utils.TestCase):
       self.assertEqual(var_grads_mask_vals['d'][1], 1)
 
   def testSkipL2Regularization(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       beta = tf.get_variable(
           'beta',
           initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
@@ -744,7 +744,7 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=2.0)
 
       self.evaluate(tf.global_variables_initializer())
-      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
+      var_grads_vals, l2_loss_val, var_grads_with_l2_vals = self.evaluate([
           var_grads.Transform(tuple), l2_loss,
           var_grads_with_l2.Transform(tuple)
       ])
@@ -765,7 +765,7 @@ class PyUtilsTest(test_utils.TestCase):
                           var_grads_vals.beta[1])
 
   def testAdjustGradientsWithL2Loss(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       emb = tf.get_variable(
           'emb',
           initializer=tf.constant(np.arange(100).reshape([10, 10]), tf.float32))
@@ -788,7 +788,7 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads_with_l2 = py_utils.Pack(var_grads, var_grads_with_l2)
 
         self.evaluate(tf.global_variables_initializer())
-        var_grads_vals, l2_loss_val, var_grads_with_l2_vals = sess.run([
+        var_grads_vals, l2_loss_val, var_grads_with_l2_vals = self.evaluate([
             var_grads.Transform(tuple), l2_loss,
             var_grads_with_l2.Transform(tuple)
         ])
@@ -818,7 +818,7 @@ class PyUtilsTest(test_utils.TestCase):
             var_grads_vals.emb[0][[2, 5, 2, 2, 5], :])
 
   def testSkipL1Regularization(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       beta = tf.get_variable(
           'beta',
           initializer=tf.constant(np.arange(10).reshape([1, 10]), tf.float32))
@@ -836,7 +836,7 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=1.0)
 
       self.evaluate(tf.global_variables_initializer())
-      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = self.evaluate([
           var_grads.Transform(tuple), l1_loss,
           var_grads_with_l1.Transform(tuple)
       ])
@@ -850,7 +850,7 @@ class PyUtilsTest(test_utils.TestCase):
                           0.1 * np.sum(np.abs(var_grads_vals.gamma[0])))
 
   def testAdjustGradientsWithL1Loss(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       emb = tf.get_variable(
           'emb',
           initializer=tf.constant(np.arange(100).reshape([10, 10]), tf.float32))
@@ -867,7 +867,7 @@ class PyUtilsTest(test_utils.TestCase):
           var_grads, 0.1, p=1.0)
 
       self.evaluate(tf.global_variables_initializer())
-      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = sess.run([
+      var_grads_vals, l1_loss_val, var_grads_with_l1_vals = self.evaluate([
           var_grads.Transform(tuple), l1_loss,
           var_grads_with_l1.Transform(tuple)
       ])
@@ -956,10 +956,10 @@ class PyUtilsTest(test_utils.TestCase):
   def testArgMax(self):
 
     def Compute(x):
-      with self.session(graph=tf.Graph()) as sess:
+      with self.session(graph=tf.Graph()):
         x = tf.constant(x)
         y = py_utils.ArgMax(x)
-        return sess.run([x, y])
+        return self.evaluate([x, y])
 
     np.random.seed(426421)
     x, y = Compute(np.random.uniform(size=(3, 5, 10)))
@@ -973,10 +973,10 @@ class PyUtilsTest(test_utils.TestCase):
     values = (1e-3, 2e-4, 3e-5, 4e-6)
 
     def _Eval(x):
-      with self.session(use_gpu=False) as sess:
+      with self.session(use_gpu=False):
         result = py_utils.PiecewiseConstant(
             x, boundaries, values, vdtype=tf.float32)
-        return sess.run(result)
+        return self.evaluate(result)
 
     self.assertAlmostEqual(1e-3, _Eval(0))
     self.assertAlmostEqual(1e-3, _Eval(1000))
@@ -996,9 +996,9 @@ class PyUtilsTest(test_utils.TestCase):
     repeat_inner_dim1 = py_utils.RepeatDim(y, 2, 1)
     repeat_inner_dim2 = py_utils.RepeatDim(z, 2, 2)
 
-    with self.session(use_gpu=False) as sess:
-      [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2
-      ] = sess.run([repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2])
+    with self.session(use_gpu=False):
+      [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2] = self.evaluate(
+          [repeat_inner_dim0, repeat_inner_dim1, repeat_inner_dim2])
       self.assertAllEqual(
           repeat_inner_dim0,
           [[[1, 2, 3], [4, 5, 6]], [[1, 2, 3], [4, 5, 6]],
@@ -1069,13 +1069,13 @@ class PyUtilsTest(test_utils.TestCase):
                           np.einsum('bti,io->bto', inputs_p, weight_p))
 
   def testAssertEvenDivide(self):
-    with self.session() as sess:
+    with self.session():
       op = py_utils.assert_even_divide(4, 2)
-      sess.run(op)
+      self.evaluate(op)
 
       op = py_utils.assert_even_divide(4, 3)
       with self.assertRaises(tf.errors.InvalidArgumentError):
-        sess.run(op)
+        self.evaluate(op)
 
   @mock.patch.object(tf.tpu, 'outside_compilation', autospec=True)
   def testTpuHostDecorator(self, mock_outside_compilation):
@@ -1114,11 +1114,11 @@ class PyUtilsTest(test_utils.TestCase):
             [tf.check_ops.assert_equal(0, 1, message='assert not removed')], x)
       return x
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
 
       x = tf.ones((2, 2))
       y = Op(x)
-      _ = sess.run(y)
+      _ = self.evaluate(y)
 
 
 class DeterministicDropoutTest(test_utils.TestCase):
@@ -1126,8 +1126,8 @@ class DeterministicDropoutTest(test_utils.TestCase):
   def testDeterministicDropoutTest(self):
     x = tf.ones([4, 6], dtype=tf.float32)
     x = py_utils.DeterministicDropout(x, keep_prob=0.7, seeds=[1234, 5678])
-    with self.session() as sess:
-      x_val = sess.run(x)
+    with self.session():
+      x_val = self.evaluate(x)
       self.assertAllClose([
           [1.0 / 0.7, 0.0000000, 0.0000000, 0.0000000, 1.0 / 0.7, 1.0 / 0.7],
           [1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7, 1.0 / 0.7],
@@ -1145,8 +1145,8 @@ class DeterministicVNTest(test_utils.TestCase):
         py_utils.NestedMap({'fprop_dtype': tf.float32}),
         seeds=[1234, 5678],
         noise_shape=np.asarray([3, 3]))
-    with self.session() as sess:
-      x_val = sess.run(x)
+    with self.session():
+      x_val = self.evaluate(x)
       self.assertAllClose(
           [[0.686219, 1.360352, 0.197617], [1.866415, 0.326923, -0.781743],
            [1.130218, -0.726336, 0.667041]], x_val)
@@ -1157,16 +1157,16 @@ class DeterministicVNTest(test_utils.TestCase):
 class WeightedAvgTest(test_utils.TestCase):
 
   def testWeightedAvg(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       losses = tf.constant([5.6, 4.6, 1.5, 3.4])
       weights = tf.constant([10, 9, 2, 8])
       loss, weight = py_utils.WeightedAvg(losses, weights)
       expected = [4.4, 29]
-      actual = sess.run([loss, weight])
+      actual = self.evaluate([loss, weight])
       self.assertAllClose(actual, expected)
 
   def testWeightedAvgOfMetrics(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       metrics = [{
           'a': (2.0, 0.5),
           'b': (5.0, 1.5)
@@ -1176,11 +1176,11 @@ class WeightedAvgTest(test_utils.TestCase):
       }]
       expected = {'a': (8.0, 3.5), 'b': (4.75, 2.0)}
       weighted_avg = py_utils.WeightedAvgOfMetrics(metrics)
-      actual = sess.run(weighted_avg)
+      actual = self.evaluate(weighted_avg)
       self.assertDictEqual(actual, expected)
 
   def testConcatPerExampleTensors(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       per_example_1 = {
           'a':
               tf.constant([[1.0, 2.0, 3.0], [12.0, 13.0, 14.0]],
@@ -1201,7 +1201,7 @@ class WeightedAvgTest(test_utils.TestCase):
           'b': [[1.5, 2.5, 3.5, 4.5], [3.5, 4.5, 5.5, 6.5]]
       }
       stacked = py_utils.ConcatPerExampleTensors([per_example_1, per_example_2])
-      actual = sess.run(stacked)
+      actual = self.evaluate(stacked)
       self.assertAllClose(actual['a'], expected['a'])
       self.assertAllClose(actual['b'], expected['b'])
       self.assertEqual(2, len(actual))
@@ -1240,7 +1240,7 @@ class OverrideVarsFromCheckpointsTest(test_utils.TestCase):
       conv0 = tf.get_variable('conv0/w/var')
       conv1 = tf.get_variable('conv1/w/var')
       fc_bias = tf.get_variable('fc/b/var')
-    conv0_val, conv1_val, fc_bias_val = sess.run([conv0, conv1, fc_bias])
+    conv0_val, conv1_val, fc_bias_val = self.evaluate([conv0, conv1, fc_bias])
     return conv0_val[0][0][0][0], conv1_val[0][0][0][0], fc_bias_val[0]
 
   def testOverrideVarsFromCheckpoint(self):
@@ -1732,13 +1732,13 @@ class ReadOnlyAttrDictViewTest(test_utils.TestCase):
 class PadPadSequenceToTest(test_utils.TestCase):
 
   def test2DInputs(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
       new_xs, new_padding = py_utils.PadSequenceTo([x, x], padding, length, 0)
 
-      real_xs, real_padding = sess.run([new_xs, new_padding])
+      real_xs, real_padding = self.evaluate([new_xs, new_padding])
       expected_x = [
           [0.38615, 2.975221, -0.852826, 0., 0., 0.],
           [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
@@ -1753,13 +1753,13 @@ class PadPadSequenceToTest(test_utils.TestCase):
       self.assertAllClose(expected_padding, real_padding)
 
   def testSingleInput(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       padding = tf.constant([[0, 0, 0], [0, 0, 1], [0, 1, 1]], tf.float32)
       length = 6
       new_x, new_padding = py_utils.PadSequenceTo(x, padding, length, 0)
 
-      real_x, real_padding = sess.run([new_x, new_padding])
+      real_x, real_padding = self.evaluate([new_x, new_padding])
       expected_x = [
           [0.38615, 2.975221, -0.852826, 0., 0., 0.],
           [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
@@ -1777,12 +1777,12 @@ class PadPadSequenceToTest(test_utils.TestCase):
 class PadSequenceDimensionTest(test_utils.TestCase):
 
   def testPadSequenceDimension_2D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       length = 6
       padded_x = py_utils.PadSequenceDimension(x, length, 0)
       self.assertEqual(padded_x.shape.as_list(), [3, 6])
-      real_x = sess.run(padded_x)
+      real_x = self.evaluate(padded_x)
       expected_x = [
           [0.38615, 2.975221, -0.852826, 0., 0., 0.],
           [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
@@ -1812,11 +1812,11 @@ class PadSequenceDimensionTest(test_utils.TestCase):
       py_utils.PadSequenceDimension(x, length, 0)
 
   def testPadSequenceDimension_4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       length = 4
       padded_x = py_utils.PadSequenceDimension(x, length, 1)
-      real_x = sess.run(padded_x)
+      real_x = self.evaluate(padded_x)
       expected_x = [
           [[[0.38614973, 2.97522092], [-0.85282576, -0.57114178]],
            [[-0.43243945, 0.41315758], [0.2553139, -0.98564667]],
@@ -1838,12 +1838,12 @@ class PadSequenceDimensionTest(test_utils.TestCase):
 class PadOrTrimToTest(test_utils.TestCase):
 
   def test2DConstantShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       shape = [4, 6]
       padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=0)
       self.assertEqual(padded_x.shape.as_list(), [4, 6])
-      real_x = sess.run(padded_x)
+      real_x = self.evaluate(padded_x)
       expected_x = [
           [0.38615, 2.975221, -0.852826, 0., 0., 0.],
           [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
@@ -1853,12 +1853,12 @@ class PadOrTrimToTest(test_utils.TestCase):
       self.assertAllClose(expected_x, real_x)
 
   def test2DStaticShape(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(3, 3), seed=123456)
       y = tf.zeros(shape=(4, 6))
       padded_x = py_utils.PadOrTrimTo(x, y.shape, pad_val=0)
       self.assertEqual(padded_x.shape.as_list(), [4, 6])
-      real_x = sess.run(padded_x)
+      real_x = self.evaluate(padded_x)
       expected_x = [
           [0.38615, 2.975221, -0.852826, 0., 0., 0.],
           [-0.571142, -0.432439, 0.413158, 0., 0., 0.],
@@ -1889,11 +1889,11 @@ class PadOrTrimToTest(test_utils.TestCase):
       py_utils.PadOrTrimTo(tensor, shape)
 
   def test4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       x = tf.random.normal(shape=(2, 2, 2, 2), seed=123456)
       shape = (1, 1, 3, 3)
       padded_x = py_utils.PadOrTrimTo(x, shape, pad_val=1)
-      real_x = sess.run(padded_x)
+      real_x = self.evaluate(padded_x)
       expected_x = [[[
           [0.38615, 2.975221, 1.],
           [-0.852826, -0.571142, 1.],
@@ -1976,7 +1976,7 @@ class LengthsFromPaddingsTest(test_utils.TestCase):
 class TrimTrailingPaddingsTest(test_utils.TestCase):
 
   def test2D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -1984,7 +1984,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [1.0, 0.0, 0.0, 0.0, 1.0, 1.0],
           [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
       ])
-      trimmed_x, trimmed_padding = sess.run(
+      trimmed_x, trimmed_padding = self.evaluate(
           py_utils.TrimTrailingPaddings(x, tf.convert_to_tensor(padding)))
       self.assertAllEqual(x[:, :5], trimmed_x)
       self.assertAllEqual(padding[:, :5], trimmed_padding)
@@ -2006,7 +2006,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
       self.assertAllEqual(padding[:, :5], trimmed_padding)
 
   def test4D(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6, 3, 3))
       padding = np.array([
@@ -2014,13 +2014,13 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [1.0, 0.0, 0.0, 0.0, 1.0, 1.0],
           [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
       ])
-      trimmed_x, trimmed_padding = sess.run(
+      trimmed_x, trimmed_padding = self.evaluate(
           py_utils.TrimTrailingPaddings(x, tf.convert_to_tensor(padding)))
       self.assertAllEqual(x[:, :5], trimmed_x)
       self.assertAllEqual(padding[:, :5], trimmed_padding)
 
   def testNoPadding(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2028,13 +2028,13 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       ])
-      trimmed_x, trimmed_padding = sess.run(
+      trimmed_x, trimmed_padding = self.evaluate(
           py_utils.TrimTrailingPaddings(x, tf.convert_to_tensor(padding)))
       self.assertAllEqual(x, trimmed_x)
       self.assertAllEqual(padding, trimmed_padding)
 
   def testLeadingPaddingOnly(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2042,13 +2042,13 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [1.0, 0.0, 0.0, 0.0, 0.0, 0.0],
           [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
       ])
-      trimmed_x, trimmed_padding = sess.run(
+      trimmed_x, trimmed_padding = self.evaluate(
           py_utils.TrimTrailingPaddings(x, tf.convert_to_tensor(padding)))
       self.assertAllEqual(x, trimmed_x)
       self.assertAllEqual(padding, trimmed_padding)
 
   def testAllPadded(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       np.random.seed(123456)
       x = np.random.normal(size=(3, 6))
       padding = np.array([
@@ -2056,7 +2056,7 @@ class TrimTrailingPaddingsTest(test_utils.TestCase):
           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
           [1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
       ])
-      trimmed_x, trimmed_padding = sess.run(
+      trimmed_x, trimmed_padding = self.evaluate(
           py_utils.TrimTrailingPaddings(x, tf.convert_to_tensor(padding)))
       self.assertAllEqual([3, 1], trimmed_x.shape)
       self.assertAllEqual(padding[:, :1], trimmed_padding)
@@ -2091,7 +2091,7 @@ class ConcatenatePaddedSequencesTest(test_utils.TestCase):
                                    seq_lens0,
                                    seq_lens1,
                                    tranpose_input=False):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       expected_output_seq_lens = seq_lens0 + seq_lens1
       batch_size, input0_seq_dim = input0.shape
       input1_seq_dim = input1.shape[1]
@@ -2113,7 +2113,7 @@ class ConcatenatePaddedSequencesTest(test_utils.TestCase):
         tf_padding0 = padding0
         tf_padding1 = padding1
 
-      actual_outputs = sess.run(
+      actual_outputs = self.evaluate(
           py_utils.ConcatenatePaddedSequences(
               tf_input0,
               tf_input1,
@@ -2185,7 +2185,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_a = tf.get_variable('a', trainable=False, initializer=0)
     var_b = tf.get_variable('b', trainable=False, initializer=0)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
@@ -2194,8 +2194,8 @@ class MixByWeightTest(test_utils.TestCase):
       op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], [0.7, 0.3],
                                    seed=12345)
       for _ in range(100):
-        sess.run(op)
-      a, b = sess.run([var_a, var_b])
+        self.evaluate(op)
+      a, b = self.evaluate([var_a, var_b])
       self.assertEqual(100, a + b)
       self.assertGreater(a, 50)
       self.assertLess(b, 50)
@@ -2205,7 +2205,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_b = tf.get_variable('b', trainable=False, initializer=0)
     var_w = tf.get_variable('w', trainable=False, dtype=tf.float32, shape=[2])
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
@@ -2214,18 +2214,18 @@ class MixByWeightTest(test_utils.TestCase):
       op, _ = py_utils.MixByWeight([_AddFn(var_a), _AddFn(var_b)], var_w)
 
       # all weight goes to 'a'
-      sess.run([tf.assign(var_w, [1.0, 0.0])])
+      self.evaluate([tf.assign(var_w, [1.0, 0.0])])
       for _ in range(10):
-        sess.run(op)
-      a, b = sess.run([var_a, var_b])
+        self.evaluate(op)
+      a, b = self.evaluate([var_a, var_b])
       self.assertEqual(10, a)
       self.assertEqual(0, b)
 
       # all weight goes to 'b'
-      sess.run([tf.assign(var_w, [0.0, 1.0])])
+      self.evaluate([tf.assign(var_w, [0.0, 1.0])])
       for _ in range(10):
-        sess.run(op)
-      a, b = sess.run([var_a, var_b])
+        self.evaluate(op)
+      a, b = self.evaluate([var_a, var_b])
       self.assertEqual(10, a)
       self.assertEqual(10, b)
 
@@ -2233,7 +2233,7 @@ class MixByWeightTest(test_utils.TestCase):
     var_a = tf.get_variable('a', trainable=False, initializer=0)
     var_b = tf.get_variable('b', trainable=False, initializer=0)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
 
       def _AddFn(var):
@@ -2242,8 +2242,8 @@ class MixByWeightTest(test_utils.TestCase):
       op, bprop = py_utils.MixByWeight(
           [_AddFn(var_a), _AddFn(var_b)], [1.0, 0.0])
       for _ in range(10):
-        sess.run(op)
-      bprop_v, a, b = sess.run([bprop, var_a, var_b])
+        self.evaluate(op)
+      bprop_v, a, b = self.evaluate([bprop, var_a, var_b])
       self.assertEqual(10, a)
       self.assertEqual(0, b)
       self.assertAllClose(np.array([1, 0]), np.squeeze(bprop_v))
@@ -2251,8 +2251,8 @@ class MixByWeightTest(test_utils.TestCase):
       op, bprop = py_utils.MixByWeight(
           [_AddFn(var_a), _AddFn(var_b)], [0.0, 1.0])
       for _ in range(10):
-        sess.run(op)
-      bprop_v, a, b = sess.run([bprop, var_a, var_b])
+        self.evaluate(op)
+      bprop_v, a, b = self.evaluate([bprop, var_a, var_b])
       self.assertEqual(10, a)
       self.assertEqual(10, b)
       self.assertAllClose(np.array([0, 1]), np.squeeze(bprop_v))
@@ -2283,7 +2283,7 @@ class StepSeedTest(test_utils.TestCase):
 
     self.evaluate(tf.global_variables_initializer())
     accumulated_states = accumulated_states.Pack(
-        sess.run(accumulated_states.Flatten()))
+        self.evaluate(accumulated_states.Flatten()))
     self.assertAllEqual(np.arange(10), accumulated_states.input)
     expected_step_seeds = expected_starting_step_seed + np.arange(10)
     self.assertAllEqual(
@@ -2426,7 +2426,7 @@ class RNNCellStateInitTest(test_utils.TestCase):
 class RematerializeFnTest(test_utils.TestCase):
 
   def testRandomNormal(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(12345678)
       a = tf.random.normal([2, 3])
       b = tf.random.normal([3, 4])
@@ -2444,7 +2444,7 @@ class RematerializeFnTest(test_utils.TestCase):
       da1, db1 = tf.gradients([d1, e1], [a, b])
       da2, db2 = tf.gradients([d2, e2], [a, b])
       self.evaluate(tf.global_variables_initializer())
-      v1, v2, v3, v4 = sess.run([da1, db1, da2, db2])
+      v1, v2, v3, v4 = self.evaluate([da1, db1, da2, db2])
       self.assertAllEqual(v1, v3)
       self.assertAllEqual(v2, v4)
 
@@ -2783,7 +2783,7 @@ class FromGlobalTest(test_utils.TestCase):
 class CallDefunTest(test_utils.TestCase):
 
   def testSimple(self):
-    with self.session() as sess:
+    with self.session():
 
       def Bak(xs, ys, dys):
         del ys
@@ -2801,14 +2801,14 @@ class CallDefunTest(test_utils.TestCase):
       ys = py_utils.CallDefun(Fwd, Bak, xs)
       loss = tf.reduce_sum(tf.square(ys))
       dw, dx, dy = tf.gradients(xs=xs + [ys], ys=loss)
-      y, dw, dx, dy = sess.run([ys, dw, dx, dy])
+      y, dw, dx, dy = self.evaluate([ys, dw, dx, dy])
       self.assertAllEqual(y, a.dot(b))
       self.assertAllEqual(dy, 2 * y)
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
   def testPreserveStaticShape(self):
-    with self.session() as sess:
+    with self.session():
 
       def Bak(x, y, dy):
         del x, y
@@ -2827,11 +2827,11 @@ class CallDefunTest(test_utils.TestCase):
 
       a = np.array([[1.0, 2.0], [0.0, -3.0]])
       x = tf.constant(a)
-      y = sess.run(py_utils.CallDefun(Fwd, Bak, x))
+      y = self.evaluate(py_utils.CallDefun(Fwd, Bak, x))
       self.assertAllEqual(y, np.zeros_like(a))
 
   def testNestedMap(self):
-    with self.session() as sess:
+    with self.session():
 
       def Bak(xs, ys, dys):
         del ys
@@ -2848,7 +2848,7 @@ class CallDefunTest(test_utils.TestCase):
       ys = py_utils.CallDefun(Fwd, Bak, xs)
       loss = tf.reduce_sum(tf.square(ys.y))
       dw, dx, dy = tf.gradients(xs=xs.Flatten() + ys.Flatten(), ys=loss)
-      y, dw, dx, dy = sess.run([ys.y, dw, dx, dy])
+      y, dw, dx, dy = self.evaluate([ys.y, dw, dx, dy])
       self.assertAllEqual(y, a.dot(b))
       self.assertAllEqual(dy, 2 * y)
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
@@ -2869,8 +2869,8 @@ class ForLoopTest(test_utils.TestCase):
       state = py_utils.NestedMap(value=tf.constant(0.))
       state = py_utils.ForLoop(Body, 1, 10000, 1, state)
 
-    with self.session(graph=g) as sess:
-      value = sess.run(state.value)
+    with self.session(graph=g):
+      value = self.evaluate(state.value)
 
     self.assertAllClose(np.pi * np.pi / 6, value, rtol=1e-3)
 
@@ -2878,22 +2878,22 @@ class ForLoopTest(test_utils.TestCase):
 class TopKTest(test_utils.TestCase):
 
   def test_top_2(self):
-    with self.session() as sess:
+    with self.session():
       x_in = tf.random.normal([4, 5, 6, 8])
       top2_value_a, top2_index_a = py_utils.TopK(x_in, 2)
       top2_value_b, top2_index_b = tf.math.top_k(x_in, 2)
-      v1, v2 = sess.run([top2_value_a, top2_value_b])
-      v3, v4 = sess.run([top2_index_a, top2_index_b])
+      v1, v2 = self.evaluate([top2_value_a, top2_value_b])
+      v3, v4 = self.evaluate([top2_index_a, top2_index_b])
       self.assertAllEqual(v1, v2)
       self.assertAllEqual(v3, v4)
 
   def test_top_1(self):
-    with self.session() as sess:
+    with self.session():
       x_in = tf.random.normal([4, 5, 6, 8])
       top1_value_a, top1_index_a = py_utils.TopK(x_in, 1)
       top1_value_b, top1_index_b = tf.math.top_k(x_in, 1)
-      v1, v2 = sess.run([top1_value_a, top1_value_b])
-      v3, v4 = sess.run([top1_index_a, top1_index_b])
+      v1, v2 = self.evaluate([top1_value_a, top1_value_b])
+      v3, v4 = self.evaluate([top1_index_a, top1_index_b])
       self.assertAllEqual(v1, v2)
       self.assertAllEqual(v3, v4)
 
@@ -2901,7 +2901,7 @@ class TopKTest(test_utils.TestCase):
 class TpuSummaryTensorsTest(test_utils.TestCase):
 
   def testTpuSummaryTensors(self):
-    with self.session() as sess:
+    with self.session():
       with tf.name_scope('fprop'):
         with tf.name_scope('tower_0_0'):
           with tf.name_scope('fprop'):
@@ -2915,7 +2915,7 @@ class TpuSummaryTensorsTest(test_utils.TestCase):
                   x = tf.identity(x, name='inputs')
                   py_utils.AddTpuSummaryTensor('mean_x', tf.reduce_mean(x))
       tpu_summary_tensors = py_utils.GetTpuSummaryTensors()
-      actual_value = sess.run([tpu_summary_tensors])
+      actual_value = self.evaluate([tpu_summary_tensors])
       expected_value = [{
           'mean_x/fprop/tower_0_0/fprop/my_model/layer_001/fprop': (0., 1.),
           'mean_x/fprop/tower_0_0/fprop/my_model/layer_002/fprop': (0., 1.),

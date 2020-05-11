@@ -31,11 +31,12 @@ class SequenceTest(test_utils.TestCase):
     x_paddings = np.asarray(
         [[0, 0, 0, 0], [0, 0, 0, 1], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
 
-    with self.session() as sess:
+    with self.session():
       x_trimmed, x_trimmed_paddings = insertion.SequenceTrimLastToken(
           tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings))
 
-      x_trimmed, x_trimmed_paddings = sess.run([x_trimmed, x_trimmed_paddings])
+      x_trimmed, x_trimmed_paddings = self.evaluate(
+          [x_trimmed, x_trimmed_paddings])
 
       # `x_trimmed_gold` is the same as `x` w/ last token removed.
       # `x_trimmed_paddings_gold` is the corresponding paddings.
@@ -53,11 +54,11 @@ class SequenceTest(test_utils.TestCase):
     x_paddings = np.asarray(
         [[0, 0, 0, 1], [0, 0, 0, 1], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
 
-    with self.session() as sess:
+    with self.session():
       x_appended, x_appended_paddings = insertion.SequenceAppendToken(
           tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings), 10)
 
-      x_appended, x_appended_paddings = sess.run([
+      x_appended, x_appended_paddings = self.evaluate([
           tf.convert_to_tensor(x_appended),
           tf.convert_to_tensor(x_appended_paddings)
       ])
@@ -79,11 +80,11 @@ class SequenceTest(test_utils.TestCase):
     x_paddings = np.asarray(
         [[0, 0, 0, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], np.int32)
 
-    with self.session() as sess:
+    with self.session():
       x_appended, x_appended_paddings = insertion.SequenceAppendToken(
           tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings), 10, True)
 
-      x_appended, x_appended_paddings = sess.run(
+      x_appended, x_appended_paddings = self.evaluate(
           [x_appended, x_appended_paddings])
 
       # `x_appended_gold` is the same as `x` w/ token `10` appended, we also
@@ -112,12 +113,12 @@ class SequenceTest(test_utils.TestCase):
     y_paddings = np.asarray(
         [[0, 0, 0, 1], [0, 0, 0, 0], [1, 1, 1, 1], [0, 1, 1, 1]], np.float32)
 
-    with self.session() as sess:
+    with self.session():
       xy, xy_paddings = insertion.SequenceConcat(
           tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings),
           tf.convert_to_tensor(y), tf.convert_to_tensor(y_paddings), 999)
 
-      xy, xy_paddings = sess.run(
+      xy, xy_paddings = self.evaluate(
           [tf.convert_to_tensor(xy),
            tf.convert_to_tensor(xy_paddings)])
 
@@ -138,7 +139,7 @@ class SequenceTest(test_utils.TestCase):
 class SymbolInsertionLayerTest(test_utils.TestCase):
 
   def testGetValidCanvasUnderUniformRollinPolicy(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
       params.rollin_policy = 'oracle'
@@ -152,7 +153,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
       inputs = tf.tile(tf.expand_dims(tf.range(time_dim), 0), [batch_size, 1])
       spec = insertion_layer.FProp(None, inputs, force_sample_last_token=False)
 
-      canvas, canvas_indices, canvas_paddings = sess.run(
+      canvas, canvas_indices, canvas_paddings = self.evaluate(
           [spec.canvas, spec.canvas_indices, spec.canvas_paddings])
 
       for b in range(batch_size):
@@ -166,7 +167,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
   def testMaxCanvasSizeUnderUniformRollinPolicy(self):
     """Tests for valid canvas size."""
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
       params.rollin_policy = 'oracle'
@@ -185,7 +186,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
       canvas_with_max_length = False
       for _ in range(1000):
-        canvas_max_len, canvas, canvas_paddings = sess.run(
+        canvas_max_len, canvas, canvas_paddings = self.evaluate(
             [inputs_len, spec.canvas, spec.canvas_paddings])
 
         for b in range(batch_size):
@@ -203,7 +204,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
   def testContiguousCanvasUnderUniformRollinPolicy(self):
     """Tests for valid canvas size."""
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
       params.rollin_policy = 'oracle'
@@ -222,7 +223,8 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
           None, inputs, paddings, force_sample_last_token=False)
 
       for _ in range(1000):
-        canvas, canvas_paddings = sess.run([spec.canvas, spec.canvas_paddings])
+        canvas, canvas_paddings = self.evaluate(
+            [spec.canvas, spec.canvas_paddings])
 
         for b in range(batch_size):
           length = np.sum(1 - canvas_paddings[b, :]).astype(np.int32)
@@ -238,7 +240,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
   def testGetValidCanvasAndTargetsUnderUniformOraclePolicyWithoutForcedSample(
       self):
     """Tests for canvas+targets under uniform (rollin+oracle) policy."""
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
       params.rollin_policy = 'oracle'
@@ -260,10 +262,11 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
           tf.convert_to_tensor(x_paddings),
           force_sample_last_token=False)
 
-      (canvas, canvas_paddings, target_indices, target_weights) = sess.run([
-          spec.canvas, spec.canvas_paddings, spec.target_indices,
-          spec.target_weights
-      ])
+      (canvas, canvas_paddings, target_indices,
+       target_weights) = self.evaluate([
+           spec.canvas, spec.canvas_paddings, spec.target_indices,
+           spec.target_weights
+       ])
 
       canvas_gold = np.asarray([[10, 12, 13, 15, 16], [14, 0, 0, 0, 0],
                                 [10, 0, 0, 0, 0], [11, 12, 13, 0, 0]], np.int32)
@@ -288,7 +291,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
 
   def testGetValidCanvasAndTargetsUnderUniformOraclePolicyForcedSample(self):
     """Tests for canvas+targets under uniform (rollin+oracle) policy."""
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       params = insertion.SymbolInsertionLayer.Params()
       params.name = 'insertion'
       params.rollin_policy = 'oracle'
@@ -308,7 +311,7 @@ class SymbolInsertionLayerTest(test_utils.TestCase):
                                    tf.convert_to_tensor(x_paddings))
 
       (canvas, canvas_indices, canvas_paddings, target_indices,
-       target_weights) = sess.run([
+       target_weights) = self.evaluate([
            spec.canvas, spec.canvas_indices, spec.canvas_paddings,
            spec.target_indices, spec.target_weights
        ])

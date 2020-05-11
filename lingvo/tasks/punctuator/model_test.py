@@ -88,7 +88,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
 
   def testFProp(self, dtype=tf.float32):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
@@ -99,7 +99,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
       expected_vals = [
@@ -110,7 +110,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.assertAllClose(vals, expected_vals)
 
   def testBProp(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -122,7 +122,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
-        vals += [sess.run((loss, logp, mdl.train_op))[:2]]
+        vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
       expected_vals = [
           [326.765106, 10.373495],
@@ -132,7 +132,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.assertAllClose(vals, expected_vals)
 
   def testFPropEvalMode(self):
-    with self.session() as sess, self.SetEval(True):
+    with self.session(), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -142,7 +142,7 @@ class PunctuatorModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(3):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
       print('actual vals = ', vals)
       expected_vals = [
           [326.765106, 10.373495],

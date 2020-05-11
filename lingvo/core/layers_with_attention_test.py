@@ -46,7 +46,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     self.assertEqual(p.output_dim, transformer_fflayer.output_dim)
 
   def testTransformerFeedForwardLayer(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -58,7 +58,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
@@ -78,7 +78,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testTransformerFeedForwardLayerSpecOutDim(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -91,7 +91,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h = transformer_fflayer.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
@@ -132,7 +132,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
             context_vecs)
 
   def testTransformerAttentionLayerCase1(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -147,7 +147,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_ctx = [
@@ -178,7 +178,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerCase2(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -192,7 +192,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -225,7 +225,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_probs, actual_probs)
 
   def testTransformerAttentionLayerDeterministicDropout(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -245,7 +245,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
                                            source_padding)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -282,7 +282,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerStepByStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -315,7 +315,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.stack(probs2)
 
       self.evaluate(tf.global_variables_initializer())
-      ctx1_v, probs1_v, ctx2_v, probs2_v = sess.run(
+      ctx1_v, probs1_v, ctx2_v, probs2_v = self.evaluate(
           [ctx1, probs1, ctx2, probs2])
       tf.logging.info(np.array_repr(ctx1_v))
       tf.logging.info(np.array_repr(probs1_v))
@@ -325,7 +325,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(probs1_v, probs2_v)
 
   def testTransformerAttentionLayerCase3(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -340,7 +340,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FPropDefaultTheta(query_vec, aux_paddings,
                                                        aux_vecs)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -449,7 +449,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerAttentionLayerSourceContext(self):
     # Equivalent: Passing no context vecs and source vecs as context vecs.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -474,14 +474,14 @@ class LayersWithAttentionTest(test_utils.TestCase):
           source_vecs=aux_vecs)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx1, actual_probs1, actual_ctx2, actual_probs2 = sess.run(
+      actual_ctx1, actual_probs1, actual_ctx2, actual_probs2 = self.evaluate(
           [ctx1, probs1, ctx2, probs2])
       self.assertAllEqual(actual_ctx1, actual_ctx2)
       self.assertAllEqual(actual_probs1, actual_probs2)
 
   def testTransformerAttentionLayerCase4a(self):
     # Distinct key and value vectors of the same size.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -501,7 +501,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           context_vecs=context_vecs)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -597,7 +597,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerAttentionLayerCase4b(self):
     # Distinct key and value vectors of different sizes.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       context_depth = 3
       p = layers_with_attention.TransformerAttentionLayer.Params()
@@ -621,7 +621,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           context_vecs=context_vecs)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -722,7 +722,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
   def testTransformerAttentionLayerCase5(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -737,7 +737,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info(np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -770,7 +770,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_probs, actual_probs)
 
   def testTransformerAttentionLayerCase6(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       p = layers_with_attention.TransformerAttentionLayer.Params()
       p.name = 'transformer_atten'
@@ -786,7 +786,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
                                                        source_padding)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx, actual_probs = sess.run([ctx, probs])
+      actual_ctx, actual_probs = self.evaluate([ctx, probs])
       tf.logging.info(np.array_repr(actual_ctx))
       tf.logging.info('actual_probs=%r', np.array_repr(actual_probs))
       # pylint: disable=bad-whitespace
@@ -837,7 +837,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     self.assertEqual(p.output_dim, layer.output_dim)
 
   def testTransformerLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -859,7 +859,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -893,7 +893,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testTransformerLayerOutputLayerNormFProp(self):
     """Test post-layernorm Fprop."""
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -916,7 +916,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -949,7 +949,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
   def testTransformerLayerFPropMultiPostProj(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -975,7 +975,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           atten_idx=atten_idx)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -1008,7 +1008,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
   def testTransformerLayerWithInputPackingFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):
         np.random.seed(6348575)
         depth = 4
@@ -1066,11 +1066,11 @@ class LayersWithAttentionTest(test_utils.TestCase):
         h_packed = tf.reshape(h_packed, tf.shape(h))
 
         self.evaluate(tf.global_variables_initializer())
-        actual_layer, p_layer = sess.run([h, h_packed])
+        actual_layer, p_layer = self.evaluate([h, h_packed])
         self.assertAllClose(actual_layer, p_layer)
 
   def testTransformerLayerExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -1108,12 +1108,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.concat(probs2, 0)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
   def testTransformerLayerWithNgramMaskExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -1158,12 +1158,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.concat(probs2, 0)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
   def testTransformerLayerWithPostLayernormExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayer.Params()
@@ -1202,13 +1202,13 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.concat(probs2, 0)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
   def testEvolvedTransformerEncoderBranchedConvsLayer(self):
     layer = layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -1219,7 +1219,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
@@ -1240,7 +1240,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
   def testEvolvedTransformerDecoderBranchedConvsLayer(self):
     layer = layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -1251,7 +1251,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h = et_branched_convs.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
@@ -1279,7 +1279,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     _ = layers_with_attention.EvolvedTransformerEncoderLayer(p)
 
   def testEvolvedTransformerEncoderLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.EvolvedTransformerEncoderLayer.Params()
@@ -1298,7 +1298,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -1340,7 +1340,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     _ = layers_with_attention.EvolvedTransformerDecoderLayer(p)
 
   def testEvolvedTransformerDecoderLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.EvolvedTransformerDecoderLayer.Params()
@@ -1363,7 +1363,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           aux_paddings=aux_paddings)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -1396,7 +1396,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
   def testEvolvedTransformerDecoderLayerExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.EvolvedTransformerDecoderLayer.Params()
@@ -1445,12 +1445,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.concat(probs2, 0)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
   def testMergerLayerMean(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -1469,14 +1469,14 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, ctxs)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run([ctx])[0]
+      actual_ctx = self.evaluate([ctx])[0]
 
       expected_ctx = np.mean(p_ctxs, axis=0)
       self.assertEqual(actual_ctx.shape, (batch, depth))
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerAdditiveAttention(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -1498,7 +1498,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run(ctx)
+      actual_ctx = self.evaluate(ctx)
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1519,7 +1519,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerDotProductAttention(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -1541,7 +1541,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, ctxs, query_vec)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run(ctx)
+      actual_ctx = self.evaluate(ctx)
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1562,7 +1562,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerConcat(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -1579,7 +1579,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, ctxs)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run([ctx])[0]
+      actual_ctx = self.evaluate([ctx])[0]
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1605,7 +1605,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerConcatPreProjections(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 5
@@ -1625,7 +1625,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, ctxs)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run([ctx])[0]
+      actual_ctx = self.evaluate([ctx])[0]
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1662,7 +1662,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
         _ = p.Instantiate()
 
   def testMergerLayerWeightedSum(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 2
@@ -1680,7 +1680,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ctxs = [tf.expand_dims(i, 2) for i in ctxs]
       ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run(ctx)
+      actual_ctx = self.evaluate(ctx)
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1692,7 +1692,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerGatedAvg(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(505837249)
       depth = 4
       batch = 2
@@ -1713,7 +1713,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
       self.evaluate(tf.global_variables_initializer())
-      actual_ctx = sess.run(ctx)
+      actual_ctx = self.evaluate(ctx)
 
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -1726,7 +1726,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testStyleLayer(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,
@@ -1740,12 +1740,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
       features = tf.random.normal([2, 10], seed=28384)
       latent, atten_probs = sl.FPropDefaultTheta(features)
       self.evaluate(tf.global_variables_initializer())
-      latent_v, atten_probs_v = sess.run([latent, atten_probs])
+      latent_v, atten_probs_v = self.evaluate([latent, atten_probs])
       CompareToGoldenSingleFloat(self, -1.208686, np.sum(latent_v))
       CompareToGoldenSingleFloat(self, 2.0, np.sum(atten_probs_v))
 
   def testStyleLayerWithFeedinAttenProbs(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,
@@ -1763,11 +1763,12 @@ class LayersWithAttentionTest(test_utils.TestCase):
       latent_from_probs = sl.StyleEmbFromProbs(sl.theta, atten_probs)
       latent_from_lookup = sl.EmbLookup(sl.theta, ids)
       self.evaluate(tf.global_variables_initializer())
-      latent_p, latent_l = sess.run([latent_from_probs, latent_from_lookup])
+      latent_p, latent_l = self.evaluate(
+          [latent_from_probs, latent_from_lookup])
       self.assertAllClose(latent_p, latent_l)
 
   def testStyleLayer02(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = layers_with_attention.StyleLayer.Params().Set(
           name='style_layer',
           input_dim=10,
@@ -1781,7 +1782,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       features = tf.concat([features, features], 0)
       latent, _ = sl.FPropDefaultTheta(features)
       self.evaluate(tf.global_variables_initializer())
-      latent_v = sess.run(latent)
+      latent_v = self.evaluate(latent)
       # Makes sure identical input results in identical style output.
       self.assertAllClose(latent_v[:2], latent_v[2:])
 
@@ -1814,7 +1815,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     _ = layers_with_attention.TransformerLayerWithMultitaskAdapters(p)
 
   def testTransformerLayerWithMultitaskAdaptersFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
@@ -1841,7 +1842,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
           source_task_id=source_task_id)
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, actual_prob_output = sess.run([h, probs])
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
       tf.logging.info(np.array_repr(actual_layer_output))
       tf.logging.info(np.array_repr(actual_prob_output))
       # pylint: disable=bad-whitespace
@@ -1875,7 +1876,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_prob_output, actual_prob_output)
 
   def testTransformerLayerWithMultitaskAdaptersWithInputPackingFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):
         np.random.seed(6348575)
         depth = 4
@@ -1942,11 +1943,11 @@ class LayersWithAttentionTest(test_utils.TestCase):
         h_packed = tf.reshape(h_packed, tf.shape(h))
 
         self.evaluate(tf.global_variables_initializer())
-        actual_layer, p_layer = sess.run([h, h_packed])
+        actual_layer, p_layer = self.evaluate([h, h_packed])
         self.assertAllClose(actual_layer, p_layer)
 
   def testTransformerLayerWithMultitaskAdaptersExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = layers_with_attention.TransformerLayerWithMultitaskAdapters.Params()
@@ -1993,7 +1994,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       probs2 = tf.concat(probs2, 0)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, probs1_v, h2_v, probs2_v = sess.run([h1, probs1, h2, probs2])
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
 
@@ -2009,7 +2010,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
     _ = layers_with_attention.CCTFeedForwardLayer(p)
 
   def testCCTFeedForwardLayerTraining(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -2025,7 +2026,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, p_c_val = sess.run([h, p_c])
+      actual_layer_output, p_c_val = self.evaluate([h, p_c])
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
@@ -2059,7 +2060,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(p_c_val, expected_p_c)
 
   def testCCTFeedForwardLayerInference(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -2076,7 +2077,7 @@ class LayersWithAttentionTest(test_utils.TestCase):
 
       h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output, p_c_val = sess.run([h, p_c])
+      actual_layer_output, p_c_val = self.evaluate([h, p_c])
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [

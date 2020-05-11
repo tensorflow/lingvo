@@ -107,12 +107,12 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
     """Test Convolution padding computation."""
     padding = tf.constant([padding], tf.float32)
     expected_padding = tf.constant([expected_padding], tf.float32)
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       conv_padding = conv_layers.ComputeConvOutputPadding(
           padding, window=3, stride=stride, padding_algorithm=padding_algorithm)
       self.evaluate(tf.global_variables_initializer())
       conv_padding = py_utils.Debug(conv_padding)
-      conv_padding = sess.run(conv_padding)
+      conv_padding = self.evaluate(conv_padding)
       tf.logging.info('expected_padding {expected_padding}')
       self.assertAllClose(expected_padding, conv_padding)
 
@@ -120,7 +120,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
   def testConv2DLayerStridedWithPaddingFProp(self, seq_len):
     """Check strided convs get the same values for different length dim."""
     # TODO(isaace): THIS TEST SHOWS THAT THERE IS A BUG IN THE CODE.
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       batch_size = 3
       expected_seq_len = 3
 
@@ -161,7 +161,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_padding = py_utils.Debug(out_padding)
 
       self.evaluate(tf.global_variables_initializer())
-      output, out_padding = sess.run([output, out_padding])
+      output, out_padding = self.evaluate([output, out_padding])
 
       self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
       self.assertAllClose([
@@ -189,7 +189,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
         raise ValueError('Test does not handle length {seq_len}')
 
   def testConv2DLayerWithPaddingFPropRandom(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
 
@@ -207,7 +207,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
       self.evaluate(tf.global_variables_initializer())
-      v1, v2 = sess.run([out_sum, out_sum_squared])
+      v1, v2 = self.evaluate([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-0.293671, 4.198602], [v1, v2])
 
@@ -215,7 +215,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
   def testCausalConv2DLayerStridedWithPaddingFProp(self, seq_len):
     """Check strided convs get the same values for different length dim."""
     # TODO(isaace): THIS TEST SHOWS THAT THERE IS A BUG WITH PADDING
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       batch_size = 5
       expected_seq_len = 3
 
@@ -252,7 +252,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_padding = py_utils.Debug(out_padding)
 
       self.evaluate(tf.global_variables_initializer())
-      output, out_padding = sess.run([output, out_padding])
+      output, out_padding = self.evaluate([output, out_padding])
 
       self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
       self.assertAllClose([
@@ -273,7 +273,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       ], output)
 
   def testCausalConv2DLayerWithPaddingFPropRandom(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
 
@@ -292,7 +292,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
       self.evaluate(tf.global_variables_initializer())
-      v1, v2 = sess.run([out_sum, out_sum_squared])
+      v1, v2 = self.evaluate([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-3.584711, 3.324082], [v1, v2])
 
@@ -306,7 +306,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       self.assertEqual(6, actual_output_channels)
 
   def testDepthwiseConv2DLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
 
@@ -325,12 +325,12 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
       self.evaluate(tf.global_variables_initializer())
-      v1, v2 = sess.run([out_sum, out_sum_squared])
+      v1, v2 = self.evaluate([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-1.455162, 6.813269], [v1, v2])
 
   def testCausalDepthwiseConv2DLayer(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
 
@@ -351,12 +351,12 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_sum = tf.reduce_sum(output)
       out_sum_squared = tf.reduce_sum(output * output)
       self.evaluate(tf.global_variables_initializer())
-      v1, v2 = sess.run([out_sum, out_sum_squared])
+      v1, v2 = self.evaluate([out_sum, out_sum_squared])
       tf.logging.info('actual = %f, %f', v1, v2)
       self.assertAllClose([-2.031689, 7.911201], [v1, v2])
 
   def testActivationLayer(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       p = conv_layers.ActivationLayer.Params()
       p.name = 'act'
       l = p.Instantiate()
@@ -365,7 +365,7 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       in_padding = tf.zeros([2, 4], dtype=tf.float32)
       out, out_padding = l.FProp(l.theta, inputs, in_padding)
       self.evaluate(tf.global_variables_initializer())
-      v1, v2 = sess.run([out, out_padding])
+      v1, v2 = self.evaluate([out, out_padding])
       print(v1, v2)
 
   def _testNormalizedDepthwiseConv2DHelper(self,
@@ -421,21 +421,21 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
   def testNormalizedDepthwiseConv2DLayerFProp(self):
     expected_output = [[0.91136134, 1.25781929, 1.76708317, 0.9021343],
                        [0.52296412, 0.7703352, 0.65711987, 0.23177178]]
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       output = self._testNormalizedDepthwiseConv2DHelper()
       output_sum = tf.squeeze(tf.reduce_sum(output, -1))
       self.evaluate(tf.global_variables_initializer())
-      output_sum_val = sess.run(output_sum)
+      output_sum_val = self.evaluate(output_sum)
     self.assertAllClose(expected_output, output_sum_val)
 
   def testCausalNormalizedDepthwiseConv2DLayerFProp(self):
     expected_output = [[0.00819603, 0.91136134, 1.25781929, 1.76708317],
                        [-0.07673456, 0.52296412, 0.7703352, 0.65711987]]
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       output = self._testNormalizedDepthwiseConv2DHelper(is_causal=True)
       output_sum = tf.squeeze(tf.reduce_sum(output, -1))
       self.evaluate(tf.global_variables_initializer())
-      output_sum_val = sess.run(output_sum)
+      output_sum_val = self.evaluate(output_sum)
     self.assertAllClose(expected_output, output_sum_val)
 
   def testNormalizedDepthwiseConv2DLayerBackProp(self):
@@ -476,7 +476,7 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
     param = conv_layers.GlobalPoolingLayer.Params().Set(
         name='test_layer', pooling_type=pooling_type)
     pooling_layer = param.Instantiate()
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       inputs = tf.convert_to_tensor(inputs, dtype=tf.float32)
       input_paddings = None if input_paddings is None else tf.convert_to_tensor(
           input_paddings, dtype=tf.float32)
@@ -485,9 +485,10 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       if input_paddings is None:
         self.assertIsNone(output_paddings)
-        output_val = sess.run(output)
+        output_val = self.evaluate(output)
       else:
-        output_val, output_paddings_val = sess.run([output, output_paddings])
+        output_val, output_paddings_val = self.evaluate(
+            [output, output_paddings])
 
     self.assertAllClose(expected_output, output_val)
     if input_paddings is not None:

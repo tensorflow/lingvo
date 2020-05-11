@@ -43,8 +43,8 @@ class WaymoOpenInputGeneratorTest(test_utils.TestCase):
     processor = preprocessor_p.Instantiate()
 
     features = processor.TransformFeatures(features)
-    with self.session() as sess:
-      actual_features = sess.run(features)
+    with self.session():
+      actual_features = self.evaluate(features)
       # one point dropped because it was in nlz
       self.assertEqual((num_points - 1, 3),
                        actual_features.lasers.points_xyz.shape)

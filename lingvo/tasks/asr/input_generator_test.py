@@ -95,10 +95,10 @@ class InputTest(test_utils.TestCase):
 
   def _TestAsrInput(self, params):
     p = params
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       inp = input_generator.AsrInput(p)
       batch = inp.GetPreprocessedInputBatch()
-      vals = sess.run(batch)
+      vals = self.evaluate(batch)
       shapes = vals.Transform(lambda x: x.shape)
       shapes.VLog(0, 'shapes: ')
       # sample_ids      (3, 1)

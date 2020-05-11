@@ -51,8 +51,8 @@ class SendrecvTest(test_utils.TestCase):
         with tf.device(recver):
           recv_val = ch.Recv()
 
-      with tf.Session(_Target(), graph=g) as sess:
-        _, val = sess.run([send_op, recv_val])
+      with tf.Session(_Target(), graph=g):
+        _, val = self.evaluate([send_op, recv_val])
 
       self.assertAllClose(to_send, val)
 
@@ -88,8 +88,8 @@ class SendrecvTest(test_utils.TestCase):
       g = tf.Graph()
       send_op, recv_val, sent_val = SendRecv(g, dtype)
 
-      with tf.Session(_Target(), graph=g) as sess:
-        _, val = sess.run([send_op, recv_val])
+      with tf.Session(_Target(), graph=g):
+        _, val = self.evaluate([send_op, recv_val])
 
       self.assertAllClose(sent_val, val)
 

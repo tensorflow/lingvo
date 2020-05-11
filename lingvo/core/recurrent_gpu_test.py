@@ -33,7 +33,7 @@ class RecurrentGpuTest(test_utils.TestCase):
       next_state.sum = state.sum + v
       return next_state, py_utils.NestedMap()
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
 
       theta = py_utils.NestedMap()
       theta.x = tf.constant([-1.0, 2.0])
@@ -45,14 +45,14 @@ class RecurrentGpuTest(test_utils.TestCase):
       # sum = -1 + 2 + 2
       ret = recurrent.Recurrent(theta, state, inputs, Sum)
 
-      acc, state = sess.run(ret)
+      acc, state = self.evaluate(ret)
       self.assertAllClose(acc.sum, [-1., 1., 3.])
       self.assertAllClose(state.sum, 3.)
 
       y = ret[1].sum
       dx, d_inputs = tf.gradients(ys=[y], xs=[theta.x, inputs.one_hot])
       tf.logging.info('d(inputs) = %s', d_inputs)
-      dx_val = sess.run(dx)
+      dx_val = self.evaluate(dx)
       self.assertAllClose(dx_val, [1, 2])
 
 

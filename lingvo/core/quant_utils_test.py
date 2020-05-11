@@ -135,16 +135,16 @@ class QuantizableLayerTest(test_utils.TestCase):
         fns.qtanh(6.0, qt='non_existing')  # Test that qt has precedence.
 
   def testLayerWithNoQDomain(self):
-    with self.session() as sess:
+    with self.session():
       p = SampleQuantizedProjectionLayer.Params()
-      self._testLayerHelper('testLayerWithNoQDomain', sess, p,
+      self._testLayerHelper('testLayerWithNoQDomain', p,
                             self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithIdentityQDomain(self):
-    with self.session() as sess:
+    with self.session():
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.QDomain.Params()
-      self._testLayerHelper('testLayerWithIdentityQDomain', sess, p,
+      self._testLayerHelper('testLayerWithIdentityQDomain', p,
                             self.NO_QDOMAIN_EXPECTED)
 
   def testLayerWithPassiveAsymQDomain(self):
@@ -160,15 +160,15 @@ class QuantizableLayerTest(test_utils.TestCase):
         [ 0.02352941, -0.1490196 , -0.09411764,  0.01568627]]]
     # pyformat: enable
 
-    with self.session() as sess:
+    with self.session():
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
       l = self._testLayerHelper(
-          'testLayerWithPassiveAsymQDomain', sess, p, expected=expected)
+          'testLayerWithPassiveAsymQDomain', p, expected=expected)
       init_minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
       print('Initial Minmax vars:', init_minmax_vars)
       # Record.
-      sess.run([l.PostTrainingStepUpdate(16)])
+      self.evaluate([l.PostTrainingStepUpdate(16)])
       minmax_vars = l.qdomain_default._qvars.Transform(lambda x: x.eval())
       print('Minmax vars:', minmax_vars)
 
@@ -180,10 +180,9 @@ class QuantizableLayerTest(test_utils.TestCase):
     p = SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = -1
-    with self.session() as sess:
+    with self.session():
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainTrainQuantDisabledInital',
-          sess,
           p,
           expected=self.NO_QDOMAIN_EXPECTED)
 
@@ -191,22 +190,20 @@ class QuantizableLayerTest(test_utils.TestCase):
     p = SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = -1
-    with self.session() as sess:
+    with self.session():
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainTrainQuantDisabledStep16',
-          sess,
           p,
           expected=self.NO_QDOMAIN_EXPECTED,
           global_step=16)
 
   def testLayerWithPassiveAsymQDomainEvalQuantDisabled(self):
-    with self.session() as sess, self.SetEval(True):
+    with self.session(), self.SetEval(True):
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
       p.qdomain.default.delay_start_steps = -1
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainEvalQuantDisabled',
-          sess,
           p,
           not_expected=self.NO_QDOMAIN_EXPECTED)
 
@@ -214,10 +211,9 @@ class QuantizableLayerTest(test_utils.TestCase):
     p = SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
-    with self.session() as sess:
+    with self.session():
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainTrainQuantDelayNotSatisfied',
-          sess,
           p,
           expected=self.NO_QDOMAIN_EXPECTED,
           global_step=3)
@@ -226,10 +222,9 @@ class QuantizableLayerTest(test_utils.TestCase):
     p = SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
-    with self.session() as sess:
+    with self.session():
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied',
-          sess,
           p,
           not_expected=self.NO_QDOMAIN_EXPECTED,
           global_step=8)
@@ -238,10 +233,9 @@ class QuantizableLayerTest(test_utils.TestCase):
     p = SampleQuantizedProjectionLayer.Params()
     p.qdomain.default = quant_utils.PassiveAsymQDomain.Params()
     p.qdomain.default.delay_start_steps = 8
-    with self.session() as sess:
+    with self.session():
       self._testLayerHelper(
           'testLayerWithPassiveAsymQDomainTrainQuantDelaySatisfied',
-          sess,
           p,
           not_expected=self.NO_QDOMAIN_EXPECTED,
           global_step=9)
@@ -259,7 +253,7 @@ class QuantizableLayerTest(test_utils.TestCase):
         [ 0.       , -0.125    , -0.0625   ,  0.       ]]]
     # pyformat: enable
 
-    with self.session() as sess:
+    with self.session():
       p = SampleQuantizedProjectionLayer.Params()
       p.qdomain.default = quant_utils.SymmetricScheduledClipQDomain.Params()
       p.qdomain.default.cc_schedule.Set(
@@ -269,14 +263,12 @@ class QuantizableLayerTest(test_utils.TestCase):
       )
       self._testLayerHelper(
           'testLayerWithSymmetricScheduledClipQDomain',
-          sess,
           p,
           expected=expected,
           global_step=16)
 
   def _testLayerHelper(self,
                        test_case,
-                       sess,
                        p,
                        expected=None,
                        not_expected=None,
@@ -297,7 +289,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     self.evaluate(tf.global_variables_initializer())
 
     if global_step >= 0:
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), global_step))
 
     output = output.eval()
     print('QuantizableLayerTest output', test_case, ':\n',
@@ -345,11 +337,11 @@ class ClippingCapScheduleTest(object):
     p.quant_start_step = 15
     p.start_cap = 6.0
     p.end_cap = 1.0
-    with self.session() as sess:
+    with self.session():
       cc_schedule = p.Instantiate()
       self.evaluate(tf.global_variables_initializer())
       # Move to fully quantized part of schedule
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
 
       @tf.Defun(tf.float32, tf.float32)
       def ExampleFunction8(x, cc_state):
@@ -395,7 +387,7 @@ class ClippingCapScheduleTest(object):
     p.quant_start_step = 15
     p.start_cap = 6.0
     p.end_cap = 1.0
-    with self.session() as sess:
+    with self.session():
       cc_schedule = p.Instantiate()
       self.evaluate(tf.global_variables_initializer())
       # Step 0: No clipping.
@@ -406,7 +398,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 5: Clipping active but not yet quantizing.
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 5))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-6.0, 5.953125))  # 6 * 127/128
@@ -415,7 +407,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 7: Middle of clipping range.
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 7))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 7))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0), (-4.0, 3.96875))  # 4 * 127/128
       self.assertAllClose(
@@ -423,7 +415,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 10: End of clipping range.
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 10))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 10))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-1.0, 0.9921875))  # 1 * 127/128
@@ -432,7 +424,7 @@ class ClippingCapScheduleTest(object):
           (-0.123456, 0.123456))  # Not Quantized.
 
       # Step 11: No more clipping but not yet quantizing.
-      sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 11))
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 11))
       self.assertAllClose(
           self._ClipExample(cc_schedule, 100.0),
           (-1.0, 0.9921875))  # 1 * 127/128
@@ -442,7 +434,7 @@ class ClippingCapScheduleTest(object):
 
       # Step 15-16: Quantizing at full clip.
       for step in (15, 16):
-        sess.run(tf.assign(py_utils.GetOrCreateGlobalStepVar(), step))
+        self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), step))
         self.assertAllClose(
             self._ClipExample(cc_schedule, 100.0),
             (-1.0, 0.9921875))  # 1 * 127/128

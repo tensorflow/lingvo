@@ -65,7 +65,7 @@ class ModelTest(test_utils.TestCase):
     p = self._Params()
     p.input = self._InputParams(for_training=False)
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       loss = mdl.eval_metrics['loss'][0]
@@ -74,7 +74,7 @@ class ModelTest(test_utils.TestCase):
       accuracy = mdl.eval_metrics['fraction_of_correct_next_step_preds'][0]
       self.evaluate(tf.global_variables_initializer())
 
-      loss, logp, logp_per_word, accuracy = sess.run(
+      loss, logp, logp_per_word, accuracy = self.evaluate(
           [loss, logp, logp_per_word, accuracy])
       test_utils.CompareToGoldenSingleFloat(self, 4.160992, loss)
       test_utils.CompareToGoldenSingleFloat(self, 4.160992, logp)
@@ -87,7 +87,7 @@ class ModelTest(test_utils.TestCase):
     tp = p.train
     tp.learning_rate = 3e-3
 
-    with self.session() as sess:
+    with self.session():
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
       mdl.BProp()
@@ -95,10 +95,10 @@ class ModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
 
       # Run some steps and we expect the loss goes down.
-      loss_val, _ = sess.run([loss, mdl.train_op])
+      loss_val, _ = self.evaluate([loss, mdl.train_op])
       self.assertGreater(loss_val, 4.0)
       for i in range(10):
-        loss_val, _ = sess.run([loss, mdl.train_op])
+        loss_val, _ = self.evaluate([loss, mdl.train_op])
         tf.logging.info('%d loss = %f', i, loss_val)
       self.assertLess(loss_val, 3.8)
 

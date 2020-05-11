@@ -237,7 +237,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
         decoder.MTDecoderV1, feed_att_context_to_softmax=True)
 
   def testBeamSearchDecode(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -248,11 +248,11 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       encoder_outputs, _ = self._Inputs(dtype=dtype)
       decode = dec.BeamSearchDecode(encoder_outputs)
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual(
         (src_time, src_batch * p.beam_search.num_hyps_per_beam),
@@ -281,7 +281,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
   def testBeamSearchDecodeTgtPrefix(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -292,10 +292,10 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       encoder_outputs, _ = self._Inputs(dtype=dtype, init_step_ids=True)
       decode = dec.BeamSearchDecode(encoder_outputs)
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
     self.assertTupleEqual((p.target_seq_len, num_hyps),
@@ -324,7 +324,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
   )
   def testBeamSearchDecodeBiased(self, bias, bias_only_if_consistent):
     dtype = tf.float32
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -342,11 +342,11 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       decode = dec.BeamSearchDecodeBiased(encoder_outputs)
 
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     num_hyps = src_batch * p.beam_search.num_hyps_per_beam
     self.assertTupleEqual((p.target_seq_len, num_hyps),
@@ -380,7 +380,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
   def testBeamSearchDecodeUseZeroAttenState(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -392,11 +392,11 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       encoder_outputs, _ = self._Inputs(dtype=dtype)
       decode = dec.BeamSearchDecode(encoder_outputs)
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual(
         (src_time, src_batch * p.beam_search.num_hyps_per_beam),
@@ -422,7 +422,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
     self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
 
   def testBeamSearchDecodeFeedingAttContext(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -434,10 +434,10 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
       encoder_outputs, _ = self._Inputs(dtype=dtype)
       decode = dec.BeamSearchDecode(encoder_outputs)
       # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-      # sess.run(decode).
+      # self.evaluate(decode).
       decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
       self.evaluate(tf.global_variables_initializer())
-      actual_decode_feeding_att_context = sess.run(decode)
+      actual_decode_feeding_att_context = self.evaluate(decode)
 
     self.assertTupleEqual(
         (src_time, src_batch * p.beam_search.num_hyps_per_beam),
@@ -469,7 +469,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
                         actual_decode_feeding_att_context.topk_scores)
 
   def testSampleTargetSequences(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess, self.SetEval(True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       src_batch = 2
       p = self._DecoderParams(dtype=dtype)
@@ -484,7 +484,7 @@ class DecoderTest(DecoderTestCaseBase, parameterized.TestCase):
           encoder_outputs,
           random_seed=tf.constant(1, dtype=tf.int32))
       self.evaluate(tf.global_variables_initializer())
-      actual_sample = sess.run(sample)
+      actual_sample = self.evaluate(sample)
 
     self.assertTupleEqual((src_batch, p.target_seq_len),
                           actual_sample.ids.shape)
@@ -714,7 +714,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
     return (encoder_outputs, tgts, num_hyps)
 
   def testDecoderFPropWithPacking(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         tf.random.set_seed(_TF_RANDOM_SEED)
         p = self._DecoderParams(per_word_avg_loss=True, dtype=dtype)
@@ -738,7 +738,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                                           encoder_outputs_packed,
                                           target_packed).metrics['loss']
         self.evaluate(tf.global_variables_initializer())
-        actual_loss, packed_loss = sess.run([loss, loss_packed])
+        actual_loss, packed_loss = self.evaluate([loss, loss_packed])
         self.assertAlmostEqual(
             np.float32(packed_loss), np.float32(actual_loss), delta=1e-4)
 
@@ -755,7 +755,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       CompareToGoldenSingleFloat(self, 19.725393, actual_loss)
 
   def test_ExpandToNumHyps(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
@@ -764,11 +764,11 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       num_hyps = 2
       expected = tf.constant([3, 2, 1, 3, 2, 1])
       expanded = dec._ExpandToNumHyps(src_enc_len, num_hyps)
-      expanded_v, expected_v = sess.run([expanded, expected])
+      expanded_v, expected_v = self.evaluate([expanded, expected])
       self.assertAllEqual(expanded_v, expected_v)
 
   def test_RemoveEOSProbs(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(is_transparent=True, dtype=dtype)
       dec = decoder.TransformerDecoder(p)
@@ -780,13 +780,13 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                            [[0.2, 0.3, 0.5, 0.0, 0.0]],
                            [[0.0, 0.0, 0.0, 0.0, 1.0]]])
       new_probs = dec._RemoveEOSProbs(p, probs, src_enc_len)
-      new_probs_v = sess.run([new_probs])
+      new_probs_v = self.evaluate([new_probs])
 
       expected_probs = tf.constant([[[0.25, 0.25, 0.25, 0.25, 0.0]],
                                     [[0.4, 0.6, 0.0, 0.0, 0.0]],
                                     [[0.0, 0.0, 0.0, 0.0, 0.0]]])
 
-      new_probs_v, expected_probs_v = sess.run([new_probs, expected_probs])
+      new_probs_v, expected_probs_v = self.evaluate([new_probs, expected_probs])
 
       self.assertAllClose(expected_probs_v, new_probs_v)
 
@@ -855,7 +855,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
 
     self.evaluate(tf.global_variables_initializer())
 
-    l_out1_v, l_out2_v, attention_map_fprop_v, attention_map_bs_v, src_enc_len_v = sess.run(
+    l_out1_v, l_out2_v, attention_map_fprop_v, attention_map_bs_v, src_enc_len_v = self.evaluate(
         [l_out1, l_out2, attention_map_fprop, attention_map_bs, src_enc_len])
 
     # Ensure that FProp and BeamSearch output are the same.
@@ -920,7 +920,7 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 
   def testDecoderFPropSplitBatch(self, dtype=tf.float32):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._DecoderParams(dtype=dtype)
       dec = decoder.TransformerDecoder(p)
@@ -956,7 +956,8 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
                                        targets2).metrics['loss']
 
       self.evaluate(tf.global_variables_initializer())
-      actual_loss, actual_loss1, actual_loss2 = sess.run([loss, loss1, loss2])
+      actual_loss, actual_loss1, actual_loss2 = self.evaluate(
+          [loss, loss1, loss2])
       print('actual loss = ', actual_loss)
       print('actual loss1 = ', actual_loss1)
       print('actual loss2 = ', actual_loss2)
@@ -980,12 +981,12 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         dtype=dtype, has_task_ids=has_task_ids, init_step_ids=init_step_ids)
     decode = dec.BeamSearchDecode(encoder_outputs)
     # topk_decoded is None in MT decoder, set it to a fake tensor to pass
-    # sess.run(decode).
+    # self.evaluate(decode).
     decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual(
         (src_time, src_batch * p.beam_search.num_hyps_per_beam),
@@ -1090,9 +1091,9 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
         dtype=dtype, has_task_ids=has_task_ids, init_step_ids=init_step_ids)
     decode = dec.SampleSequenceDecode(encoder_outputs)
 
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       self.evaluate(tf.global_variables_initializer())
-      actual_decode = sess.run(decode)
+      actual_decode = self.evaluate(decode)
 
     self.assertTupleEqual((src_batch, p.beam_search.num_hyps_per_beam),
                           actual_decode.topk_hyps.shape)

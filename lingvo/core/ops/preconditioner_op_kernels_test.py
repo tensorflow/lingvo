@@ -49,7 +49,7 @@ class PreconditionerTest(tf.test.TestCase):
 
   def testPreconditioning(self):
     preconditioner_compute_graphdef = self.inverse_pth_root_graph()
-    with tf.Session() as sess:
+    with tf.Session():
       global_step = tf.train.get_or_create_global_step()
       self.evaluate(tf.global_variables_initializer())
       rand_input_1_t = np.random.rand(4, 4)
@@ -62,7 +62,7 @@ class PreconditionerTest(tf.test.TestCase):
            tf.shape(symmetric_input_2_t)],
           keys=['a', 'b'],
           preconditioner_compute_graphdef=preconditioner_compute_graphdef)
-      self.assertFalse(any(sess.run(statuses)))
+      self.assertFalse(any(self.evaluate(statuses)))
       preconditioner = ops.compute_preconditioners(
           [symmetric_input_1_t, symmetric_input_2_t],
           exponents,
@@ -73,12 +73,12 @@ class PreconditionerTest(tf.test.TestCase):
       self.assertAllClose(outputs[0].eval(), np.zeros((4, 4)), atol=1e-4)
       self.assertAllClose(outputs[1].eval(), np.zeros((4, 4)), atol=1e-4)
       preconditioner.run()
-      self.assertTrue(any(sess.run(statuses)))
+      self.assertTrue(any(self.evaluate(statuses)))
       expected_output_1_t = self.inverse_pth_root(symmetric_input_1_t,
                                                   exponents[0])
       expected_output_2_t = self.inverse_pth_root(symmetric_input_2_t,
                                                   exponents[1])
-      outputs_np = sess.run(outputs)
+      outputs_np = self.evaluate(outputs)
       self.assertAllClose(
           outputs_np[0], expected_output_1_t[0].eval(), atol=1e-1)
       self.assertAllClose(

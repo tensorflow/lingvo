@@ -26,8 +26,8 @@ import six
 class TokenizerOpsTest(test_utils.TestCase):
 
   def testLabelsToTokenId(self):
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.ascii_to_token_id([
               'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
               '<noise> early', '1:00 AM', '<text_only>morning'
@@ -57,8 +57,8 @@ class TokenizerOpsTest(test_utils.TestCase):
          [0, 0, 0, 0, 0, 0, 0, 0, 1, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1]])
 
   def testLabelsToTokenIdAppendEOSFalse(self):
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.ascii_to_token_id([
               'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
               '<noise> early', '1:00 AM', '100%'
@@ -85,8 +85,8 @@ class TokenizerOpsTest(test_utils.TestCase):
          [0, 0, 0, 0, 0, 0, 0, 1, 1, 1], [0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
 
   def testLabelsToTokenIdNoPadToMaxlen(self):
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.ascii_to_token_id([
               'hElLo', 'sIr<epsilon>', 'What a <unk> day', 'america\'s',
               '<noise> early', '1:00 AM', '<text_only>morning'
@@ -123,7 +123,7 @@ class TokenizerOpsTest(test_utils.TestCase):
     ])
 
   def testIdToToken(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       token_ids = [[12, 9, 16, 16, 19, 2, 2, 2, 2,
                     2], [23, 13, 22, 73, 2, 2, 2, 2, 2,
                          2], [27, 12, 5, 24, 3, 5, 3, 0, 3,
@@ -132,7 +132,7 @@ class TokenizerOpsTest(test_utils.TestCase):
                     2], [40, 34, 39, 39, 3, 5, 17, 2, 2,
                          2], [52, 2, 2, 2, 2, 2, 2, 2, 2, 2]]
       seq_lens = [5, 4, 9, 9, 7, 7, 1]
-      tokens = sess.run(ops.id_to_ascii(token_ids, seq_lens))
+      tokens = self.evaluate(ops.id_to_ascii(token_ids, seq_lens))
 
     self.assertEqual(tokens.tolist(), [
         b'hello', b'sir<epsilon>', b'what a <unk> ', b"america's",
@@ -141,8 +141,8 @@ class TokenizerOpsTest(test_utils.TestCase):
 
   def testStrToVocabToken(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens([
               'a b c d e',
               '<epsilon> <S> </S> <UNK>',
@@ -166,8 +166,8 @@ class TokenizerOpsTest(test_utils.TestCase):
 
   def testStrToVocabTokenAppendEOSFalse(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens([
               'a b c d e',
               '<epsilon> <S> </S> <UNK>',
@@ -191,8 +191,8 @@ class TokenizerOpsTest(test_utils.TestCase):
 
   def testStrToVocabTokenTruncates(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens(['a b c d e ' * 1000],
                                   append_eos=True,
                                   maxlen=5,
@@ -203,8 +203,8 @@ class TokenizerOpsTest(test_utils.TestCase):
 
   def testStrToVocabTokenNoPadToMaxlen(self):
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens([
               'a b c d e',
               '<epsilon> <S> </S> <UNK>',
@@ -227,8 +227,8 @@ class TokenizerOpsTest(test_utils.TestCase):
   def testStrToVocabTokenCustomDelimiter(self):
     custom_delimiter = '_'
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens([custom_delimiter.join('abcde')],
                                   append_eos=True,
                                   maxlen=8,
@@ -241,8 +241,8 @@ class TokenizerOpsTest(test_utils.TestCase):
   def testStrToVocabTokenSplitToCharacters(self):
     custom_delimiter = ''
     vocab = test_helper.test_src_dir_path('core/ops/testdata/test_vocab.txt')
-    with self.session(use_gpu=False) as sess:
-      token_ids, target_ids, paddings = sess.run(
+    with self.session(use_gpu=False):
+      token_ids, target_ids, paddings = self.evaluate(
           ops.str_to_vocab_tokens(['abcde'],
                                   append_eos=True,
                                   maxlen=8,

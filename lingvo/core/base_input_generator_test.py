@@ -69,9 +69,9 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.randomize_order = False
     p.parallel_readers = 1
     ig = p.Instantiate()
-    with self.session(graph=tf.get_default_graph()) as sess:
+    with self.session(graph=tf.get_default_graph()):
       inputs = ig.GetPreprocessedInputBatch()
-      eval_inputs = sess.run(inputs)
+      eval_inputs = self.evaluate(inputs)
       input_shapes = eval_inputs.Transform(lambda t: t.shape)
       self.assertEqual(input_shapes.audio, (2, 48000))
 
@@ -83,9 +83,9 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.randomize_order = False
     p.parallel_readers = 1
     ig = p.Instantiate()
-    with self.session(graph=tf.get_default_graph()) as sess:
+    with self.session(graph=tf.get_default_graph()):
       inputs = ig.GetPreprocessedInputBatch()
-      eval_inputs = sess.run(inputs)
+      eval_inputs = self.evaluate(inputs)
       input_shapes = eval_inputs.Transform(lambda t: t.shape)
       self.assertEqual(input_shapes.audio, (200, 48000))
 
@@ -99,13 +99,13 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
     p.randomize_order = False
     p.parallel_readers = 1
     ig = p.Instantiate()
-    with self.session(graph=tf.get_default_graph()) as sess:
+    with self.session(graph=tf.get_default_graph()):
       inputs = ig.GetPreprocessedInputBatch()
       for _ in range(p.num_epochs):
-        eval_inputs = sess.run(inputs)
+        eval_inputs = self.evaluate(inputs)
         self.assertEqual(eval_inputs.audio.shape, (p.batch_size, 48000))
       with self.assertRaisesRegex(tf.errors.OutOfRangeError, 'End of sequence'):
-        sess.run(inputs)
+        self.evaluate(inputs)
 
   def testRespectsInfeedBatchSize(self):
     p = ToyInputGenerator.Params()

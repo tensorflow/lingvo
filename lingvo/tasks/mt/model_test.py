@@ -188,7 +188,7 @@ class TransformerModelTest(test_utils.TestCase):
       self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
 
   def testFProp(self, dtype=tf.float32, fprop_dtype=tf.float32):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.dtype = dtype
@@ -202,7 +202,7 @@ class TransformerModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
 
       print('actual vals = %s' % np.array_repr(np.array(vals)))
       self.assertAllClose(vals, [[233.57518, 10.381119], [236.10052, 10.378047],
@@ -210,7 +210,7 @@ class TransformerModelTest(test_utils.TestCase):
                                  [159.5997, 10.380468]])
 
   def testFPropEvalMode(self):
-    with self.session() as sess, self.SetEval(True):
+    with self.session(), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -220,7 +220,7 @@ class TransformerModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
       print('actual vals = ', vals)
       self.assertAllClose(vals, [
           [233.57518, 10.381119],
@@ -231,7 +231,7 @@ class TransformerModelTest(test_utils.TestCase):
       ])
 
   def testBProp(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -243,7 +243,7 @@ class TransformerModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp, mdl.train_op))[:2]]
+        vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
       print('BProp actual vals = ', vals)
       expected_vals = [
           [233.57518, 10.381119],
@@ -278,7 +278,7 @@ class TransformerModelTest(test_utils.TestCase):
         print(l)
       return p
 
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
@@ -293,11 +293,11 @@ class TransformerModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
 
       for _ in range(2):
-        sess.run(mdl.train_op)
+        self.evaluate(mdl.train_op)
 
-      expected = sess.run(mdl.dec.softmax.vars['weight_0'])
+      expected = self.evaluate(mdl.dec.softmax.vars['weight_0'])
 
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       p.input = TestInputGenerator.Params()
@@ -309,16 +309,16 @@ class TransformerModelTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
 
-      sess.run(mdl.train_op)
+      self.evaluate(mdl.train_op)
 
-      actual = sess.run(mdl.dec.softmax.vars['weight_0'])
+      actual = self.evaluate(mdl.dec.softmax.vars['weight_0'])
 
     self.assertAllClose(expected, actual, rtol=1e-2, atol=1e-2)
 
   def testBatchSplit(self):
 
     def Run(num_splits):
-      with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      with self.session(use_gpu=False, graph=tf.Graph()):
         tf.random.set_seed(93820981)
         p = self._testParams()
         p.input.bucket_batch_limit = [
@@ -328,14 +328,14 @@ class TransformerModelTest(test_utils.TestCase):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
         self.evaluate(tf.global_variables_initializer())
-        return sess.run(metrics['loss'])
+        return self.evaluate(metrics['loss'])
 
     res1, res2 = Run(1), Run(2)
     self.assertAllClose(res1[0], res2[0])
     self.assertAllEqual(res1[1], res2[1])
 
   def testBatchSizeInInputGenerator(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       with cluster_factory.ForTestingWorker(
@@ -344,18 +344,18 @@ class TransformerModelTest(test_utils.TestCase):
         mdl.FPropDefaultTheta()
         loss = mdl.loss
         self.evaluate(tf.global_variables_initializer())
-        _ = sess.run(loss)
+        _ = self.evaluate(loss)
         self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
   def testDecode(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
       self.evaluate(tf.global_variables_initializer())
-      dec_out = sess.run(dec_out_dict)
+      dec_out = self.evaluate(dec_out_dict)
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
       self.assertNear(0.0, metrics_dict['corpus_bleu'].value, 1.0e-5)
@@ -436,7 +436,7 @@ class RNMTModelTest(test_utils.TestCase):
       self.assertEqual(len(tf.trainable_variables()), len(flatten_vars))
 
   def testFProp(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -446,7 +446,7 @@ class RNMTModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
       self.assertAllClose(vals, [
           [233.403564, 10.373495],
           [235.996948, 10.373494],
@@ -456,7 +456,7 @@ class RNMTModelTest(test_utils.TestCase):
       ])
 
   def testFPropEvalMode(self):
-    with self.session() as sess, self.SetEval(True):
+    with self.session(), self.SetEval(True):
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -466,7 +466,7 @@ class RNMTModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp))]
+        vals += [self.evaluate((loss, logp))]
       self.assertAllClose(vals, [
           [233.403564, 10.373495],
           [235.996948, 10.373494],
@@ -476,7 +476,7 @@ class RNMTModelTest(test_utils.TestCase):
       ])
 
   def testBProp(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       mdl = p.Instantiate()
@@ -488,7 +488,7 @@ class RNMTModelTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       vals = []
       for _ in range(5):
-        vals += [sess.run((loss, logp, mdl.train_op))[:2]]
+        vals += [self.evaluate((loss, logp, mdl.train_op))[:2]]
       expected_vals = [
           [233.403564, 10.373495],
           [219.442184, 9.645809],
@@ -499,14 +499,14 @@ class RNMTModelTest(test_utils.TestCase):
       self.assertAllClose(vals, expected_vals, atol=1e-3)
 
   def testDecode(self):
-    with self.session(use_gpu=False) as sess, self.SetEval(True):
+    with self.session(use_gpu=False), self.SetEval(True):
       tf.random.set_seed(93820985)
       p = self._testParams()
       mdl = p.Instantiate()
       input_batch = mdl.input_generator.GetPreprocessedInputBatch()
       dec_out_dict = mdl.Decode(input_batch)
       self.evaluate(tf.global_variables_initializer())
-      dec_out = sess.run(dec_out_dict)
+      dec_out = self.evaluate(dec_out_dict)
       metrics_dict = mdl.CreateDecoderMetrics()
       key_value_pairs = mdl.PostProcessDecodeOut(dec_out, metrics_dict)
       self.assertNear(0.0, metrics_dict['corpus_bleu'].value, 1.0e-5)
@@ -517,7 +517,7 @@ class RNMTModelTest(test_utils.TestCase):
   def testBatchSplit(self):
 
     def Run(num_splits):
-      with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+      with self.session(use_gpu=False, graph=tf.Graph()):
         tf.random.set_seed(93820981)
         p = self._testParams()
         p.input.bucket_batch_limit = [
@@ -527,14 +527,14 @@ class RNMTModelTest(test_utils.TestCase):
           mdl = p.Instantiate()
           metrics = mdl.FPropDefaultTheta()[0]
         self.evaluate(tf.global_variables_initializer())
-        return sess.run(metrics['loss'])
+        return self.evaluate(metrics['loss'])
 
     res1, res2 = Run(1), Run(2)
     self.assertAllClose(res1[0], res2[0])
     self.assertAllEqual(res1[1], res2[1])
 
   def testBatchSizeInInputGenerator(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       p = self._testParams()
       cluster_params = cluster_factory.Cluster.Params()
@@ -550,7 +550,7 @@ class RNMTModelTest(test_utils.TestCase):
         mdl.FPropDefaultTheta()
         loss = mdl.loss
         self.evaluate(tf.global_variables_initializer())
-        _ = sess.run(loss)
+        _ = self.evaluate(loss)
         self.assertEqual(mdl.input_generator.infeed_bucket_batch_limit, [40])
 
 
@@ -588,7 +588,7 @@ class InsertionModelTest(test_utils.TestCase):
     return p
 
   def testSampleCanvasAndTargets(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
 
       x = np.asarray([[10, 11, 12, 13, 14, 15, 2], [10, 11, 12, 13, 14, 15, 2],
@@ -604,7 +604,7 @@ class InsertionModelTest(test_utils.TestCase):
       descriptor = mdl._SampleCanvasAndTargets(
           tf.convert_to_tensor(x), tf.convert_to_tensor(x_paddings))
 
-      canvas, canvas_paddings, target_indices, target_weights = sess.run([
+      canvas, canvas_paddings, target_indices, target_weights = self.evaluate([
           descriptor.canvas, descriptor.canvas_paddings,
           descriptor.target_indices, descriptor.target_weights
       ])
@@ -631,7 +631,7 @@ class InsertionModelTest(test_utils.TestCase):
       self.assertAllEqual(target_weights, target_weights_gold)
 
   def testCreateCanvasAndTargets(self):
-    with self.session() as sess:
+    with self.session():
       tf.random.set_seed(_TF_RANDOM_SEED)
       batch = py_utils.NestedMap(
           src=py_utils.NestedMap(
@@ -656,7 +656,7 @@ class InsertionModelTest(test_utils.TestCase):
 
       descriptor = mdl._CreateCanvasAndTargets(batch)
 
-      canvas, canvas_paddings, target_indices, target_weights = sess.run([
+      canvas, canvas_paddings, target_indices, target_weights = self.evaluate([
           descriptor.canvas, descriptor.canvas_paddings,
           descriptor.target_indices, descriptor.target_weights
       ])
@@ -694,13 +694,13 @@ class InsertionModelTest(test_utils.TestCase):
 
   def testFPropGraph(self):
     """Test the construction of the fprop graph, then fprop the graph."""
-    with self.session() as sess:
+    with self.session():
       p = self._testParams()
       mdl = p.Instantiate()
       mdl.FPropDefaultTheta()
 
       self.evaluate(tf.global_variables_initializer())
-      sess.run(mdl.loss)
+      self.evaluate(mdl.loss)
 
 
 if __name__ == '__main__':

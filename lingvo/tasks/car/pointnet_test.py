@@ -39,9 +39,9 @@ class PointNetTest(test_utils.TestCase, parameterized.TestCase):
                                   maxval=16,
                                   dtype=tf.int32))
       result = net.FPropDefaultTheta(input_data)
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      np_result = sess.run(result)
+      np_result = self.evaluate(result)
     self.assertEqual(np_result.shape, expected_shape)
 
   @parameterized.parameters((128, 3), (128, 9), (256, 3))

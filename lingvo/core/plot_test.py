@@ -249,7 +249,7 @@ class MatplotlibFigureSummaryTest(test_utils.TestCase):
     self.assertEqual(len(summary.value), 1)
 
   def testAddMultiCurveSubplot(self):
-    with self.session(graph=tf.Graph(), use_gpu=False) as sess:
+    with self.session(graph=tf.Graph(), use_gpu=False):
       fig = plot.MatplotlibFigureSummary('XXX')
       batch_size = 2
       tensor = tf.ones([batch_size, 3])
@@ -261,7 +261,7 @@ class MatplotlibFigureSummaryTest(test_utils.TestCase):
           xlabels=tf.constant(['a', 'b']),
           title='Title',
           ylabel='Ylabel')
-      summary_str = sess.run(fig.Finalize())
+      summary_str = self.evaluate(fig.Finalize())
 
     summary = tf.Summary.FromString(summary_str)
     self.assertEqual(len(summary.value), batch_size)

@@ -26,7 +26,7 @@ from six.moves import range
 class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 5
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -96,12 +96,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterDynamicSizeTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 3
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -152,12 +152,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterDynamicMultiplicityTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
@@ -222,12 +222,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[0., 0.], [0., 0.]], [[1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterDynamicSizeAndMultiplicityTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
@@ -294,12 +294,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[0., 0.], [0., 0.]], [[1., 1.], [1., 1.]],
                                    [[1., 1.], [1., 1.]], [[1., 1.], [1., 1.]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWithFrequencyMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
@@ -331,12 +331,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace,bad-continuation
       # pyformat: enable
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWarpMatrixConstructor(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (4, 10))
       origin = tf.cast([2, 4, 4, 5], dtype=tf.float32)
       destination = tf.cast([3, 2, 6, 8], dtype=tf.float32)
@@ -365,12 +365,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
           choose_range=choose_range,
           dtype=tf.float32)
       outputs = tf.einsum('bij,bj->bi', warp_matrix, inputs)
-      actual_layer_output = sess.run(outputs)
+      actual_layer_output = self.evaluate(outputs)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWithTimeWarping(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
@@ -404,12 +404,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace,bad-continuation
       # pyformat: enable
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWithDynamicTimeWarping(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
@@ -443,12 +443,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace,bad-continuation
       # pyformat: enable
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterUnstacking(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
@@ -481,12 +481,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace,bad-continuation
       # pyformat: enable
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWithPerDomainPolicyFreqMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([6, 5, 4, 2], dtype=tf.float32)
       input_domain_ids = tf.constant(
@@ -532,12 +532,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[1., 1.], [0., 0.], [0., 0.], [1., 1.]]]])
       h, _ = specaug_layer.FPropDefaultTheta(
           inputs, paddings, domain_ids=input_domain_ids)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterNoisify(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -640,12 +640,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[1.00000000, 1.00000000],
                                     [1.00000000, 1.00000000]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterGaussianNoisify(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -748,12 +748,12 @@ class SpectrumAugmenterTest(test_utils.TestCase):
                                    [[1.00000000, 1.00000000],
                                     [1.00000000, 1.00000000]]]])
       h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
-      actual_layer_output = sess.run(h)
+      actual_layer_output = self.evaluate(h)
       print(np.array_repr(actual_layer_output))
       self.assertAllClose(actual_layer_output, expected_output)
 
   def testSpectrumAugmenterWithStatelessRandomOps(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       batch_size = 5
       inputs1 = tf.random.uniform(
           shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
@@ -777,7 +777,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       specaug_layer = p.Instantiate()
       h1, _ = specaug_layer.FPropDefaultTheta(inputs1, paddings)
       h2, _ = specaug_layer.FPropDefaultTheta(inputs2, paddings)
-      actual_layer_output1, actual_layer_output2 = sess.run([h1, h2])
+      actual_layer_output1, actual_layer_output2 = self.evaluate([h1, h2])
       self.assertAllEqual(
           np.shape(actual_layer_output1), np.array([5, 20, 2, 2]))
       self.assertNotAllEqual(actual_layer_output1, actual_layer_output2)

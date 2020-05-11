@@ -29,7 +29,7 @@ from six.moves import zip
 class BuilderLayerTest(test_utils.TestCase):
 
   def testFirstNLayerFProp(self):
-    with self.session() as sess:
+    with self.session():
       params = layers.FirstNLayer.Params()
       params.name = 'fn'
       params.n = 2
@@ -39,17 +39,17 @@ class BuilderLayerTest(test_utils.TestCase):
       b = tf.constant(2)
       c = tf.constant(3)
 
-      fn_out = sess.run(fn_layer.FPropDefaultTheta(a, b, c))
+      fn_out = self.evaluate(fn_layer.FPropDefaultTheta(a, b, c))
 
       self.assertEqual((1, 2), fn_out)
 
   def testArgIndexLayerFProp(self):
-    with self.session() as sess:
+    with self.session():
       params = layers.ArgIndexLayer.Params().Set(name='argidx', idx=[1, 3])
       argidx_layer = layers.ArgIndexLayer(params)
       args = [tf.constant(i) for i in range(5)]
 
-      argidx_out = sess.run(argidx_layer.FPropDefaultTheta(*args))
+      argidx_out = self.evaluate(argidx_layer.FPropDefaultTheta(*args))
       self.assertEqual((1, 3), argidx_out)
 
   def testSequentialLayer(self):
@@ -74,9 +74,9 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     act = x_val
     # relu(act \dot w + b)
@@ -96,9 +96,9 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
       self.assertIsInstance(y, tf.Tensor)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val = sess.run([x, y])
+      x_val, y_val = self.evaluate([x, y])
       self.assertAllEqual(x_val, y_val)
 
   def testEmptySequentialLayerFPropMeta(self):
@@ -136,9 +136,9 @@ class BuilderLayerTest(test_utils.TestCase):
       y = l.FPropDefaultTheta(x)
       l.vars.Transform(lambda x: x.shape).VLog(0, 'vars: ')
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     act = x_val
     # relu(act \dot w + b)
@@ -172,9 +172,9 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[2, 32])
       y = l.FPropDefaultTheta(x)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     out = []
     act = x_val
@@ -220,9 +220,9 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[2, 4, 32])
       y = l.FPropDefaultTheta(x)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     out = []
     act = x_val
@@ -270,9 +270,9 @@ class BuilderLayerTest(test_utils.TestCase):
       # Ensures the 2nd return value (None) are handled properly.
       self.assertEqual(None, y1)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      y_sum_val = sess.run(y_sum)
+      y_sum_val = self.evaluate(y_sum)
 
     self.assertEqual(y_sum_val, 0.)
 
@@ -286,9 +286,9 @@ class BuilderLayerTest(test_utils.TestCase):
       x0, x1 = [tf.random.normal(shape=[2, 3, 5])] * 2
       y0, y1 = l.FPropDefaultTheta(x0, x1)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      vx0, vx1, vy0, vy1 = sess.run([x0, x1, y0, y1])
+      vx0, vx1, vy0, vy1 = self.evaluate([x0, x1, y0, y1])
 
     self.assertAllClose(np.max(vx0, 1), vy0)
     self.assertAllClose(np.max(vx1, 1), vy1)
@@ -308,9 +308,9 @@ class BuilderLayerTest(test_utils.TestCase):
         xs += [x]
         ys += [y]
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      xs_val, ys_val, w_val = sess.run([xs, ys, l.vars])
+      xs_val, ys_val, w_val = self.evaluate([xs, ys, l.vars])
 
     self.assertEqual(w_val.w.shape, (10, 5))
     for (xv, yv) in zip(xs_val, ys_val):
@@ -325,9 +325,9 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[2, 10])
       y = l.FPropDefaultTheta(x)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w_val = sess.run([x, y, l.vars])
+      x_val, y_val, w_val = self.evaluate([x, y, l.vars])
 
     self.assertEqual(w_val.b.shape, (10,))
     self.assertAllClose(x_val + w_val.b, y_val)
@@ -396,15 +396,15 @@ class BuilderLayerTest(test_utils.TestCase):
           py_utils.Transform(lambda t: t.shape.as_list(), y),
           py_utils.Transform(lambda t: t.ToTensorShape().as_list(), y_shape))
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      y_val = sess.run(y)
+      y_val = self.evaluate(y)
       print(y_val)
       self.assertEqual(py_utils.NestedMap(c=2.0, d=4.0, e=6.0, f=-2.0), y_val)
 
   def testSoftCondLayer(self):
     num_experts = 100
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(24332)
       p = layers.SoftCondLayer.Params().Set(
           name='soft_cond',
@@ -415,7 +415,7 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[1, 2, 2])
       y = l.FPropDefaultTheta(x)
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, vars_val = sess.run([x, y, l.vars])
+      x_val, y_val, vars_val = self.evaluate([x, y, l.vars])
 
       p_nz = layers.SoftCondLayer.Params().Set(
           name='soft_cond_nonzeros',
@@ -427,7 +427,7 @@ class BuilderLayerTest(test_utils.TestCase):
       x_nz = tf.random.normal(shape=[1, 2, 2])
       y_nz = l_nz.FPropDefaultTheta(x_nz)
       self.evaluate(tf.global_variables_initializer())
-      x_nz_val, y_nz_val, vars_nz_val = sess.run([x_nz, y_nz, l_nz.vars])
+      x_nz_val, y_nz_val, vars_nz_val = self.evaluate([x_nz, y_nz, l_nz.vars])
 
     np_val = x_val[0]
     np_nz_val = x_nz_val[0]
@@ -451,7 +451,7 @@ class BuilderLayerTest(test_utils.TestCase):
 
   def testRepeatLayer(self):
     repeat = 100
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(24332)
       p = layers.RepeatLayer.Params().Set(
           name='recurrent',
@@ -461,7 +461,7 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[2, 2])
       y = l.FPropDefaultTheta(x)
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     np_val = x_val
 
@@ -484,7 +484,7 @@ class BuilderLayerTest(test_utils.TestCase):
             layers.LinearLayer.Params().Set(
                 name='ln2', input_dims=4, output_dims=2)
         ])
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(24332)
       p = layers.ParallelRepeatLayer.Params().Set(
           name='moe', repeat=repeat, body=body_p)
@@ -492,7 +492,7 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.random.normal(shape=[repeat, 2, 2])
       y = l.FPropDefaultTheta(x)
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val, w = sess.run([x, y, l.vars])
+      x_val, y_val, w = self.evaluate([x, y, l.vars])
 
     np_val = []
 
@@ -506,7 +506,7 @@ class BuilderLayerTest(test_utils.TestCase):
     self.assertAllClose(np_val, y_val)
 
   def testRematerializationLayer(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(24332)
 
       def MulSumFnMeta(x):
@@ -534,7 +534,7 @@ class BuilderLayerTest(test_utils.TestCase):
       y = tf.constant(2.0)
       z = l.FProp(l.theta, x, y)
       self.evaluate(tf.global_variables_initializer())
-      z_val = sess.run(z)
+      z_val = self.evaluate(z)
       print(z_val)
       self.assertAllClose(6.0, z_val)
 
@@ -546,9 +546,9 @@ class BuilderLayerTest(test_utils.TestCase):
       x = tf.constant(1.0)
       y = l.FPropDefaultTheta(x)
 
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      x_val, y_val = sess.run([x, y])
+      x_val, y_val = self.evaluate([x, y])
     self.assertEqual(x_val, y_val)
 
 

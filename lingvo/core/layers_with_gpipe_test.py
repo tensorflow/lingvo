@@ -106,7 +106,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       self.assertEqual([5, 2, 2], softmax_outputs.shape)
 
   def testTransformerLayerExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       depth = 4
       np.random.seed(6348575)
       p = GPipeTransformerLayer.Params()
@@ -143,7 +143,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       h2 = tf.stack(h2)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, h2_v = sess.run([h1, h2])
+      h1_v, h2_v = self.evaluate([h1, h2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(out_src_task, input_tasks)
       self.assertAllClose(out_tgt_task, tgt_tasks)
@@ -159,7 +159,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
     _ = GPipeEvolvedTransformerEncoderLayer(p)
 
   def testEvolvedTransformerEncoderLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = GPipeEvolvedTransformerEncoderLayer.Params()
@@ -177,7 +177,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       h = output[0]
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run([h])[0]
+      actual_layer_output = self.evaluate([h])[0]
       tf.logging.info(np.array_repr(actual_layer_output))
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -207,7 +207,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
     _ = GPipeEvolvedTransformerDecoderLayer(p)
 
   def testEvolvedTransformerDecoderLayerFProp(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = GPipeEvolvedTransformerDecoderLayer.Params()
@@ -229,7 +229,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       h = output[0]
 
       self.evaluate(tf.global_variables_initializer())
-      actual_layer_output = sess.run([h])[0]
+      actual_layer_output = self.evaluate([h])[0]
       tf.logging.info(np.array_repr(actual_layer_output))
       # pylint: disable=bad-whitespace
       # pyformat: disable
@@ -253,7 +253,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       self.assertAllClose(expected_layer_output, actual_layer_output)
 
   def testEvolvedTransformerDecoderLayerExtendStep(self):
-    with self.session(use_gpu=True) as sess:
+    with self.session(use_gpu=True):
       np.random.seed(6348575)
       depth = 4
       p = GPipeEvolvedTransformerDecoderLayer.Params()
@@ -298,7 +298,7 @@ class GPipeTransformerLayersTest(test_utils.TestCase):
       h2 = tf.stack(h2)
 
       self.evaluate(tf.global_variables_initializer())
-      h1_v, h2_v = sess.run([h1, h2])
+      h1_v, h2_v = self.evaluate([h1, h2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(out_src_task, input_tasks)
       self.assertAllClose(out_tgt_task, tgt_tasks)
@@ -511,7 +511,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
   def testGPipeTransformerBatchMajorConstruction(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
-    with self.session() as sess:
+    with self.session():
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         params = _TransformerParamsWithEmbeddings(
             splits=splits, num_decoder_layers=4, has_softmax=True)
@@ -532,7 +532,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                                      tgt_inputs, tgt_paddings, None, None,
                                      labels, label_weights, None, None, None,
                                      None)
-        xent_out, logits_out = sess.run([xent, logits])
+        xent_out, logits_out = self.evaluate([xent, logits])
         print('xent_out={}'.format(xent_out))
         print('logits_out={}'.format(logits_out))
 
@@ -546,7 +546,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
   def testGPipeTransformerFPropPackedInputWithEmbeddings(self, splits=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
-    with self.session() as sess:
+    with self.session():
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         params = _TransformerParamsWithEmbeddings(
             splits=splits, num_decoder_layers=2)
@@ -582,7 +582,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
         packed_output = tf.reshape(packed_output, output.shape)
 
         self.evaluate(tf.global_variables_initializer())
-        output, packed_output = sess.run([output, packed_output])
+        output, packed_output = self.evaluate([output, packed_output])
         self.assertAllClose(output, packed_output, rtol=1e-05, atol=1e-05)
 
   @parameterized.named_parameters(
@@ -607,7 +607,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       self, splits=1, num_micro_batches=1):
     # time = 2,
     batch = 4
-    with self.session() as sess:
+    with self.session():
       params = _TransformerParamsWithEmbeddings(
           splits=splits,
           num_micro_batches=num_micro_batches,
@@ -625,8 +625,8 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       enc_outputs = xformer.EncoderFPropDefaultTheta(inputs, paddings)
       dec_output = xformer.FProp(xformer.theta, input_ids, id_paddings,
                                  tgt_inputs, tgt_paddings)[2]
-      enc_out_1 = sess.run(enc_outputs)
-      dec_out = sess.run(dec_output)
+      enc_out_1 = self.evaluate(enc_outputs)
+      dec_out = self.evaluate(dec_output)
       self.assertAllClose(
           [[[0.017581, 0.802863, 0.975554, -1.164572]] * batch,
            [[-0.549953, 1.196884, 4.910457, -0.102137]] * batch], enc_out_1)
@@ -713,7 +713,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
-    with self.session() as sess:
+    with self.session():
       params = params_fn(
           num_decoder_layers=4,
           num_encoder_layers=0,
@@ -728,7 +728,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                              tgt_paddings)[2]
 
       self.evaluate(tf.global_variables_initializer())
-      output_val = sess.run(output)
+      output_val = self.evaluate(output)
       self.assertAllCloseAccordingToType(
           expected_output, output_val, rtol=1e-05, atol=1e-05)
 
@@ -768,7 +768,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                                   num_micro_batches=1):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
-    with self.session() as sess:
+    with self.session():
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         params = params_fn(
             splits=splits,
@@ -785,7 +785,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
       self.evaluate(tf.global_variables_initializer())
       xent, logits = xformer.FProp(xformer.theta, input_ids, id_paddings, None,
                                    None, None, None, labels, label_weights)
-      xent_out, logits_out = sess.run([xent, logits])
+      xent_out, logits_out = self.evaluate([xent, logits])
       print('xent_out={}'.format(xent_out))
       print('logits_out={}'.format(logits_out))
 
@@ -829,7 +829,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                                   use_task_embs=False):
     batch = 4
     tf.flags.FLAGS.tpu_compatible = True
-    with self.session() as sess:
+    with self.session():
       with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
         params = params_fn(
             splits=splits,
@@ -850,7 +850,7 @@ class GPipeTransformerStackTest(test_utils.TestCase,
                                    tgt_inputs, tgt_paddings, None, None, labels,
                                    label_weights, None, None, input_task_ids,
                                    tgt_task_ids)
-      xent_out, logits_out = sess.run([xent, logits])
+      xent_out, logits_out = self.evaluate([xent, logits])
       print('xent_out={}'.format(xent_out))
       print('logits_out={}'.format(logits_out))
 

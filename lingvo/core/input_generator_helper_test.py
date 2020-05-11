@@ -26,53 +26,53 @@ from six.moves import range
 class InputGeneratorHelperTest(test_utils.TestCase):
 
   def testComputeSplitsLessThanNumSplits(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = tf.constant(2, dtype=tf.int32)
       num_splits = 4
       splits = input_generator_helper.ComputeSplits(batch_size, num_splits)
       expected = [1, 1, 0, 0]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self.assertAllEqual(actual, expected)
 
   def testComputeSplitsEven(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = tf.constant(32, dtype=tf.int32)
       num_splits = 4
       splits = input_generator_helper.ComputeSplits(batch_size, num_splits)
       expected = [8, 8, 8, 8]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self.assertAllEqual(actual, expected)
 
   def testComputeSplitsUnevenOne(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = tf.constant(31, dtype=tf.int32)
       num_splits = 4
       splits = input_generator_helper.ComputeSplits(batch_size, num_splits)
       expected = [8, 8, 8, 7]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self.assertAllEqual(actual, expected)
 
   def testComputeSplitsUnevenTwo(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = tf.constant(30, dtype=tf.int32)
       num_splits = 4
       splits = input_generator_helper.ComputeSplits(batch_size, num_splits)
       expected = [8, 8, 7, 7]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self.assertAllEqual(actual, expected)
 
   def testComputeSplitsUnevenThree(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       batch_size = tf.constant(29, dtype=tf.int32)
       num_splits = 4
       splits = input_generator_helper.ComputeSplits(batch_size, num_splits)
       expected = [8, 7, 7, 7]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self.assertAllEqual(actual, expected)
 
   def _assertTupleOfListsEqual(self, actual, expected):
@@ -98,15 +98,15 @@ class InputGeneratorHelperTest(test_utils.TestCase):
     num_splits = 2
     splits = input_generator_helper.SplitTensors(tensor_tuple, num_splits)
 
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       with self.assertRaisesRegex(
           tf.errors.InvalidArgumentError,
           'first dim of tensors in xs must be greater '
           'than num_splits'):
-        sess.run(splits)
+        self.evaluate(splits)
 
   def testSplitTensorsOne(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       t1 = tf.constant([[1, 2, 3, 4], [4, 5, 6, 7]])
       t2 = tf.constant([[5, 6, 7, 8], [9, 10, 11, 12]])
       t3 = tf.constant([[13, 14, 15, 16], [14, 15, 16, 17]])
@@ -118,11 +118,11 @@ class InputGeneratorHelperTest(test_utils.TestCase):
                   [np.array([[5, 6, 7, 8], [9, 10, 11, 12]])],
                   [np.array([[13, 14, 15, 16], [14, 15, 16, 17]])])
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self._assertTupleOfListsEqual(actual, expected)
 
   def testSplitTensorsEven(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       t1 = tf.constant([[1, 2, 3, 4], [4, 5, 6, 7]])
       t2 = tf.constant([[5, 6, 7, 8], [9, 10, 11, 12]])
       t3 = tf.constant([[13, 14, 15, 16], [14, 15, 16, 17]])
@@ -134,11 +134,11 @@ class InputGeneratorHelperTest(test_utils.TestCase):
                   [np.array([[5, 6, 7, 8]]), np.array([[9, 10, 11, 12]])],
                   [np.array([[13, 14, 15, 16]]), np.array([[14, 15, 16, 17]])])
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self._assertTupleOfListsEqual(actual, expected)
 
   def testSplitTensorsUneven(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       t1 = tf.constant([[1], [4], [8]])
       t2 = tf.constant([[5], [9], [10]])
       t3 = tf.constant([[13], [14], [11]])
@@ -150,7 +150,7 @@ class InputGeneratorHelperTest(test_utils.TestCase):
                   [np.array([[5], [9]]), np.array([[10]])],
                   [np.array([[13], [14]]), np.array([[11]])])
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self._assertTupleOfListsEqual(actual, expected)
 
   def testSplitTensorsAssert(self):
@@ -166,7 +166,7 @@ class InputGeneratorHelperTest(test_utils.TestCase):
       _ = input_generator_helper.SplitTensors(tensor_tuple, num_splits)
 
   def testSplitDictOfTensorsEven(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       t1 = tf.constant([[1], [4], [8], [9]])
       t2 = tf.constant([[5], [9], [10], [12]])
       t3 = tf.constant([[13], [14], [11], [15]])
@@ -185,11 +185,11 @@ class InputGeneratorHelperTest(test_utils.TestCase):
           'c': np.array([[11], [15]])
       }]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self._assertListOfDictsEqual(actual, expected)
 
   def testSplitDictOfTensorsUneven(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       t1 = tf.constant([[1], [4], [8]])
       t2 = tf.constant([[5], [9], [10]])
       t3 = tf.constant([[13], [14], [11]])
@@ -208,7 +208,7 @@ class InputGeneratorHelperTest(test_utils.TestCase):
           'c': np.array([[11]])
       }]
 
-      actual = sess.run(splits)
+      actual = self.evaluate(splits)
       self._assertListOfDictsEqual(actual, expected)
 
   def testSplitDictOfTensorsAssert(self):

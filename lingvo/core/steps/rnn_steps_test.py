@@ -25,7 +25,7 @@ from lingvo.core.steps import rnn_steps
 class RnnStepsTest(test_utils.TestCase):
 
   def testRnnStep(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = rnn_steps.RnnStep.Params()
       p.name = 'rnn_step'
       p.cell.name = 'rnn_step_cell'
@@ -53,7 +53,7 @@ class RnnStepsTest(test_utils.TestCase):
           tf.constant([0.0], dtype=tf.float32), state1)
 
       self.evaluate(tf.global_variables_initializer())
-      out2, state2 = sess.run([out2, state2])
+      out2, state2 = self.evaluate([out2, state2])
 
       self.assertAllClose(state2.m, [[-0.32659757, 0.87739915]])
       self.assertAllClose(state2.c, [[-1.9628618, 1.4194499]])
@@ -61,7 +61,7 @@ class RnnStepsTest(test_utils.TestCase):
       self.assertAllClose(out2.padding, [0.0])
 
   def testRnnStepRecurrent(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = rnn_steps.RnnStep.Params()
       p.name = 'rnn_step'
       p.cell.name = 'rnn_step_cell'
@@ -94,7 +94,7 @@ class RnnStepsTest(test_utils.TestCase):
           state0=state0)
 
       self.evaluate(tf.global_variables_initializer())
-      output, state2 = sess.run([output, state2])
+      output, state2 = self.evaluate([output, state2])
       self.assertAllClose(state2.m,
                           [[[-0.20144, 0.741861]], [[-0.326598, 0.877399]]])
       self.assertAllClose(state2.c,
@@ -103,7 +103,7 @@ class RnnStepsTest(test_utils.TestCase):
                           [[[-0.20144, 0.741861]], [[-0.326598, 0.877399]]])
 
   def testRnnStackStep(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = rnn_steps.RnnStackStep.Params()
       p.name = 'rnn_stack_step'
       p.rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
@@ -129,7 +129,7 @@ class RnnStepsTest(test_utils.TestCase):
           tf.constant([0.0], dtype=tf.float32), state0)
 
       self.evaluate(tf.global_variables_initializer())
-      output1, state1 = sess.run([output1, state1])
+      output1, state1 = self.evaluate([output1, state1])
 
       self.assertAllClose(output1.output,
                           [[0.43175745, -0.39472747, -0.36191428]])
@@ -145,7 +145,7 @@ class RnnStepsTest(test_utils.TestCase):
           })
 
   def testRnnStackStepResidual(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = rnn_steps.RnnStackStep.Params()
       p.name = 'rnn_stack_step'
       p.rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
@@ -172,7 +172,7 @@ class RnnStepsTest(test_utils.TestCase):
           tf.constant([0.0], dtype=tf.float32), state0)
 
       self.evaluate(tf.global_variables_initializer())
-      output1, state1 = sess.run([output1, state1])
+      output1, state1 = self.evaluate([output1, state1])
 
       # Because there are residual connections, we expect the output to
       # be equal to sum(rnn_state.m for rnn_state in state1.sub).
@@ -192,7 +192,7 @@ class RnnStepsTest(test_utils.TestCase):
           })
 
   def testRnnStackStepNoContext(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       p = rnn_steps.RnnStackStep.Params()
       p.name = 'rnn_stack_step'
       p.rnn_cell_tpl.params_init = py_utils.WeightInit.Uniform(1.24, 429891685)
@@ -215,7 +215,7 @@ class RnnStepsTest(test_utils.TestCase):
           tf.constant([0.0], dtype=tf.float32), state0)
 
       self.evaluate(tf.global_variables_initializer())
-      output1, state1 = sess.run([output1, state1])
+      output1, state1 = self.evaluate([output1, state1])
 
       self.assertAllClose(output1.output, [[5.900284, 3.0231729, 3.0207822]])
       self.assertAllClose(

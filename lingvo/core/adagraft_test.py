@@ -31,19 +31,19 @@ class AdagraftTest(test_utils.TestCase):
     opt2 = tf.train.AdamOptimizer(0.5, beta1=0.5, beta2=0.5)
     opt3 = tf.train.AdamOptimizer(0.5, beta1=0.5, beta2=0.5)
     opt = adagraft.AdaGraftOptimizer(1.0, opt1, opt2)
-    with self.cached_session() as sess:
+    with self.cached_session():
       var0 = tf.Variable(2.0, name="var0")
       var1 = tf.Variable(3.0, name="var1")
       loss = (var0 - 1) * (var0 - 1) + (var1 - 1) * (var1 - 1)
       o = opt.minimize(loss)
       oo = opt3.minimize(loss)
       self.evaluate(tf.global_variables_initializer())
-      sess.run(o)
-      l1 = sess.run([loss, var0, var1])
+      self.evaluate(o)
+      l1 = self.evaluate([loss, var0, var1])
       print(l1)
-      sess.run([tf.assign(var0, 2.0), tf.assign(var1, 3.0)])
-      sess.run(oo)
-      l2 = sess.run([loss, var0, var1])
+      self.evaluate([tf.assign(var0, 2.0), tf.assign(var1, 3.0)])
+      self.evaluate(oo)
+      l2 = self.evaluate([loss, var0, var1])
       print(l2)
       self.assertAllClose(l1, l2)
 
@@ -65,7 +65,7 @@ class AdagraftTest(test_utils.TestCase):
     opt1 = tf.train.GradientDescentOptimizer(0.3)
     opt2 = tf.train.AdamOptimizer(0.5, beta1=0.5, beta2=0.6)
     opt = adagraft.AdaGraftOptimizer(0.9, opt1, opt2)
-    with self.cached_session() as sess:
+    with self.cached_session():
       var0 = tf.Variable(2.0, name="var0")
       var1 = tf.Variable(3.0, name="var1")
       loss = (var0 - 1) * (var0 - 1) + (var1 - 1) * (var1 - 1)
@@ -75,8 +75,8 @@ class AdagraftTest(test_utils.TestCase):
       correct_values = [[1.058, 1.46, 1.92], [0.22387284, 1.2116001, 1.4232]]
 
       for i in range(2):
-        sess.run(o)
-        step_values = sess.run([loss, var0, var1])
+        self.evaluate(o)
+        step_values = self.evaluate([loss, var0, var1])
         print(step_values)
         self.assertAllClose(correct_values[i], step_values)
 

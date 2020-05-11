@@ -55,9 +55,9 @@ class ClassifierTest(test_utils.TestCase):
   def tearDown(self):
     shutil.rmtree(self._tmpdir)
 
-  def _runOneStep(self, model, sess):
-    f_loss = sess.run(model.GetTask().loss)
-    sess.run(model.GetTask().train_op)
+  def _runOneStep(self, model):
+    f_loss = self.evaluate(model.GetTask().loss)
+    self.evaluate(model.GetTask().train_op)
     return f_loss
 
   def testMnistLeNet5(self):
@@ -71,10 +71,10 @@ class ClassifierTest(test_utils.TestCase):
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         model = p.Instantiate()
         model.ConstructFPropBPropGraph()
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
-      CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model, sess))
+      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 2.302405, self._runOneStep(model))
 
   def testMnistV2(self):
     g = tf.Graph()
@@ -87,10 +87,10 @@ class ClassifierTest(test_utils.TestCase):
       with cluster_factory.ForTestingWorker(mode='sync', job='trainer_client'):
         model = p.Instantiate()
         model.ConstructFPropBPropGraph()
-    with self.session(graph=g) as sess:
+    with self.session(graph=g):
       self.evaluate(tf.global_variables_initializer())
-      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model, sess))
-      CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model, sess))
+      CompareToGoldenSingleFloat(self, 2.302583, self._runOneStep(model))
+      CompareToGoldenSingleFloat(self, 2.142516, self._runOneStep(model))
 
   def testInference(self):
     with self.session() as sess:

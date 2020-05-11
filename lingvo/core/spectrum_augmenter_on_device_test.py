@@ -27,7 +27,7 @@ from six.moves import range
 class SpectrumAugmenterTest(test_utils.TestCase):
 
   def testSpectrumAugmenterWithTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 5
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -52,11 +52,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
 
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterDynamicSizeTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 3
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -81,11 +81,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterDynamicMultiplicityTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
@@ -110,11 +110,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterDynamicSizeAndMultiplicityTimeMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 4
       inputs = tf.ones([batch_size, 22, 2, 2], dtype=tf.float32)
@@ -141,11 +141,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWithFrequencyMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
@@ -162,11 +162,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWarpMatrixConstructor(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (4, 10))
       origin = tf.cast([2, 4, 4, 5], dtype=tf.float32)
       destination = tf.cast([3, 2, 6, 8], dtype=tf.float32)
@@ -187,11 +187,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
             dtype=tf.float32)
         output = tf.einsum('bij,bj->bi', warp_matrix, inputs)
         outputs.append(output)
-      layer_output, layer_output_on_device = sess.run(outputs)
+      layer_output, layer_output_on_device = self.evaluate(outputs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWithTimeWarping(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
@@ -216,11 +216,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWithDynamicTimeWarping(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.broadcast_to(tf.cast(tf.range(10), dtype=tf.float32), (3, 10))
       inputs = tf.expand_dims(tf.expand_dims(inputs, -1), -1)
@@ -245,11 +245,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterUnstacking(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([3, 5, 10, 1], dtype=tf.float32)
       paddings = tf.zeros([3, 5])
@@ -267,11 +267,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWithPerDomainPolicyFreqMask(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(1234)
       inputs = tf.ones([6, 5, 4, 2], dtype=tf.float32)
       input_domain_ids = tf.constant(
@@ -292,11 +292,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         h, _ = specaug_layer.FPropDefaultTheta(
             inputs, paddings, domain_ids=input_domain_ids)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterNoisify(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -323,11 +323,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterGaussianNoisify(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(127)
       batch_size = 2
       inputs = tf.ones([batch_size, 20, 2, 2], dtype=tf.float32)
@@ -354,11 +354,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
         specaug_layer = p.Instantiate()
         h, _ = specaug_layer.FPropDefaultTheta(inputs, paddings)
         hs.append(h)
-      layer_output, layer_output_on_device = sess.run(hs)
+      layer_output, layer_output_on_device = self.evaluate(hs)
       self.assertAllClose(layer_output, layer_output_on_device)
 
   def testSpectrumAugmenterWithStatelessRandomOps(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       batch_size = 5
       inputs1 = tf.random.uniform(
           shape=[batch_size, 20, 2, 2], minval=0, maxval=1, dtype=tf.float32)
@@ -382,7 +382,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       specaug_layer = p.Instantiate()
       h1, _ = specaug_layer.FPropDefaultTheta(inputs1, paddings)
       h2, _ = specaug_layer.FPropDefaultTheta(inputs2, paddings)
-      actual_layer_output1, actual_layer_output2 = sess.run([h1, h2])
+      actual_layer_output1, actual_layer_output2 = self.evaluate([h1, h2])
       self.assertAllEqual(
           np.shape(actual_layer_output1), np.array([5, 20, 2, 2]))
       self.assertNotAllEqual(actual_layer_output1, actual_layer_output2)
@@ -424,7 +424,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       self.assertNotIn(node.op, unsupported_on_device_nodes)
 
   def testEinsumReplacementBBmBm(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       a = tf.random.uniform(shape=[20], minval=0, maxval=1, dtype=tf.float32)
       b = tf.random.uniform(
           shape=[20, 10], minval=0, maxval=1, dtype=tf.float32)
@@ -433,11 +433,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       specaug_layer = p.Instantiate()
       replacement = specaug_layer.EinsumBBmBm(a, b)
-      einsum, replacement = sess.run([einsum, replacement])
+      einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
   def testEinsumReplacementBxycByBxyc(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       a = tf.random.uniform(
           shape=[20, 5, 7, 4], minval=0, maxval=1, dtype=tf.float32)
       b = tf.random.uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
@@ -446,11 +446,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       specaug_layer = p.Instantiate()
       replacement = specaug_layer.EinsumBxycByBxyc(a, b)
-      einsum, replacement = sess.run([einsum, replacement])
+      einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
   def testEinsumReplacementBxycBxBxyc(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       a = tf.random.uniform(
           shape=[20, 5, 7, 4], minval=0, maxval=1, dtype=tf.float32)
       b = tf.random.uniform(shape=[20, 5], minval=0, maxval=1, dtype=tf.float32)
@@ -459,11 +459,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       specaug_layer = p.Instantiate()
       replacement = specaug_layer.EinsumBxycBxBxyc(a, b)
-      einsum, replacement = sess.run([einsum, replacement])
+      einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
   def testEinsumReplacementBxyBxBxy(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       a = tf.random.uniform(
           shape=[20, 7, 4], minval=0, maxval=1, dtype=tf.float32)
       b = tf.random.uniform(shape=[20, 7], minval=0, maxval=1, dtype=tf.float32)
@@ -472,11 +472,11 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       specaug_layer = p.Instantiate()
       replacement = specaug_layer.EinsumBxyBxBxy(a, b)
-      einsum, replacement = sess.run([einsum, replacement])
+      einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
   def testEinsumReplacementBxycBzxBzyc(self):
-    with self.session(use_gpu=False, graph=tf.Graph()) as sess:
+    with self.session(use_gpu=False, graph=tf.Graph()):
       a = tf.random.uniform(
           shape=[20, 7, 4, 3], minval=0, maxval=1, dtype=tf.float32)
       b = tf.random.uniform(
@@ -486,7 +486,7 @@ class SpectrumAugmenterTest(test_utils.TestCase):
       p.name = 'specAug_layers'
       specaug_layer = p.Instantiate()
       replacement = specaug_layer.EinsumBxycBzxBzyc(a, b)
-      einsum, replacement = sess.run([einsum, replacement])
+      einsum, replacement = self.evaluate([einsum, replacement])
       self.assertAllClose(einsum, replacement)
 
 

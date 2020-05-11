@@ -82,11 +82,11 @@ class LearnerTest(test_utils.TestCase):
     layer = TestLayer.Params().Set(name='test').Instantiate()
     loss = layer.Loss(layer.theta)
     update_op, eval_metrics = lrnr.Apply(loss, layer.vars)
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      var_grads = sess.run(lrnr.GetVarGrads().Transform(tuple))
+      var_grads = self.evaluate(lrnr.GetVarGrads().Transform(tuple))
       update_op.run()
-      updated_vars = sess.run(layer.vars)
+      updated_vars = self.evaluate(layer.vars)
       return var_grads, updated_vars, eval_metrics
 
 

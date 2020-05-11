@@ -267,7 +267,7 @@ class DistillationTaskTest(test_utils.TestCase):
     # Expected side effects of BProp().
     self.assertIsNotNone(task.train_op)
 
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
 
       variables = {}
@@ -278,13 +278,13 @@ class DistillationTaskTest(test_utils.TestCase):
             k: v
             for k, v in getattr(task, child).vars.FlattenItems()
         }
-        values_before_training[child] = sess.run(variables[child])
+        values_before_training[child] = self.evaluate(variables[child])
 
       # Train for a few steps.
       for _ in range(10):
-        sess.run(task.train_op)
+        self.evaluate(task.train_op)
       for child in ('teacher', 'student'):
-        values_after_training[child] = sess.run(variables[child])
+        values_after_training[child] = self.evaluate(variables[child])
       return values_before_training, values_after_training
 
   def testFProp(self):
@@ -446,9 +446,9 @@ class MultiTaskModelTest(test_utils.TestCase):
     task_counts = {'a': 0, 'b': 0}
 
     # initialize tensorflow graph and global step
-    with self.session() as sess:
+    with self.session():
       self.evaluate(tf.global_variables_initializer())
-      global_step = sess.run(model.global_step)
+      global_step = self.evaluate(model.global_step)
       for _ in range(100):
         task = model.SampleTask(global_step)
         task_counts[task_to_id[task]] += 1

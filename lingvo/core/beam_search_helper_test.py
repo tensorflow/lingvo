@@ -132,7 +132,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
       self.assertAllClose(expected_topk_scores, topk_scores)
 
   def testCustomStepIds(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
       vocab_size = 12
@@ -183,7 +183,7 @@ class BeamSearchHelperTest(test_utils.TestCase):
                                                   PreBeamSearchStepCallback,
                                                   PostBeamSearchStepCallback)
 
-      topk_ids, topk_lens, topk_scores = sess.run([
+      topk_ids, topk_lens, topk_scores = self.evaluate([
           decoder_output.topk_ids, decoder_output.topk_lens,
           decoder_output.topk_scores
       ])
@@ -242,7 +242,7 @@ class MergeBeamSearchOutputsTest(test_utils.TestCase):
 class GreedySearchHelperTest(test_utils.TestCase):
 
   def testGreedySearchHelper(self):
-    with self.session(use_gpu=False) as sess:
+    with self.session(use_gpu=False):
       np.random.seed(9384758)
       tf.random.set_seed(8274758)
       vocab_size = 12
@@ -290,7 +290,7 @@ class GreedySearchHelperTest(test_utils.TestCase):
            theta, encoder_outputs, InitGreedySearchState,
            PreGreedySearchStepCallback, PostGreedySearchStepCallback)
 
-      (final_hyp_ids, final_hyp_lens, final_done_hyps) = sess.run(
+      (final_hyp_ids, final_hyp_lens, final_done_hyps) = self.evaluate(
           [final_hyp_ids, final_hyp_lens, final_done_hyps])
 
       print(np.array_repr(final_hyp_ids))

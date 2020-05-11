@@ -86,8 +86,8 @@ class SummaryTest(test_utils.TestCase):
         ],
     ]
     expected_ids = PythonExtractRunIds(np.array(example_run_segments))
-    with self.session() as sess:
-      run_ids = sess.run(
+    with self.session():
+      run_ids = self.evaluate(
           summary.ExtractRunIds(tf.constant(example_run_segments)))
       self.assertAllEqual(expected_ids, run_ids)
 

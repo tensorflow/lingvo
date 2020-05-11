@@ -109,8 +109,8 @@ class KittiDataTest(test_utils.TestCase):
 
     # Convert to corners in our canonical space.
     corners = geometry.BBoxCorners(tf.constant([[bbox3d]], dtype=tf.float32))
-    with self.session() as sess:
-      corners_np = sess.run(corners)
+    with self.session():
+      corners_np = self.evaluate(corners)
     corners_np = corners_np.reshape([8, 3])
 
     # Add homogenous coordinates.

@@ -58,8 +58,9 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
     self.assertListEqual(indices.shape.as_list(), [b, m, k])
     self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
-    with self.session(graph=g) as sess:
-      cp, c, i, p = sess.run([center_padding, center, indices, indices_padding])
+    with self.session(graph=g):
+      cp, c, i, p = self.evaluate(
+          [center_padding, center, indices, indices_padding])
 
     # Very basic validity checking.
     self.assertEqual(cp.shape, (b, m))
@@ -102,9 +103,9 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
     self.assertListEqual(indices.shape.as_list(), [b, m, k])
     self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
-    with self.session(graph=g) as sess:
-      c1, p1 = sess.run([center, points])
-      c2, p2 = sess.run([center, points])
+    with self.session(graph=g):
+      c1, p1 = self.evaluate([center, points])
+      c2, p2 = self.evaluate([center, points])
 
     # With extremely high probability, sampling centers twice should be
     # different.
@@ -146,8 +147,8 @@ class SamplingOpsTest(parameterized.TestCase, test_utils.TestCase):
     self.assertListEqual(indices.shape.as_list(), [b, m, k])
     self.assertListEqual(indices_padding.shape.as_list(), [b, m, k])
 
-    with self.session(graph=g) as sess:
-      p, c = sess.run([center_padding, center])
+    with self.session(graph=g):
+      p, c = self.evaluate([center_padding, center])
 
     self.assertAllEqual(p[0, :n], np.zeros([n]))
     self.assertAllEqual(p[0, n:], np.ones([m - n]))
