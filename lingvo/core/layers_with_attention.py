@@ -133,17 +133,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       assert p.mask_type in ['future', 'eye', 'ngram']
 
     with tf.variable_scope(p.name):
-      # Initialize multi-headed attention
-      params = p.atten_tpl.Copy()
-      params.name = 'multihead_atten'
-      params.source_dim = p.source_dim
-      params.query_dim = p.source_dim
-      params.hidden_dim = p.atten_hidden_dim
-      params.context_dim = p.context_dim
-      params.ctx_post_proj_dim = p.source_dim
-      params.num_attention_heads = p.num_attention_heads
-      params.atten_dropout_prob = p.atten_dropout_prob
-      params.packed_input = p.packed_input
+      params = self._InitAttention(p.atten_tpl)
       self.CreateChild('atten', params)
 
       # Initialize attention layer norm
@@ -155,6 +145,24 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
       self.CreateChild('residual_dropout', dropout_tpl)
+
+  def _InitAttention(self, atten_tpl):
+    p = self.params
+    # Initialize multi-headed attention
+    params = atten_tpl.Copy()
+    params.name = 'multihead_atten'
+    params.source_dim = p.source_dim
+    params.query_dim = p.source_dim
+    params.hidden_dim = p.atten_hidden_dim
+    params.context_dim = p.context_dim
+    params.ctx_post_proj_dim = p.source_dim
+    params.num_attention_heads = p.num_attention_heads
+    params.atten_dropout_prob = p.atten_dropout_prob
+    params.packed_input = p.packed_input
+    return params
+
+  def _GetSourceBatchSize(self, source_paddings):
+    return py_utils.GetShape(source_paddings)[0]
 
   def FProp(self,
             theta,
@@ -256,7 +264,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     atten_prob = tf.reshape(
         atten_prob,
         [target_time, target_bs,
-         py_utils.GetShape(source_paddings)[0]])
+         self._GetSourceBatchSize(source_paddings)])
     return h, atten_prob
 
   def _FinishExtendStep(self,
@@ -368,6 +376,57 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
                                                         cached_packed_src, t)
     return self._FinishExtendStep(theta, query_vec, unnormalized_query_vec,
                                   extended_packed_src, t)
+
+
+class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
+  """Multi-source multi-headed attention.
+
+  Only supports scenarios 3 and 4 in the base class. Now the two scenarios are:
+
+  3. Multi-source multi-Headed Attention, where attention keys and attention
+     values `source_vecs`, are different encodings and queries `query_vec`,
+     coming from the previous layer outputs (decoder). In addition,
+     attention keys and values are NestedMaps containing encodings of different
+     sources. This corresponds to a multi-source decoder-to-encoder attention
+     mechanism, i.e., decoder attends to encoder outputs and other sources.
+  4. Similar to 3 but attention values `context_vecs` are coming from a
+     different source than queries and keys.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerMultiSourceAttentionLayer, cls).Params()
+    p.Define('num_source', 0, 'Number of sources to attend to.')
+    # Only used for case 3 and 4.
+    p.is_masked = False
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerMultiSourceAttentionLayer, self).__init__(params)
+
+  def _InitAttention(self, atten_tpl):
+    p = self.params
+    source_atten_tpls = []
+    # Set up each source attention.
+    for i in range(p.num_source):
+      src_key = 'source_%d' % i
+      src_atten = atten_tpl.Copy()
+      src_atten = super(TransformerMultiSourceAttentionLayer,
+                        self)._InitAttention(src_atten)
+      src_atten.name = 'multihead_atten_%s' % src_key
+      source_atten_tpls.append((src_key, src_atten))
+    multi_source_atten = (
+        attention.MultiSourceAttention.Params().Set(
+            source_dim=p.source_dim,
+            query_dim=p.source_dim,
+            source_atten_tpls=source_atten_tpls))
+    # Make sure the output context dim does not change.
+    multi_source_atten.cls.SetOuputContextDim(multi_source_atten, p.source_dim)
+    return multi_source_atten
+
+  def _GetSourceBatchSize(self, source_paddings):
+    return py_utils.GetShape(source_paddings.Flatten()[0])[0]
 
 
 class TransformerFeedForwardLayer(base_layer.BaseLayer):

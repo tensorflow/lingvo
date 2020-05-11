@@ -1303,6 +1303,10 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       if p.attention_head_prob_index >= 0:
         assert p.attention_head_prob_index < p.num_attention_heads
 
+  @classmethod
+  def SetOutputContextDim(cls, p, out_dim):
+    p.ctx_post_proj_dim = out_dim
+
   @py_utils.NameScopeDecorator('MultiHeadedAttention/PackSource')
   def PackSource(self,
                  theta,
@@ -2877,3 +2881,115 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         [new_position, position_offset, variances, priors], axis=2)
 
     return ctx_vec, prob, new_atten_states
+
+
+class MultiSourceAttention(BaseAttentionLayer):
+  """Attention with multiple source sub-attentions.
+
+  It attends to multiple sources and uses one query as input to generates a
+  combined attention context. The dimension of the combined context vector is a
+  sum of all source context vectors. Each source attention has its separate
+  params and is associated with a source key.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(MultiSourceAttention, cls).Params()
+    p.Define('source_atten_tpls', None,
+             'A list of (source_key, attention_param) '
+             'pairs.')
+    p.Define('source_dim', 0, 'Default source dimension.')
+    p.Define(
+        'query_dim', 0, 'Number of query nodes. Child attention params '
+        'must have query_dim less or euqal than 0 or equal to this value.')
+    p.Define(
+        'primary_source_key', 'source_0', 'Key for the primary source '
+        'whose attention probabilities will be used as an output.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    """Constructs an MultiSourceAttention object."""
+    super(MultiSourceAttention, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      for source_key, atten_p in p.source_atten_tpls:
+        child_p = atten_p.Copy()
+        if child_p.query_dim <= 0:
+          child_p.query_dim = p.query_dim
+        else:
+          assert child_p.query_dim == p.query_dim
+        if child_p.source_dim <= 0:
+          child_p.source_dim = p.source_dim
+        self.CreateChild('atten_%s' % source_key, child_p)
+
+  @classmethod
+  def SetOuputContextDim(cls, p, out_dim):
+    num_source = len(p.source_atten_tpls)
+    for _, src_atten in p.source_atten_tpls:
+      assert src_atten.enable_ctx_post_proj, (
+          'Must use post projection to keep output dimension unchanged.')
+      src_atten.cls.SetOutputContextDim(src_atten, out_dim // num_source)
+
+  def PackSource(self,
+                 theta,
+                 source_vecs,
+                 source_contexts,
+                 source_padding,
+                 source_segment_id=None):
+    p = self.params
+    with tf.name_scope(self.params.name):
+      packed_src = py_utils.NestedMap()
+      for source_key, _ in p.source_atten_tpls:
+        packed_src[source_key] = (
+            self.children['atten_%s' % source_key].InitForSourcePacked(
+                theta['atten_%s' % source_key], source_vecs[source_key],
+                source_contexts[source_key], source_padding[source_key],
+                source_segment_id[source_key] if source_segment_id else None))
+      return packed_src
+
+  def ZeroAttentionState(self, source_seq_length, decoder_batch_size):
+    p = self.params
+    with tf.name_scope(self.params.name):
+      return py_utils.NestedMap({
+          source_key: getattr(self, 'atten_%s' % source_key).ZeroAttentionState(
+              source_seq_length[source_key], decoder_batch_size)
+          for source_key, _ in p.source_atten_tpls
+      })
+
+  def ComputeContextVectorWithSource(self,
+                                     theta,
+                                     packed_src,
+                                     query_vec,
+                                     attention_state=None,
+                                     per_step_source_padding=None,
+                                     query_segment_id=None):
+    p = self.params
+    assert per_step_source_padding is None
+    with tf.name_scope(self.params.name):
+      result_map = py_utils.NestedMap()
+      for source_key, _ in p.source_atten_tpls:
+        result_map[source_key] = (
+            self.children['atten_%s' %
+                          source_key].ComputeContextVectorWithSource(
+                              theta.get('atten_%s' % source_key),
+                              packed_src[source_key], query_vec,
+                              attention_state[source_key]
+                              if attention_state else None,
+                              per_step_source_padding, query_segment_id))
+      return self._CombineContext(result_map)
+
+  def _CombineContext(self, context_map):
+    contexts = context_map.Flatten()
+    return (
+        # Concatenate the context vectors.
+        # TODO(huk, rpang): Consider more ways to set the context vector
+        # dimension, e.g. we may apply additional projection.
+        tf.concat([contexts for contexts, _, _ in contexts], axis=-1),
+        # Return atten_probs and atten_state of the first source.
+        # TODO(huk): Maybe return a NestedMap.
+        context_map[self.params.primary_source_key][1],
+        py_utils.NestedMap({
+            src_key: context_map[src_key][2]
+            for src_key, _ in self.params.source_atten_tpls
+        }))

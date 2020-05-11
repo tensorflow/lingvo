@@ -1866,6 +1866,131 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_prob_out, prob_out)
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
+  def testMultiSourceMultiHeadedAttention(self):
+    with self.session(use_gpu=True) as sess:
+      (source_vecs, source_contexts, source_padding, source_padding_p,
+       query_vec, _, _) = self._MultiHeadedAttentionInputs()
+      iap = attention.DotProductAttention.Params()
+      iap.name = 'dot_atten'
+      mha_params = attention.MultiHeadedAttention.Params().Set(
+          name='multihead_atten',
+          source_dim=4,
+          query_dim=4,
+          hidden_dim=4,
+          inner_atten_params=iap,
+          num_attention_heads=2,
+          use_source_vec_as_attention_value=False)
+
+      # Single-source attention.
+      params = attention.MultiSourceAttention.Params().Set(
+          name='one_source_atten',
+          source_dim=4,
+          query_dim=4,
+          source_atten_tpls=[('src_1', mha_params)],
+          primary_source_key='src_1')
+      atten = params.Instantiate()
+      atten.InitForSourcePacked(atten.theta,
+                                py_utils.NestedMap(src_1=source_vecs),
+                                py_utils.NestedMap(src_1=source_contexts),
+                                py_utils.NestedMap(src_1=source_padding))
+      tf.global_variables_initializer().run()
+      atten_vec, atten_prob, _ = atten.ComputeContextVector(
+          atten.theta, query_vec)
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=source_contexts.shape[2])
+
+      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      print('atten_vec_out', np.sum(atten_vec_out, axis=1))
+
+      self.assertAllClose(
+          [2.8940253, 2.2901258, 3.5679011, 2.894734, 2.2989905, 3.5306041],
+          np.sum(atten_vec_out, axis=1))
+      print('atten_vec_out', atten_vec_out)
+      print('prob_out', prob_out)
+      t_batch_size = 6
+      s_batch_size = 3
+      for i in range(t_batch_size):
+        # Test to make sure we didn't mess up indexing.
+        s_i = i % s_batch_size
+        atten.InitForSourcePacked(
+            atten.theta, py_utils.NestedMap(src_1=source_vecs[:,
+                                                              s_i:s_i + 1, :]),
+            py_utils.NestedMap(src_1=source_contexts[:, s_i:s_i + 1, :]),
+            py_utils.NestedMap(src_1=source_padding[:, s_i:s_i + 1]))
+        atten_vec_i, prob_i, _ = atten.ComputeContextVector(
+            atten.theta, query_vec[i:i + 1])
+        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        self.assertAllClose(prob_i_out, prob_out[i:i + 1])
+        self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
+        padding_i = source_padding_p[s_i]
+        # Check to make sure prob exists only on valid timesteps.
+        self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
+
+      # Two-source attention.
+      params = attention.MultiSourceAttention.Params().Set(
+          name='two_source_atten',
+          source_dim=4,
+          query_dim=4,
+          source_atten_tpls=[('src_1', mha_params),
+                             ('src_2',
+                              mha_params.Copy().Set(name='multihead_atten2'))],
+          primary_source_key='src_1')
+      atten = params.Instantiate()
+
+      (source_vecs2, source_contexts2, source_padding2, source_padding_p,
+       query_vec, _, _) = self._MultiHeadedAttentionInputs()
+      atten.InitForSourcePacked(
+          atten.theta,
+          py_utils.NestedMap(src_1=source_vecs, src_2=source_vecs2),
+          py_utils.NestedMap(src_1=source_contexts, src_2=source_contexts2),
+          py_utils.NestedMap(src_1=source_padding, src_2=source_padding2))
+      tf.global_variables_initializer().run()
+      atten_vec, atten_prob, _ = atten.ComputeContextVector(
+          atten.theta, query_vec)
+      self._CheckStaticShapes(
+          atten_vec,
+          atten_prob,
+          target_batch_size=query_vec.shape[0],
+          source_length=source_contexts.shape[0],
+          context_dim=2 * source_contexts.shape[2])
+
+      atten_vec_out, prob_out = sess.run([atten_vec, atten_prob])
+      print('atten_vec_out', np.sum(atten_vec_out, axis=1))
+
+      self.assertAllClose(
+          [5.7456646, 4.5157924, 7.0711875, 5.7488303, 4.6164675, 7.096998],
+          np.sum(atten_vec_out, axis=1))
+      print('atten_vec_out', atten_vec_out)
+      print('prob_out', prob_out)
+      t_batch_size = 6
+      s_batch_size = 3
+      for i in range(t_batch_size):
+        # Test to make sure we didn't mess up indexing.
+        s_i = i % s_batch_size
+        atten.InitForSourcePacked(
+            atten.theta,
+            py_utils.NestedMap(
+                src_1=source_vecs[:, s_i:s_i + 1, :],
+                src_2=source_vecs2[:, s_i:s_i + 1, :]),
+            py_utils.NestedMap(
+                src_1=source_contexts[:, s_i:s_i + 1, :],
+                src_2=source_contexts2[:, s_i:s_i + 1, :]),
+            py_utils.NestedMap(
+                src_1=source_padding[:, s_i:s_i + 1],
+                src_2=source_padding2[:, s_i:s_i + 1]))
+        atten_vec_i, prob_i, _ = atten.ComputeContextVector(
+            atten.theta, query_vec[i:i + 1])
+        atten_vec_i_out, prob_i_out = sess.run([atten_vec_i, prob_i])
+        self.assertAllClose(prob_i_out, prob_out[i:i + 1])
+        self.assertAllClose(atten_vec_i_out, atten_vec_out[i:i + 1])
+        padding_i = source_padding_p[s_i]
+        # Check to make sure prob exists only on valid timesteps.
+        self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
+
 
 if __name__ == '__main__':
   tf.test.main()
