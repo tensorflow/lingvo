@@ -262,33 +262,33 @@ class ByDistance(BreakdownMetric):
       value_at_histogram = (
           d * p.metadata.DistanceBinWidth() +
           p.metadata.DistanceBinWidth() / 2.0)
-      metrics = compute_metrics_fn(distance=d)
-      scalars = metrics['scalars']
-      self._average_precisions[d] = [s['ap'] for s in scalars]
       self._values[d] = value_at_histogram
-    assert len(self._values) == len(list(self._average_precisions.keys()))
+
+      metrics = compute_metrics_fn(distance=d)
+      curves = metrics['curves']
+      self._precision_recall[d] = np.array([c['pr'] for c in curves])
+    assert len(self._values) == len(list(self._precision_recall.keys()))
     tf.logging.info('Calculating AP by distance: finished')
 
   def GenerateSummaries(self, name):
     """Generate an image summary for AP versus distance by class."""
-    num_distances = self._values.shape[0]
     p = self.params
+
+    legend_names = []
+    for j in p.metadata.EvalClassIndices():
+      legend_names.append(p.metadata.ClassNames()[j])
+
+    num_distances = self._values.shape[0]
     ys = np.zeros(
         shape=(num_distances, len(p.metadata.EvalClassIndices())),
         dtype=np.float32)
 
-    legend_names = []
-    for i, j in enumerate(p.metadata.EvalClassIndices()):
-      legend_names.append(p.metadata.ClassNames()[j])
-      for distance in self._average_precisions:
-        v = self._average_precisions[distance][i]
-        if np.isnan(v):
-          v = 0.0
-        ys[distance, i] = v
+    for dist in self._precision_recall:
+      ys[dist, :] = _FindMaximumRecall(self._precision_recall[dist])
 
     def _Setter(fig, axes):
       """Configure the plot for mAP versus distance."""
-      axes.grid(b=False)
+      axes.grid(b=True)
       fontsize = 14
       for i, j in enumerate(p.metadata.EvalClassIndices()):
         for d, x in enumerate(self._values):
@@ -304,13 +304,13 @@ class ByDistance(BreakdownMetric):
               0.0,
               p.metadata.MaximumDistance() + p.metadata.DistanceBinWidth(),
               p.metadata.DistanceBinWidth()))
-      axes.set_ylabel('average precision (AP)', fontsize=fontsize)
-      axes.set_ylim([-0.02, 1.05])
+      axes.set_ylabel('maximum recall', fontsize=fontsize)
+      axes.set_ylim([-0.01, 1.05])
       axes.set_yticks(np.arange(0.0, 1.05, 0.1))
       axes.legend([name.lower() for name in legend_names], numpoints=1, loc=3)
       fig.tight_layout()
 
-    tag_str = '{}/AP_by_distance'.format(name)
+    tag_str = '{}/recall_by_distance'.format(name)
     image_summary = plot.Curve(
         name=tag_str,
         figsize=(10, 8),
