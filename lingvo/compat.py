@@ -237,9 +237,4 @@ data.make_one_shot_iterator = dataset_ops.make_one_shot_iterator
 # the API, and uses 'partition_strategy="div"' by default;
 # while v1 uses 'partition_strategy="mod"' by default. Keep this for now.
 nn.embedding_lookup = embedding_ops.embedding_lookup
-
-# TF 2.x symbols.
-# Please keep this list short by using TF 2.x API in-place in the codebase.
-to_int32 = lambda x, name="ToInt32": cast(x, dtype=dtypes.int32, name=name)
-to_int64 = lambda x, name="ToInt64": cast(x, dtype=dtypes.int64, name=name)
 # pylint: enable=undefined-variable

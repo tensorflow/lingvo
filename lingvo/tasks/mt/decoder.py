@@ -1481,7 +1481,7 @@ class TransformerDecoder(MTBaseDecoder):
     sample.topk_hyps = tf.zeros([bs, 1], dtype=tf.string)
     sample.topk_ids = sample.ids
     weights = 1 - sample.paddings
-    sample.topk_lens = tf.to_int32(tf.reduce_sum(weights, axis=1))
+    sample.topk_lens = tf.cast(tf.reduce_sum(weights, axis=1), dtype=tf.int32)
     sample.topk_scores = tf.reduce_sum(
         tf.math.log(tf.reduce_max(tf.nn.softmax(sample.logits), axis=2)) *
         weights,

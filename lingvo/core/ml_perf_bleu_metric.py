@@ -155,7 +155,7 @@ def bleu_score(predictions, labels, **unused_kwargs):
   Returns:
     bleu: int, approx bleu score
   """
-  outputs = tf.to_int32(tf.argmax(predictions, axis=-1))
+  outputs = tf.cast(tf.argmax(predictions, axis=-1), dtype=tf.int32)
   # Convert the outputs and labels to a [batch_size, input_length] tensor.
   outputs = tf.squeeze(outputs, axis=[-1, -2])
   labels = tf.squeeze(labels, axis=[-1, -2])

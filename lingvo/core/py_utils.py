@@ -3285,10 +3285,10 @@ def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
       assert_equal(GetShape(input0)[batch_dim], batch_size),
       assert_equal(GetShape(padding1)[batch_dim], batch_size)
   ], input0)
-  input0_seq_dim = tf.to_int32(
-      tf.tile([tf.shape(padding0)[seq_dim]], [batch_size]))
-  input1_seq_dim = tf.to_int32(
-      tf.tile([tf.shape(padding1)[seq_dim]], [batch_size]))
+  input0_seq_dim = tf.cast(
+      tf.tile([tf.shape(padding0)[seq_dim]], [batch_size]), dtype=tf.int32)
+  input1_seq_dim = tf.cast(
+      tf.tile([tf.shape(padding1)[seq_dim]], [batch_size]), dtype=tf.int32)
   # LengthsFromPaddings assumes that paddings is of size [batch, max_length].
   if seq_dim == 1:
     seq_length0 = LengthsFromPaddings(padding0)
@@ -3299,12 +3299,14 @@ def ConcatenatePaddedSequences(input0, input1, padding0, padding1, seq_dim=1):
   # We assume that the tensors have no leading paddings.
   # TODO(arunnt): Concatenate tensors with leading paddings correctly.
   seq_length0 = with_dependencies([
-      assert_equal(seq_length0,
-                   tf.to_int32(tf.reduce_sum(1.0 - padding0, seq_dim)))
+      assert_equal(
+          seq_length0,
+          tf.cast(tf.reduce_sum(1.0 - padding0, seq_dim), dtype=tf.int32))
   ], seq_length0)
   seq_length1 = with_dependencies([
-      assert_equal(seq_length1,
-                   tf.to_int32(tf.reduce_sum(1.0 - padding1, seq_dim)))
+      assert_equal(
+          seq_length1,
+          tf.cast(tf.reduce_sum(1.0 - padding1, seq_dim), dtype=tf.int32))
   ], seq_length1)
   # Concatenate input sequences.
   reversed_input0 = tf.reverse_sequence(
