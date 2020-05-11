@@ -698,13 +698,13 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
             cluster.num_tpu_hosts))
       tf.logging.info(
-          'scaling infeed_bucket_back_limit num_tpu_hosts={}'.format(
+          'scaling infeed_bucket_batch_limit num_tpu_hosts={}'.format(
               cluster.num_tpu_hosts))
       infeed_bucket_batch_limit = [
           x // cluster.num_tpu_hosts for x in infeed_bucket_batch_limit
       ]
     tf.logging.info(
-        'infeed_bucket_back_limit={} num_splits_per_client={} bucket_batch_limit={}'
+        'infeed_bucket_batch_limit={} num_splits_per_client={} bucket_batch_limit={}'
         .format(infeed_bucket_batch_limit, cluster.num_splits_per_client,
                 p.bucket_batch_limit))
     return infeed_bucket_batch_limit
