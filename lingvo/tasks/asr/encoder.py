@@ -255,6 +255,10 @@ class AsrEncoder(base_layer.BaseLayer):
   def _use_functional(self):
     return True
 
+  @property
+  def input_shape(self):
+    return self.params.input_shape
+
   def CreateBidirectionalRNNParams(self, forward_p, backward_p):
     return model_helper.CreateBidirectionalRNNParams(self.params, forward_p,
                                                      backward_p)
