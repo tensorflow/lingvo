@@ -106,7 +106,8 @@ def TrimPaddingAndPlotAttention(fig,
     axes.set_xlabel(plot.ToUnicode(transcript), size='x-small', wrap=True)
 
 
-def AddAttentionSummary(attention_tensors,
+def AddAttentionSummary(name,
+                        attention_tensors,
                         src_paddings,
                         tgt_paddings,
                         transcripts=None,
@@ -116,6 +117,7 @@ def AddAttentionSummary(attention_tensors,
   Tensors are in sequence tensor format with the batch dimension in axis 1.
 
   Args:
+    name: Summary name.
     attention_tensors: A list of 3D tensors shaped [target_len, batch_size,
       source_len] where attention[i, j, k] is the probability for the i-th
       output attending to the k-th input for element j in the batch.
@@ -137,12 +139,13 @@ def AddAttentionSummary(attention_tensors,
     return [tf.transpose(p) for p in paddings]
 
   AddAttentionSummaryBatchMajor(
-      [tf.transpose(a, [1, 0, 2]) for a in attention_tensors],
+      name, [tf.transpose(a, [1, 0, 2]) for a in attention_tensors],
       Transpose(src_paddings), Transpose(tgt_paddings), transcripts,
       max_outputs)
 
 
-def AddAttentionSummaryBatchMajor(attention_tensors,
+def AddAttentionSummaryBatchMajor(name,
+                                  attention_tensors,
                                   src_paddings,
                                   tgt_paddings,
                                   transcripts=None,
@@ -153,6 +156,7 @@ def AddAttentionSummaryBatchMajor(attention_tensors,
   axis 0.
 
   Args:
+    name: Summary name.
     attention_tensors: A list of 3D tensors shaped [batch_size, target_len,
       source_len] where attention[b, i, j] is the probability for the i-th
       output attending to the j-th input for element b in the batch.
@@ -177,7 +181,6 @@ def AddAttentionSummaryBatchMajor(attention_tensors,
   VerifyLen(src_paddings)
   VerifyLen(tgt_paddings)
 
-  name = attention_tensors[0].name + '/Attention'
   if not _ShouldAddSummary():
     return
 
@@ -192,14 +195,16 @@ def AddAttentionSummaryBatchMajor(attention_tensors,
   tgt_lens = ToLengths(tgt_paddings)
 
   with plot.MatplotlibFigureSummary(
-      name, max_outputs=max_outputs, gridspec_kwargs={'hspace': 0.3}) as fig:
+      name + '/Attention',
+      max_outputs=max_outputs,
+      gridspec_kwargs={'hspace': 0.3}) as fig:
     for n, atten in enumerate(attention_tensors):
       # Diagnostic metric that decreases as attention picks up.
       max_entropy = tf.math.log(tf.cast(Get(src_lens, n), tf.float32))
       max_entropy = tf.expand_dims(tf.expand_dims(max_entropy, -1), -1)
       atten_normalized_entropy = -atten * tf.math.log(atten +
                                                       1e-10) / max_entropy
-      scalar('Attention/average_normalized_entropy/%d' % n,
+      scalar(name + '/Attention/average_normalized_entropy/%d' % n,
              tf.reduce_mean(atten_normalized_entropy))
       args = [atten, Get(src_lens, n), Get(tgt_lens, n)]
       if transcripts is not None and n == 0:
@@ -207,7 +212,7 @@ def AddAttentionSummaryBatchMajor(attention_tensors,
       fig.AddSubplot(
           args,
           TrimPaddingAndPlotAttention,
-          title=atten.name,
+          title=name,
           xlabel='Input',
           ylabel='Output')
 
