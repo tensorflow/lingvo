@@ -72,7 +72,7 @@ class WaymoMetadata(evaluation_metadata.EvaluationMetadata):
 
   def DistanceBinWidth(self):
     """The width of each bin for Euclidean distance in world coordinates."""
-    return 10.0
+    return 5.0
 
   def MaximumNumberOfPoints(self):
     """Maximum empirically observed number of points in bounding box."""
