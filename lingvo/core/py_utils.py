@@ -3349,13 +3349,15 @@ def RetryOnTransientTfError(*args, **kwargs):
   return Retry(transient_tf_errors, *args, **kwargs)
 
 
-def PadOrTrimTo(x, shape, pad_val=0):
+def PadOrTrimTo(x, shape, pad_val=0, pad_after_contents=True):
   """Pad and slice x to the given shape.
 
   Args:
     x: A tensor.
     shape: The shape of the returned tensor.
     pad_val: An int or float used to pad x.
+    pad_after_contents: Whether to pad and trim after the original contents
+      of each dimension.
 
   Returns:
     'x' is padded with pad_val and sliced so that the result has the given
@@ -3375,13 +3377,25 @@ def PadOrTrimTo(x, shape, pad_val=0):
     shape = HasRank(shape, 1)
     expected_rank = tf.size(shape)
   x = HasRank(x, expected_rank)
-  # If dim-i is less than shape[i], pads on the right shape[i] -
-  # dim-i.  Otherwise, pads [0, 0] for dim-i.
+
   pad = shape - tf.minimum(tf.shape(x), shape)
   zeros = tf.zeros_like(pad)
-  x = tf.pad(x, tf.stack([zeros, pad], axis=1), constant_values=pad_val)
-  # If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.
-  return tf.reshape(tf.slice(x, zeros, shape), shape)
+  if pad_after_contents:
+    # If dim_i is less than shape[i], pads after contents.
+    paddings = tf.stack([zeros, pad], axis=1)
+    # If dim_i is larger than shape[i], we slice [0:shape[i]] for dim_i.
+    slice_begin = zeros
+  else:
+    # If dim_i is less than shape[i], pads before contents.
+    paddings = tf.stack([pad, zeros], axis=1)
+    # If dim-i is larger than shape[i], we slice [dim_i - shape[i]:dim_i]
+    # for dim_i.
+    slice_begin = tf.shape(x) + pad - shape
+
+  x = tf.pad(x, paddings, constant_values=pad_val)
+  x = tf.slice(x, slice_begin, shape)
+
+  return tf.reshape(x, shape)
 
 
 def RepeatDim(tensor, multiple, axis):
