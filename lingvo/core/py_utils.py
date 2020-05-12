@@ -997,10 +997,10 @@ class _Unique(object):
     self._vset = set()
 
   def __call__(self, v):
-    if (v is None) or (v in self._vset):
+    if (v is None) or (id(v) in self._vset):
       return False
     else:
-      self._vset.add(v)
+      self._vset.add(id(v))
       return True
 
 
