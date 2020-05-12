@@ -223,6 +223,13 @@ class BaseRunner(object):
         #   InvalidArgumentError: variables were not initialized. Comes from
         #       ResourceVariableOp.
         retry = True
+        # Do not retry within Vizier study when NaNs cause InvalidArgumentError.
+        if self._InVizierStudy() and isinstance(e,
+                                                tf.errors.InvalidArgumentError):
+          if 'Tensor had NaN values' in str(e):
+            retry = False
+            tf.logging.info('%s done (infeasible result due to NaN values).',
+                            job_name)
       else:
         retry = False
 
