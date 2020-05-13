@@ -578,7 +578,6 @@ class MLPerfTrainDecodeProgram(BaseProgram):
         self._train_model.ConstructFPropBPropGraph()
         return [self._train_model.GetTask().train_op]
 
-      @tpu_function.on_device_training_loop
       def TpuTrain():
         loop_result = tpu_training_loop.repeat(
             self._train_steps_per_loop,
@@ -605,6 +604,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()
 
+    @tpu_function.on_device_training_loop
     def TrainAndDecode():
       with tf.control_dependencies([TpuTrain()]):
         return _DecodeFn()
