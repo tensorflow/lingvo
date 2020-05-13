@@ -161,7 +161,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     params.packed_input = p.packed_input
     return params
 
-  def _GetSourceBatchSize(self, source_paddings):
+  def _GetSourceLength(self, source_paddings):
     return py_utils.GetShape(source_paddings)[0]
 
   def FProp(self,
@@ -264,7 +264,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     atten_prob = tf.reshape(
         atten_prob,
         [target_time, target_bs,
-         self._GetSourceBatchSize(source_paddings)])
+         self._GetSourceLength(source_paddings)])
     return h, atten_prob
 
   def _FinishExtendStep(self,
@@ -397,6 +397,9 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
   def Params(cls):
     p = super(TransformerMultiSourceAttentionLayer, cls).Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
+    p.Define(
+        'primary_source_index', 0, 'Index of the primary source whose '
+        'attention probs will be returned.')
     # Only used for case 3 and 4.
     p.is_masked = False
     return p
@@ -420,13 +423,15 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
         attention.MultiSourceAttention.Params().Set(
             source_dim=p.source_dim,
             query_dim=p.source_dim,
-            source_atten_tpls=source_atten_tpls))
+            source_atten_tpls=source_atten_tpls,
+            primary_source_key='source_%d' % p.primary_source_index))
     # Make sure the output context dim does not change.
     multi_source_atten.cls.SetOuputContextDim(multi_source_atten, p.source_dim)
     return multi_source_atten
 
-  def _GetSourceBatchSize(self, source_paddings):
-    return py_utils.GetShape(source_paddings.Flatten()[0])[0]
+  def _GetSourceLength(self, source_paddings):
+    return py_utils.GetShape(
+        source_paddings['source_%d' % self.params.primary_source_index])[0]
 
 
 class TransformerFeedForwardLayer(base_layer.BaseLayer):
