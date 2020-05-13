@@ -774,7 +774,8 @@ class PiecewiseSchedule(BaseSchedule):
     for interval_start, schedule, schedule_theta in zip(
         interval_starts, self.schedules, theta.schedules):
       relative_step = tf.maximum(
-          tf.cast(0, current_step.dtype), current_step - interval_start)
+          tf.cast(0, current_step.dtype),
+          current_step - tf.cast(interval_start, current_step.dtype))
       values.append(schedule.FProp(schedule_theta, relative_step))
 
     return py_utils.PiecewiseConstant(current_step, p.boundaries, values,
@@ -797,3 +798,38 @@ class SqrtDecay(BaseSchedule):
     learning_rate = tf.math.rsqrt(tf.maximum(step_num, p.warmup_steps))
     learning_rate *= p.multiplier
     return learning_rate
+
+
+class CycleSchedule(BaseSchedule):
+  """Piecewise schedule composed of sub-schedules in a cycle."""
+
+  @classmethod
+  def Params(cls):
+    p = super(CycleSchedule, cls).Params()
+    p.Define(
+        'schedules', None, 'A list of sub-schedules. Unlike PiecewiseSchedule, '
+        'the absolute step is passed to the sub-schedule.')
+    p.Define('steps', None, 'The number of steps to run each sub-schedule.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(CycleSchedule, self).__init__(params)
+    p = self.params
+    if len(p.schedules) != len(p.steps):
+      raise ValueError('len(schedules) != len(steps): %s vs %s' %
+                       (len(p.schedules), len(p.steps)))
+    self.CreateChildren('schedules', p.schedules)
+    boundaries = [0]
+    for step in p.steps:
+      boundaries.append(boundaries[-1] + step)
+    self._period = boundaries[-1]
+    self._boundaries = boundaries[1:-1]
+
+  def FProp(self, theta, current_step):
+    values = []
+    for schedule, schedule_theta in zip(self.schedules, theta.schedules):
+      values.append(schedule.FProp(schedule_theta, current_step))
+    relative_step = tf.math.mod(current_step, self._period)
+    return py_utils.PiecewiseConstant(relative_step, self._boundaries, values,
+                                      values[0].dtype)

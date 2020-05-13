@@ -3024,7 +3024,7 @@ def PiecewiseConstant(x_in, boundaries, values, vdtype):
   bs = tf.convert_to_tensor(boundaries, dtype=tf.float32)
   vs = tf.convert_to_tensor(values, dtype=vdtype)
   # The following is equivalent to 'return vs[index]'.
-  index = tf.reduce_sum(tf.cast(tf.greater(x_in, bs), tf.int32))
+  index = tf.reduce_sum(tf.cast(tf.greater_equal(x_in, bs), tf.int32))
   one_hot_vec = tf.one_hot(
       tf.expand_dims(index, 0), depth=len(values), dtype=vdtype)
   return Matmul(tf.reshape(vs, (1, -1)), tf.transpose(one_hot_vec))[0][0]

@@ -469,8 +469,8 @@ class LearningRateScheduleTest(test_utils.TestCase):
 
       self.assertAllClose(
           pts, [[0, 0.0], [1, 1.6], [2, 3.2], [3, 4.8], [4, 6.4], [5, 8.0],
-                [6, 8.0], [7, 8.0], [8, 8.], [9, 0.8], [10, 0.8], [11, 0.08],
-                [12, 0.08], [13, 0.008], [14, 0.008]])
+                [6, 8.0], [7, 8.0], [8, 0.8], [9, 0.8], [10, 0.08], [11, 0.08],
+                [12, 0.008], [13, 0.008], [14, 0.008]])
 
   def testCosineSchedule(self):
     p = schedule.CosineSchedule.Params().Set(
@@ -533,6 +533,23 @@ class LearningRateScheduleTest(test_utils.TestCase):
               [50000, math.cos(math.pi * 3 / 4) + 1.],  # pi*3/4.
               [60000, 0.0],  # pi.
           ])
+
+  def testCycleSchedule(self):
+    p0 = schedule.LinearSchedule.Params().Set(start=(0, 0.), limit=(1000, 1.))
+    p1 = schedule.Constant.Params().Set(value=5.0)
+    p = schedule.CycleSchedule.Params().Set(schedules=[p0, p1], steps=[4, 1])
+    with self.session():
+      lrs = p.Instantiate()
+      pts = [[i, lrs.Value(i).eval()] for i in [0, 1, 4, 5, 998, 999, 1000]]
+      self.assertAllClose(pts, [
+          [0, 0.0],
+          [1, 1.0 / 1000.0],
+          [4, 5.0],
+          [5, 5.0 / 1000.0],
+          [998, 998.0 / 1000.0],
+          [999, 5.0],
+          [1000, 1.0],
+      ])
 
 
 if __name__ == '__main__':

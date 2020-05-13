@@ -979,10 +979,12 @@ class PyUtilsTest(test_utils.TestCase):
         return self.evaluate(result)
 
     self.assertAlmostEqual(1e-3, _Eval(0))
-    self.assertAlmostEqual(1e-3, _Eval(1000))
+    self.assertAlmostEqual(1e-3, _Eval(999))
+    self.assertAlmostEqual(2e-4, _Eval(1000))
     self.assertAlmostEqual(2e-4, _Eval(1001))
-    self.assertAlmostEqual(2e-4, _Eval(2000))
-    self.assertAlmostEqual(3e-5, _Eval(3000))
+    self.assertAlmostEqual(2e-4, _Eval(1999))
+    self.assertAlmostEqual(3e-5, _Eval(2000))
+    self.assertAlmostEqual(4e-6, _Eval(3000))
     self.assertAlmostEqual(4e-6, _Eval(4000))
 
   def testRepeatDim(self):
