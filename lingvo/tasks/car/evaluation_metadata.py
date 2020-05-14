@@ -102,3 +102,9 @@ class EvaluationMetadata(object):
     thresholds for each level.
     """
     return NotImplementedError()
+
+  def RecallAtPrecision(self):
+    """Report the recall at a given precision level.."""
+    # TODO(shlens): Consider making this a list of values that sample the range
+    # of low to high precision values.
+    return 0.95

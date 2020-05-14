@@ -384,6 +384,36 @@ class BreakdownMetricTest(test_utils.TestCase):
     self.assertNear(0.2, max_recall[2], 1e-7)
     self.assertNear(0.0, max_recall[3], 1e-7)
 
+  def testFindRecallAtGivenPrecision(self):
+    # The shape of the precision_recall_curves is [n, m, 2] where n is the
+    # number of classes, m is then number of values in the curve, 2 indexes
+    # between precision [0] and recall [1].
+    car = np.transpose(
+        np.array(
+            [[0.9, 0.7, 0.5, 0.1, 0.0, 0.0], [0.0, 0.2, 0.5, 0.9, 1.0, 1.0]],
+            dtype=np.float32))
+    ped = np.transpose(
+        np.array(
+            [[0.9, 0.7, 0.5, 0.0, 0.0, 0.0], [0.0, 0.2, 0.5, 0.9, 1.0, 1.0]],
+            dtype=np.float32))
+    cyc = np.transpose(
+        np.array(
+            [[0.9, 0.7, 0.0, 0.0, 0.0, 0.0], [0.0, 0.2, 0.5, 0.9, 1.0, 1.0]],
+            dtype=np.float32))
+    foo = np.transpose(
+        np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], [0.0, 0.2, 0.5, 0.9, 1.0, 1.0]],
+            dtype=np.float32))
+    precision_recall_curves = np.stack([car, ped, cyc, foo])
+    precision_level = 0.5
+    recall = breakdown_metric._FindRecallAtGivenPrecision(
+        precision_recall_curves, precision_level)
+    self.assertAllEqual([4], recall.shape)
+    self.assertNear(0.5, recall[0], 1e-7)
+    self.assertNear(0.5, recall[1], 1e-7)
+    self.assertNear(0.2, recall[2], 1e-7)
+    self.assertNear(0.0, recall[3], 1e-7)
+
 
 if __name__ == '__main__':
   tf.test.main()
