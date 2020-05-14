@@ -100,6 +100,32 @@ class CheckpointerTest(test_utils.TestCase):
       # initialized.
       saver.Restore(sess)
 
+  def testRestoreState(self):
+    train_dir = os.path.join(self.get_temp_dir(), 'testSaveRestore')
+    os.mkdir(train_dir)
+    p = base_model.SingleTaskModel.Params(LinearModel.Params())
+    p.input = base_input_generator.BaseInputGenerator.Params()
+
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      self.evaluate(tf.global_variables_initializer())
+      saver = checkpointer.Checkpointer(train_dir, model)
+      saver.Save(sess, 10)
+
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      # Create a new saver.
+      saver = checkpointer.Checkpointer(train_dir, model)
+      saver.RestoreIfNeeded(sess)
+
+      # Save at 20
+      saver.Save(sess, 20)
+
+      # Check the checkpoint state saved, there should be two paths.
+
+      ckpt_state = tf.train.get_checkpoint_state(train_dir)
+      self.assertEqual(2, len(ckpt_state.all_model_checkpoint_paths))
+
   def testRestoreWithGlobalStepAlreadyInitialized(self):
     train_dir = os.path.join(self.get_temp_dir(),
                              'testRestoreWithGlobalStepAlreadyInitialized')
