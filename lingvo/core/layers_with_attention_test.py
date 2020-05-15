@@ -2110,6 +2110,196 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(actual_layer_output, expected_output)
       self.assertAllClose(p_c_val, expected_p_c)
 
+  def testTransformerWithContextLayerConstruction(self):
+    p = layers_with_attention.TransformerWithContextLayer.Params()
+    p.name = 'transformer_1'
+    p.source_dim = 4
+    p.tr_fflayer_tpl.hidden_dim = 7
+    p.tr_atten_tpl.num_attention_heads = 2
+    layer = p.Instantiate()
+    # output_dim is equal to source_dim when p.output_dim == 0
+    self.assertEqual(0, p.output_dim)
+    self.assertEqual(p.source_dim, layer.fflayer.output_dim)
+
+  def testTransformerWithContextLayerFProp(self):
+    with self.session(use_gpu=True):
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerWithContextLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_attention_heads = 2
+      transformer = p.Instantiate()
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth)
+
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings,
+          tertiary_vecs=aux_vecs,
+          tertiary_paddings=aux_paddings)
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[ 0.55129296, -0.7571765 ,  0.281192  ,  0.8710322 ],
+           [ 0.5072957 , -1.3714458 ,  1.5689826 , -0.0971924 ]],
+          [[ 2.2560897 ,  2.7890472 ,  0.016873  , -0.5172725 ],
+           [ 1.4128124 , -2.0595124 ,  0.37241971, -0.6075135 ]],
+          [[ 2.57011   , -0.8678784 , -0.33203793, -0.18508816],
+           [ 1.3549538 , -2.0990794 ,  0.62103236, -0.9975941 ]],
+          [[ 0.15144205, -1.1681134 ,  1.7113727 ,  0.4682465 ],
+           [ 2.9454587 , -1.4413761 ,  0.5215157 , -2.1541023 ]],
+          [[ 1.5092299 , -1.7608491 ,  0.21144068,  0.22785848],
+           [-0.766488  , -0.487573  ,  1.0574573 ,  0.81118184]]]
+      expected_prob_output = [
+          [[0.223735  , 0.        , 0.26685917, 0.        , 0.2968173 ,
+            0.        , 0.2125885 ],
+           [0.        , 0.28585374, 0.        , 0.35088098, 0.        ,
+            0.36326528, 0.        ]],
+          [[0.2703818 , 0.        , 0.23092957, 0.        , 0.2249705 ,
+            0.        , 0.27371815],
+           [0.        , 0.26997963, 0.        , 0.33745134, 0.        ,
+            0.39256904, 0.        ]],
+          [[0.25208434, 0.        , 0.24830116, 0.        , 0.23168065,
+            0.        , 0.26793382],
+           [0.        , 0.2847324 , 0.        , 0.3477454 , 0.        ,
+            0.36752218, 0.        ]],
+          [[0.23778549, 0.        , 0.26169604, 0.        , 0.26542395,
+            0.        , 0.23509452],
+           [0.        , 0.3603859 , 0.        , 0.37519425, 0.        ,
+            0.26441985, 0.        ]],
+          [[0.22522289, 0.        , 0.26782405, 0.        , 0.28599125,
+            0.        , 0.22096181],
+           [0.        , 0.29979968, 0.        , 0.31155068, 0.        ,
+            0.38864967, 0.        ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testTransformerWithContextLayerPackedInputFProp(self):
+    with self.session(use_gpu=True):
+      with tf.variable_scope('transformer_packed_test', reuse=tf.AUTO_REUSE):
+        np.random.seed(6348575)
+        depth = 4
+        p = layers_with_attention.TransformerLayer.Params()
+        p.name = 'transformer'
+        p.source_dim = depth
+        p.tr_fflayer_tpl.hidden_dim = 7
+        p.tr_atten_tpl.num_attention_heads = 2
+        transformer = p.Instantiate()
+        packed_params = p.Copy()
+        packed_params.packed_input = True
+        transformer_packed = packed_params.Instantiate()
+
+        dtype = tf.float32
+        source_vecs = tf.stack([
+            tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(5)
+        ])
+        source_padding = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 1], [0, 0, 0, 0, 0]], dtype=dtype))
+        aux_vecs = tf.stack([
+            tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)
+        ])
+        tertiary_vecs = tf.stack([
+            tf.constant(np.random.rand(2, depth), dtype=dtype) for _ in range(7)
+        ])
+        aux_paddings = tf.transpose(
+            tf.constant([[0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 1]],
+                        dtype=dtype))
+
+        source_vecs_packed = tf.reshape(source_vecs, [-1, 1, depth])
+        aux_vecs_packed = tf.reshape(aux_vecs, [-1, 1, depth])
+        tertiary_vecs_packed = tf.reshape(tertiary_vecs, [-1, 1, depth])
+        source_padding_packed = tf.reshape(source_padding, [-1, 1])
+        aux_padding_packed = tf.reshape(aux_paddings, [-1, 1])
+        source_segment_id = tf.transpose(
+            tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1]], dtype=tf.float32))
+        aux_segment_id = tf.transpose(
+            tf.constant([[0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1]],
+                        dtype=tf.float32))
+
+        h, _ = transformer.FPropDefaultTheta(
+            source_vecs,
+            source_padding,
+            aux_vecs=aux_vecs,
+            aux_paddings=aux_paddings,
+            tertiary_vecs=tertiary_vecs,
+            tertiary_paddings=aux_paddings)
+
+        h_packed, _ = transformer_packed.FPropDefaultTheta(
+            source_vecs_packed,
+            source_padding_packed,
+            aux_vecs=aux_vecs_packed,
+            aux_paddings=aux_padding_packed,
+            source_segment_id=source_segment_id,
+            aux_segment_id=aux_segment_id,
+            tertiary_vecs=tertiary_vecs_packed,
+            tertiary_paddings=aux_padding_packed,
+            tertiary_segment_id=aux_segment_id)
+        h_packed = tf.reshape(h_packed, tf.shape(h))
+
+        self.evaluate(tf.global_variables_initializer())
+        actual_layer, p_layer = self.evaluate([h, h_packed])
+        self.assertAllClose(actual_layer, p_layer)
+
+  def testTransformerWithContextLayerExtendStep(self):
+    with self.session(use_gpu=True):
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerWithContextLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.tr_atten_tpl.num_attention_heads = 2
+      transformer = p.Instantiate()
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth)
+      source_padding = tf.zeros([5, 2])
+
+      h1, probs1 = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings,
+          tertiary_vecs=aux_vecs,
+          tertiary_paddings=aux_paddings)
+
+      h2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = transformer.ExtendStep(
+            transformer.theta,
+            source_vecs[i, :, :],
+            prefix_states,
+            aux_vecs,
+            aux_paddings,
+            tertiary_vecs=aux_vecs,
+            tertiary_paddings=aux_paddings)
+        h2.append(h)
+        probs2.append(probs)
+
+      h2 = tf.stack(h2)
+      probs2 = tf.concat(probs2, 0)
+
+      self.evaluate(tf.global_variables_initializer())
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
+      self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
 
 if __name__ == '__main__':
   tf.test.main()

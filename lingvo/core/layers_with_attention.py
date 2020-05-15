@@ -1876,3 +1876,192 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
         tf.reduce_sum(
             tf.expand_dims(p_c, -1) * tf.stack(ff_outputs, -2), axis=-2))
     return out, p_c
+
+
+class TransformerWithContextLayer(base_layer.BaseLayer):
+  """A transformer layer with 3 attention layers.
+
+     The same as layers_with_attention.TransformerLayer, but with an
+     additional attention layer to attend to a third transformer stack
+     representing context.
+
+     self-attention => context attention (newly added as tertiary_atten) =>
+     encoder attention (named aux_atten in TransformerLayer).
+
+     The weights are *not* shared between these three attention layers.
+
+     See https://arxiv.org/pdf/1810.03581.pdf
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerWithContextLayer, cls).Params()
+    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('output_dim', 0, 'Dimension of the transformer block output.')
+    p.Define(
+        'tr_atten_tpl',
+        TransformerAttentionLayer.Params().Set(num_attention_heads=8),
+        'Transformer Attention Layer params. The same template is applied '
+        'to all three attention layers.')
+    p.Define('tr_fflayer_tpl',
+             TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
+             'Transformer Feed-Forward Layer params.')
+    p.Define('packed_input', False,
+             'If True, each training example may pack multiple sequences.')
+    # removed: p.has_aux_atten and p.mask_self_atten: they are always True,
+    # removed: p.num_aux_atten_post_proj, p.tr_post_ln_tpl
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerWithContextLayer, self).__init__(params)
+    p = self.params
+    if not p.source_dim:
+      raise ValueError('p.source_dim not set')
+
+    with tf.variable_scope(p.name):
+
+      # Initialize multi-headed self-attention
+      params = p.tr_atten_tpl.Copy()
+      params.name = 'multihead_self_atten'
+      params.source_dim = p.source_dim
+      params.packed_input = p.packed_input
+      params.is_masked = True
+      self.CreateChild('self_atten', params)
+
+      # Initialize tertiary attention.
+      params = p.tr_atten_tpl.Copy()
+      params.name = 'tertiary_multihead_atten'
+      params.source_dim = p.source_dim
+      params.packed_input = p.packed_input
+      self.CreateChild('tertiary_atten', params)
+
+      # Initialize multi-headed encoder attention
+      params = p.tr_atten_tpl.Copy()
+      params.name = 'multihead_atten'
+      params.source_dim = p.source_dim
+      params.packed_input = p.packed_input
+      self.CreateChild('atten', params)
+
+      # Initialize feed-forward layer
+      params = p.tr_fflayer_tpl.Copy()
+      params.name = 'tr_fflayer'
+      params.input_dim = p.source_dim
+      params.output_dim = p.output_dim
+      self.CreateChild('fflayer', params)
+
+  def FProp(self,
+            theta,
+            source_vecs,
+            source_paddings,
+            aux_vecs,
+            aux_paddings,
+            tertiary_vecs,
+            tertiary_paddings,
+            source_segment_id=None,
+            aux_segment_id=None,
+            tertiary_segment_id=None):
+    """Transformer Layer.
+
+    Please see docstring of TransformerAttentionLayer.FProp.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_vecs: [source_time, source_batch, dim].
+      source_paddings: [source_time, source_batch]
+      aux_vecs: [aux_time, aux_batch, dim]
+      aux_paddings: [aux_time, aux_batch]
+      tertiary_vecs: [tertiary_time, tertiary_batch, dim]
+      tertiary_paddings: [tertiary_time, tertiary_batch]
+      source_segment_id: [source_time, source_batch]
+      aux_segment_id: [aux_time, aux_batch]
+      tertiary_segment_id: [tertiary_time, tertiary_batch]
+
+    Returns:
+      The attention context vector, [source_time, source_batch, dim].
+
+      The attention probability vector, [source_time, source_batch, aux_time].
+    """
+    p = self.params
+    if p.packed_input:
+      assert source_segment_id is not None, ('Need to specify segment id for '
+                                             'packed input.')
+      assert aux_segment_id is not None, ('Need to specify segment id for '
+                                          'packed input.')
+      assert tertiary_segment_id is not None, ('Need to specify segment id for '
+                                               'packed input.')
+
+    atten_vec, atten_prob = self.self_atten.FProp(
+        theta.self_atten,
+        source_vecs,
+        source_paddings,
+        query_segment_id=source_segment_id)
+    atten_vec, atten_prob = self.tertiary_atten.FProp(
+        theta.tertiary_atten, atten_vec, tertiary_paddings, tertiary_vecs,
+        source_segment_id, tertiary_segment_id)
+    atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
+                                             aux_paddings, aux_vecs,
+                                             source_segment_id, aux_segment_id)
+
+    h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
+    return h, atten_prob
+
+  def ExtendStep(self,
+                 theta,
+                 source_vecs,
+                 prefix_states,
+                 aux_vecs,
+                 aux_paddings,
+                 tertiary_vecs,
+                 tertiary_paddings,
+                 t=None):
+    """Transformer Layer, extend one step in decoding.
+
+    Please see docstring of TransformerAttentionLayer.ExtendStep.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      source_vecs: [source_batch, dim].
+      prefix_states: dict, containing tensors which are the results of previous
+        attentions, used for fast decoding.
+      aux_vecs: [aux_time, aux_batch, dim]
+      aux_paddings: [aux_time, aux_batch] tertiary_vecs=None,
+        tertiary_paddings=None,
+      tertiary_vecs: [tertiary_time, tertiary_batch, dim]
+      tertiary_paddings: [tertiary_time, tertiary_batch]
+      t: a scalar, the current time step, 0-based.
+
+    Returns:
+      The attention context vector, [target_batch, source_dim]
+
+      The attention probability vector from the encoder attention layer (the
+      last attention layer) only, [source_time, target_batch].
+      TODO(zhouwk): Return also the attention prob from the tertiary attention.
+
+      Updated prefix states
+    """
+    p = self.params
+
+    batch_size = py_utils.GetShape(source_vecs)[0]
+
+    # First the self-attention layer.
+    atten_vec, _, new_states = self.self_atten.ExtendStep(
+        theta.self_atten, source_vecs, prefix_states, t)
+
+    # Next the context attention (tertiary_atten) layer.
+    atten_vec = tf.expand_dims(atten_vec, axis=0)
+    atten_vec, _ = self.tertiary_atten.FProp(theta.tertiary_atten, atten_vec,
+                                             tertiary_paddings, tertiary_vecs)
+
+    # Next the source attention (aux_atten) layer.
+    atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
+                                             aux_paddings, aux_vecs)
+
+    # Finally, the feedforward layer.
+    h = self.fflayer.FProp(
+        theta.fflayer, atten_vec,
+        tf.zeros([1, batch_size], dtype=py_utils.FPropDtype(p)))
+    h = tf.squeeze(h, 0)
+    return h, atten_prob, new_states
