@@ -60,6 +60,7 @@ cc_library(
         ":best_step_op_kernels",
         ":functional_ops_kernels",
         ":generic_input_op_kernels",
+        ":mass_op",
         ":ml_perf_subword_op",
         ":pack_ops",
         ":preconditioner_op_kernels",
@@ -449,6 +450,25 @@ custom_kernel_library(
 py_test(
     name = "pack_ops_test",
     srcs = ["pack_ops_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":ops",
+        "//lingvo:compat",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+        # Implicit tensorflow dependency.
+    ],
+)
+
+custom_kernel_library(
+    name = "mass_op",
+    srcs = ["mass_op.cc"],
+    op_def_lib = [":x_ops"],
+)
+
+py_test(
+    name = "mass_op_test",
+    srcs = ["mass_op_test.py"],
     python_version = "PY3",
     deps = [
         ":ops",

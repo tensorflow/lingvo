@@ -881,5 +881,59 @@ the tgt), as opposed to in PackSequences, when both src and tgt columns must be
 processed together within the same op.
  )doc");
 
+REGISTER_OP("Mass")
+    .Input("ids: int32")
+    .Input("weights: float32")
+    .Input("actual_seq_len: int32")
+    .Attr("mask_id: int")
+    .Attr("mask_ratio: float = 0.5")
+    .Attr("mask_minlen: int = 0")
+    .Attr("span_len: int = 100000")
+    .Attr("random_start_prob: float = 0.6")
+    .Attr("keep_prob: float = 0.1")
+    .Attr("rand_prob: float = 0.1")
+    .Attr("mask_prob: float = 0.8")
+    // TODO(alisonlui): This flag is rarely used; remove after verification.
+    .Attr("mask_target: bool = True")
+    .Attr("vocab_size: int")
+    .Attr("first_unreserved_id: int = 4")
+    .Output("src_ids: int32")
+    .Output("tgt_ids: int32")
+    .Output("tgt_labels: int32")
+    .Output("tgt_weights: float32")
+    .Doc(R"doc(
+Applies masking to implement MASS.
+
+ids: Tensor of shape [batch_size, max_seq_len] containing the token ids.
+  Should include EOS token </s>.
+weights: Tensor of shape [batch_size, max_seq_len].
+actual_seq_len: Tensor of shape [batch_size].
+
+mask_id: The id to use for the mask token.
+mask_ratio: Proportion of src to mask.
+mask_minlen: Skip sentences too short to mask at least this many tokens.
+span_len: Split mask_len into segments of this size and randomly distribute
+those across the src.
+random_start_prob: The probability that the placement of masked segments will be
+  entirely random. The remaining cases are split evenly between masking at the
+  beginning and at the end of the src.
+keep_prob/rand_prob/mask_prob: The probability that a token to be masked will
+be unchanged, replaced with a random token in the vocab, or replaced with the
+mask_id, respectively. Must sum to 1.
+mask_target: whether to mask the target (the mask will be the inverse of that of
+  the src).
+vocab_size: Vocab size used when selecting a random token to replace a masked
+  token.
+first_unreserved_id: Tokens greater than or equal to this may be selected at
+  random to replace a masked token.
+
+src_ids: Masked ids. E.g. s1 s2 s3 m m </s>
+tgt_ids: Right-shifted ids with BOS token added, where the mask is the
+  positional inverse of that of the source unless mask_target=False.
+  E.g. m m m s3 s4 m
+tgt_labels: E.g. s1 s2 s3 s4 s5 </s>
+tgt_weights: weights are zeroed wherever the target is masked.
+)doc");
+
 }  // namespace
 }  // namespace tensorflow
