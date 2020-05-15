@@ -575,8 +575,8 @@ Y.&nbsp;He, T.&nbsp;N. Sainath, R.&nbsp;Prabhavalkar, I.&nbsp;McGraw, R.&nbsp;Al
 </td>
 <td class="bibtexitem">
 K.&nbsp;Irie, R.&nbsp;Prabhavalkar, A.&nbsp;Kannan, A.&nbsp;Bruguier, D.&nbsp;Rybach, and P.&nbsp;Nguyen,
-  &ldquo;Model unit exploration for sequence-to-sequence speech recognition,&rdquo; <em>
-  arXiv e-prints</em>, 2019.
+  &ldquo;On the choice of modeling unit for sequence-to-sequence speech
+  recognition,&rdquo; in <em>Proc. Interspeech</em>, 2019.
 [&nbsp;<a href="https://arxiv.org/abs/1902.01955">pdf</a>&nbsp;]
 
 </td>
@@ -791,20 +791,6 @@ M.&nbsp;X. Chen, B.&nbsp;N. Lee, G.&nbsp;Bansal, Y.&nbsp;Cao, S.&nbsp;Zhang, J.&
 
 
 <table>
-
-<tr valign="top">
-<td align="right" class="bibtexnumber">
-[<a name="wang2017tacotron">1</a>]
-</td>
-<td class="bibtexitem">
-Y.&nbsp;Wang, R.&nbsp;Skerry-Ryan, D.&nbsp;Stanton, Y.&nbsp;Wu, R.&nbsp;Weiss, N.&nbsp;Jaitly, Z.&nbsp;Yang,
-  Y.&nbsp;Xiao, Z.&nbsp;Chen, S.&nbsp;Bengio, Q.&nbsp;Le, Y.&nbsp;Agiomyrgiannakis, R.&nbsp;Clark, and
-  R.&nbsp;A. Saurous, &ldquo;Tacotron: Towards end-to-end speech synthesis,&rdquo; in <em>Proc. Interspeech</em>, 2017.
-[&nbsp;<a href="https://google.github.io/tacotron/publications/tacotron/index.html">sound examples</a>&nbsp;|
-<a href="https://arxiv.org/abs/1703.10135">pdf</a>&nbsp;]
-
-</td>
-</tr>
 
 <tr valign="top">
 <td align="right" class="bibtexnumber">
