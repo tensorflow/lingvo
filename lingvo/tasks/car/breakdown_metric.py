@@ -758,10 +758,7 @@ class ByDifficulty(BreakdownMetric):
     # Generate scalar summaries for the various recalls for each difficulty.
     for difficulty in p.metadata.DifficultyLevels():
       max_recall = _FindMaximumRecall(self._precision_recall[difficulty])
-      recall_at_precision = _FindRecallAtGivenPrecision(
-          self._precision_recall[difficulty], p.metadata.RecallAtPrecision())
       for i, j in enumerate(p.metadata.EvalClassIndices()):
-        classname = p.metadata.ClassNames()[j]
         summary = tf.Summary(value=[
             tf.Summary.Value(
                 tag='{}/{}/max_recall_{}'.format(name, classname, difficulty),
@@ -769,12 +766,16 @@ class ByDifficulty(BreakdownMetric):
         ])
         summaries.append(summary)
 
-        summary = tf.Summary(value=[
-            tf.Summary.Value(
-                tag='{}/{}/recall_{}_{}'.format(
-                    name, classname, int(p.metadata.RecallAtPrecision() *
-                                         100), difficulty),
-                simple_value=recall_at_precision[i])
-        ])
+      for precision_level in p.metadata.RecallAtPrecision():
+        recall_at_precision = _FindRecallAtGivenPrecision(
+            self._precision_recall[difficulty], precision_level)
+        for i, j in enumerate(p.metadata.EvalClassIndices()):
+          classname = p.metadata.ClassNames()[j]
+          summary = tf.Summary(value=[
+              tf.Summary.Value(
+                  tag='{}/{}/recall_{}_{}'.format(
+                      name, classname, int(precision_level * 100), difficulty),
+                  simple_value=recall_at_precision[i])
+          ])
         summaries.append(summary)
     return summaries
