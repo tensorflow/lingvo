@@ -1,3 +1,9 @@
+load(
+    "//lingvo:lingvo.bzl",
+    "lingvo_proto_cc",
+    "lingvo_proto_py",
+)
+
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -129,6 +135,33 @@ py_library(
 )
 
 py_library(
+    name = "data_augmenter",
+    srcs = ["data_augmenter.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+        "//lingvo/core/ops",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_test(
+    name = "data_augmenter_test",
+    srcs = ["data_augmenter_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":data_augmenter",
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:py_utils",
+        "//lingvo/core:test_utils",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
@@ -138,7 +171,9 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
+        "//lingvo/core:summary_utils",
         "//lingvo/core:tokenizers",
+        "//lingvo/core/ops",
         # Implicit six dependency.
     ],
 )
@@ -152,6 +187,7 @@ py_test(
     ],
     python_version = "PY3",
     deps = [
+        ":data_augmenter",
         ":input_generator",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -241,4 +277,15 @@ py_library(
         "//lingvo/core:rnn_layers",
         "//lingvo/core:schedule",
     ],
+)
+
+lingvo_proto_cc(
+    name = "text_input_proto",
+    src = "text_input.proto",
+)
+
+lingvo_proto_py(
+    name = "text_input_py_pb2",
+    src = "text_input.proto",
+    deps = [":text_input_proto"],
 )

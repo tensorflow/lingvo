@@ -22,7 +22,9 @@ import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import generic_input
+from lingvo.core import ops
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 from lingvo.core import tokenizers
 import six
 
@@ -98,18 +100,22 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
       else:
         source_shape = None
         target_shape = None
-      self._src_ids = py_utils.PadSequenceDimension(
-          self._src_ids, p.source_max_length, 0, source_shape)
+      self._src_ids = py_utils.PadSequenceDimension(self._src_ids,
+                                                    p.source_max_length, 0,
+                                                    source_shape)
       self._src_paddings = py_utils.PadSequenceDimension(
           self._src_paddings, p.source_max_length, 1, source_shape)
-      self._tgt_ids = py_utils.PadSequenceDimension(
-          self._tgt_ids, p.target_max_length, 0, target_shape)
+      self._tgt_ids = py_utils.PadSequenceDimension(self._tgt_ids,
+                                                    p.target_max_length, 0,
+                                                    target_shape)
       self._tgt_paddings = py_utils.PadSequenceDimension(
           self._tgt_paddings, p.target_max_length, 1, target_shape)
-      self._tgt_labels = py_utils.PadSequenceDimension(
-          self._tgt_labels, p.target_max_length, 0, target_shape)
-      self._tgt_weights = py_utils.PadSequenceDimension(
-          self._tgt_weights, p.target_max_length, 0, target_shape)
+      self._tgt_labels = py_utils.PadSequenceDimension(self._tgt_labels,
+                                                       p.target_max_length, 0,
+                                                       target_shape)
+      self._tgt_weights = py_utils.PadSequenceDimension(self._tgt_weights,
+                                                        p.target_max_length, 0,
+                                                        target_shape)
 
     # TODO(zhifengc): come up more meaningful training sample ids here.
     self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
@@ -370,3 +376,526 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
       return tf.cast(v, self.params.fprop_dtype)
 
     return ret.Transform(_Cast)
+
+
+def _GetSegmentPos(weights):
+  """Returns a segment_pos tensor from the given weights tensor."""
+  maxlen = tf.shape(weights)[1]
+  ret = tf.cast(tf.range(maxlen), dtype=tf.float32)
+  return tf.cast(weights * ret, dtype=tf.int32)
+
+
+class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
+  """Generator for packed text input."""
+
+  @classmethod
+  def Params(cls):
+    r"""Defaults params for TextInput.
+
+    Returns:
+      A Params object for TextPackedInput.
+
+    Notes about usage:
+
+    * Input files contain UTF8 encoded texts. p.input_file_type controls
+      what format to extract these texts from. The default is 'tsv', in which
+      case p.file_pattern should be prefixed by file type 'text:', and
+      every line in the input file should have text columns separated by
+      a tab '\t'. Otherwise p.input_file_type can be Sentence or SentencePair
+      protos.
+
+      For tsv input files, in the default case, the file should contain 2
+      columns, for the source and the target sentence. Special cases:
+
+      - When quality scores are present (see p.quality_score_filter_fn below),
+        it should contain 3 columns, the last being a quality score.
+      - When MASS is enabled, it should contain a single column.
+
+    * p.tokenizer or p.tokenizer_dict is used to perform string to id
+      conversions. If key `src` or `tgt` is present in p.tokenizer_dict,
+      it will be used for generating the ids for src or tgt, respectively.
+      Otherwise the default tokenizer will be used.
+
+    * p.packing_factor depends on the training data and max lengths used.
+
+      If this value is too small, we generate packed batches that contain
+      too many padding that could have been used to pack more examples.
+      If this value is too large, we use more memory and randomly discard
+      examples that could not fit.
+
+      One can look at the num_samples_in_batch graph to determine if its
+      value is too small. For example, with an effective scaled batch size of
+      1024, suppose we set p.packing_factor=3.0, and observe that
+      num_samples_in_batch is saturated at 3072(=1024x3), this means 3.0 is
+      likely too small. If we instead observe that num_samples_in_batch
+      fluctuates around 2500, this means 3.0 is larger than needed.
+
+      We believe that there can be a slight bias against longer sequences
+      when packing is enabled. The remedy is either use larger effective
+      batch size, or use a larger-than-optimal packing factor when effective
+      batch size is smaller. For example, p.packing_factor = 8 seems to work
+      reasonably well in practice.
+
+    * p.source_max_length and p.target_max_length control both the shape of
+      the generated input batch (how long each row is) and the filtering
+      (max allowed lengths for source and targt, respectively).
+
+      p.bucket_upper_bound also conrols the filtering of examples. Inputs
+      with either source or target sequence lengths exceeding it will be
+      filtered out.
+
+      It's not meaningful to set p.bucket_upper_bound higher than both
+      p.source_max_length and p.target_max_length.
+
+      When packing is enabled, however, a smaller p.bucket_upper_bound means
+      that individual sequences have a smaller max length, but the packed
+      batch may have a larger total length.
+
+    * p.file_pattern_task_ids, p.task_to_{src,tgt}_lang_map are all used
+      to manipulate batch.{src,tgt}.task_ids.
+
+      For each eaxmple, its task is obtained from the source id, which is
+      the index of the example's origin file in p.file_pattern. The task
+      id populated in the input batch is determined by:
+      p.task_to_{src,tgt}_lang_map[ p.file_pattern_task_ids[souce_id] ],
+      for src and tgt, respectively, where if a list is empty it falls
+      back to an identity map.
+
+      In the future we may define a separate lang_ids field to the input
+      batch to disambiguate.
+
+    * p.quality_score_filter_fn can be used when a column of quality score
+      is present in the input .tsv file. The quality score must be the last
+      column. This filter function returns True to filter, e.g. use
+      p.quality_score_filter_fn = lambda x: x <= 0.3 for scores where higher
+      means better.
+
+      p.quality_score_filter_fn typically should only contain a simple
+      comparison (<, >, <=, or >=), as it relies on tf.Tensor's overloading
+      of __le__() etc. to work. For example: lambda x: ( 0.3 < x and x < 0.9)
+      won't work. But tf.math.logical_and(0.3 < x, x < 0.9) is okay.
+
+      Also note that 'p.quality_score_filter_fn = lambda _: False' is
+      equivalent with 'p.quality_score_filter_fn = None', in which case
+      no quality score column is needed (or evaluated).
+
+    * Consider enabling multithreading for the trainer job (in the Train()
+      method). For example: p.num_batcher_threads = 128.
+    """
+    p = super(TextPackedInput, cls).Params()
+
+    p.Define('file_pattern_task_ids', [],
+             'task_id corresponding to list of file_patterns.')
+    p.Define('task_to_src_lang_map', [], 'Map of task id to src language id.')
+    p.Define('task_to_tgt_lang_map', [], 'Map of task id to tgt language id.')
+
+    p.Define(
+        'packing_factor', None,
+        'A multiplicative factor for packing. This is the ratio between '
+        'pre-packing batch size and after-packing batch size. If None, '
+        'packing is disabled; otherwise the packing factor should be a '
+        'float with a value greater than 1.')
+
+    p.Define(
+        'quality_score_filter_fn', None,
+        'A user defined boolean function on a float (quality score). '
+        'When present, the input .tsv file has an additional column '
+        'of floats representing a quality score, and each line is '
+        'filtered out when this function returns True on that score.')
+
+    p.Define(
+        'input_file_type', 'tsv', 'The type of input file contents.'
+        ' Must be one of ["tsv", "sentence_proto"], for tab-separated'
+        ' values, or Sentence/SentencePair protos, respectively.')
+    p.Define(
+        'single_column_input', False, 'Indicates input is single-column rather'
+        ' than double-column. When input_file_type is sentence_proto, this'
+        ' means Sentence proto rather than SentencePair proto.')
+
+    p.Define('natural_order_model', True, 'Only True is supported now.')
+    p.Define('target_language', '', 'Language on target side.')
+    p.Define('mass_layer', None, 'If not None, use the specified layer to do '
+             'MASS masking.')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TextPackedInput, self).__init__(params)
+    p = self.params
+    if not p.natural_order_model:
+      raise ValueError('Only p.natural_order_model=True is supported now.')
+    self.natural_order_model = p.natural_order_model
+
+    if p.packing_factor:
+      # Packing is enabled. We override p.bucket_batch_limit with the
+      # pre-packing batch size.
+      if p.packing_factor <= 1.0:
+        raise ValueError('p.packing_factor must be > 1.0: ', p.packing_factor)
+      if len(p.bucket_upper_bound) != 1 or len(p.bucket_batch_limit) != 1:
+        raise ValueError(
+            'when packing is enabled, p.bucket_upper_bound '
+            'and p.bucket_batch_limits must be arrays of length '
+            '1:', p.bucket_upper_bound, p.bucket_batch_limit)
+      self._packed_batch_size = p.bucket_batch_limit[0]
+      p.bucket_batch_limit[0] = int(p.bucket_batch_limit[0] * p.packing_factor)
+    else:
+      self._packed_batch_size = None
+
+    # Ensure that the max lengths are not None, as tokenizer.StringsToIds()
+    # might use it to pad the encoded ids tensor.
+    if p.target_max_length is None:
+      p.target_max_length = p.bucket_upper_bound[-1]
+    if p.source_max_length is None:
+      p.source_max_length = p.target_max_length
+
+    if p.input_file_type not in ['tsv', 'sentence_proto']:
+      raise ValueError('p.input_file_type must be one of ["tsv",'
+                       ' "sentence_proto"], got {}'.format(
+                           params.input_file_type))
+    if p.quality_score_filter_fn:
+      if not isinstance(p.quality_score_filter_fn(0.0), bool) and not (
+          isinstance(p.quality_score_filter_fn(0.0), tf.Tensor) and
+          p.quality_score_filter_fn(0.0).dtype == tf.bool):
+        raise ValueError(
+            'p.quality_score_filter_fn must return a bool on a float input, '
+            'e.g. p.quality_score_filter_fn = lambda x: x <= 0.3.')
+      if p.input_file_type != 'tsv':
+        raise ValueError(
+            'p.quality_score_filter_fn requires p.input_file_type == "tsv".')
+
+    self._src_tokenizer_key = ('src' if 'src' in self.tokenizer_dict else
+                               base_input_generator.DEFAULT_TOKENIZER_KEY)
+    self._src_tokenizer = self.tokenizer_dict[self._src_tokenizer_key]
+    self._tgt_tokenizer_key = ('tgt' if 'tgt' in self.tokenizer_dict else
+                               base_input_generator.DEFAULT_TOKENIZER_KEY)
+    self._tgt_tokenizer = self.tokenizer_dict[self._tgt_tokenizer_key]
+
+    if p.single_column_input and p.mass_layer is None:
+      raise NotImplementedError(
+          'Single column input works only with MASS for now.')
+    # TODO(alisonlui): Support single-column Sentence proto input.
+    if p.single_column_input and p.input_file_type == 'sentence_proto':
+      raise NotImplementedError(
+          'Single column Sentence proto input not yet supported.')
+    if p.mass_layer is not None and not p.single_column_input:
+      raise ValueError('Must be single_column_input if mass layer is provided.')
+    if p.mass_layer is not None:
+      # Creat the MASS layer (wrapper for the MASS op).
+      self.CreateChild('mass_layer', p.mass_layer)
+
+    # A `.NestedMap` of input tensors for the current input batch.
+    # We memoize it here to avoid accidentally calling self._BuildDataSource()
+    # more than once.
+    self._batch = self._DataSourceToInputBatch()
+
+  def _GetBucketKey(self, features, filtered):
+    """Returns a the bucket key for a given input."""
+    # The token ids are not truncated if and only if it ends with padding
+    # or the last id is EOS.
+    src_fits = tf.math.logical_or(
+        tf.math.equal(features.src.ids_indicator[-1], 0),
+        tf.math.equal(features.src.ids[-1], self._src_tokenizer.eos_id))
+    tgt_fits = tf.math.logical_or(
+        tf.math.equal(features.tgt.ids_indicator[-1], 0),
+        tf.math.equal(features.tgt.labels[-1], self._tgt_tokenizer.eos_id))
+
+    # We return the max of sourcec or target sequence length if and only if both
+    # src and tgt fit. Otherwise we return a key of -1 to filter out this input.
+    def _MaxLen():
+      src_len = tf.cast(
+          tf.math.reduce_sum(features.src.ids_indicator), dtype=tf.int32)
+      tgt_len = tf.cast(
+          tf.math.reduce_sum(features.tgt.ids_indicator), dtype=tf.int32)
+      return tf.math.maximum(src_len, tgt_len)
+
+    filtered = tf.math.logical_or(
+        filtered, tf.math.logical_not(tf.math.logical_and(src_fits, tgt_fits)))
+    return tf.cond(filtered, lambda: -1, _MaxLen)
+
+  def _GetTaskIds(self, source_id):
+    """Look up the correct task_id from the source_id tensor."""
+    if self.params.file_pattern_task_ids:
+      file_task_ids = tf.constant(
+          self.params.file_pattern_task_ids, dtype=tf.int32)
+      source_id = tf.gather(file_task_ids, source_id)
+    src_task_id = source_id
+    tgt_task_id = source_id
+    if self.params.task_to_src_lang_map:
+      src_lang_ids = tf.constant(
+          self.params.task_to_src_lang_map, dtype=tf.int32)
+      src_task_id = tf.gather(src_lang_ids, src_task_id)
+    if self.params.task_to_tgt_lang_map:
+      tgt_lang_ids = tf.constant(
+          self.params.task_to_tgt_lang_map, dtype=tf.int32)
+      tgt_task_id = tf.gather(tgt_lang_ids, tgt_task_id)
+    return src_task_id, tgt_task_id
+
+  def _ProcessSingleInput(self, source_id, src, tgt):
+    """Performs strings-to-ids on the given input pair via p.tokenizer_dict."""
+    _, src_labels, src_paddings = self.StringsToIds([src],
+                                                    is_source=True,
+                                                    key=self._src_tokenizer_key)
+    tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds(
+        [tgt], is_source=False, key=self._tgt_tokenizer_key)
+    # Mask out entries where padding is 1. This is needed because for SPM the
+    # returned ids contains an EOS token.
+    tgt_ids = tf.cast(
+        tf.cast(tgt_ids, dtype=tf.float32) * (1 - tgt_paddings), dtype=tf.int32)
+
+    features = py_utils.NestedMap()
+    features.src = py_utils.NestedMap()
+    features.src.ids = src_labels
+    # ids_indicator is 1 if and only if the output from tokenizer has a
+    # non-padded id. Unlike weights, it will not mutate and can be used for
+    # determining actual sequence length, for example.
+    features.src.ids_indicator = 1 - src_paddings
+    features.tgt = py_utils.NestedMap()
+    features.tgt.ids = tgt_ids
+    features.tgt.labels = tgt_labels
+    features.tgt.ids_indicator = 1 - tgt_paddings
+
+    src_task_id, tgt_task_id = self._GetTaskIds(source_id)
+    # task_ids are padded with zeros.
+    features.src.task_ids = tf.cast(
+        features.src.ids_indicator, dtype=tf.int32) * src_task_id
+    features.tgt.task_ids = tf.cast(
+        features.tgt.ids_indicator, dtype=tf.int32) * tgt_task_id
+
+    if not py_utils.use_tpu():
+      features.src.strs = src
+      features.tgt.strs = tgt
+    return features.Transform(tf.squeeze)
+
+  def _ProcessMASSInput(self, source_id, src):
+    """Perform MASS input processing."""
+    # TODO(yuancao): By doing so we assume that right now for monolingual
+    # eval/dev sets (xx->xx) are in double-column format (since it bypasses
+    # the Mass op). Ideally we should add a dedicated eval/dev processing
+    # procedure for unsupervised MT cases, so that single-column eval/devs sets
+    # are also supported. This should not be handled by any specific ops like
+    # Mass, but inside the TextPackedInput class.
+    assert not self.do_eval, 'MASS input can only be used for training.'
+
+    _, labels, paddings = self.StringsToIds([src],
+                                            is_source=True,
+                                            key=self._src_tokenizer_key)
+    weights = 1 - paddings
+    actual_seq_len = tf.cast(tf.reduce_sum(weights, 1), tf.int32)
+    src_lang_ids, tgt_lang_ids = self._GetTaskIds(source_id)
+
+    mass_out = self.mass_layer.Mask(labels, weights, actual_seq_len)
+
+    features = py_utils.NestedMap()
+    features.src = py_utils.NestedMap()
+    features.src.ids = mass_out.src.ids
+    features.src.paddings = paddings
+    features.src.weights = weights
+    features.src.task_ids = tf.cast(
+        features.src.weights, dtype=tf.int32) * src_lang_ids
+    features.src.ids_indicator = weights
+    features.tgt = py_utils.NestedMap()
+    features.tgt.ids = mass_out.tgt.ids
+    features.tgt.labels = mass_out.tgt.labels
+    features.tgt.paddings = paddings
+    features.tgt.weights = mass_out.tgt.weights
+    features.tgt.task_ids = tf.ones_like(
+        features.src.task_ids, dtype=tf.int32) * tgt_lang_ids
+    features.tgt.ids_indicator = weights
+
+    if not py_utils.use_tpu():
+      features.src.strs = src
+      features.tgt.strs = src
+    return features.Transform(tf.squeeze)
+
+  def _ReadRecordTsv(self, record):
+    """Reads a single input record from a tab-separated values file."""
+    # Assuming UTF8 text input separated by tabs.
+    sentences = tf.strings.split([record], sep='\t', result_type='RaggedTensor')
+    # If the row_lengths are not enough (e.g. row has only 1 column),
+    # record_batcher throws away this record but it does not crash the program
+    # per lingvo/core/ops/record_batcher.cc.
+    # This means that it's okay if the file contains more columns than needed.
+    src = sentences[0, 0]
+    tgt = sentences[0, 1]
+    # We manually filter the record if either source or target sentence is an
+    # empty string.
+    filtered = tf.math.logical_or(
+        tf.math.equal(tf.strings.length(src), 0),
+        tf.math.equal(tf.strings.length(tgt), 0))
+    if not self.params.quality_score_filter_fn:
+      return src, tgt, filtered
+    filtered = tf.math.logical_or(
+        filtered,
+        self.params.quality_score_filter_fn(
+            tf.strings.to_number(sentences[0, 2])))
+    return src, tgt, filtered
+
+  def _ReadRecordTsvSingleColumn(self, record):
+    """Reads an input record, taking first column of one or more TSV columns."""
+    # Assuming UTF8 text input which may have 1 or more tab-separated columns
+    sentences = tf.strings.split([record], sep='\t', result_type='RaggedTensor')
+    src = sentences[0, 0]
+    filtered = tf.math.equal(tf.strings.length(src), 0)
+    return src, filtered
+
+  def _ReadRecordSentencePairProto(self, record):
+    """Reads the input record as a binary SentencePair proto."""
+    # We defer handling the `lang` field in the proto until TextPackedInput
+    # figures out how to handle lang_ids. For now `lang` fields are ignored.
+    _, sentence_protos = tf.io.decode_proto(
+        record, 'tensorflow.lingvo.SentencePair',
+        ['src_sentence', 'tgt_sentence'], [tf.string, tf.string])
+    sentence_protos = tf.squeeze(sentence_protos)
+    _, sentences = tf.io.decode_proto(sentence_protos,
+                                      'tensorflow.lingvo.Sentence',
+                                      ['sentence'], [tf.string])
+    sentences = tf.squeeze(sentences)
+    return sentences[0], sentences[1]
+
+  def _DataSourceFromFilePattern(self, file_pattern, input_source_weights=None):
+
+    def Processor(source_id, record):
+      """Parses a record, which is a line of text."""
+      if self.params.input_file_type == 'tsv':
+        if self.params.single_column_input:
+          src, filtered = self._ReadRecordTsvSingleColumn(record)
+          features = self._ProcessMASSInput(source_id, src)
+        else:
+          src, tgt, filtered = self._ReadRecordTsv(record)
+          features = self._ProcessSingleInput(source_id, src, tgt)
+      else:
+        src, tgt = self._ReadRecordSentencePairProto(record)
+        filtered = tf.constant(False, dtype=tf.bool)
+        features = self._ProcessSingleInput(source_id, src, tgt)
+      return features, self._GetBucketKey(features, filtered)
+
+    return generic_input.GenericInput(
+        processor=Processor,
+        file_pattern=file_pattern,
+        input_source_weights=input_source_weights,
+        **self.CommonInputOpArgs())
+
+  def _Pack(self, batch):
+    """Packs a given batch.
+
+    Note that this may change the batch size.
+
+    This function packs the input batch and adds .segment_ids and .segment_pos
+    fields to its `src` and `tgt` fields.
+
+    Args:
+      batch: a `.NestedMap` of input tensors to be packed. It is modified in
+        place.
+    """
+    src_actual_seq_len = tf.math.reduce_sum(
+        tf.cast(batch.src.ids_indicator, tf.int32), axis=1)
+    tgt_actual_seq_len = tf.math.reduce_sum(
+        tf.cast(batch.tgt.ids_indicator, tf.int32), axis=1)
+    summary_utils.histogram('source_seq_lengths', src_actual_seq_len)
+    summary_utils.histogram('target_seq_lengths', tgt_actual_seq_len)
+
+    if not self.params.packing_factor:
+      # Supply segment_ids and segment_pos with no packing.
+      batch.src.segment_ids = batch.src.ids_indicator
+      batch.src.segment_pos = _GetSegmentPos(batch.src.ids_indicator)
+      batch.tgt.segment_ids = batch.tgt.ids_indicator
+      batch.tgt.segment_pos = _GetSegmentPos(batch.tgt.ids_indicator)
+      return
+
+    (src_segment_ids, src_segment_pos, src_indices_in_input, tgt_segment_ids,
+     tgt_segment_pos, tgt_indices_in_input) = ops.pack_sequences(
+         src_actual_seq_len, tgt_actual_seq_len, self._ScaledBatchSize(),
+         self.params.source_max_length, self.params.target_max_length)
+
+    uniq_src_indices_in_input = tf.unique(
+        tf.reshape(src_indices_in_input, [-1])).y
+    uniq_tgt_indices_in_input = tf.unique(
+        tf.reshape(tgt_indices_in_input, [-1])).y
+    summary_utils.histogram(
+        'packed_source_seq_lengths',
+        tf.gather(src_actual_seq_len, uniq_src_indices_in_input, axis=0))
+    summary_utils.histogram(
+        'packed_target_seq_lengths',
+        tf.gather(tgt_actual_seq_len, uniq_tgt_indices_in_input, axis=0))
+
+    # We deferred adding .paddings and use its complement .ids_indicator
+    # exclusively so that we can apply the packing with padding set to 0 for all
+    # fields.
+    def ApplyPackingToSource(x):
+      if x.dtype == tf.string:
+        return ops.apply_packing(x, '\t', src_segment_ids, src_indices_in_input)
+      return ops.apply_packing(x, 0, src_segment_ids, src_indices_in_input)
+
+    batch.src = batch.src.Transform(ApplyPackingToSource)
+    batch.src.segment_ids = tf.cast(src_segment_ids, tf.float32)
+    batch.src.segment_pos = src_segment_pos
+
+    def ApplyPackingToTarget(x):
+      if x.dtype == tf.string:
+        return ops.apply_packing(x, '\t', tgt_segment_ids, tgt_indices_in_input)
+      return ops.apply_packing(x, 0, tgt_segment_ids, tgt_indices_in_input)
+
+    batch.tgt = batch.tgt.Transform(ApplyPackingToTarget)
+    batch.tgt.segment_ids = tf.cast(tgt_segment_ids, tf.float32)
+    batch.tgt.segment_pos = tgt_segment_pos
+
+  def _ScaledBatchSize(self):
+    # Adjust (post-packing) batch size according to the cluster spec.
+    # See the impl of BaseSequenceInputGenerator.infeed_bucket_batch_limit()
+    cluster = self.cluster
+    batch_size = (self._packed_batch_size or self.params.bucket_batch_limit[0])
+    scaled_batch_size = batch_size * cluster.num_splits_per_client
+    if self.params.use_per_host_infeed and cluster.num_tpu_hosts > 0:
+      scaled_batch_size = scaled_batch_size // cluster.num_tpu_hosts
+    return scaled_batch_size
+
+  def _DataSourceToInputBatch(self):
+    """The current input batch as a `.NestedMap` of input tensors."""
+    ret, _ = self._BuildDataSource()
+    self._Pack(ret)
+    if 'weights' not in ret.src or 'weights' not in ret.tgt:
+      ret.src.weights = ret.src.ids_indicator
+      ret.tgt.weights = ret.tgt.ids_indicator
+    if 'paddings' not in ret.src or 'paddings' not in ret.tgt:
+      ret.src.paddings = 1 - ret.src.weights
+      ret.tgt.paddings = 1 - ret.tgt.weights
+    del ret.src.ids_indicator
+    del ret.tgt.ids_indicator
+
+    if self.params.pad_to_max_seq_length:
+      assert self.params.source_max_length
+
+      def _EnsureSrcShape(x):
+        if x.dtype == tf.string:
+          return tf.ensure_shape(x, [self._ScaledBatchSize()])
+        return tf.ensure_shape(
+            x, [self._ScaledBatchSize(), self.params.source_max_length])
+
+      def _EnsureTgtShape(x):
+        if x.dtype == tf.string:
+          return tf.ensure_shape(x, [self._ScaledBatchSize()])
+        return tf.ensure_shape(
+            x, [self._ScaledBatchSize(), self.params.target_max_length])
+
+      ret.src = ret.src.Transform(_EnsureSrcShape)
+      ret.tgt = ret.tgt.Transform(_EnsureTgtShape)
+
+    summary_utils.histogram('source_token_ids', ret.src.ids)
+    summary_utils.histogram('target_token_ids', ret.tgt.ids)
+
+    # Casts floating point tensors to fprop_dtype before returning.
+    return ret.Transform(self.Cast)
+
+  def _InputBatch(self):
+    """The current input batch.
+
+    Returns:
+      A `.NestedMap` of input tensors.
+    """
+    return self._batch
+
+  def GlobalBatchSize(self):
+    """Returns the total number of examples in the current batch."""
+    # The number of examples is indicated by the segment_ids of the target.
+    num_segments = tf.math.reduce_max(self._batch.tgt.segment_ids, axis=1)
+    return tf.reduce_sum(tf.cast(num_segments, dtype=tf.int32))
