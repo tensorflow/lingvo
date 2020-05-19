@@ -321,6 +321,21 @@ py_library(
 )
 
 py_library(
+    name = "builder",
+    srcs = ["builder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":builder_layers",
+        ":hyperparams",
+        ":layers",
+        ":py_utils",
+        ":tshape",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "builder_layers",
     srcs = ["builder_layers.py"],
     srcs_version = "PY2AND3",
@@ -350,6 +365,24 @@ py_test(
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "builder_test",
+    srcs = ["builder_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":builder",
+        ":cluster_factory",
+        ":layers",
+        ":py_utils",
+        ":test_utils",
+        ":tshape",
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+        # Implicit sympy dependency.
     ],
 )
 
