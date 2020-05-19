@@ -719,9 +719,11 @@ class TransformerLayer(base_layer.BaseLayer):
                                                  source_segment_id,
                                                  aux_segment_id, **kwargs)
 
-    h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
+    with tf.name_scope('fflayer'):
+      h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
     if p.tr_post_ln_tpl:
-      h = self.layer_norm.FProp(theta.layer_norm, h)
+      with tf.name_scope('layer_norm'):
+        h = self.layer_norm.FProp(theta.layer_norm, h)
     return h, atten_prob
 
   def ExtendStep(self,
