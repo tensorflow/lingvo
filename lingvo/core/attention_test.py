@@ -498,8 +498,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_prob_out, prob_out)
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
-  def _DotProductAttention(self, packed_inputs=False):
-    # TODO(colincherry): Dead code?
+  def _DotProductAttention(self, packed_inputs):
     with self.session(use_gpu=True):
       np.random.seed(12345)
       # source_vecs_p, source_contexts_p, source_padding_p, query_vec_p are used
@@ -568,6 +567,12 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertAllClose(expected_prob_out, prob_out)
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
+
+  def testDotProductAttention(self):
+    self._DotProductAttention(packed_inputs=False)
+
+  def testDotProductAttentionPackedInput(self):
+    self._DotProductAttention(packed_inputs=True)
 
   def _MultiHeadedAttentionInputs(self, source_dim=4, dtype=tf.float32):
     np.random.seed(6348575)
