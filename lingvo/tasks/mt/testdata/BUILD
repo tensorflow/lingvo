@@ -19,3 +19,10 @@ filegroup(
         "translate_ende_wmt32k-train-00511-of-00512",
     ],
 )
+
+filegroup(
+    name = "en_fr",
+    data = [
+        "en_fr.tfrecord",
+    ],
+)

@@ -26,7 +26,10 @@ from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 from lingvo.core import tokenizers
+from lingvo.tasks.mt import text_input_pb2
 import six
+
+from google.protobuf import descriptor_pb2
 
 
 class NmtInput(base_input_generator.BaseSequenceInputGenerator):
@@ -383,6 +386,13 @@ def _GetSegmentPos(weights):
   maxlen = tf.shape(weights)[1]
   ret = tf.cast(tf.range(maxlen), dtype=tf.float32)
   return tf.cast(weights * ret, dtype=tf.int32)
+
+
+def _GetDescriptorSetForTextInput():
+  """Returns a string for tf.io.decode_proto's descriptor_source."""
+  file_descriptor_set = descriptor_pb2.FileDescriptorSet()
+  text_input_pb2.DESCRIPTOR.CopyToProto(file_descriptor_set.file.add())
+  return b'bytes://' + file_descriptor_set.SerializeToString()
 
 
 class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
@@ -743,12 +753,18 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     # We defer handling the `lang` field in the proto until TextPackedInput
     # figures out how to handle lang_ids. For now `lang` fields are ignored.
     _, sentence_protos = tf.io.decode_proto(
-        record, 'tensorflow.lingvo.SentencePair',
-        ['src_sentence', 'tgt_sentence'], [tf.string, tf.string])
+        bytes=record,
+        message_type='tensorflow.lingvo.SentencePair',
+        field_names=['src_sentence', 'tgt_sentence'],
+        output_types=[tf.string, tf.string],
+        descriptor_source=_GetDescriptorSetForTextInput())
     sentence_protos = tf.squeeze(sentence_protos)
-    _, sentences = tf.io.decode_proto(sentence_protos,
-                                      'tensorflow.lingvo.Sentence',
-                                      ['sentence'], [tf.string])
+    _, sentences = tf.io.decode_proto(
+        bytes=sentence_protos,
+        message_type='tensorflow.lingvo.Sentence',
+        field_names=['sentence'],
+        output_types=[tf.string],
+        descriptor_source=_GetDescriptorSetForTextInput())
     sentences = tf.squeeze(sentences)
     return sentences[0], sentences[1]
 

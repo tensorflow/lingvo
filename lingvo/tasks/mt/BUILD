@@ -166,6 +166,7 @@ py_library(
     srcs = ["input_generator.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":text_input_py_pb2",
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
@@ -182,6 +183,7 @@ py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
+        "//lingvo/tasks/mt/testdata:en_fr",
         "//lingvo/tasks/mt/testdata:mlperf_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
@@ -193,6 +195,7 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
+        "//lingvo/core:tokenizers",
         # Implicit numpy dependency.
         # Implicit six dependency.
     ],

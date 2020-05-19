@@ -20,6 +20,7 @@ import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
+from lingvo.core import tokenizers
 from lingvo.tasks.mt import input_generator
 import numpy as np
 from six.moves import range
@@ -246,6 +247,68 @@ class InputTest(test_utils.TestCase):
 
     self.assertAllEqual(expected_ids_split_1, fetched[0].tgt.ids)
     self.assertAllEqual(expected_ids_split_2, fetched[1].tgt.ids)
+
+  def testTextPackedInput(self):
+    p = input_generator.TextPackedInput.Params()
+    p.flush_every_n = 0
+    p.require_sequential_order = True
+    p.repeat_count = 1
+    p.file_pattern = 'tfrecord:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_fr.tfrecord')
+    p.pad_to_max_seq_length = True
+    p.tokenizer = tokenizers.AsciiTokenizer.Params()
+    p.input_file_type = 'sentence_proto'
+    p.source_max_length = 22
+    p.target_max_length = 24
+    p.bucket_batch_limit = [2]
+    with self.session() as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      for k, x in batch_tensor.FlattenItems():
+        self.assertTrue(x.shape.is_fully_defined(), k)
+      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
+    self.assertEqual(num_examples, 2)
+    self.assertEqual(len(batch.src), 7)
+    self.assertAllEqual(batch.src.strs,
+                        [b'I love paragliding!', b'vol biv paragliding'])
+    self.assertAllEqual(batch.tgt.strs,
+                        [b"J'adore le parapente!", b'vol biv parapente'])
+    self.assertAllEqual(
+        batch.src.ids,
+        np.array([
+            [
+                13, 3, 16, 19, 26, 9, 3, 20, 5, 22, 5, 11, 16, 13, 8, 13, 18,
+                11, 35, 2, 2, 2
+            ],
+            [
+                26, 19, 16, 3, 6, 13, 26, 3, 20, 5, 22, 5, 11, 16, 13, 8, 13,
+                18, 11, 2, 2, 2
+            ],
+        ]))
+    self.assertAllEqual(
+        batch.tgt.ids,
+        np.array([
+            [
+                1, 14, 32, 5, 8, 19, 22, 9, 3, 16, 9, 3, 20, 5, 22, 5, 20, 9,
+                18, 24, 9, 35, 0, 0
+            ],
+            [
+                1, 26, 19, 16, 3, 6, 13, 26, 3, 20, 5, 22, 5, 20, 9, 18, 24, 9,
+                0, 0, 0, 0, 0, 0
+            ],
+        ]))
+    self.assertAllEqual(
+        batch.tgt.labels,
+        np.array([
+            [
+                14, 32, 5, 8, 19, 22, 9, 3, 16, 9, 3, 20, 5, 22, 5, 20, 9, 18,
+                24, 9, 35, 2, 2, 2
+            ],
+            [
+                26, 19, 16, 3, 6, 13, 26, 3, 20, 5, 22, 5, 20, 9, 18, 24, 9, 2,
+                2, 2, 2, 2, 2, 2
+            ],
+        ]))
 
 
 if __name__ == '__main__':

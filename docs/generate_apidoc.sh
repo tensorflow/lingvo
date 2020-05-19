@@ -22,6 +22,7 @@ bazel build -c opt //lingvo/core/ops:x_ops.so \
     //lingvo/core/ops:hyps_pb2.py \
     //lingvo/core:inference_graph_pb2.py \
     //lingvo/core:hyperparams_pb2.py \
+    //lingvo/tasks/mt:text_input_pb2.py \
     //lingvo/tasks/car/ops \
     //lingvo/core/ops:record_py_pb2 2>&1
 cp -f bazel-bin/lingvo/core/ops/x_ops.so lingvo/core/ops
@@ -30,7 +31,9 @@ cp -f bazel-genfiles/lingvo/core/ops/record_pb2.py lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/ops/hyps_pb2.py lingvo/core/ops
 cp -f bazel-genfiles/lingvo/core/inference_graph_pb2.py lingvo/core
 cp -f bazel-genfiles/lingvo/core/hyperparams_pb2.py lingvo/core
+cp -f bazel-genfiles/lingvo/tasks/mt/text_input_pb2.py lingvo/tasks/mt
 sphinx-apidoc -o "$OUTDIR" -efPM --implicit-namespaces lingvo/ $(find . -name '*_test.py')
 cp docs/apidoc/{conf.py,index.rst} "$OUTDIR"
 (export PYTHONPATH="$(pwd)" && cd "$OUTDIR" && sphinx-build -b html -T -j auto . build)
 rm -f lingvo/core/{inference_graph_pb2.py,hyperparams_pb2.py} lingvo/core/ops/{x_ops.so,hyps_pb2.py,record_pb2.py} lingvo/tasks/car/ops/car_ops.so
+rm -f lingvo/tasks/mt/text_input_pb2.py
