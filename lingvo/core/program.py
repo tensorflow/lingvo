@@ -76,7 +76,7 @@ class BaseProgram(object):
     p.Define('name', 'base_program', 'Program name.')
     p.Define('task_name', None,
              'If multi-task, what the high-level task name is')
-
+    p.Define('num_threads', 1, 'Number of threads in multiprocessing pool.')
     return p
 
   def __init__(self, params):
@@ -106,7 +106,7 @@ class BaseProgram(object):
     self.data_parallelism = p.num_splits_per_client
 
     # Thread Pool for infeed.
-    self._infeed_pool = multiprocessing.dummy.Pool(1)
+    self._infeed_pool = multiprocessing.dummy.Pool(p.num_threads)
 
     self._compile_op = None
     self._status_msg_fn = None
@@ -513,6 +513,105 @@ class DecodeProgram(BaseProgram):
     return False
 
 
+class ExperimentalDecodeProgram(DecodeProgram):
+  """DecodeProgram in a tpu loop.
+
+  TODO(huangyp) test this for beam search decoders and replace the
+  default DecodeProgram.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(ExperimentalDecodeProgram, cls).Params()
+    p.num_threads = 2
+    return p
+
+  def BuildTpuSubgraph(self):
+    tf.logging.info('DecodeProgram BuildTpuSubGraph')
+    py_utils.ResetStepSeed()
+    device_assignment = py_utils.GetTpuDeviceAssignment()
+    self.spmd = self._task_params.input.use_partitioned_infeed_queue
+    with py_utils.OpportunisticVariableReuseScope(True):
+      with cluster_factory.SetEval(True):
+        self._model = self._task_params.Instantiate()
+        self._model_task = self._model.GetTask()
+
+        def _DecodeStep():
+          """Decode call to be compiled for TPU."""
+          input_batch = self._model_task.input_generator.CreateTpuFeeds()
+          metrics_dict = self._model_task.Decode(input_batch)
+          self.metrics_nm = py_utils.NestedMap(metrics_dict)
+          device = tpu.core(0) if self.spmd else ''
+          with tf.device(device):
+            outfeed_enqueue = tpu_ops.outfeed_enqueue_tuple(
+                self.metrics_nm.Flatten())
+            return [outfeed_enqueue]
+
+    @tpu_function.on_device_training_loop
+    def DecodeLoopFn():
+      return tpu_training_loop.repeat(
+          self._steps_per_loop, _DecodeStep, inputs=[])
+
+    self._compile_op, self.decode_loop = tpu.split_compile_and_shard(
+        DecodeLoopFn,
+        num_shards=self.data_parallelism,
+        device_assignment=device_assignment)
+    # Get a list of outfeed ops.
+    self.metrics = self._OutfeedDequeue()
+    # Pack the list of outfeed ops with structure in self.metrics_nm.
+    self.metrics = tf.nest.pack_sequence_as(self.metrics_nm, self.metrics)
+    return
+
+  def _OutfeedDequeue(self):
+    """Collect outfeed dequeue from all devices."""
+    num_outfeeds = len(self.metrics_nm.Flatten())
+    outfeed_ops = [[]] * num_outfeeds
+    device_assignment = py_utils.GetTpuDeviceAssignment()
+    assert device_assignment
+    for replica in range(device_assignment.num_replicas):
+      num_cores_per_replica = 1 if self.spmd else (
+          device_assignment.num_cores_per_replica)
+      for core in range(num_cores_per_replica):
+        with tf.device(device_assignment.host_device(replica, core)):
+          outfeeds_per_core = tpu_ops.outfeed_dequeue_tuple(
+              dtypes=[x.dtype for x in self.metrics_nm.Flatten()],
+              shapes=[x.shape for x in self.metrics_nm.Flatten()],
+              device_ordinal=device_assignment.tpu_ordinal(replica, core))
+          for idx_outfeed, out_feed in enumerate(outfeeds_per_core):
+            outfeed_ops[idx_outfeed] = outfeed_ops[idx_outfeed] + [out_feed]
+    return [tf.concat(per_outfeed, 0) for per_outfeed in outfeed_ops]
+
+  def _DecodeLoop(self, sess):
+    sess.run(self.decode_loop)
+
+  def Run(self, sess):
+    gsteps = py_utils.GetGlobalStep()
+    global_step = sess.run(gsteps)
+    self.SetStatusMessage('Executing decode program at step %d' % global_step)
+    infeed_future = self._infeed_pool.apply_async(
+        self._InfeedLoop, args=(sess,))
+    decode_future = self._infeed_pool.apply_async(
+        self._DecodeLoop, args=(sess,))
+
+    dec_metrics = self._model_task.CreateDecoderMetrics()
+    start_time = time.time()
+    for _ in range(self._steps_per_loop):
+      metrics_values = sess.run(self.metrics)
+      self._model_task.PostProcessDecodeOut(metrics_values, dec_metrics)
+    decode_future.wait()
+    infeed_future.wait()
+    summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
+    elapsed_secs = time.time() - start_time
+    num_examples_metric = dec_metrics['num_samples_in_batch']
+    example_rate = num_examples_metric.total_value / elapsed_secs
+    summaries['examples/sec'] = tf.Summary(
+        value=[tf.Summary.Value(tag='examples/sec', simple_value=example_rate)])
+    self._WriteSummaries(
+        os.path.basename(self._program_dir), global_step, summaries)
+
+    return False
+
+
 class MLPerfTrainDecodeProgram(BaseProgram):
   """Run train/decode in a single session run."""
 
@@ -782,9 +881,12 @@ class SimpleProgramSchedule(object):
     return False
 
 
-def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
-                                 eval_dataset_names, eval_steps_per_loop,
-                                 decode_steps_per_loop):
+def SimpleProgramScheduleForTask(train_dataset_name,
+                                 train_steps_per_loop,
+                                 eval_dataset_names,
+                                 eval_steps_per_loop,
+                                 decode_steps_per_loop,
+                                 experimental_decoder=False):
   """Convenient helper method for common case.
 
   Args:
@@ -793,6 +895,8 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
     eval_dataset_names: List of eval dataset_name strings, eg: ['Train'].
     eval_steps_per_loop: Number of steps to execute the eval program.
     decode_steps_per_loop: Number of steps to execute the decode program.
+    experimental_decoder: bool. Whether to use experimental deocder which is
+      placed in a tpu loop.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -818,7 +922,9 @@ def SimpleProgramScheduleForTask(train_dataset_name, train_steps_per_loop,
       program_schedule_params.eval_programs.append(eval_program_params)
 
     if decode_steps_per_loop > 0:
-      decode_program_params = DecodeProgram.Params()
+      decoder = (
+          ExperimentalDecodeProgram if experimental_decoder else DecodeProgram)
+      decode_program_params = decoder.Params()
       decode_program_params.name = 'decode_tpu'
       # TODO(blee): This should be derived from the Dataset size.
       decode_program_params.steps_per_loop = decode_steps_per_loop
