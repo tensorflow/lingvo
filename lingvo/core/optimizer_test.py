@@ -26,6 +26,55 @@ import numpy as np
 
 class OptimizerTest(test_utils.TestCase):
 
+  def testCompositeOptimizer(self):
+    adam_op = optimizer.Adam.Params()
+    rmsprop_op = optimizer.RMSProp.Params()
+    adam_rmsprop_opt = optimizer.CompositeOptimizer.Params().Set(
+        optimizer_map={
+            'fc/w': (adam_op, 1.),
+            'fc/b': (rmsprop_op, 1.),
+            'default_optimizer': (adam_op, 1.)
+        }).Instantiate()
+
+    adam_op_2 = optimizer.Adam.Params().Set(name='adam_2')
+    unspecified_comp_opt = optimizer.CompositeOptimizer.Params().Set(
+        optimizer_map={
+            'fc/w': (adam_op_2, 1.),
+            'default_optimizer': (adam_op_2, 1.)
+        }).Instantiate()
+
+    sgd_op = optimizer.SGD.Params()
+    adagrad_op = optimizer.Adagrad.Params()
+    overlapping_comp_opt = optimizer.CompositeOptimizer.Params().Set(
+        optimizer_map={
+            'fc/w': (sgd_op, 1.),
+            '.': (adagrad_op, 1.),
+            'default_optimizer': (adagrad_op, 1.)
+        }).Instantiate()
+
+    params = layers.FCLayer.Params()
+    params.name = 'fc'
+    params.dtype = tf.float64
+    params.input_dim = 3
+    params.output_dim = 2
+    params.batch_norm = False
+    fc_layer = layers.FCLayer(params)
+
+    inputs = tf.placeholder(shape=[2, 4, 3], dtype=tf.float64)
+    output = fc_layer.FPropDefaultTheta(inputs)
+    loss = tf.reduce_sum(output)
+    var_grads = py_utils.ComputeGradients(loss, fc_layer.vars)
+
+    self.assertIn('composite_optimizer_train_op',
+                  adam_rmsprop_opt.Apply(1e-1, var_grads).name)
+    self.assertIn('composite_optimizer_train_op',
+                  unspecified_comp_opt.Apply(1e-1, var_grads).name)
+    with self.assertRaisesRegexp(
+        Exception,
+        'Variable fc/w/var:0 is matched 2 times by regex',
+    ):
+      overlapping_comp_opt.Apply(1e-1, var_grads)
+
   def testAccumulator(self):
     # testAccumulator compares
     #   - explicit averaging of independently computed var_grads1 and

@@ -19,6 +19,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import re
+
 import lingvo.compat as tf
 from lingvo.core import adagraft
 from lingvo.core import base_layer
@@ -105,6 +107,141 @@ class Base(base_layer.BaseLayer):
       Ops to run after training loop ends.
     """
     return tf.no_op()
+
+
+class CompositeOptimizer(Base):
+  """Composite Optimizer.
+
+  A composite optimizer is composed of one or more Lingvo Optimizer objects
+  where regex specifies which variables should use which optimizer. The
+  optimizer_map dictionary must specify a default_optimizer regex to a
+  (Lingvo Optimizer, learning rate) tuple which will be applied to all variables
+  which do not match an earlier regex.
+
+  For example,
+
+  optimizer_map = {'a': Adam, 'b': Adagrad, 'default_optimizer': SGD}
+
+  will apply Adam to all variables which contain an 'a' in their name, apply
+  Adagrad to all variables which contain a 'b' in their name, and apply SGD to
+  the variables which do not contain either 'a' or 'b'.
+
+  If a non-default_optimizer matches more than one variable -- in this example
+  variables with both 'a' and 'b' in their name -- an exception is thrown.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CompositeOptimizer, cls).Params()
+    p.Define(
+        'optimizer_map', None,
+        'Mapping of variable regex to (Lingvo Optimizer, learning rate) tuple.')
+    return p
+
+  def __init__(self, params):
+    super(CompositeOptimizer, self).__init__(params)
+    self._optimizer_map = {}
+    self._lr_map = {}
+    for index, regex in enumerate(params.optimizer_map):
+      sub_optimizer, learning_rate = params.optimizer_map[regex]
+      self.CreateChild('sub_{}_{}'.format(sub_optimizer.name, index),
+                       sub_optimizer)
+      self._optimizer_map[regex] = self.children['sub_{}_{}'.format(
+          sub_optimizer.name, index)]
+      self._lr_map[regex] = learning_rate
+
+    if 'default_optimizer' not in self._optimizer_map:
+      raise KeyError('default_optimizer is not found in optimizer_map. Please '
+                     'specify a default_optimizer regex and its associated '
+                     '(Lingvo Optimizer, learning rate) tuple.')
+
+  def GetOptimizer(self, lr):
+    """Returns a dictionary of regex to TF optimizer objects."""
+    return {
+        k: v.GetOptimizer(self._lr_map[k])
+        for k, v in self._optimizer_map.items()
+    }
+
+  def Apply(self, lr, var_grad):
+    """For each optimizer, apply the gradient to the variable.
+
+    Args:
+      lr: A scalar. The base learning rate.
+      var_grad: A `.NestedMap` of (var, grad) pairs.
+
+    Returns:
+      The variable update op.
+
+    Raises:
+      Exception: When the regex overlaps with or does not cover all variables.
+    """
+    # Override inherited GetOptimizer even though learning rate is unused.
+    tf_optimizer_map = self.GetOptimizer(0)
+    var_grad_map = {regex: [] for regex in self._optimizer_map}
+
+    for (v, g) in var_grad.Flatten():
+      regex_match = 0
+      for regex in self._optimizer_map:
+        if re.match(regex, v.name):
+          var_grad_map[regex].append((g, v))
+          regex_match += 1
+      if regex_match == 0:
+        var_grad_map['default_optimizer'].append((g, v))
+      if regex_match > 1:
+        raise Exception('Variable {} is matched {} times by regex {}'.format(
+            v.name, regex_match, list(self._optimizer_map.keys())))
+
+    def _Apply():
+      """Use the matched optimizer to apply the gradients."""
+      train_ops = []
+      non_default_regex = [
+          regex for regex in self._optimizer_map if regex != 'default_optimizer'
+      ]
+      for regex in self._optimizer_map:
+        if var_grad_map[regex]:
+          opt = tf_optimizer_map[regex]
+          train_ops.append(opt.apply_gradients(var_grad_map[regex]))
+          # pylint: disable=cell-var-from-loop, g-long-lambda
+          if regex == 'default_optimizer':
+            filtered_var_grad = var_grad.FilterKeyVal(lambda k, v: any(
+                [re.match(i, v.var.name) for i in non_default_regex]))
+          else:
+            filtered_var_grad = var_grad.FilterKeyVal(
+                lambda k, v: (re.match(regex, v.var.name)))
+          # pylint: enable=cell-var-from-loop, g-long-lambda
+          self._optimizer_map[regex].AddSummary(self._lr_map[regex], opt,
+                                                filtered_var_grad)
+      return tf.group(*train_ops, name='composite_optimizer_train_op')
+
+    if not py_utils.use_resource_variables():
+      var_update_op = _Apply()
+    else:
+      # Many optimizers, e.g., Adam, Adagrad, etc., create
+      # variables. We need to ensure name scope and variable scope are
+      # cleared. Otherwise, tpu.batch_parallel does not work.
+      var_reuse = False
+      if py_utils.GetOpportunisticVariableReuse():
+        var_reuse = tf.AUTO_REUSE
+      with tf.name_scope(None):
+        with tf.variable_scope(
+            tf.VariableScope(use_resource=True, reuse=var_reuse)):
+          var_update_op = _Apply()
+    return var_update_op
+
+  def ApplyPostTrainingLoop(self, global_step):
+    """Apply any computation to run after each tpu training loop for each optimizer.
+
+    Args:
+      global_step: Global step variable.
+
+    Returns:
+      Ops to run after training loop ends.
+    """
+    post_training_ops = [
+        opt.ApplyPostTrainingLoop(global_step)
+        for _, opt in self._optimizer_map.items()
+    ]
+    return tf.group(*post_training_ops)
 
 
 class SGD(Base):
