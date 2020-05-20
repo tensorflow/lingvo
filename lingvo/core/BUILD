@@ -696,6 +696,21 @@ py_library(
     ],
 )
 
+py_library(
+    name = "conv_layers_builder",
+    srcs = ["conv_layers_builder.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":builder",
+        ":builder_layers",
+        ":conv_layers_with_time_padding",
+        ":py_utils",
+        # Implicit absl.flags dependency.
+        "//lingvo:compat",
+    ],
+)
+
 lingvo_cuda_py_test(
     name = "layers_test",
     srcs = ["layers_test.py"],
@@ -703,6 +718,23 @@ lingvo_cuda_py_test(
     shard_count = 20,
     deps = [
         ":layers_test_lib",
+        # Implicit six dependency.
+    ],
+)
+
+lingvo_cuda_py_test(
+    name = "conv_layers_builder_test",
+    srcs = ["conv_layers_builder_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":base_layer",
+        ":conv_layers_builder",
+        ":layers",
+        ":layers_test_lib",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
         # Implicit six dependency.
     ],
 )
