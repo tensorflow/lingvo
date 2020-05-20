@@ -177,6 +177,31 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
+  def testTransformerAttentionLayerCase1GatedResidualConnection(self):
+    with self.session(use_gpu=True):
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      p.add_unnormalized_input = True
+      p.residual_function = layers.HighwaySkipLayer.Params().Set(
+          carry_bias_init=100, couple_carry_transform_gates=True)
+      transformer_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (source_vecs, source_padding, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs = transformer_atten.FPropDefaultTheta(source_vecs,
+                                                       source_padding)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx, _, actual_source_vecs = self.evaluate(
+          [ctx, probs, source_vecs])
+      # Due to the high bias, the gated residual connection is saturated and
+      # returns the original (unnormalized) input.
+      self.assertAllClose(actual_source_vecs, actual_ctx, rtol=1e-4, atol=1e-4)
+
   def testTransformerAttentionLayerCase2(self):
     with self.session(use_gpu=True):
       depth = 4
@@ -321,6 +346,47 @@ class LayersWithAttentionTest(test_utils.TestCase):
       tf.logging.info(np.array_repr(probs1_v))
       tf.logging.info(np.array_repr(ctx2_v))
       tf.logging.info(np.array_repr(probs2_v))
+      self.assertAllClose(ctx1_v, ctx2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
+  def testTransformerAttentionLayerGatedResidualConnectionStepByStep(self):
+    with self.session(use_gpu=True):
+      depth = 4
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = True
+      p.num_attention_heads = 2
+      p.residual_function = layers.HighwaySkipLayer.Params().Set(
+          couple_carry_transform_gates=True)
+      x_atten = layers_with_attention.TransformerAttentionLayer(p)
+
+      (source_vecs, _, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      ctx1, probs1 = x_atten.FPropDefaultTheta(source_vecs, source_padding)
+      ctx2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        ctx, probs, prefix_states = x_atten.ExtendStep(x_atten.theta,
+                                                       source_vecs[i, :, :],
+                                                       prefix_states)
+        probs_pad = tf.zeros([2, 5 - i - 1])
+        padded_probs = tf.concat([probs, probs_pad], 1)
+        ctx2.append(ctx)
+        probs2.append(padded_probs)
+
+      ctx2 = tf.stack(ctx2)
+      probs2 = tf.stack(probs2)
+
+      self.evaluate(tf.global_variables_initializer())
+      ctx1_v, probs1_v, ctx2_v, probs2_v = self.evaluate(
+          [ctx1, probs1, ctx2, probs2])
       self.assertAllClose(ctx1_v, ctx2_v)
       self.assertAllClose(probs1_v, probs2_v)
 

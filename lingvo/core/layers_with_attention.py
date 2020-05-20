@@ -105,7 +105,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define(
         'residual_dropout_prob', 0.0,
         'Probability at which we apply dropout to the residual layers, '
-        'such that, residual(x, y) = (x + dropout(y)).')
+        'such that, residual(x, f(x)) = (x + dropout(f(x))).')
     p.Define(
         'residual_dropout_tpl', layers.DropoutLayer.Params(),
         'Residual dropout params template. keep_prop will be reset to '
@@ -114,6 +114,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
              'If True, each training example may pack multiple sequences.')
     p.Define('add_unnormalized_input', False, 'If set, uses unnormalized input '
              'in the residual add.')
+    p.Define(
+        'residual_function', None, 'When None (the default), use simple '
+        'sum for the residual connection (output = x + f(x)). For example, can '
+        'use layers.HighwaySkipLayer.Params() or layers.GatingLayer.Params() '
+        'for gated residual add, where output is instead '
+        'residual_function.FProp(x, f(x)).')
     return p
 
   @base_layer.initializer
@@ -145,6 +151,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       dropout_tpl = p.residual_dropout_tpl.Copy()
       dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
       self.CreateChild('residual_dropout', dropout_tpl)
+
+      if p.residual_function is not None:
+        params = p.residual_function.Copy()
+        params.input_dim = p.atten_hidden_dim
+        self.CreateChild('residual_function', params)
 
   def _InitAttention(self, atten_tpl):
     p = self.params
@@ -254,13 +265,18 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-    h = input_to_add + tf.reshape(
+    input_after_sublayer = tf.reshape(
         ctx_vec,
         [
             target_time,
             target_bs,
             -1  # Either projected or not.
         ])
+    if p.residual_function is None:
+      h = input_to_add + input_after_sublayer
+    else:
+      h = self.residual_function.FProp(theta.residual_function, input_to_add,
+                                       input_after_sublayer)
     atten_prob = tf.reshape(
         atten_prob,
         [target_time, target_bs,
@@ -335,7 +351,12 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
     input_to_add = (
         unnormalized_query_vec if p.add_unnormalized_input else query_vec)
-    h = input_to_add + tf.reshape(ctx_vec, py_utils.GetShape(query_vec))
+    input_after_sublayer = tf.reshape(ctx_vec, py_utils.GetShape(query_vec))
+    if p.residual_function is None:
+      h = input_to_add + input_after_sublayer
+    else:
+      h = self.residual_function.FProp(theta.residual_function, input_to_add,
+                                       input_after_sublayer)
 
     new_states = py_utils.NestedMap(
         key=extended_packed_src.source_vecs,
