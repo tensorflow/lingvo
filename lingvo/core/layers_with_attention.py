@@ -1744,6 +1744,328 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
     return hidden, atten_prob, new_states
 
 
+# TODO(ankurbpn): Implementation is slightly different from the original.
+# In the original implementation the KV projection outputs were explicitly
+# zeroed out by the gating networks. Here we control the inputs instead.
+# Verify if this still works as well as the original implementation.
+class CCTAttentionLayer(base_layer.BaseLayer):
+  """Multi-headed attention, add and norm used by 'Attention Is All You Need'.
+
+  Supports CCT attention gating as in the paper here:
+  https://arxiv.org/abs/2002.07106
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CCTAttentionLayer, cls).Params()
+
+    # Transformer Attention params.
+    p.Define('source_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('context_dim', 0, 'Dimension of the attention contexts.')
+    p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
+    p.Define('num_attention_heads', 8, 'Number of attention heads.')
+    p.Define('is_masked', False, 'If set, uses masked MultiHeadedAttention.')
+    p.Define(
+        'mask_type', 'future', 'Type of attention mask if `is_masked` is'
+        'set. Either "future" for masking out attention to future'
+        'positions or "eye" for masking out the token itself.')
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define(
+        'atten_tpl',
+        attention.MultiHeadedAttention.Params().Set(
+            use_source_vec_as_attention_value=False, enable_ctx_post_proj=True),
+        'Multi-Headed Dot-Attention default params')
+    p.Define(
+        'atten_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the attention probs. '
+        'This practically drops memory values at random positions.')
+    p.Define(
+        'residual_dropout_prob', 0.0,
+        'Probability at which we apply dropout to the residual layers, '
+        'such that, residual(x, y) = (x + dropout(y)).')
+    p.Define(
+        'residual_dropout_tpl', layers.DropoutLayer.Params(),
+        'Residual dropout params template. keep_prop will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    p.Define('packed_input', False,
+             'If True, each training example may pack multiple sequences.')
+    p.Define('add_unnormalized_input', False, 'If set, uses unnormalized input '
+             'in the residual add.')
+
+    # CCT params.
+    p.Define('gating_tpl', layers.CCTGatingNetwork.Params(), '')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(CCTAttentionLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.source_dim
+
+    if not p.atten_hidden_dim:
+      p.atten_hidden_dim = p.source_dim
+
+    if not p.context_dim:
+      p.context_dim = p.source_dim
+
+    if p.is_masked:
+      assert p.mask_type in ['future', 'eye']
+
+    with tf.variable_scope(p.name):
+      # Initialize multi-headed attention
+      params = p.atten_tpl.Copy()
+      params.name = 'multihead_atten'
+      params.source_dim = p.source_dim
+      params.query_dim = p.source_dim
+      params.hidden_dim = p.atten_hidden_dim
+      params.context_dim = p.context_dim
+      params.ctx_post_proj_dim = p.source_dim
+      params.num_attention_heads = p.num_attention_heads
+      params.atten_dropout_prob = p.atten_dropout_prob
+      params.packed_input = p.packed_input
+      self.CreateChild('atten', params)
+
+      dropout_tpl = p.residual_dropout_tpl.Copy()
+      dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
+      self.CreateChild('residual_dropout', dropout_tpl)
+
+      # Initialize attention layer norm
+      params = p.ln_tpl.Copy()
+      params.name = 'atten_ln'
+      params.input_dim = p.source_dim
+      self.CreateChild('layer_norm', params)
+
+      # CCT specific operations.
+      ff_gating = p.gating_tpl.Copy()
+      ff_gating.input_dim = p.source_dim
+      ff_gating.num_outputs = 1
+      ff_gating.name = 'query_gating_net'
+      self.CreateChild('query_gating', ff_gating)
+
+      ff_gating = p.gating_tpl.Copy()
+      ff_gating.input_dim = p.source_dim
+      ff_gating.num_outputs = 1
+      ff_gating.name = 'kv_gating_net'
+      self.CreateChild('kv_gating', ff_gating)
+
+      # Initialize source_vec layer norm
+      params = p.ln_tpl.Copy()
+      params.name = 'source_ln'
+      params.input_dim = p.source_dim
+      self.CreateChild('source_layer_norm', params)
+
+      # Initialize ctx_vec layer norm
+      params = p.ln_tpl.Copy()
+      params.name = 'ctx_ln'
+      params.input_dim = p.source_dim
+      self.CreateChild('ctx_layer_norm', params)
+
+  def FProp(self,
+            theta,
+            query_vec,
+            source_paddings,
+            source_vecs=None,
+            query_segment_id=None,
+            source_segment_id=None,
+            **kwargs):
+    """CCT attention, residual and normalization layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [target_time, target_batch, dim]
+      source_paddings: [source_time, source_batch]
+      source_vecs: [source_time, source_batch, dim].
+      query_segment_id: [target_time, target_batch]
+      source_segment_id: [source_time, source_batch]
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
+
+    Returns:
+      (output, atten_probs). output is of shape [target_time, target_batch,
+      context_dim], atten_probs is of shape [target_time, target_batch,
+      source_time].
+    """
+    p = self.params
+    unnormalized_query_vec = query_vec
+    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+
+    if source_vecs is None:  # For self-attention: keys = queries.
+      source_vecs = query_vec
+      source_segment_id = query_segment_id
+    else:
+      source_vecs = self.source_layer_norm.FProp(theta.source_layer_norm,
+                                                 source_vecs)
+
+    # Gating the query computation.
+    query_p_c = self.query_gating.FProp(theta.query_gating, query_vec)
+    source_p_c = self.kv_gating.FProp(theta.kv_gating, source_vecs)
+    source_vecs *= source_p_c  # Gate the source vectors.
+
+    if p.is_masked:
+      assert source_vecs is not None
+      query_vec = py_utils.with_dependencies([
+          py_utils.assert_shape_match(
+              tf.shape(source_vecs), tf.shape(query_vec))
+      ], query_vec)
+      # Prepares mask for self-attention
+      # [time, time]
+      target_time = tf.shape(query_vec)[0]
+      target_bs = tf.shape(query_vec)[1]
+
+      if p.mask_type == 'future':
+        padding = 1.0 - tf.linalg.band_part(
+            tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
+            -1, 0)
+      elif p.mask_type == 'eye':
+        padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
+
+      # [time,  batch, time]
+      causal_padding = tf.tile(tf.expand_dims(padding, 1), [1, target_bs, 1])
+
+      causal_padding = tf.reshape(causal_padding, [-1, target_time])
+    else:
+      causal_padding = None
+
+    query_dim = tf.shape(query_vec)[-1]
+
+    # Projects keys and values.
+    packed_src = self.atten.PackSource(
+        theta=theta.atten,
+        source_vecs=source_vecs,  # keys
+        source_contexts=source_vecs,  # values
+        source_padding=source_paddings,
+        source_segment_id=source_segment_id)
+
+    if query_segment_id is not None:
+      query_segment_id = tf.reshape(query_segment_id, [-1])
+
+    ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithSource(
+        theta=theta.atten,
+        packed_src=packed_src,
+        query_vec=tf.reshape(query_vec, [-1, query_dim]),
+        per_step_source_padding=causal_padding,
+        query_segment_id=query_segment_id,
+        **kwargs)
+
+    # Gating operations
+    ctx_vec = query_p_c * tf.reshape(
+        self.ctx_layer_norm.FProp(theta.ctx_layer_norm, ctx_vec),
+        tf.shape(query_vec))
+
+    ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    h = input_to_add + ctx_vec
+    atten_prob = tf.reshape(atten_prob, [
+        tf.shape(query_vec)[0],
+        tf.shape(query_vec)[1],
+        tf.shape(source_vecs)[0]
+    ])
+    return h, atten_prob, query_p_c, source_p_c
+
+  def _FinishExtendStep(self,
+                        theta,
+                        query_vec,
+                        unnormalized_query_vec,
+                        extended_packed_src,
+                        t=None):
+    """Finish extending prefix by one more time step.
+
+    Isolating this function from ExtendStep allows generalizing self-attention
+    to causal attention on other inputs.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [target_batch, dim]
+      unnormalized_query_vec: [target_batch, dim]
+      extended_packed_src: A `.NestedMap` object containing source_vecs,
+        source_contexts, source_paddings, and source_segment_ids
+      t: a scalar, the current time step, 0-based.
+
+    Returns:
+      A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+      representing the output from the current state, and new_state is the new
+      state `.NestedMap`.
+    """
+    p = self.params
+    # Gating operations
+    query_p_c = self.query_gating.FProp(theta.query_gating, query_vec)
+
+    if t is not None:
+      source_seq_len = tf.shape(extended_packed_src.source_vecs)[0]
+      zero_padding = tf.fill([source_seq_len],
+                             tf.constant(0.0, dtype=query_vec.dtype))
+      per_step_source_padding = tf.where(
+          tf.less(tf.range(source_seq_len), tf.fill([source_seq_len], t + 1)),
+          zero_padding, tf.ones_like(zero_padding, dtype=query_vec.dtype))
+      query_batch_size = tf.shape(query_vec)[0]
+      per_step_source_padding = tf.tile(
+          tf.expand_dims(per_step_source_padding, axis=0),
+          [query_batch_size, 1])
+    else:
+      per_step_source_padding = None
+    ctx_vec, atten_prob, _ = self.atten.ComputeContextVectorWithCachedSource(
+        theta.atten,
+        extended_packed_src,
+        query_vec,
+        per_step_source_padding=per_step_source_padding)
+
+    # Gating operations
+    ctx_vec = self.ctx_layer_norm.FProp(theta.ctx_layer_norm, ctx_vec)
+    ctx_vec = query_p_c * tf.reshape(ctx_vec, tf.shape(query_vec))
+    ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
+    input_to_add = (
+        unnormalized_query_vec if p.add_unnormalized_input else query_vec)
+    h = input_to_add + ctx_vec
+
+    new_states = py_utils.NestedMap(
+        key=extended_packed_src.source_vecs,
+        value=extended_packed_src.source_contexts)
+    return h, atten_prob, new_states
+
+  def ExtendStep(self, theta, query_vec, prefix_state, t=None):
+    """Extend prefix by one more time step.
+
+    This function is expected to be called during fast decoding of the
+    Transformer model.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec: [target_batch, dim]
+      prefix_state: dict, containing tensors which are the results of previous
+        attentions, used for fast decoding.
+      t: a scalar, the current time step, 0-based.
+
+    Returns:
+      A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+      representing the output from the current state, and new_state is the new
+      state `.NestedMap`.
+    """
+    p = self.params
+    assert p.is_masked  # Must be causal attention.
+
+    # Gating operations
+    unnormalized_query_vec = query_vec
+    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+    source_p_c = self.kv_gating.FProp(theta.kv_gating, query_vec)
+    source_vec = source_p_c * query_vec
+
+    cached_packed_src = py_utils.NestedMap(
+        source_vecs=prefix_state.key,
+        source_contexts=prefix_state.value,
+        source_padding=None,
+        source_segment_id=None)
+    extended_packed_src = self.atten.ExtendSourcePacked(theta.atten, source_vec,
+                                                        source_vec, None, None,
+                                                        cached_packed_src, t)
+    return self._FinishExtendStep(theta, query_vec, unnormalized_query_vec,
+                                  extended_packed_src, t)
+
+
 class CCTFeedForwardLayer(base_layer.BaseLayer):
   """Transformer FF layer with CCT gating.
 
@@ -1872,7 +2194,7 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
       ff_output = self.out_layer_norm[i].FProp(theta.out_layer_norm[i],
                                                ff_output)
       ff_outputs.append(ff_output)
-    p_c = self.ff_gating.FProp(theta.ff_gating, inputs)
+    p_c = self.ff_gating.FProp(theta.ff_gating, inputs_normalized)
     out = inputs + self.residual_dropout.FProp(
         theta.residual_dropout,
         tf.reduce_sum(

@@ -4665,7 +4665,7 @@ class CCTGatingNetworkTest(test_utils.TestCase):
             [0.404144, 0.502593, 0.644338]]])
 
   def testCCTGatingNetworkInference(self):
-    with self.session(use_gpu=False):
+    with self.session(use_gpu=False), self.SetEval(True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
       p = layers.CCTGatingNetwork.Params().Set(
@@ -4677,7 +4677,6 @@ class CCTGatingNetworkTest(test_utils.TestCase):
           noise_warmup_steps=300)
       params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=837465638)
       p.params_init = params_init
-      p.is_inference = True
       cct_net = p.Instantiate()
 
       a = tf.constant(np.random.rand(3, 10), dtype=tf.float32)

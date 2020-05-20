@@ -4837,7 +4837,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
   def FProp(self, theta, inputs, paddings=None):
     p = self.params
     p_c = self.gatingfflayer.FProp(theta.gatingfflayer, inputs, paddings)
-    if p.is_inference:
+    if self.do_eval:
       ones = tf.ones(tf.shape(p_c), py_utils.FPropDtype(p))
       zeros = tf.zeros(tf.shape(p_c), py_utils.FPropDtype(p))
       p_c = tf.where(

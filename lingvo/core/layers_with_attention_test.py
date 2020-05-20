@@ -2030,37 +2030,34 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
-          [[0.42715067, -1.1583825,   0.5488725],
-           [1.8654622,   1.2259548,   1.5535246]],
-          [[-0.01804674, -1.5219848,   0.7871489],
-           [1.8471594,   0.57059634,  0.8435328]],
-          [[-0.01121128, -0.7855443,  -0.84111285],
-           [0.31814185,  0.7107519,   0.13218479]],
-          [[0.16292389,  0.14500977, -0.3279708],
-           [0.05418712, -0.41232744, -1.5327752]],
-          [[-0.52026933,  0.26753289, -0.5844518],
-           [-0.06638837, -0.02407943, -0.22123742]]]
+          [[ 0.49714983, -1.1684668 ,  0.4889576 ],
+           [ 1.7869478 ,  1.4456576 ,  1.4123362 ]],
+          [[ 0.10564739, -1.5359519 ,  0.67742175],
+           [ 1.6211604 ,  0.583192  ,  1.056936  ]],
+          [[-0.01121134, -0.78554434, -0.84111285],
+           [ 0.45078042,  0.63005054,  0.08024757]],
+          [[ 0.162924  ,  0.14500974, -0.32797086],
+           [ 0.41885388, -0.5852693 , -1.7245001 ]],
+          [[-0.6601118 ,  0.30835745, -0.48543385],
+           [-0.04813027, -0.04633661, -0.21723843]]]
       expected_p_c = [
-          [[0.5111345,  0.5052591],
-           [0.8574866,  0.32653052]],
-          [[0.54919845, 0.5232933],
-           [0.56108534, 0.37991753]],
-          [[0.5,        0.5],
-           [0.5497959,  0.45502025]],
-          [[0.5,        0.5 ],
-           [0.5,        0.5]],
-          [[0.5256961,  0.5121437],
-           [0.7153195,  0.515119]]
-      ]
+          [[0.5607947 , 0.49624035],
+           [0.72082597, 0.50216115]],
+          [[0.6352798 , 0.49843985],
+           [0.5       , 0.5       ]],
+          [[0.5       , 0.5       ],
+           [0.5       , 0.5       ]],
+          [[0.5       , 0.5       ],
+           [0.7562946 , 0.50510687]],
+          [[0.62267053, 0.50738835],
+           [0.73273706, 0.5029184 ]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
-      print(np.array_repr(actual_layer_output))
-      print(np.array_repr(p_c_val))
       self.assertAllClose(actual_layer_output, expected_output)
       self.assertAllClose(p_c_val, expected_p_c)
 
   def testCCTFeedForwardLayerInference(self):
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True), self.SetEval(True):
       tf.random.set_seed(3980847392)
       inputs = tf.random.normal([5, 2, 3], seed=948387483)
       paddings = tf.zeros([5, 2])
@@ -2072,7 +2069,6 @@ class LayersWithAttentionTest(test_utils.TestCase):
       p.gating_tpl.hidden_layer_dim = 2
       p.gating_tpl.noise_std = 5.0
       p.gating_tpl.noise_warmup_steps = 100
-      p.is_inference = True
       cct_fflayer = layers_with_attention.CCTFeedForwardLayer(p)
 
       h, p_c = cct_fflayer.FPropDefaultTheta(inputs, paddings)
@@ -2081,23 +2077,24 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_output = [
-          [[ 1.0098392,  -1.9131559,   0.7209573],
-           [1.853969,    0.8876595,   1.9033132]],
-          [[ 0.54020345, -2.289555,    0.9964691],
-           [2.8543897,   0.53420514, -0.12730598]],
-          [[0.12175596, -1.2262937,  -0.5333306],
-           [-0.94935167,  1.4773865,   0.6330439]],
-          [[0.16090931,  0.0672162,  -0.24816266],
-           [0.9799553,  -0.28615296, -2.5847178]],
-          [[-0.4871899,   0.18763694, -0.5376355],
-           [0.58863795,  0.21293162, -1.1132748 ]]]
+          [[ 1.1921753 , -0.78980637, -0.58472836],
+           [ 2.5051842 ,  1.6491661 ,  0.49059153]],
+          [[ 0.6877271 , -1.1452659 , -0.29534382],
+           [ 1.5774723 ,  0.6462606 ,  1.0375552 ]],
+          [[ 0.12175584, -1.2262938 , -0.5333306 ],
+           [ 0.4632102 ,  0.7119628 , -0.01409443]],
+          [[ 0.16090955,  0.06721614, -0.24816278],
+           [ 0.9799552 , -0.2861529 , -2.5847178 ]],
+          [[-0.48719   ,  0.18763718, -0.53763545],
+           [ 0.5886377 ,  0.21293162, -1.1132748 ]]
+      ]
       expected_p_c = [
+          [[1., 0.],
+           [1., 1.]],
+          [[1., 0.],
+           [1., 1.]],
           [[1., 1.],
-           [1., 0.]],
-          [[1., 1.],
-           [1., 0.]],
-          [[1., 1.],
-           [1., 0.]],
+           [1., 1.]],
           [[1., 1.],
            [1., 1.]],
           [[1., 1.],
@@ -2105,8 +2102,6 @@ class LayersWithAttentionTest(test_utils.TestCase):
       ]
       # pyformat: enable
       # pylint: enable=bad-whitespace
-      print(np.array_repr(actual_layer_output))
-      print(np.array_repr(p_c_val))
       self.assertAllClose(actual_layer_output, expected_output)
       self.assertAllClose(p_c_val, expected_p_c)
 
@@ -2299,6 +2294,375 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
+
+  def testCCTAttentionLayerSelfAttentionTraining(self):
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      p = layers_with_attention.CCTAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = True
+      p.num_attention_heads = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      transformer_atten = layers_with_attention.CCTAttentionLayer(p)
+
+      (source_vecs, source_padding, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs, qpc, spc = transformer_atten.FPropDefaultTheta(
+          source_vecs, source_padding)
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs, actual_qpc, actual_spc = sess.run(
+          [ctx, probs, qpc, spc])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-0.9170906 ,  0.89127994,  0.8682031 , -0.8423924 ],
+           [-1.2874005 , -0.76474655,  0.5771928 ,  1.4749541 ]],
+          [[ 0.34465155,  0.74996084, -0.48622286, -0.6083897 ],
+           [-0.7486481 , -0.07628638, -0.99187833,  1.8168143 ]],
+          [[ 1.6986014 , -0.44173932, -0.7130059 , -0.5438557 ],
+           [-1.3927674 , -0.09861529,  0.3361559 ,  1.1552272 ]],
+          [[-0.5439662 , -1.0707575 ,  1.8813989 , -0.26667514],
+           [ 1.1484473 ,  0.9964316 , -1.2344118 , -0.91046673]],
+          [[-0.06898946, -1.5815425 , -0.45298773,  2.1035194 ],
+           [-1.7475295 ,  0.27231437, -0.8034381 ,  2.2786536 ]]]
+      expected_probs = [
+          [[1.        , 0.        , 0.        , 0.        , 0.        ],
+           [0.2       , 0.2       , 0.2       , 0.2       , 0.2       ]],
+          [[0.4238176 , 0.57618237, 0.        , 0.        , 0.        ],
+           [0.        , 1.        , 0.        , 0.        , 0.        ]],
+          [[0.34105754, 0.65894246, 0.        , 0.        , 0.        ],
+           [0.        , 0.55719167, 0.44280833, 0.        , 0.        ]],
+          [[0.6528083 , 0.34719166, 0.        , 0.        , 0.        ],
+           [0.        , 0.32477915, 0.36445653, 0.31076428, 0.        ]],
+          [[0.28325003, 0.21873125, 0.        , 0.        , 0.49801874],
+           [0.        , 0.43867606, 0.2793855 , 0.28193837, 0.        ]]]
+      expected_qpc = [
+          [[0.5       ],
+           [0.5818492 ]],
+          [[0.5411409 ],
+           [0.55023897]],
+          [[0.56948507],
+           [0.5499979 ]],
+          [[0.5166038 ],
+           [0.58645904]],
+          [[0.54155153],
+           [0.5       ]]]
+      expected_spc = [
+          [[0.21472901],
+           [0.06997871]],
+          [[0.53207266],
+           [0.39812705]],
+          [[0.5217048 ],
+           [0.07829338]],
+          [[0.06743541],
+           [0.5       ]],
+          [[0.32987863],
+           [0.5442441 ]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_qpc, actual_qpc, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_spc, actual_spc, rtol=1e-05, atol=1e-05)
+
+  def testCCTAttentionLayerSelfAttentionEval(self):
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      depth = 4
+      p = layers_with_attention.CCTAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = True
+      p.num_attention_heads = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      transformer_atten = layers_with_attention.CCTAttentionLayer(p)
+
+      (source_vecs, source_padding, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs, qpc, spc = transformer_atten.FPropDefaultTheta(
+          source_vecs, source_padding)
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs, actual_qpc, actual_spc = sess.run(
+          [ctx, probs, qpc, spc])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.5939784e+00,  8.5430717e-01,  8.4722424e-01, -1.0755297e-01],
+           [-1.6199683e+00, -1.9144357e+00,  1.0950426e+00,  2.4393613e+00]],
+          [[ 2.0492536e-01, -5.0217152e-02, -1.5521961e-01,  5.1122904e-04],
+           [-4.3141130e-01, -9.0650195e-01, -3.5488802e-01,  1.6928028e+00]],
+          [[ 1.7034934e+00, -1.1774492e+00, -4.2603785e-01, -1.0000569e-01],
+           [-1.0880733e+00, -9.0783793e-01,  9.9768031e-01,  9.9823117e-01]],
+          [[-1.1584746e+00, -2.0163212e+00,  2.3776212e+00,  7.9717481e-01],
+           [ 1.3303024e+00, -1.4763023e+00,  2.6441175e-01, -1.1841190e-01]],
+          [[-3.0323851e-01, -2.5461116e+00,  5.0698155e-01,  2.3423686e+00],
+           [-2.0771229e+00, -8.0027932e-01, -7.4258000e-02,  2.9516606e+00]]]
+      expected_probs = [
+          [[1.        , 0.        , 0.        , 0.        , 0.        ],
+           [0.2       , 0.2       , 0.2       , 0.2       , 0.2       ]],
+          [[0.35538384, 0.6446162 , 0.        , 0.        , 0.        ],
+           [0.        , 1.        , 0.        , 0.        , 0.        ]],
+          [[0.18125553, 0.8187444 , 0.        , 0.        , 0.        ],
+           [0.        , 0.5       , 0.5       , 0.        , 0.        ]],
+          [[0.7752405 , 0.22475953, 0.        , 0.        , 0.        ],
+           [0.        , 0.36166608, 0.36166608, 0.27666792, 0.        ]],
+          [[0.40603536, 0.18792923, 0.        , 0.        , 0.40603536],
+           [0.        , 0.32476988, 0.32476988, 0.35046023, 0.        ]]]
+      expected_qpc = [
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]]]
+      expected_spc = [
+          [[0.],
+           [0.]],
+          [[1.],
+           [0.]],
+          [[1.],
+           [0.]],
+          [[0.],
+           [1.]],
+          [[0.],
+           [1.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_qpc, actual_qpc, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_spc, actual_spc, rtol=1e-05, atol=1e-05)
+
+  def testCCTAttentionLayerStepByStep(self):
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      depth = 4
+      p = layers_with_attention.CCTAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = True
+      p.num_attention_heads = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      x_atten = layers_with_attention.CCTAttentionLayer(p)
+
+      (source_vecs, _, _, _,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      ctx1, probs1, _, _ = x_atten.FPropDefaultTheta(source_vecs,
+                                                     source_padding)
+      ctx2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        ctx, probs, prefix_states = x_atten.ExtendStep(x_atten.theta,
+                                                       source_vecs[i, :, :],
+                                                       prefix_states)
+        probs_pad = tf.zeros([2, 5 - i - 1])
+        padded_probs = tf.concat([probs, probs_pad], 1)
+        ctx2.append(ctx)
+        probs2.append(padded_probs)
+
+      ctx2 = tf.stack(ctx2)
+      probs2 = tf.stack(probs2)
+
+      tf.global_variables_initializer().run()
+      ctx1_v, probs1_v, ctx2_v, probs2_v = sess.run(
+          [ctx1, probs1, ctx2, probs2])
+      self.assertAllClose(ctx1_v, ctx2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
+  def testCCTAttentionLayerCrossAttenTraining(self):
+    with self.session(use_gpu=True) as sess:
+      depth = 4
+      p = layers_with_attention.CCTAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      transformer_atten = layers_with_attention.CCTAttentionLayer(p)
+
+      (query_vec, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs, qpc, spc = transformer_atten.FPropDefaultTheta(
+          query_vec, aux_paddings, aux_vecs)
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs, actual_qpc, actual_spc = sess.run(
+          [ctx, probs, qpc, spc])
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.9043474 ,  1.6999874 ,  0.4292767 , -0.22491673],
+           [-0.84242177, -0.50577486,  0.29762083,  1.0505756 ]],
+          [[-0.33607534,  2.5800223 , -1.3375163 , -0.90643084],
+           [-0.4973639 , -0.17019022, -1.1589761 ,  1.8265318 ]],
+          [[ 1.1859869 ,  1.5021455 , -1.6327672 , -1.0553647 ],
+           [-1.2359238 , -0.22244841,  0.19330817,  1.2650642 ]],
+          [[-1.5131142 ,  0.49699292,  1.129034  , -0.11291274],
+           [ 2.1162672 ,  0.6308829 , -1.0373113 , -1.7098385 ]],
+          [[-0.9935959 ,  0.07386243, -0.6836246 ,  1.6033579 ],
+           [-1.0807116 ,  0.85268646, -1.2622242 ,  1.4902495 ]]]
+      expected_probs = [
+          [[0.24303743, 0.        , 0.30685946, 0.        , 0.25564623,
+            0.        , 0.1944569 ],
+           [0.        , 0.28801104, 0.        , 0.34431183, 0.        ,
+            0.36767715, 0.        ]],
+          [[0.2644446 , 0.        , 0.23458862, 0.        , 0.23393473,
+            0.        , 0.26703206],
+           [0.        , 0.22837642, 0.        , 0.2820819 , 0.        ,
+            0.4895417 , 0.        ]],
+          [[0.2599384 , 0.        , 0.19412258, 0.        , 0.21307275,
+            0.        , 0.33286628],
+           [0.        , 0.27514488, 0.        , 0.35259444, 0.        ,
+            0.3722607 , 0.        ]],
+          [[0.24153353, 0.        , 0.3045342 , 0.        , 0.2569951 ,
+            0.        , 0.19693717],
+           [0.        , 0.36325702, 0.        , 0.26765382, 0.        ,
+            0.36908916, 0.        ]],
+          [[0.21663833, 0.        , 0.28198314, 0.        , 0.29308724,
+            0.        , 0.20829134],
+           [0.        , 0.2337277 , 0.        , 0.319759  , 0.        ,
+            0.44651327, 0.        ]]]
+      expected_qpc = [
+          [[0.5       ],
+           [0.5818492 ]],
+          [[0.541141  ],
+           [0.55023897]],
+          [[0.56948507],
+           [0.5499979 ]],
+          [[0.5166038 ],
+           [0.58645904]],
+          [[0.54155153],
+           [0.5       ]]]
+      expected_spc = [
+          [[0.09838167],
+           [0.5       ]],
+          [[0.51203823],
+           [0.22011107]],
+          [[0.27349436],
+           [0.5230051 ]],
+          [[0.5       ],
+           [0.0911701 ]],
+          [[0.2730832 ],
+           [0.5       ]],
+          [[0.54982626],
+           [0.44889307]],
+          [[0.10193098],
+           [0.11123485]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_qpc, actual_qpc, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_spc, actual_spc, rtol=1e-05, atol=1e-05)
+
+  def testCCTAttentionLayerCrossAttenEval(self):
+    with self.session(use_gpu=True) as sess, self.SetEval(True):
+      depth = 4
+      p = layers_with_attention.CCTAttentionLayer.Params()
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      p.gating_tpl.hidden_layer_dim = 2
+      p.gating_tpl.noise_std = 5.0
+      p.gating_tpl.noise_warmup_steps = 100
+      transformer_atten = layers_with_attention.CCTAttentionLayer(p)
+
+      (query_vec, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputs(depth=depth)
+
+      ctx, probs, qpc, spc = transformer_atten.FPropDefaultTheta(
+          query_vec, aux_paddings, aux_vecs)
+      tf.global_variables_initializer().run()
+      actual_ctx, actual_probs, actual_qpc, actual_spc = sess.run(
+          [ctx, probs, qpc, spc])
+      tf.logging.info(np.array_repr(actual_ctx))
+      tf.logging.info(np.array_repr(actual_probs))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [[-1.5939784 ,  0.8543072 ,  0.84722424, -0.10755297],
+           [-0.7121205 , -1.2363338 ,  1.1559415 ,  0.7925127 ]],
+          [[-0.09044743,  1.6572162 , -0.87628996, -0.69047904],
+           [-0.4314113 , -0.90650195, -0.35488802,  1.6928028 ]],
+          [[ 1.3591317 ,  0.5376119 , -1.1282029 , -0.7685402 ],
+           [-1.0880733 , -0.9078379 ,  0.9976803 ,  0.9982312 ]],
+          [[-1.1870676 , -0.37413225,  1.5655125 , -0.00431258],
+           [ 1.62277   ,  0.02716666, -0.7765793 , -0.87335706]],
+          [[-0.6675403 , -0.8283625 , -0.18727894,  1.6831816 ],
+           [-1.113929  ,  0.13246097, -0.57226247,  1.5537308 ]]]
+      expected_probs = [
+          [[0.25      , 0.        , 0.25      , 0.        , 0.25      ,
+            0.        , 0.25      ],
+           [0.        , 0.33333334, 0.        , 0.33333334, 0.        ,
+            0.33333334, 0.        ]],
+          [[0.25      , 0.        , 0.25      , 0.        , 0.25      ,
+            0.        , 0.25      ],
+           [0.        , 0.33333334, 0.        , 0.33333334, 0.        ,
+            0.33333334, 0.        ]],
+          [[0.25      , 0.        , 0.25      , 0.        , 0.25      ,
+            0.        , 0.25      ],
+           [0.        , 0.33333334, 0.        , 0.33333334, 0.        ,
+            0.33333334, 0.        ]],
+          [[0.25      , 0.        , 0.25      , 0.        , 0.25      ,
+            0.        , 0.25      ],
+           [0.        , 0.33333334, 0.        , 0.33333334, 0.        ,
+            0.33333334, 0.        ]],
+          [[0.25      , 0.        , 0.25      , 0.        , 0.25      ,
+            0.        , 0.25      ],
+           [0.        , 0.33333334, 0.        , 0.33333334, 0.        ,
+            0.33333334, 0.        ]]]
+      expected_qpc = [
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]],
+          [[1.],
+           [1.]]]
+      expected_spc = [
+          [[0.],
+           [1.]],
+          [[1.],
+           [0.]],
+          [[0.],
+           [1.]],
+          [[1.],
+           [0.]],
+          [[0.],
+           [1.]],
+          [[1.],
+           [0.]],
+          [[0.],
+           [0.]]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_qpc, actual_qpc, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(expected_spc, actual_spc, rtol=1e-05, atol=1e-05)
 
 
 if __name__ == '__main__':
