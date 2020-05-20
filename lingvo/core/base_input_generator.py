@@ -270,9 +270,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
           shapes = batch.Transform(lambda x: x.shape).Flatten()
           dtypes = batch.Transform(lambda x: x.dtype).Flatten()
           tf.logging.info('host_device: %s infeed shapes: %r', host_device,
-                               shapes)
+                          shapes)
           tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
-                               dtypes)
+                          dtypes)
           if p.use_partitioned_infeed_queue:
             device_assignment = py_utils.GetTpuDeviceAssignment()
 
@@ -285,7 +285,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
                 number_of_tuple_elements=len(dtypes),
                 device_assignment=device_assignment,
                 host_id=host_id,
-                input_partition_dims=[[p.num_partitions, 1] for _ in dtypes],
+                input_partition_dims=[
+                    [p.num_partitions] + [1] * (len(s) - 1) for s in shapes
+                ],
                 tuple_types=dtypes,
                 tuple_shapes=shapes)
           else:
