@@ -90,7 +90,7 @@ RUN pip3 --no-cache-dir install $pip_dependencies && \
 # tensorflow from source instead of installing from pip.
 # Ensure we install the correct version by uninstalling first.
 RUN pip3 uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
-RUN pip3 --no-cache-dir install tensorflow-gpu
+RUN pip3 --no-cache-dir install tensorflow-gpu==2.1.0
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
 
