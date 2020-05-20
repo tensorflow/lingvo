@@ -3933,9 +3933,6 @@ class HighwaySkipLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super(HighwaySkipLayer, self).__init__(params)
     p = self.params
-    assert p.name
-    self._carry_gate = None
-    self._transform_gate = None
     with tf.variable_scope(p.name):
       carry_gate_params = ProjectionLayer.Params().Set(
           batch_norm=p.batch_norm,
@@ -3980,6 +3977,65 @@ class HighwaySkipLayer(base_layer.BaseLayer):
       assert self.transform_gate is not None
       transform = self.transform_gate.FProp(theta.transform_gate, x, paddings)
     layer_out = x * carry + transformed_x * transform
+    return layer_out
+
+
+class GatingLayer(base_layer.BaseLayer):
+  """A gating layer.
+
+  This class represents a gating layer, which takes 2 inputs of the same shape
+  and gates them.
+
+  The output is: carry * x + (1 - carry) * y where, carry is given by
+  sigmoid(x @ w_1 + y @ w_2 + bias).
+
+  This is different from the HighwaySkipLayer above in that carry is also a
+  function of y (named transformed_x in HighwaySkipLayer).
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(GatingLayer, cls).Params()
+    p.Define('input_dim', 0, 'Dimension of the input to the network.')
+    p.Define('has_bias', False, 'Whether carry has a bias term.')
+    p.Define('carry_bias_init', 0.0, 'carry gates bias initialization')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GatingLayer, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      carry_gate_params = ProjectionLayer.Params().Set(
+          batch_norm=False,
+          has_bias=p.has_bias,
+          activation='SIGMOID',
+          input_dim=p.input_dim * 2,
+          output_dim=p.input_dim,
+          bias_init=p.carry_bias_init,
+          name='carry')
+      self.CreateChild('carry_gate', carry_gate_params)
+
+  def FProp(self, theta, x, y, paddings=None):
+    """Fprop for the gating layer.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      x: An input feature, the last dimension must match p.input_dim.
+      y: Another input feature. Must have the same shape as 'x'.
+      paddings: padding applied to the features. When x and y have shape [...,
+        input_dim], 'paddings', when specified, must have shaped [..., 1], where
+        all but the last dimension match.
+
+    Returns:
+      layer_out - activations after forward propagation. Same shape as x and y.
+    """
+    y = py_utils.with_dependencies(
+        [py_utils.assert_shape_match(tf.shape(x), tf.shape(y))], y)
+    carry = self.carry_gate.FProp(theta.carry_gate, tf.concat([x, y], axis=-1),
+                                  paddings)
+    layer_out = x * carry + y * (1 - carry)
     return layer_out
 
 

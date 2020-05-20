@@ -4128,6 +4128,50 @@ class HighwaySkipLayerTest(test_utils.TestCase):
       self.assertAllClose(a, out)
 
 
+class GatingLayerTest(test_utils.TestCase):
+
+  def testGatingLayerConstruction(self):
+    with self.session(use_gpu=False):
+      p = layers.GatingLayer.Params().Set(
+          name='gating',
+          input_dim=10,
+          carry_bias_init=1.0,
+          params_init=py_utils.WeightInit.Uniform(1.0))
+      gate = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      b = tf.constant(-2.0, shape=[20, 10])
+      gate.FPropDefaultTheta(a, b)
+
+  def testGatingLayerFProp(self):
+    with self.session(use_gpu=True):
+      p = layers.GatingLayer.Params().Set(
+          name='gate', input_dim=6, has_bias=False)
+      gate = p.Instantiate()
+      a = tf.constant(np.random.uniform(size=[10, 6]), dtype=tf.float32)
+      b = tf.constant(np.random.uniform(size=[10, 6]), dtype=tf.float32)
+      out = gate.FPropDefaultTheta(a, b)
+      self.evaluate(tf.global_variables_initializer())
+      actual_out, w = self.evaluate([out, gate.theta.carry_gate.w])
+      self.assertAllEqual(np.shape(w), [12, 6])
+      w = np.matmul(a.eval(), w[:6, :]) + np.matmul(b.eval(), w[6:, :])
+      sigmoid_w = 1 / (1 + np.exp(-w))
+      expected_out = a * sigmoid_w + b * (1 - sigmoid_w)
+      self.assertAllClose(actual_out, expected_out)
+
+  def testGatingLayerFPropSaturated(self):
+    with self.session(use_gpu=True):
+      p = layers.GatingLayer.Params().Set(
+          name='gate', input_dim=6, has_bias=True, carry_bias_init=100)
+      gate = p.Instantiate()
+      a = tf.constant(np.random.uniform(size=[10, 6]), dtype=tf.float32)
+      b = tf.constant(np.random.uniform(size=[10, 6]), dtype=tf.float32)
+      out = gate.FPropDefaultTheta(a, b)
+      self.evaluate(tf.global_variables_initializer())
+      # High initial bias, causing the carry gate to saturate and the
+      # output will be very close to a.
+      self.assertAllClose(out.eval(), a.eval())
+
+
 class UniformLabelSmootherTest(test_utils.TestCase):
 
   def testUniformLabelSmoother(self):
