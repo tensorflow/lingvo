@@ -169,6 +169,27 @@ class _Param(object):
     return self._value
 
 
+def CopyParamsTo(from_p, to_p, skip=None):
+  """Copy from one Params to another, with optional skipped params.
+
+  Args:
+    from_p: Source params to copy from.
+    to_p: Destination params to copy to.
+    skip: If not None, a list of strings of param names to skip.
+
+  Returns:
+    None
+  """
+  for n, p in from_p.IterParams():
+    if skip and n in skip:
+      continue
+    if isinstance(p, Params):
+      to_p.Set(**{n: p.Copy()})
+    else:
+      to_p.Set(**{n: p})
+  return to_p
+
+
 class Params(object):
   """Stores data for a set of parameters.
 

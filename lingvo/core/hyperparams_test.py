@@ -97,6 +97,18 @@ class ParamsTest(test_utils.TestCase):
     self.assertIs(outer.inner.tensor, outer_copy.inner.tensor)
     self.assertIs(outer.inner.symbol, outer_copy.inner.symbol)
 
+  def testCopyParamsTo(self):
+    source = _params.Params()
+    dest = _params.Params()
+    source.Define('a', 'a', '')
+    source.Define('b', 'b', '')
+    source.Define('c', 'c', '')
+    dest.Define('a', '', '')
+    _params.CopyParamsTo(source, dest, skip=['b', 'c'])
+    self.assertEqual(source.a, dest.a)
+    self.assertNotIn('b', dest)
+    self.assertNotIn('c', dest)
+
   def testDefineExisting(self):
     p = _params.Params()
     p.Define('foo', 1, '')

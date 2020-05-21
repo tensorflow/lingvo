@@ -58,6 +58,26 @@ py_library(
 )
 
 py_library(
+    name = "batch_major_attention",
+    srcs = ["batch_major_attention.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":base_layer",
+        ":builder",
+        ":conv_layers_builder",
+        ":gpipe",
+        ":layers",
+        ":layers_with_attention",
+        ":py_utils",
+        ":relative_atten_util",
+        ":symbolic",
+        ":tshape",
+        "//lingvo:compat",
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "beam_search_helper",
     srcs = [
         "beam_search_helper.py",
@@ -164,6 +184,21 @@ py_test(
         ":test_utils",
         "//lingvo:compat",
         # Implicit mock dependency.
+        # Implicit numpy dependency.
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "batch_major_attention_test",
+    srcs = ["batch_major_attention_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":batch_major_attention",
+        ":py_utils",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.
     ],
@@ -1297,11 +1332,35 @@ lingvo_cuda_py_test(
 )
 
 py_library(
+    name = "relative_atten_util",
+    srcs = ["relative_atten_util.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":py_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "retry",
     srcs = ["retry.py"],
     srcs_version = "PY2AND3",
     deps = [
         # Implicit retry dependency.
+    ],
+)
+
+py_test(
+    name = "relative_atten_util_test",
+    srcs = ["relative_atten_util_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":py_utils",
+        ":relative_atten_util",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
@@ -1317,11 +1376,37 @@ py_test(
 )
 
 py_library(
+    name = "self_attention_layer",
+    srcs = ["self_attention_layer.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":batch_major_attention",
+        # Implicit six dependency.
+    ],
+)
+
+py_library(
     name = "sendrecv",
     srcs = ["sendrecv.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
+    ],
+)
+
+py_test(
+    name = "self_attention_layer_test",
+    timeout = "long",
+    srcs = ["self_attention_layer_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":batch_major_attention",
+        ":py_utils",
+        ":self_attention_layer",
+        ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
     ],
 )
 
