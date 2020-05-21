@@ -759,6 +759,7 @@ class ByDifficulty(BreakdownMetric):
     for difficulty in p.metadata.DifficultyLevels():
       max_recall = _FindMaximumRecall(self._precision_recall[difficulty])
       for i, j in enumerate(p.metadata.EvalClassIndices()):
+        classname = p.metadata.ClassNames()[j]
         summary = tf.Summary(value=[
             tf.Summary.Value(
                 tag='{}/{}/max_recall_{}'.format(name, classname, difficulty),
@@ -777,5 +778,5 @@ class ByDifficulty(BreakdownMetric):
                       name, classname, int(precision_level * 100), difficulty),
                   simple_value=recall_at_precision[i])
           ])
-        summaries.append(summary)
+          summaries.append(summary)
     return summaries
