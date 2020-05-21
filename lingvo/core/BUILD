@@ -1557,7 +1557,6 @@ py_library(
         ":attention",
         ":base_layer",
         ":layers",
-        ":layers_with_attention",
         ":py_utils",
         ":quant_utils",
         ":recurrent",

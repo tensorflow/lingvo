@@ -23,7 +23,6 @@ import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
 from lingvo.core import layers
-from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import recurrent
@@ -1087,7 +1086,7 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
         'Attention used by this attention layer, can be overridden by '
         'source_name_to_attention_params.')
     p.Define(
-        'atten_merger', layers_with_attention.MergerLayer.Params(),
+        'atten_merger', attention.MergerLayer.Params(),
         'Merger layer config for combining context vectors computed for '
         'different source encodings.')
     p.Define('source_names', None, 'List of source names.')

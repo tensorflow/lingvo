@@ -1871,6 +1871,282 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_prob_out, prob_out)
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
+  def testMergerLayerMean(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      p_ctxs = [
+          np.random.rand(batch, depth).astype('float32')
+          for _ in range(n_sources)
+      ]
+      ctxs = [tf.constant(ctx, dtype=tf.float32) for ctx in p_ctxs]
+
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'mean'
+      p.source_dim = depth
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, ctxs)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate([ctx])[0]
+
+      expected_ctx = np.mean(p_ctxs, axis=0)
+      self.assertEqual(actual_ctx.shape, (batch, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerAdditiveAttention(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      query_dim = 7
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      query_vec = tf.constant(
+          np.random.rand(batch * 2, query_dim), dtype=tf.float32)
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'atten'
+      p.source_dim = depth
+      p.query_dim = query_dim
+      p.hidden_dim = depth
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, ctxs, query_vec)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.40796196,  0.50855637,  0.92564321,  0.72608167],
+          [ 0.34300309,  0.17305931,  0.64801621,  0.4161588 ],
+          [ 0.40570667,  0.28166312,  0.07109687,  0.07077176],
+          [ 0.44923055,  0.56033343,  0.70899796,  0.73256713],
+          [ 0.56362778,  0.42331296,  0.47032064,  0.76701462],
+          [ 0.40873578,  0.50516003,  0.92537481,  0.72435796],
+          [ 0.33702248,  0.17404726,  0.65101075,  0.41883218],
+          [ 0.40316698,  0.28128177,  0.0709244 ,  0.07073996],
+          [ 0.44036126,  0.53640223,  0.68623006,  0.75264776],
+          [ 0.54324883,  0.42487082,  0.4616943 ,  0.77234119]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch * 2, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerDotProductAttention(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      query_vec = tf.constant(
+          np.random.rand(batch * 2, depth), dtype=tf.float32)
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'atten'
+      p.source_dim = depth
+      p.query_dim = depth
+      p.hidden_dim = depth
+      p.attention_tpl = attention.DotProductAttention.Params()
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, ctxs, query_vec)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.40122974,  0.53032947,  0.92722446,  0.73408204],
+          [ 0.37834394,  0.16492322,  0.6284582 ,  0.40583336],
+          [ 0.43172807,  0.28519249,  0.07334236,  0.07126588],
+          [ 0.48187545,  0.56433642,  0.7028234 ,  0.77750808],
+          [ 0.59640014,  0.46689704,  0.47688526,  0.74523771],
+          [ 0.41653261,  0.50926942,  0.92638767,  0.74147904],
+          [ 0.34954029,  0.16965927,  0.64286244,  0.41876066],
+          [ 0.44629157,  0.28723121,  0.07451884,  0.07151417],
+          [ 0.509902  ,  0.62019253,  0.75361776,  0.74199384],
+          [ 0.56122077,  0.42407531,  0.46921006,  0.76747787]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch * 2, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerConcat(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, ctxs)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate([ctx])[0]
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.1177848 ,  0.94777811,  0.94537693,  0.6216979 ,  0.51051533,
+            0.5474115 ,  0.93749231,  0.93760508,  0.5904724 ,  0.05267439,
+            0.89581013,  0.63010913],
+          [ 0.25139269,  0.13851869,  0.65362513,  0.57537138,  0.05093541,
+            0.28593501,  0.84663856,  0.39284077,  0.79584485,  0.07670615,
+            0.40381077,  0.26504567],
+          [ 0.1108813 ,  0.23381528,  0.05560364,  0.06867393,  0.77289224,
+            0.32918185,  0.10567363,  0.07876136,  0.35448784,  0.28477612,
+            0.05394353,  0.06531866],
+          [ 0.82317245,  0.78475511,  0.82936037,  0.99494314,  0.07920805,
+            0.02165302,  0.25108394,  0.92048419,  0.44413447,  0.81940264,
+            0.98786688,  0.35846332],
+          [ 0.86243463,  0.75607926,  0.54042   ,  0.58698255,  0.13624814,
+            0.47994047,  0.28561282,  0.87185597,  0.66811442,  0.07942203,
+            0.56781054,  0.83598584]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch, n_sources * depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerConcatPreProjections(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      p = attention.MergerLayer.Params()
+      # We down project all of the sources to dimensionality 1.
+      p.pre_proj_input_dims = [4, 4, 4]
+      p.pre_proj_output_dims = [1, 1, 1]
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, ctxs)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate([ctx])[0]
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.,          0.72890908,  0.        ],
+          [ 0.4647972,   0.28266785,  0.        ],
+          [ 0.,          0.74580085,  0.09588336],
+          [ 0.46080768,  0.,          0.66402191],
+          [ 0.19947493,  0.38837075,  0.        ],
+      ]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      tf.logging.info(np.array_repr(actual_ctx))
+      # The final context vector will have shape (5, 3) since each source
+      # has dimensionality 1 after the down projection above.
+      self.assertEqual(actual_ctx.shape, (batch, n_sources))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testInvalidPreProjections(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      p = attention.MergerLayer.Params()
+      # We intentionally set output_dims to be of a different
+      # length. This should cause a ValueError to be raised
+      # during init.
+      p.pre_proj_input_dims = [4, 4, 4]
+      p.pre_proj_output_dims = [1, 1]
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      with self.assertRaisesRegex(
+          ValueError, 'Output dims should be the same length as input dims.*'):
+        _ = p.Instantiate()
+
+  def testMergerLayerWeightedSum(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+      n_sources = 3
+      ctxs = [[[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]],
+              [[3.0, 4.0, 5.0, 6.0], [6.0, 7.0, 8.0, 9.0]],
+              [[4.0, 5.0, 6.0, 7.0], [7.0, 8.0, 1.0, 2.0]]]
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'weighted_sum'
+      p.source_dim = depth
+      p.num_sources = n_sources
+      merger = p.Instantiate()
+
+      ctxs = [tf.expand_dims(i, 2) for i in ctxs]
+      ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [[ 2.66666675,  3.66666675,  4.66666698,  5.66666698],
+                      [ 5.0,         6.0,         4.33333349,  5.33333349]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerGatedAvg(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 2
+      n_sources = 3
+
+      inp_1 = np.asarray([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_2 = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      inp_3 = np.asarray([[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, 1.0, 1.0]],
+                         dtype=np.float32)
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'gated_avg'
+      p.source_dim = depth
+      p.num_sources = n_sources
+      merger = p.Instantiate()
+
+      ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate(ctx)
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [ 0.365041,  0.365041,  0.365041,  0.365041],
+          [ -1.0, -1.0, 1.0 , 1.0]]
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      self.assertEqual(actual_ctx.shape, (batch, depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
   def testMultiSourceMultiHeadedAttention(self):
     with self.session(use_gpu=True) as sess:
       (source_vecs, source_contexts, source_padding, source_padding_p,
@@ -1936,6 +2212,11 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
         self.assertEqual(0.0, np.sum(padding_i * prob_i_out))
 
       # Two-source attention.
+      atten_merger_p = attention.MergerLayer.Params().Set(
+          params_init=py_utils.WeightInit.Uniform(0.04),
+          merger_op='concat',  # concatenate attention
+          pre_proj_input_dims=[6, 6],
+          pre_proj_output_dims=[6, 6])
       params = attention.MultiSourceAttention.Params().Set(
           name='two_source_atten',
           source_dim=4,
@@ -1943,7 +2224,8 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
           source_atten_tpls=[('src_1', mha_params),
                              ('src_2',
                               mha_params.Copy().Set(name='multihead_atten2'))],
-          primary_source_key='src_1')
+          primary_source_key='src_1',
+          atten_merger_tpl=atten_merger_p)
       atten = params.Instantiate()
 
       (source_vecs2, source_contexts2, source_padding2, source_padding_p,
@@ -1967,7 +2249,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       print('atten_vec_out', np.sum(atten_vec_out, axis=1))
 
       self.assertAllClose(
-          [5.7456646, 4.5157924, 7.0711875, 5.7488303, 4.6164675, 7.096998],
+          [2.860059, 2.022061, 3.128138, 2.8762774, 2.103229, 3.1187325],
           np.sum(atten_vec_out, axis=1))
       print('atten_vec_out', atten_vec_out)
       print('prob_out', prob_out)

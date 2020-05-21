@@ -21,7 +21,6 @@ import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
-from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
@@ -1034,7 +1033,7 @@ class LayersTest(LayersTestBase, parameterized.TestCase):
     p.vn.per_step_vn = False
     attention_tpl = p
 
-    p = layers_with_attention.MergerLayer.Params()
+    p = attention.MergerLayer.Params()
     p.name = 'merger'
     p.dtype = dtype
     p.merger_op = ('mean' if single_source else 'atten')

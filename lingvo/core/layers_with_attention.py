@@ -17,7 +17,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
@@ -25,7 +24,6 @@ from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 from six.moves import range
-from six.moves import zip
 
 
 class TransformerAttentionLayer(base_layer.BaseLayer):
@@ -421,6 +419,8 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     p.Define(
         'primary_source_index', 0, 'Index of the primary source whose '
         'attention probs will be returned.')
+    p.Define('multi_source_atten', attention.MultiSourceAttention.Params(),
+             'Multi-source attention params.')
     # Only used for case 3 and 4.
     p.is_masked = False
     return p
@@ -440,15 +440,15 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
                         self)._InitAttention(src_atten)
       src_atten.name = 'multihead_atten_%s' % src_key
       source_atten_tpls.append((src_key, src_atten))
-    multi_source_atten = (
-        attention.MultiSourceAttention.Params().Set(
-            source_dim=p.source_dim,
-            query_dim=p.source_dim,
-            source_atten_tpls=source_atten_tpls,
-            primary_source_key='source_%d' % p.primary_source_index))
-    # Make sure the output context dim does not change.
-    multi_source_atten.cls.SetOuputContextDim(multi_source_atten, p.source_dim)
-    return multi_source_atten
+
+    # Initialize multi-source attention.
+    msa = p.multi_source_atten.Copy()
+    msa.name = 'multi_source_atten'
+    msa.source_dim = p.source_dim
+    msa.query_dim = p.source_dim
+    msa.source_atten_tpls = source_atten_tpls
+    msa.primary_source_key = 'source_%d' % p.primary_source_index
+    return msa
 
   def _GetSourceLength(self, source_paddings):
     return py_utils.GetShape(
@@ -1324,214 +1324,6 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
     new_states.transformer_layer_states = transformer_layer_states
 
     return hidden_state, atten_prob, new_states
-
-
-class MergerLayer(base_layer.BaseLayer):
-  """Merges a list of input tensors with various options into a single tensor.
-
-  Implements a merger/combiner operator given a list of tensors. The merger
-  operator outputs a single tensor with the following options (merger_op):
-
-  - atten: Applies attention over the set of input tensors given query vector.
-  - mean: Takes the mean of input tensors.
-  - concat: Concatenates the input tensors over the last dimension.
-  - sum: Sum up all the input tensors.
-  - weighted_sum: Use learnt weights to combine input tensors.
-  - gated_avg: Learnt input dependent gates are used to average tensors.
-
-  This class is expected to be called by multi-source/multi-column models.
-  """
-
-  @classmethod
-  def Params(cls):
-    """Params for this MergerLayer class."""
-    p = super(MergerLayer, cls).Params()
-    p.Define('merger_op', None, 'How to merge input tensors.')
-    p.Define('source_dim', 0, 'Number of source nodes.')
-    p.Define('query_dim', 0, 'Number of query nodes.')
-    p.Define('hidden_dim', 0, 'Number of hidden nodes.')
-    p.Define('attention_tpl', attention.AdditiveAttention.Params(),
-             'Attention used by the merger layer when merger_op is atten.')
-    p.Define(
-        'pre_proj_input_dims', None,
-        'If set, should be a list of depths for the tensors to be merged.'
-        ' Setting this will result in a pre-projection to source_dim'
-        ' before the merger.')
-    p.Define(
-        'pre_proj_output_dims', None,
-        'Should be a list of depths which the input tensors specified in '
-        'pre_proj_input_dims need to be projected to. Should match the length '
-        'of pre_proj_input_dims.')
-    p.Define(
-        'proj_tpl',
-        layers.ProjectionLayer.Params().Set(
-            batch_norm=False, weight_norm=True, has_bias=True),
-        'Configs template for the projection layer.')
-    p.Define('gated_avg_tpl', layers.GatedAverageLayer.Params(),
-             'Configs template for the gated average layer.')
-    p.Define('num_sources', 0, 'If merger_op=weighted_sum, then must specify '
-             'num of sources.')
-    return p
-
-  # Merging operation keys supported by this layer.
-  MERGER_OPS = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']
-
-  @base_layer.initializer
-  def __init__(self, params):
-    super(MergerLayer, self).__init__(params)
-    p = self.params
-    if not p.name:
-      raise ValueError('Layer must have a specified name!')
-    if p.merger_op not in set(self.MERGER_OPS):
-      raise ValueError('Merger op must be one of: ', self.MERGER_OPS)
-
-    if p.merger_op == 'atten':
-      atten_params = p.attention_tpl.Copy()
-      atten_params.source_dim = p.source_dim
-      atten_params.query_dim = p.query_dim
-      atten_params.hidden_dim = p.hidden_dim
-      atten_params.dtype = p.dtype
-      if atten_params.params_init is None:
-        atten_params.params_init = py_utils.WeightInit.Gaussian(
-            1. / math.sqrt(atten_params.source_dim + atten_params.query_dim),
-            seed=p.random_seed)
-      self.CreateChild('atten', atten_params)
-
-    if p.pre_proj_input_dims:
-      if not p.pre_proj_output_dims:
-        raise ValueError('Output dims should be specified for projection.')
-      if len(p.pre_proj_input_dims) != len(p.pre_proj_output_dims):
-        raise ValueError(
-            'Output dims should be the same length as input dims. '
-            'Expected: %s obtained: %s' %
-            (len(p.pre_proj_input_dims), len(p.pre_proj_output_dims)))
-      pre_proj_params = []
-      for i, (pre_proj_input_dim, pre_proj_output_dim) in enumerate(
-          zip(p.pre_proj_input_dims, p.pre_proj_output_dims)):
-        proj_p = p.proj_tpl.Copy()
-        proj_p.name = 'merger_pre_proj_%d' % i
-        proj_p.input_dim = pre_proj_input_dim
-        proj_p.output_dim = pre_proj_output_dim
-        pre_proj_params.append(proj_p)
-      self.CreateChildren('pre_proj', pre_proj_params)
-
-    if p.merger_op == 'weighted_sum':
-      assert p.num_sources > 0, ('For merger_op=weighted_sum, must specify '
-                                 'num_sources > 0.')
-      params_init = py_utils.WeightInit.Constant(1.0 / p.num_sources)
-      # Weights to be learned.
-      pw = py_utils.WeightParams(
-          shape=[p.num_sources],
-          init=params_init,
-          dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      with tf.variable_scope(p.name):
-        _, self._sum_weight = py_utils.CreateVariable('sum_weight', pw)
-
-    if p.merger_op == 'gated_avg':
-      assert p.num_sources > 0, ('For merger_op=gated_avg, must specify '
-                                 'num_sources > 0.')
-      params = p.gated_avg_tpl.Copy()
-      params.name = 'g_avg_merger'
-      params.num_nodes = p.source_dim
-      params.num_inputs = p.num_sources
-      self.CreateChild('gated_average', params)
-
-  def FProp(self, theta, inputs, query_vec=None):
-    """Combines the list of input tensors into a single tensor.
-
-    Args:
-      theta: A `.NestedMap` object containing weights' values of this layer and
-        its children layers.
-      inputs: A list of tensors of shape [..., hidden_dim] or [...,
-        [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.
-      query_vec: A tensor of shape [..., hidden_dim].
-
-    Returns:
-      A tensor of the same shape with input tensors.
-
-    Raises:
-      ValueError: p.merger_op is not defined.
-    """
-    p = self.params
-    n_sources = len(inputs)
-
-    if p.pre_proj_input_dims and len(p.pre_proj_input_dims) != n_sources:
-      raise ValueError('pre_proj_input_dims must be specified for each input.')
-
-    if n_sources == 1:
-      return inputs[0]
-
-    # Pre-projection operation.
-    if p.pre_proj_input_dims:
-      for i in range(n_sources):
-        inputs[i] = self.pre_proj[i].FProp(theta.pre_proj[i], inputs[i])
-
-    tensor_pairs = list(zip(inputs[:-1], inputs[1:]))
-    if p.merger_op == 'mean':
-      # Simply take the mean, all dims must match.
-      with tf.control_dependencies([
-          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
-          for t1, t2 in tensor_pairs
-      ]):
-        output = tf.add_n(inputs) / n_sources
-
-    elif p.merger_op == 'sum':
-      # Sum up all sources, all dims must match.
-      with tf.control_dependencies([
-          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
-          for t1, t2 in tensor_pairs
-      ]):
-        output = tf.add_n(inputs)
-
-    elif p.merger_op == 'weighted_sum':
-      # Weighted sum of all sources, all dims must match.
-      # For weighted_sum, assume input is a list of rank 3 tensors
-      inputs = tf.stack(inputs)
-      inputs = py_utils.HasRank(inputs, 4)
-
-      with tf.control_dependencies([
-          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
-          for t1, t2 in tensor_pairs
-      ]):
-        w = tf.expand_dims(
-            tf.expand_dims(tf.expand_dims(self._sum_weight, 1), 1), 1)
-        w = tf.tile(
-            w,
-            [1,
-             tf.shape(inputs)[1],
-             tf.shape(inputs)[2],
-             tf.shape(inputs)[3]])
-        output = tf.reduce_sum(inputs * w, axis=0)
-
-    elif p.merger_op == 'atten':
-      # Apply attention over the concatenated tensor, all dims must match.
-      with tf.control_dependencies([
-          py_utils.assert_shape_match(tf.shape(t1), tf.shape(t2))
-          for t1, t2 in tensor_pairs
-      ]):
-        inputs = tf.stack(inputs, axis=0)
-        batch_size = tf.shape(inputs)[1]
-        paddings = tf.zeros([n_sources, batch_size], dtype=inputs.dtype)
-        self.atten.InitForSourcePacked(theta.atten, inputs, inputs, paddings)
-        output, _, _ = self.atten.ComputeContextVector(
-            theta.atten, tf.reshape(query_vec, [-1, p.query_dim]))
-
-    elif p.merger_op == 'concat':
-      # Concatenate over the last dim, all dims but last must match.
-      with tf.control_dependencies([
-          py_utils.assert_equal(tf.shape(t1)[:-1],
-                                tf.shape(t2)[:-1]) for t1, t2 in tensor_pairs
-      ]):
-        output = tf.concat(inputs, axis=-1)
-
-    elif p.merger_op == 'gated_avg':
-      output = self.gated_average.FProp(theta.gated_average, inputs)
-
-    else:
-      raise ValueError('Unrecognized merge op!')
-
-    return output
 
 
 class StyleLayer(base_layer.BaseLayer):

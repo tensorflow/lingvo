@@ -17,7 +17,6 @@
 
 
 import lingvo.compat as tf
-from lingvo.core import attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
@@ -487,27 +486,27 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_ctx = [
-          [[-2.4230828 ,  0.76307416,  1.660831  ,  0.75617164],
-           [-1.6333869 , -1.4076173 ,  1.9598688 ,  1.6847425 ]],
-          [[-0.7658886 ,  1.5809324 , -0.12485659,  0.07292163],
-           [-1.302113  , -1.061505  ,  0.46836782,  2.5786984 ]],
-          [[ 0.7069159 ,  0.429615  , -0.39790314, -0.04680043],
-           [-2.025684  , -1.0759559 ,  1.8108702 ,  1.9019105 ]],
-          [[-2.0686288 , -0.49415806,  2.4049938 ,  0.88769144],
-           [ 1.0285227 , -0.04394087,  0.04177195, -0.04247719]],
-          [[-1.6386327 , -1.0429974 ,  0.6277093 ,  2.5415106 ],
-           [-1.9698458 ,  0.00414881,  0.27038568,  2.4593987 ]]]
+          [[-1.9893163 ,  0.8076348 , -0.33805895, -0.20369706],
+           [-1.4164762 , -1.0597495 , -0.3834126 ,  0.3456189 ]],
+          [[-0.32503036,  1.4952568 , -1.9324137 , -0.77024114],
+           [-0.9230547 , -0.89096445, -1.7928462 ,  1.0901089 ]],
+          [[ 1.2240632 ,  0.26689315, -2.0940783 , -0.9101793 ],
+           [-1.805772  , -0.74725944, -0.5485071 ,  0.5403221 ]],
+          [[-1.5880606 , -0.43595213,  0.3818947 , -0.15712431],
+           [ 0.968494  ,  0.19423638, -2.308594  , -1.4253062 ]],
+          [[-0.8178122 , -1.1570994 , -1.1993079 ,  1.4127911 ],
+           [-1.7231476 ,  0.17116357, -2.0703826 ,  0.96320933]]]
       expected_probs = [
-          [[0.32519448, 0., 0.28835455, 0., 0.21456167, 0., 0.17188925],
-           [0., 0.5106583 , 0., 0.23109707, 0., 0.2582446 , 0.]],
-          [[0.20037153, 0., 0.20539111, 0., 0.26183724, 0., 0.33240014],
-           [0., 0.45369083, 0., 0.25632688, 0., 0.2899823 , 0.]],
-          [[0.15221244, 0., 0.17027676, 0., 0.28646475, 0., 0.39104608],
-           [0., 0.53117603, 0., 0.21702877, 0., 0.25179517, 0.]],
-          [[0.34440172, 0., 0.30280784, 0., 0.1973515 , 0., 0.15543899],
-           [0., 0.18096069, 0., 0.4538991 , 0., 0.36514026, 0.]],
-          [[0.30048925, 0., 0.28883994, 0., 0.23697528, 0., 0.17369556],
-           [0., 0.4561314 , 0., 0.25337014, 0., 0.29049855, 0.]]]
+          [[0.16679956, 0., 0.2122806 , 0., 0.23512313, 0., 0.38579667],
+           [0., 0.28562695, 0., 0.3442661 , 0., 0.370107  , 0.]],
+          [[0.28629708, 0., 0.18837643, 0., 0.2644571 , 0., 0.26086944],
+           [0., 0.5590873 , 0., 0.22519027, 0., 0.21572247, 0.]],
+          [[0.3374045 , 0., 0.21468817, 0., 0.25822428, 0., 0.18968314],
+           [0., 0.2896077 , 0., 0.34381902, 0., 0.36657327, 0.]],
+          [[0.14310986, 0., 0.2507791 , 0., 0.22308563, 0., 0.3830254 ],
+           [0., 0.43070328, 0., 0.2930708 , 0., 0.27622598, 0.]],
+          [[0.30523974, 0., 0.30610216, 0., 0.2248916 , 0., 0.1637665 ],
+           [0., 0.49082592, 0., 0.26013914, 0., 0.24903494, 0.]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
@@ -635,27 +634,27 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_ctx = [
-          [[-0.9336388 ,  1.7557802 ,  1.896725  , -0.58595234],
-           [-0.27846888, -0.4464047 ,  2.218357  ,  0.45096096]],
-          [[ 0.58251643,  2.6585155 ,  0.19848657, -1.1700155 ],
-           [ 0.04167974, -0.23740911,  0.72285026,  1.3403674 ]],
-          [[ 1.9717983 ,  1.4404242 , -0.05733454, -1.2241074 ],
-           [-0.6469723 , -0.15269119,  2.076552  ,  0.64370966]],
-          [[-0.56185263,  0.45649543,  2.607955  , -0.47947025],
-           [ 2.1209903 ,  0.618359  ,  0.32947606, -1.2353677 ]],
-          [[-0.05968291,  0.01625359,  0.8421286 ,  1.2218883 ],
-           [-0.6226267 ,  0.7146166 ,  0.55504423,  1.1629131 ]]]
+          [[-2.263544  , -0.6288333 ,  0.56436384,  0.01389617],
+           [-1.2714428 , -2.6551175 ,  1.2088637 ,  0.48963785]],
+          [[-0.7530552 ,  0.2863059 , -1.0583341 , -0.62887365],
+           [-0.96861804, -2.3108015 , -0.32213187,  1.4070555 ]],
+          [[ 0.6888912 , -0.83782226, -1.3349627 , -0.69250315],
+           [-1.646423  , -2.3046758 ,  1.0617565 ,  0.6768545 ]],
+          [[-1.8710074 , -1.9080507 ,  1.2318314 ,  0.14334393],
+           [ 0.92007947, -1.775676  , -1.1390316 , -0.9541185 ]],
+          [[-1.375605  , -2.3637016 , -0.5955716 ,  1.8448071 ],
+           [-1.6682272 , -1.2519215 , -0.5330956 ,  1.2296966 ]]]
       expected_probs = [
-          [[0.25067574, 0., 0.29030347, 0., 0.19933584, 0., 0.25968498],
-           [0., 0.46408784, 0., 0.30058968, 0., 0.23532245, 0.]],
-          [[0.19742885, 0., 0.25265262, 0., 0.21122561, 0., 0.3386929 ],
-           [0., 0.3654858 , 0., 0.32286638, 0., 0.3116479 , 0.]],
-          [[0.20999108, 0., 0.21936962, 0., 0.2745186 , 0., 0.29612067],
-           [0., 0.4360494 , 0., 0.3091971 , 0., 0.2547535 , 0.]],
-          [[0.28626227, 0., 0.28672513, 0., 0.19941692, 0., 0.22759566],
-           [0., 0.30580935, 0., 0.33266878, 0., 0.3615219 , 0.]],
-          [[0.27024278, 0., 0.23061267, 0., 0.26453757, 0., 0.23460698],
-           [0., 0.29816675, 0., 0.35495785, 0., 0.34687543, 0.]]]
+          [[0.22346233, 0., 0.27624047, 0., 0.18855348, 0., 0.31174374],
+           [0., 0.17387941, 0., 0.4642802 , 0., 0.36184043, 0.]],
+          [[0.23724607, 0., 0.24033949, 0., 0.3725937 , 0., 0.14982074],
+           [0., 0.15892553, 0., 0.4639521 , 0., 0.37712237, 0.]],
+          [[0.25570837, 0., 0.21216837, 0., 0.40378904, 0., 0.12833425],
+           [0., 0.16656096, 0., 0.47455215, 0., 0.3588869 , 0.]],
+          [[0.22077632, 0., 0.27379048, 0., 0.14691363, 0., 0.35851952],
+           [0., 0.5620029 , 0., 0.21104112, 0., 0.22695602, 0.]],
+          [[0.20673111, 0., 0.22832122, 0., 0.12665181, 0., 0.43829578],
+           [0., 0.17881572, 0., 0.45228398, 0., 0.36890027, 0.]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
@@ -760,28 +759,28 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: disable=bad-whitespace
       # pyformat: disable
       expected_ctx = [
-          [[-1.3827481 ,  0.8630047 ,  0.9384406 , -0.34921476],
-           [-0.5180902 , -1.378806  ,  1.3822441 ,  0.5645285 ]],
-          [[ 0.11083291,  1.6856725 , -0.830521  , -0.94620895],
-           [-0.37989554, -1.1115305 , -0.12801543,  1.4583223 ]],
-          [[ 1.5863948 ,  0.58107966, -1.1531298 , -1.033166  ],
-           [-0.9258858 , -1.0609238 ,  1.2234534 ,  0.772278  ]],
-          [[-0.9699172 , -0.37630782,  1.6424325 , -0.24701458],
-           [ 1.5821794 , -0.21802218, -0.53317213, -1.1184864 ]],
-          [[-0.42592388, -0.80619633, -0.15722628,  1.4421356 ],
-           [-1.1249663 , -0.08898118, -0.34563035,  1.3236587 ]]]
+          [[-0.52144265,  1.7370229 ,  0.09479183,  1.3142197 ],
+           [ 0.48182625, -0.41524518,  0.2950616 ,  2.3245158 ]],
+          [[ 1.0139368 ,  2.6589985 , -1.528513  ,  0.6880791 ],
+           [ 0.7810391 , -0.05419022, -1.227257  ,  3.2472034 ]],
+          [[ 2.4781933 ,  1.5413835 , -1.7759092 ,  0.6057711 ],
+           [ 0.11952043, -0.07813096,  0.12346762,  2.5386043 ]],
+          [[-0.12219751,  0.46310303,  0.7768879 ,  1.4295386 ],
+           [ 2.8404353 ,  0.901297  , -1.5073049 ,  0.60736287]],
+          [[ 0.37801886, -0.05114734, -1.003877  ,  3.0894797 ],
+           [ 0.10942292,  0.975695  , -1.4856565 ,  3.1215234 ]]]
       # Probabilities are unaffected by change of value vectors.
       expected_probs = [
-          [[0.25067574, 0., 0.29030347, 0., 0.19933584, 0., 0.25968498],
-           [0., 0.46408784, 0., 0.30058968, 0., 0.23532245, 0.]],
-          [[0.19742885, 0., 0.25265262, 0., 0.21122561, 0., 0.3386929 ],
-           [0., 0.3654858 , 0., 0.32286638, 0., 0.3116479 , 0.]],
-          [[0.20999108, 0., 0.21936962, 0., 0.2745186 , 0., 0.29612067],
-           [0., 0.4360494 , 0., 0.3091971 , 0., 0.2547535 , 0.]],
-          [[0.28626227, 0., 0.28672513, 0., 0.19941692, 0., 0.22759566],
-           [0., 0.30580935, 0., 0.33266878, 0., 0.3615219 , 0.]],
-          [[0.27024278, 0., 0.23061267, 0., 0.26453757, 0., 0.23460698],
-           [0., 0.29816675, 0., 0.35495785, 0., 0.34687543, 0.]]]
+          [[0.22346234, 0., 0.27624047, 0., 0.18855348, 0., 0.31174374],
+           [0., 0.17387941, 0., 0.4642802 , 0., 0.36184043, 0.]],
+          [[0.23724607, 0., 0.24033949, 0., 0.3725937 , 0., 0.14982076],
+           [0., 0.15892553, 0., 0.4639521 , 0., 0.3771224 , 0.]],
+          [[0.2557084 , 0., 0.21216837, 0., 0.403789  , 0., 0.12833424],
+           [0., 0.16656098, 0., 0.47455215, 0., 0.3588869 , 0.]],
+          [[0.22077632, 0., 0.27379048, 0., 0.14691365, 0., 0.35851952],
+           [0., 0.5620028 , 0., 0.21104114, 0., 0.22695604, 0.]],
+          [[0.20673111, 0., 0.22832122, 0., 0.12665181, 0., 0.43829578],
+           [0., 0.17881574, 0., 0.45228398, 0., 0.36890027, 0.]]]
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
@@ -1514,282 +1513,6 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
-
-  def testMergerLayerMean(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 5
-      n_sources = 3
-      p_ctxs = [
-          np.random.rand(batch, depth).astype('float32')
-          for _ in range(n_sources)
-      ]
-      ctxs = [tf.constant(ctx, dtype=tf.float32) for ctx in p_ctxs]
-
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'mean'
-      p.source_dim = depth
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, ctxs)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate([ctx])[0]
-
-      expected_ctx = np.mean(p_ctxs, axis=0)
-      self.assertEqual(actual_ctx.shape, (batch, depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testMergerLayerAdditiveAttention(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 5
-      query_dim = 7
-      n_sources = 3
-      ctxs = [
-          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
-          for _ in range(n_sources)
-      ]
-      query_vec = tf.constant(
-          np.random.rand(batch * 2, query_dim), dtype=tf.float32)
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'atten'
-      p.source_dim = depth
-      p.query_dim = query_dim
-      p.hidden_dim = depth
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, ctxs, query_vec)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate(ctx)
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [
-          [ 0.40796196,  0.50855637,  0.92564321,  0.72608167],
-          [ 0.34300309,  0.17305931,  0.64801621,  0.4161588 ],
-          [ 0.40570667,  0.28166312,  0.07109687,  0.07077176],
-          [ 0.44923055,  0.56033343,  0.70899796,  0.73256713],
-          [ 0.56362778,  0.42331296,  0.47032064,  0.76701462],
-          [ 0.40873578,  0.50516003,  0.92537481,  0.72435796],
-          [ 0.33702248,  0.17404726,  0.65101075,  0.41883218],
-          [ 0.40316698,  0.28128177,  0.0709244 ,  0.07073996],
-          [ 0.44036126,  0.53640223,  0.68623006,  0.75264776],
-          [ 0.54324883,  0.42487082,  0.4616943 ,  0.77234119]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      self.assertEqual(actual_ctx.shape, (batch * 2, depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testMergerLayerDotProductAttention(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 5
-      n_sources = 3
-      ctxs = [
-          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
-          for _ in range(n_sources)
-      ]
-      query_vec = tf.constant(
-          np.random.rand(batch * 2, depth), dtype=tf.float32)
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'atten'
-      p.source_dim = depth
-      p.query_dim = depth
-      p.hidden_dim = depth
-      p.attention_tpl = attention.DotProductAttention.Params()
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, ctxs, query_vec)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate(ctx)
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [
-          [ 0.40122974,  0.53032947,  0.92722446,  0.73408204],
-          [ 0.37834394,  0.16492322,  0.6284582 ,  0.40583336],
-          [ 0.43172807,  0.28519249,  0.07334236,  0.07126588],
-          [ 0.48187545,  0.56433642,  0.7028234 ,  0.77750808],
-          [ 0.59640014,  0.46689704,  0.47688526,  0.74523771],
-          [ 0.41653261,  0.50926942,  0.92638767,  0.74147904],
-          [ 0.34954029,  0.16965927,  0.64286244,  0.41876066],
-          [ 0.44629157,  0.28723121,  0.07451884,  0.07151417],
-          [ 0.509902  ,  0.62019253,  0.75361776,  0.74199384],
-          [ 0.56122077,  0.42407531,  0.46921006,  0.76747787]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      self.assertEqual(actual_ctx.shape, (batch * 2, depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testMergerLayerConcat(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 5
-      n_sources = 3
-      ctxs = [
-          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
-          for _ in range(n_sources)
-      ]
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'concat'
-      p.source_dim = depth
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, ctxs)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate([ctx])[0]
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [
-          [ 0.1177848 ,  0.94777811,  0.94537693,  0.6216979 ,  0.51051533,
-            0.5474115 ,  0.93749231,  0.93760508,  0.5904724 ,  0.05267439,
-            0.89581013,  0.63010913],
-          [ 0.25139269,  0.13851869,  0.65362513,  0.57537138,  0.05093541,
-            0.28593501,  0.84663856,  0.39284077,  0.79584485,  0.07670615,
-            0.40381077,  0.26504567],
-          [ 0.1108813 ,  0.23381528,  0.05560364,  0.06867393,  0.77289224,
-            0.32918185,  0.10567363,  0.07876136,  0.35448784,  0.28477612,
-            0.05394353,  0.06531866],
-          [ 0.82317245,  0.78475511,  0.82936037,  0.99494314,  0.07920805,
-            0.02165302,  0.25108394,  0.92048419,  0.44413447,  0.81940264,
-            0.98786688,  0.35846332],
-          [ 0.86243463,  0.75607926,  0.54042   ,  0.58698255,  0.13624814,
-            0.47994047,  0.28561282,  0.87185597,  0.66811442,  0.07942203,
-            0.56781054,  0.83598584]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      self.assertEqual(actual_ctx.shape, (batch, n_sources * depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testMergerLayerConcatPreProjections(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 5
-      n_sources = 3
-      ctxs = [
-          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
-          for _ in range(n_sources)
-      ]
-      p = layers_with_attention.MergerLayer.Params()
-      # We down project all of the sources to dimensionality 1.
-      p.pre_proj_input_dims = [4, 4, 4]
-      p.pre_proj_output_dims = [1, 1, 1]
-      p.name = 'merger_layer'
-      p.merger_op = 'concat'
-      p.source_dim = depth
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, ctxs)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate([ctx])[0]
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [
-          [ 0.,          0.72890908,  0.        ],
-          [ 0.4647972,   0.28266785,  0.        ],
-          [ 0.,          0.74580085,  0.09588336],
-          [ 0.46080768,  0.,          0.66402191],
-          [ 0.19947493,  0.38837075,  0.        ],
-      ]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      tf.logging.info(np.array_repr(actual_ctx))
-      # The final context vector will have shape (5, 3) since each source
-      # has dimensionality 1 after the down projection above.
-      self.assertEqual(actual_ctx.shape, (batch, n_sources))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testInvalidPreProjections(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      p = layers_with_attention.MergerLayer.Params()
-      # We intentionally set output_dims to be of a different
-      # length. This should cause a ValueError to be raised
-      # during init.
-      p.pre_proj_input_dims = [4, 4, 4]
-      p.pre_proj_output_dims = [1, 1]
-      p.name = 'merger_layer'
-      p.merger_op = 'concat'
-      p.source_dim = depth
-      with self.assertRaisesRegex(
-          ValueError, 'Output dims should be the same length as input dims.*'):
-        _ = p.Instantiate()
-
-  def testMergerLayerWeightedSum(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 2
-      n_sources = 3
-      ctxs = [[[1.0, 2.0, 3.0, 4.0], [2.0, 3.0, 4.0, 5.0]],
-              [[3.0, 4.0, 5.0, 6.0], [6.0, 7.0, 8.0, 9.0]],
-              [[4.0, 5.0, 6.0, 7.0], [7.0, 8.0, 1.0, 2.0]]]
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'weighted_sum'
-      p.source_dim = depth
-      p.num_sources = n_sources
-      merger = p.Instantiate()
-
-      ctxs = [tf.expand_dims(i, 2) for i in ctxs]
-      ctx = tf.squeeze(merger.FProp(merger.theta, ctxs), 2)
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate(ctx)
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [[ 2.66666675,  3.66666675,  4.66666698,  5.66666698],
-                      [ 5.0,         6.0,         4.33333349,  5.33333349]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      self.assertEqual(actual_ctx.shape, (batch, depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
-
-  def testMergerLayerGatedAvg(self):
-    with self.session(use_gpu=True):
-      np.random.seed(505837249)
-      depth = 4
-      batch = 2
-      n_sources = 3
-
-      inp_1 = np.asarray([[0.0, 0.0, 0.0, 0.0], [-1.0, -1.0, 1.0, 1.0]],
-                         dtype=np.float32)
-      inp_2 = np.asarray([[1.0, 1.0, 1.0, 1.0], [-1.0, -1.0, 1.0, 1.0]],
-                         dtype=np.float32)
-      inp_3 = np.asarray([[-1.0, -1.0, -1.0, -1.0], [-1.0, -1.0, 1.0, 1.0]],
-                         dtype=np.float32)
-      p = layers_with_attention.MergerLayer.Params()
-      p.name = 'merger_layer'
-      p.merger_op = 'gated_avg'
-      p.source_dim = depth
-      p.num_sources = n_sources
-      merger = p.Instantiate()
-
-      ctx = merger.FProp(merger.theta, [inp_1, inp_2, inp_3])
-      self.evaluate(tf.global_variables_initializer())
-      actual_ctx = self.evaluate(ctx)
-
-      # pylint: disable=bad-whitespace
-      # pyformat: disable
-      expected_ctx = [
-          [ 0.365041,  0.365041,  0.365041,  0.365041],
-          [ -1.0, -1.0, 1.0 , 1.0]]
-      # pyformat: enable
-      # pylint: enable=bad-whitespace
-      self.assertEqual(actual_ctx.shape, (batch, depth))
-      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testStyleLayer(self):
     with self.session(use_gpu=False):
