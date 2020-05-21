@@ -406,7 +406,7 @@ class Trainer(base_runner.BaseRunner):
   def _SummarizeValue(self, steps, tag, value, writer=None):
     if writer:
       writer.add_summary(metrics.CreateScalarSummary(tag, value), steps)
-    else:
+    elif self._summary_writer:
       self._summary_writer.add_summary(
           metrics.CreateScalarSummary(tag, value), steps)
 
