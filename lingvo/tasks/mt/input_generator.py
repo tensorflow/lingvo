@@ -642,15 +642,15 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
   def _ProcessSingleInput(self, source_id, src, tgt):
     """Performs strings-to-ids on the given input pair via p.tokenizer_dict."""
-    _, src_labels, src_paddings = self.StringsToIds([src],
-                                                    is_source=True,
-                                                    key=self._src_tokenizer_key)
+    _, src_labels, src_paddings = self.StringsToIds(
+        tf.reshape(src, [1]), is_source=True, key=self._src_tokenizer_key)
     tgt_ids, tgt_labels, tgt_paddings = self.StringsToIds(
-        [tgt], is_source=False, key=self._tgt_tokenizer_key)
-    # Mask out entries where padding is 1. This is needed because for SPM the
-    # returned ids contains an EOS token.
-    tgt_ids = tf.cast(
-        tf.cast(tgt_ids, dtype=tf.float32) * (1 - tgt_paddings), dtype=tf.int32)
+        tf.reshape(tgt, [1]), is_source=False, key=self._tgt_tokenizer_key)
+    # Mask positions to 0 where padding is 1 for consistency. We do this because
+    # tokenizer implementation may use EOS token to pad.
+    src_labels = py_utils.ApplyPadding(src_paddings, src_labels)
+    tgt_ids = py_utils.ApplyPadding(tgt_paddings, tgt_ids)
+    tgt_labels = py_utils.ApplyPadding(tgt_paddings, tgt_labels)
 
     features = py_utils.NestedMap()
     features.src = py_utils.NestedMap()
@@ -686,9 +686,8 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     # Mass, but inside the TextPackedInput class.
     assert not self.do_eval, 'MASS input can only be used for training.'
 
-    _, labels, paddings = self.StringsToIds([src],
-                                            is_source=True,
-                                            key=self._src_tokenizer_key)
+    _, labels, paddings = self.StringsToIds(
+        tf.reshape(src, [1]), is_source=True, key=self._src_tokenizer_key)
     weights = 1 - paddings
     actual_seq_len = tf.cast(tf.reduce_sum(weights, 1), tf.int32)
     src_lang_ids, tgt_lang_ids = self._GetTaskIds(source_id)

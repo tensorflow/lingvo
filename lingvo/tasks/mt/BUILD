@@ -183,7 +183,8 @@ py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     data = [
-        "//lingvo/tasks/mt/testdata:en_fr",
+        ":wpm_ende",
+        "//lingvo/tasks/mt/testdata:input_test_data",
         "//lingvo/tasks/mt/testdata:mlperf_tfexample",
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],

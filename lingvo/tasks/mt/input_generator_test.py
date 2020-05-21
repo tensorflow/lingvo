@@ -248,7 +248,7 @@ class InputTest(test_utils.TestCase):
     self.assertAllEqual(expected_ids_split_1, fetched[0].tgt.ids)
     self.assertAllEqual(expected_ids_split_2, fetched[1].tgt.ids)
 
-  def testTextPackedInput(self):
+  def testTextPackedInputProto(self):
     p = input_generator.TextPackedInput.Params()
     p.flush_every_n = 0
     p.require_sequential_order = True
@@ -278,11 +278,11 @@ class InputTest(test_utils.TestCase):
         np.array([
             [
                 13, 3, 16, 19, 26, 9, 3, 20, 5, 22, 5, 11, 16, 13, 8, 13, 18,
-                11, 35, 2, 2, 2
+                11, 35, 2, 0, 0
             ],
             [
                 26, 19, 16, 3, 6, 13, 26, 3, 20, 5, 22, 5, 11, 16, 13, 8, 13,
-                18, 11, 2, 2, 2
+                18, 11, 2, 0, 0
             ],
         ]))
     self.assertAllEqual(
@@ -302,12 +302,136 @@ class InputTest(test_utils.TestCase):
         np.array([
             [
                 14, 32, 5, 8, 19, 22, 9, 3, 16, 9, 3, 20, 5, 22, 5, 20, 9, 18,
-                24, 9, 35, 2, 2, 2
+                24, 9, 35, 2, 0, 0
             ],
             [
                 26, 19, 16, 3, 6, 13, 26, 3, 20, 5, 22, 5, 20, 9, 18, 24, 9, 2,
-                2, 2, 2, 2, 2, 2
+                0, 0, 0, 0, 0, 0
             ],
+        ]))
+
+  def testTextPackedInputTextWpm(self):
+    p = input_generator.TextPackedInput.Params()
+    p.flush_every_n = 0
+    p.require_sequential_order = True
+    p.repeat_count = 1
+    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_de.text')
+    p.tokenizer = tokenizers.WpmTokenizer.Params().Set(
+        vocab_filepath=test_helper.test_src_dir_path(
+            'tasks/mt/wpm-ende-2k.voc'),
+        vocab_size=2000)
+    p.source_max_length = 12
+    p.target_max_length = 15
+    p.bucket_batch_limit = [2]
+    with self.session() as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
+      self.assertEqual(num_examples, 2)
+      print(batch)
+    self.assertAllEqual(
+        batch.src.ids,
+        np.array([[109, 251, 98, 595, 1009, 245, 326, 129, 4, 2, 0, 0],
+                  [115, 276, 18, 66, 2, 0, 0, 0, 0, 0, 0, 0]]))
+    self.assertAllEqual(
+        batch.tgt.ids,
+        np.array([[
+            1, 197, 446, 458, 419, 284, 323, 1411, 571, 456, 409, 13, 4, 0, 0
+        ], [1, 115, 281, 18, 66, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
+    self.assertAllEqual(
+        batch.tgt.labels,
+        np.array([[
+            197, 446, 458, 419, 284, 323, 1411, 571, 456, 409, 13, 4, 2, 0, 0
+        ], [115, 281, 18, 66, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]))
+
+  def testTextPackedInputTextPacking(self):
+    p = input_generator.TextPackedInput.Params()
+    p.flush_every_n = 0
+    p.require_sequential_order = True
+    p.file_pattern = 'text:' + test_helper.test_src_dir_path(
+        'tasks/mt/testdata/en_de.text')
+    p.tokenizer = tokenizers.WpmTokenizer.Params().Set(
+        vocab_filepath=test_helper.test_src_dir_path(
+            'tasks/mt/wpm-ende-2k.voc'),
+        vocab_size=2000)
+    # We repeat the 2-line file twice for a batch of 2, each packing both lines.
+    p.repeat_count = 2
+    p.source_max_length = 16
+    p.target_max_length = 20
+    p.bucket_batch_limit = [2]
+    p.packing_factor = 2
+    with self.session() as sess:
+      inp = p.Instantiate()
+      batch_tensor = inp.GetPreprocessedInputBatch()
+      batch, num_examples = sess.run([batch_tensor, inp.GlobalBatchSize()])
+      self.assertEqual(num_examples, 4)
+    self.assertAllEqual(
+        batch.src.ids,
+        np.array([
+            [
+                109, 251, 98, 595, 1009, 245, 326, 129, 4, 2, 115, 276, 18, 66,
+                2, 0
+            ],
+            [
+                115, 276, 18, 66, 2, 109, 251, 98, 595, 1009, 245, 326, 129, 4,
+                2, 0
+            ],
+        ]))
+    self.assertAllEqual(
+        batch.src.segment_ids,
+        np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0],
+                  [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0]],
+                 dtype=np.float32))
+    self.assertAllEqual(
+        batch.src.segment_pos,
+        np.array([[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 0],
+                  [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0]]))
+    self.assertAllEqual(
+        batch.src.strs,
+        np.array([
+            b'Too much has changed.\tHello!', b'Hello!\tToo much has changed.'
+        ]))
+
+    self.assertAllEqual(
+        batch.tgt.ids,
+        np.array([
+            [
+                1, 197, 446, 458, 419, 284, 323, 1411, 571, 456, 409, 13, 4, 1,
+                115, 281, 18, 66, 0, 0
+            ],
+            [
+                1, 115, 281, 18, 66, 1, 197, 446, 458, 419, 284, 323, 1411, 571,
+                456, 409, 13, 4, 0, 0
+            ],
+        ]))
+    self.assertAllEqual(
+        batch.tgt.labels,
+        np.array([
+            [
+                197, 446, 458, 419, 284, 323, 1411, 571, 456, 409, 13, 4, 2,
+                115, 281, 18, 66, 2, 0, 0
+            ],
+            [
+                115, 281, 18, 66, 2, 197, 446, 458, 419, 284, 323, 1411, 571,
+                456, 409, 13, 4, 2, 0, 0
+            ],
+        ]))
+    self.assertAllEqual(
+        batch.tgt.segment_ids,
+        np.array([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 0, 0],
+                  [1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0]],
+                 dtype=np.float32))
+    self.assertAllEqual(
+        batch.tgt.segment_pos,
+        np.array(
+            [[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 1, 2, 3, 4, 0, 0],
+             [0, 1, 2, 3, 4, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0]]))
+    self.assertAllEqual(
+        batch.tgt.strs,
+        np.array([
+            b'Daf\xc3\xbcr hat sich zu viel ver\xc3\xa4ndert.\tHallo!',
+            b'Hallo!\tDaf\xc3\xbcr hat sich zu viel ver\xc3\xa4ndert.'
         ]))
 
 

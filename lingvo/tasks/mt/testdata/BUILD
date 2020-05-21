@@ -21,8 +21,9 @@ filegroup(
 )
 
 filegroup(
-    name = "en_fr",
+    name = "input_test_data",
     data = [
+        "en_de.text",
         "en_fr.tfrecord",
     ],
 )
