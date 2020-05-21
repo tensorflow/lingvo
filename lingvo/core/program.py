@@ -277,6 +277,11 @@ class TrainProgram(BaseProgram):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
 
+      # Instantiate input generator first.
+      self._input = self._task_params.input.Instantiate()
+      self._input.CreateTpuEnqueueOps()
+      self._task_params.input.Define('skip_create_child', True, '')
+
       def TpuTrainStep(*args):
         """Train a shard of a batch on a single TPU core.
 
@@ -287,11 +292,12 @@ class TrainProgram(BaseProgram):
           New summed metrics values and a train_op.
         """
         self._model = self._task_params.Instantiate()
+        self._task = self._model.GetTask()
+        self._task.AddChild('input', self._input)
         self._model.ConstructFPropBPropGraph()
         per_step_eval_metrics = self._eval_metrics.SetMetrics(
-            self._model.GetTask().eval_metrics, args)
-        outfeed_op = self._OutfeedEnqueue(
-            self._model.GetTask().per_example_tensors)
+            self._task.eval_metrics, args)
+        outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
         summed_metrics = []
         assert len(per_step_eval_metrics) == len(args)
         with tf.control_dependencies([outfeed_op]):
@@ -372,6 +378,10 @@ class EvalProgram(BaseProgram):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
 
+      self._input = self._task_params.input.Instantiate()
+      self._input.CreateTpuEnqueueOps()
+      self._task_params.input.Define('skip_create_child', True, '')
+
       def TpuEvalStep(*args):
         """Eval a shard of a batch on a single TPU core.
 
@@ -383,6 +393,9 @@ class EvalProgram(BaseProgram):
         """
         with cluster_factory.SetEval(True):
           self._model = self._task_params.Instantiate()
+          self._task = self._model.GetTask()
+          self._task.AddChild('input', self._input)
+
           self._model.ConstructFPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._model.GetTask().eval_metrics, args)
@@ -454,17 +467,19 @@ class DecodeProgram(BaseProgram):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
     py_utils.ResetStepSeed()
 
+    # Instantiate input generator first.
+    self._input = self._task_params.input.Instantiate()
+    self._input.CreateTpuEnqueueOps()
+    self._task_params.input.Define('skip_create_child', True, '')
+
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       with py_utils.OpportunisticVariableReuseScope(True):
         with cluster_factory.SetEval(True):
           self._model = self._task_params.Instantiate()
           self._model_task = self._model.GetTask()
-          if py_utils.use_tpu():
-            input_batch = self._model_task.input_generator.CreateTpuFeeds()
-          else:
-            input_batch = self._model_task.input_generator.SplitInputBatch(
-                self.cluster.num_splits_per_client)
+          self._model_task.AddChild('input', self._input)
+          input_batch = self._model_task.input_generator.TpuDequeueBatch()
           metrics_dict = self._model_task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()
@@ -535,10 +550,11 @@ class ExperimentalDecodeProgram(DecodeProgram):
       with cluster_factory.SetEval(True):
         self._model = self._task_params.Instantiate()
         self._model_task = self._model.GetTask()
+        self._model_task.input.CreateTpuEnqueueOps()
 
         def _DecodeStep():
           """Decode call to be compiled for TPU."""
-          input_batch = self._model_task.input_generator.CreateTpuFeeds()
+          input_batch = self._model_task.input_generator.TpuDequeueBatch()
           metrics_dict = self._model_task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           device = tpu.core(0) if self.spmd else ''
@@ -663,6 +679,9 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
+      self._train_task_params.input.Define('skip_create_child', True, '')
+      self._train_input = self._train_task_params.input.Instantiate()
+      self._train_input.CreateTpuEnqueueOps()
 
       def TpuTrainStep():
         """Train a shard of a batch on a single TPU core.
@@ -673,6 +692,8 @@ class MLPerfTrainDecodeProgram(BaseProgram):
          [train_op].
         """
         self._train_model = self._train_task_params.Instantiate()
+        self._task = self._train_model.GetTask()
+        self._task.AddChild('input', self._train_input)
         self._model = self._train_model
         self._train_model.ConstructFPropBPropGraph()
         return [self._train_model.GetTask().train_op]
@@ -687,18 +708,19 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     py_utils.ResetStepSeed()
 
+    self._decode_input = self._decode_task_params.input.Instantiate()
+    self._decode_input.CreateTpuEnqueueOps()
+    self._decode_task_params.input.Define('skip_create_child', True, '')
+
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
       with py_utils.OpportunisticVariableReuseScope(True):
         with cluster_factory.SetEval(True):
           self._decode_model = self._decode_task_params.Instantiate()
           self._decode_model_task = self._decode_model.GetTask()
-          if py_utils.use_tpu():
-            input_batch = self._decode_model_task.input_generator.CreateTpuFeeds(
-            )
-          else:
-            input_batch = self._decode_model_task.input_generator.SplitInputBatch(
-                self.cluster.num_splits_per_client)
+          self._decode_model_task.AddChild('input', self._decode_input)
+          input_batch = self._decode_model_task.input_generator.TpuDequeueBatch(
+          )
           metrics_dict = self._decode_model_task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()

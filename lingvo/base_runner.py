@@ -79,6 +79,8 @@ class BaseRunner(object):
     self._train_dir = os.path.join(self._logdir, 'train')
     tf.io.gfile.makedirs(self._train_dir)
     self._graph = tf.Graph()
+    with self._graph.as_default():
+      py_utils.GetOrCreateGlobalStepVar()
     self._summary_writer = None
     self._initialize_tables = None
     self._dequeue_thread_complete = False

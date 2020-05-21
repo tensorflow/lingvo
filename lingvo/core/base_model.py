@@ -279,7 +279,10 @@ class BaseTask(base_layer.BaseLayer):
               'one epoch per run')
       tf.logging.info('input_params: %s', p.input)
       input_params = self.cluster.PlaceInput(p.input)
-      with py_utils.outside_all_rewrites():
+
+      # For TPU training, we create the input generator in a
+      # different scope and AddChild it in later.
+      if 'skip_create_child' not in p.input:
         self.CreateChild('input', input_params)
 
     self._encoder = None
@@ -513,11 +516,14 @@ class BaseTask(base_layer.BaseLayer):
     self._metrics = metrics
     summary_utils.scalar('num_predictions', self._num_predictions)
 
+  def CreateTpuEnqueueOps(self):
+    return self.input_generator.CreateTpuEnqueueOps()
+
   def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""
     if input_batch is None:
       if py_utils.use_tpu():
-        input_batch = self.input_generator.CreateTpuFeeds()
+        input_batch = self.input_generator.TpuDequeueBatch()
       else:
         input_batch = self.input_generator.SplitInputBatch(
             self.cluster.num_splits_per_client)

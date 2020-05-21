@@ -572,6 +572,10 @@ class TrainerTpu(base_runner.BaseRunner):
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.job_spec.name):
         self._eval_metrics = metrics.TpuEvalMetrics()
+        input_params = self._cluster.PlaceInput(self.params.input)
+        self._input = input_params.Instantiate()
+        self._input.CreateTpuEnqueueOps()
+        self.params.input.Define('skip_create_child', True, '')
 
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
@@ -584,6 +588,8 @@ class TrainerTpu(base_runner.BaseRunner):
           """
           self._model = self.params.Instantiate()
           self._task = self._model.GetTask()
+          self._task.AddChild('input', self._input)
+
           self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
           self._retrieve_ops = tf.get_collection(
               py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
@@ -618,6 +624,7 @@ class TrainerTpu(base_runner.BaseRunner):
         outfeed_dequeue_op = self._OutfeedDequeueLoop(
             self._task.per_example_tensors, self._steps_per_loop,
             self._cluster.num_splits_per_client)
+        self._input.CreateTpuEmbeddingEnqueueOps()
 
         def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
           """Returns the op for tpu training with tail cpu computation."""
@@ -643,9 +650,9 @@ class TrainerTpu(base_runner.BaseRunner):
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
 
-      self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
+      self.enqueue_ops = self._input.tpu_infeed_op
       tf.logging.info('Trainer number of enqueue ops: %d',
-                           len(self.enqueue_ops))
+                      len(self.enqueue_ops))
 
     self._summary_writer = self._CreateSummaryWriter(self._train_dir)
 

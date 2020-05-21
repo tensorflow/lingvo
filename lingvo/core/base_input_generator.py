@@ -52,7 +52,6 @@ from six.moves import zip
 from tensorflow.python.ops import io_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 from tensorflow.python.tpu import tpu_feed
-from tensorflow.python.tpu import tpu_function
 # pylint: enable=g-direct-tensorflow-import
 
 DEFAULT_TOKENIZER_KEY = 'default'
@@ -100,16 +99,20 @@ class BaseInputGenerator(base_layer.BaseLayer):
   @base_layer.initializer
   def __init__(self, params):
     super(BaseInputGenerator, self).__init__(params)
-    self._made_tpu_infeed = False
     # parameter to tell the bprop one hot for all the files.
     # TODO(ankurbpn): Initialize when using sources from mixed record yielders.
     self._bprop_onehot = tf.constant([1], dtype=tf.float32)
     # Each entry is a regular expression specifying the set of variables
     # to bprop per data source.
     self._bprop_variable_filters = ['']
-    # For executor-driven multiple programs, we need more fine-grained
-    # access rather than using a single global graph collection.
+    # For TPU enqueue ops, we do not use graph collections, instead, we rely
+    # on this member variable. This is especially useful for
+    # executor-driven multiple programs, as we need more fine-grained
+    # access to drive the infeed for a specific program, rather than
+    # a single global collection across the graph.
     self._tpu_infeed_op = None
+    # A list of InfeedQueues.
+    self._tpu_queues = []
 
   def CommonInputOpArgs(self):
     """Common input params."""
@@ -185,14 +188,30 @@ class BaseInputGenerator(base_layer.BaseLayer):
     """
     return self._PreprocessInputBatch(self._InputBatch())
 
-  def CreateTpuFeeds(self):
-    """Creates the TPU infeed queue from preprocessed batch."""
+  @property
+  def tpu_number_of_shards(self):
+    p = self.params
+    cluster = self.cluster
+    num_tpu_hosts = cluster.num_tpu_hosts
+    num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
+    shards = (cluster.total_worker_devices //
+              num_infeed_hosts) // cluster.num_devices_per_split
+    return shards
+
+  def CreateTpuEnqueueOps(self):
+    """Create the host-side enqueue ops.
+
+    This should be called in an outer non-TPU context.
+    """
+    assert not self._tpu_queues, ('CreateTpuEnqueueOps should only be called '
+                                  'once.')
+    self._tpu_queues = []
     p = self.params
     cluster = self.cluster
     num_tpu_hosts = cluster.num_tpu_hosts
     num_cores_per_host = cluster.total_worker_devices // num_tpu_hosts
     tf.logging.info(
-        'CreateTPUFeeds num_splits_per_client={} '
+        'CreateTpuEnqueueOps num_splits_per_client={} '
         'num_devices_per_split={} num_tpu_hosts={} use_per_host_infeed={}'
         .format(cluster.num_splits_per_client, cluster.num_devices_per_split,
                 num_tpu_hosts, p.use_per_host_infeed))
@@ -206,141 +225,183 @@ class BaseInputGenerator(base_layer.BaseLayer):
               cluster.num_devices_per_split, num_cores_per_host))
     num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
 
-    with py_utils.outside_all_rewrites():
-      assert py_utils.use_tpu()
-      assert not self._made_tpu_infeed
+    shards = (cluster.total_worker_devices //
+              num_infeed_hosts) // cluster.num_devices_per_split
+    tf.logging.info('shards {}'.format(shards))
 
-      shards = tpu_function.get_tpu_context(
-      ).number_of_shards // num_infeed_hosts
-      tf.logging.info('shards {}'.format(shards))
+    input_ops_list = []
+    tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+    tpu_embedding = (
+        tpu_embedding_collection[0] if tpu_embedding_collection else None)
 
-      input_ops_list = []
-      queues = []
-      tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
-      tpu_embedding = (
-          tpu_embedding_collection[0] if tpu_embedding_collection else None)
+    if num_tpu_hosts > 1 and tpu_embedding is not None:
+      if not p.use_per_host_infeed:
+        tf.logging.fatal(
+            'TPU Embedding must be used with per_host_infeed with multiple '
+            'TPU host topologies.')
 
-      if num_tpu_hosts > 1 and tpu_embedding is not None:
-        if not p.use_per_host_infeed:
-          tf.logging.fatal(
-              'TPU Embedding must be used with per_host_infeed with multiple '
-              'TPU host topologies.')
-      tpu_emb_input_keys = (
-          list(tpu_embedding.feature_to_config_dict.keys())
-          if tpu_embedding is not None else [])
-      tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
+    tpu_emb_input_keys = (
+        list(tpu_embedding.feature_to_config_dict.keys())
+        if tpu_embedding is not None else [])
+    tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
+    tf.logging.info('num_infeed_hosts: %d', num_infeed_hosts)
 
-      batch = None
-      for task_id in range(num_infeed_hosts):
-        host_device = '/task:{}/device:CPU:0'.format(task_id)
-        with tf.device(host_device):
-          batch = self.GetPreprocessedInputBatch()
-          if isinstance(batch, py_utils.NestedMap):
-            # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
-            # Note that when MultiTaskData is used, bucket_keys will be at the
-            # second level of the dictionary.
-            batch = batch.FilterKeyVal(
-                lambda k, _: not k.endswith('bucket_keys'))
-          tf.logging.info('host_device: %s, batch: %r', host_device, batch)
+    for task_id in range(num_infeed_hosts):
+      host_device = '/task:{}/device:CPU:0'.format(task_id)
+      with tf.device(host_device):
+        self._batch = self.GetPreprocessedInputBatch()
+        if isinstance(self._batch, py_utils.NestedMap):
+          # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
+          # Note that when MultiTaskData is used, bucket_keys will be at the
+          # second level of the dictionary.
+          self._batch = self._batch.FilterKeyVal(
+              lambda k, _: not k.endswith('bucket_keys'))
+        tf.logging.info('host_device: %s, batch: %r', host_device, self._batch)
 
-          if tpu_embedding is not None:
-            enqueue_dict_per_core = [
-                {} for _ in range(tpu_embedding.num_cores_per_host)
-            ]
-            num_cores_per_host = tpu_embedding.num_cores_per_host
-            for key in tpu_emb_input_keys:
-              feat = batch[key]
-              tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
-              for core, split in enumerate(tpu_emb_feat_splitted):
-                # Dense to sparse. Note the assumption of a padding id.
-                sample_indices = tf.where(tf.not_equal(split, -1))
-                embedding_indices = tf.gather_nd(split, sample_indices)
-                enqueue_data = tpu_embedding_lib.EnqueueData(
-                    embedding_indices, sample_indices)
-                enqueue_dict_per_core[core][key] = enqueue_data
-            input_ops_list += tpu_embedding.generate_enqueue_ops(
-                enqueue_dict_per_core)
+        for k, x in self._batch.FlattenItems():
+          assert x.shape.is_fully_defined(), (
+              'Shape must be fully defined: %s: %s' % (k, x))
+          # TODO(cwhipkey): if it's a string (or other type not supported on
+          # TPU), drop it from feeding and on the other end add in an op that
+          # fails if used.
+        shapes = self._batch.Transform(lambda x: x.shape).Flatten()
+        dtypes = self._batch.Transform(lambda x: x.dtype).Flatten()
 
-          for k, x in batch.FlattenItems():
-            assert x.shape.is_fully_defined(), (
-                'Shape must be fully defined: %s: %s' % (k, x))
-            # TODO(cwhipkey): if it's a string (or other type not supported on
-            # TPU), drop it from feeding and on the other end add in an op that
-            # fails if used.
-          shapes = batch.Transform(lambda x: x.shape).Flatten()
-          dtypes = batch.Transform(lambda x: x.dtype).Flatten()
-          tf.logging.info('host_device: %s infeed shapes: %r', host_device,
-                          shapes)
-          tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
-                          dtypes)
-          if p.use_partitioned_infeed_queue:
+        tf.logging.info('host_device: %s infeed shapes: %r', host_device,
+                        shapes)
+        tf.logging.info('host_device: %s infeed dtypes: %r', host_device,
+                        dtypes)
+
+        if p.use_partitioned_infeed_queue:
+          device_assignment = py_utils.GetTpuDeviceAssignment()
+
+          host_device = device_assignment.host_device(
+              replica=0, job=tf.flags.FLAGS.tf_master)
+          host_id = int(host_device.split('/task:')[1].split('/device:')[0])
+          tf.logging.info('host_id: {} host_device: {}'.format(
+              host_id, host_device))
+          q = tpu_feed._PartitionedInfeedQueue(  # pylint: disable=protected-access
+              number_of_tuple_elements=len(dtypes),
+              device_assignment=device_assignment,
+              host_id=host_id,
+              input_partition_dims=[
+                  [p.num_partitions] + [1] * (len(s) - 1) for s in shapes
+              ],
+              tuple_types=dtypes,
+              tuple_shapes=shapes)
+        else:
+          q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
+          assert shards is not None
+          q.set_number_of_shards(shards)
+
+        self._tpu_queues.append(q)
+
+        if p.use_partitioned_infeed_queue:
+          input_ops = q.generate_enqueue_ops([self._batch.Flatten()])
+        elif p.use_per_host_infeed:
+          # TODO(ylc/zhifengc): Add this to a policy module and test it.
+          def TPUOrdinalFunction(shard_index_in_host):
             device_assignment = py_utils.GetTpuDeviceAssignment()
+            if device_assignment:
+              # We put both enqueue/dequeue ops at core 0 in each replica.
+              replica = device_assignment.lookup_replicas(
+                  task_id, 0)[shard_index_in_host]  # pylint: disable=cell-var-from-loop
+              return device_assignment.tpu_ordinal(replica=replica)
+            else:
+              return shard_index_in_host
 
-            host_device = device_assignment.host_device(
-                replica=0, job=tf.flags.FLAGS.tf_master)
-            host_id = int(host_device.split('/task:')[1].split('/device:')[0])
-            tf.logging.info('host_id: {} host_device: {}'.format(
-                host_id, host_device))
-            q = tpu_feed._PartitionedInfeedQueue(  # pylint: disable=protected-access
-                number_of_tuple_elements=len(dtypes),
-                device_assignment=device_assignment,
-                host_id=host_id,
-                input_partition_dims=[
-                    [p.num_partitions] + [1] * (len(s) - 1) for s in shapes
-                ],
-                tuple_types=dtypes,
-                tuple_shapes=shapes)
-          else:
-            q = tpu_feed.InfeedQueue(tuple_types=dtypes, tuple_shapes=shapes)
-            assert shards is not None
-            q.set_number_of_shards(shards)
+          input_ops = q.split_inputs_and_generate_enqueue_ops(
+              self._batch.Flatten(),
+              placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
+              tpu_ordinal_function=TPUOrdinalFunction)
+        else:
+          input_ops = q.split_inputs_and_generate_enqueue_ops(
+              self._batch.Flatten(),
+              device_assignment=py_utils.GetTpuDeviceAssignment())
+        input_ops_list += input_ops
 
-          queues.append(q)
-          tf.logging.info('q=%r', q)
+    tf.logging.info('input_ops_list %s', input_ops_list)
+    self._tpu_infeed_op = [tf.group(*input_ops_list)]
 
-          if p.use_partitioned_infeed_queue:
-            input_ops = q.generate_enqueue_ops([batch.Flatten()])
-          elif p.use_per_host_infeed:
-            # TODO(ylc/zhifengc): Add this to a policy module and test it.
-            def TPUOrdinalFunction(shard_index_in_host):
-              device_assignment = py_utils.GetTpuDeviceAssignment()
-              if device_assignment:
-                # We put both enqueue/dequeue ops at core 0 in each replica.
-                replica = device_assignment.lookup_replicas(
-                    task_id, 0)[shard_index_in_host]  # pylint: disable=cell-var-from-loop
-                return device_assignment.tpu_ordinal(replica=replica)
-              else:
-                return shard_index_in_host
+  def TpuDequeueBatch(self):
+    """Create TPU dequeue ops.
 
-            input_ops = q.split_inputs_and_generate_enqueue_ops(
-                batch.Flatten(),
-                placement_function=lambda x: host_device,  # pylint: disable=cell-var-from-loop
-                tpu_ordinal_function=TPUOrdinalFunction)
-          else:
-            input_ops = q.split_inputs_and_generate_enqueue_ops(
-                batch.Flatten(),
-                device_assignment=py_utils.GetTpuDeviceAssignment())
+    This should only be called within a TPU context.
 
-          input_ops_list += input_ops
-      tf.logging.info('input_ops_list %s', input_ops_list)
-      tpu_infeed_op = tf.group(*input_ops_list)
-    self._made_tpu_infeed = True
-    # Let trainer.py use multiple threads to drive the infeed op.
-    for _ in range(p.tpu_infeed_parallelism):
-      tf.add_to_collection(py_utils.ENQUEUE_OPS, tpu_infeed_op)
-
-    self._tpu_infeed_op = tpu_infeed_op
-
+    Returns:
+    - A NestedMap of the input batch.
+    """
+    assert self._tpu_queues, 'CreateTpuEnqueueOps must be called first.'
     with tf.device(tf.tpu.core(0)):
-      tensors = queues[0].generate_dequeue_op()
-    return batch.Pack(tensors)
+      # Note that the dequeue_tuple op on the TPU core
+      # only cares about the shape/types being dequeued
+      # which is why this is hard-coded to the first Queue.
+      tensors = self._tpu_queues[0].generate_dequeue_op()
+    return self._batch.Pack(tensors)
+
+  def CreateTpuEmbeddingEnqueueOps(self):
+    """Creates the TpuEmbedding enqueue ops on the host.
+
+    Note that this must be called after the instantiation of the
+    monolithic TPUEmbeddingLayer.
+    """
+    p = self.params
+    cluster = self.cluster
+    num_tpu_hosts = cluster.num_tpu_hosts
+    num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
+
+    tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
+    tpu_embedding = (
+        tpu_embedding_collection[0] if tpu_embedding_collection else None)
+
+    enqueue_ops = []
+
+    if num_tpu_hosts > 1 and tpu_embedding is not None:
+      if not p.use_per_host_infeed:
+        tf.logging.fatal(
+            'TPU Embedding must be used with per_host_infeed with multiple '
+            'TPU host topologies.')
+    tpu_emb_input_keys = (
+        list(tpu_embedding.feature_to_config_dict.keys())
+        if tpu_embedding is not None else [])
+    tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
+    if not tpu_embedding:
+      return
+
+    for task_id in range(num_infeed_hosts):
+      host_device = '/task:{}/device:CPU:0'.format(task_id)
+      with tf.device(host_device):
+        if isinstance(self._batch, py_utils.NestedMap):
+          # Hack: bucket_keys and xxx.bucket_keys are not needed on TPU.
+          # Note that when MultiTaskData is used, bucket_keys will be at the
+          # second level of the dictionary.
+          self._batch = self._batch.FilterKeyVal(
+              lambda k, _: not k.endswith('bucket_keys'))
+        tf.logging.info('host_device: %s, batch: %r', host_device, self._batch)
+
+        enqueue_dict_per_core = [
+            {} for _ in range(tpu_embedding.num_cores_per_host)
+        ]
+        num_cores_per_host = tpu_embedding.num_cores_per_host
+        for key in tpu_emb_input_keys:
+          feat = self._batch[key]
+          tpu_emb_feat_splitted = tf.split(feat, num_cores_per_host)
+          for core, split in enumerate(tpu_emb_feat_splitted):
+            # Dense to sparse. Note the assumption of a padding id.
+            sample_indices = tf.where(tf.not_equal(split, -1))
+            embedding_indices = tf.gather_nd(split, sample_indices)
+            enqueue_data = tpu_embedding_lib.EnqueueData(
+                embedding_indices, sample_indices)
+            enqueue_dict_per_core[core][key] = enqueue_data
+        enqueue_ops += tpu_embedding.generate_enqueue_ops(enqueue_dict_per_core)
+    self._tpu_infeed_op.append(tf.group(*enqueue_ops))
 
   @property
   def tpu_infeed_op(self):
     if self._tpu_infeed_op is not None:
       return self._tpu_infeed_op
     else:
-      raise ValueError('TPU infeed not found. Call CreateTpuFeeds first.')
+      raise ValueError('TPU infeed op not set. Call CreateTpuEnqueueOps first.')
 
   def SplitInputBatch(self, num_splits):
     """Splits the current InputBatch into num_splits ways.
