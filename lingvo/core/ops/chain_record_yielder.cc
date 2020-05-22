@@ -40,7 +40,7 @@ ChainRecordYielder::~ChainRecordYielder() {}
 
 void ChainRecordYielder::Close() {
   {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     if (current_yielder_) {
       current_yielder_->Close();
     }
@@ -50,7 +50,7 @@ void ChainRecordYielder::Close() {
 }
 
 Status ChainRecordYielder::Yield(Record* record) {
-  MutexLock l(&mu_);
+  absl::MutexLock l(&mu_);
 
   if (current_yielder_->current_epoch() > 1) {
     int new_idx = (current_yielder_idx_ + 1) % yielder_options_.size();

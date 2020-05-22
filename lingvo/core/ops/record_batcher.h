@@ -19,7 +19,7 @@ limitations under the License.
 #include <cstddef>
 #include <vector>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/record_yielder.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
@@ -114,73 +114,73 @@ class RecordBatcher {
   RecordProcessor* processor_ = nullptr;
   thread::ThreadPool* processor_thread_ = nullptr;
   thread::ThreadPool* merger_thread_ = nullptr;
-  Mutex mu_;
-  int64 curr_bucket_ GUARDED_BY(mu_) = -1;
-  TensorVec curr_ GUARDED_BY(mu_);
+  absl::Mutex mu_;
+  int64 curr_bucket_ ABSL_GUARDED_BY(mu_) = -1;
+  TensorVec curr_ ABSL_GUARDED_BY(mu_);
 
   // True if either the yielder hits EOF or the destructor triggers.
-  bool stop_ GUARDED_BY(mu_) = false;
+  bool stop_ ABSL_GUARDED_BY(mu_) = false;
 
   // Status is not OK when a yielder hits an EOF.
-  Status stop_status_ GUARDED_BY(mu_);
+  Status stop_status_ ABSL_GUARDED_BY(mu_);
 
   // True when the merger thread is finished.
-  bool merger_loop_done_ GUARDED_BY(mu_) = false;
+  bool merger_loop_done_ ABSL_GUARDED_BY(mu_) = false;
 
-  Condition curr_empty_;
-  Condition curr_non_empty_;
-  int64 records_yielded_ GUARDED_BY(mu_) = 0;
-  int64 total_records_yielded_ GUARDED_BY(mu_) = 0;
-  int64 total_records_skipped_ GUARDED_BY(mu_) = 0;
-  std::vector<Batch> buckets_ GUARDED_BY(mu_);
-  int64 processor_loop_done_count_ GUARDED_BY(mu_) = 0;
-  FlushList to_flush_ GUARDED_BY(mu_);
-  Condition to_flush_empty_;
-  Condition to_flush_non_empty_;
+  absl::Condition curr_empty_;
+  absl::Condition curr_non_empty_;
+  int64 records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_records_yielded_ ABSL_GUARDED_BY(mu_) = 0;
+  int64 total_records_skipped_ ABSL_GUARDED_BY(mu_) = 0;
+  std::vector<Batch> buckets_ ABSL_GUARDED_BY(mu_);
+  int64 processor_loop_done_count_ ABSL_GUARDED_BY(mu_) = 0;
+  FlushList to_flush_ ABSL_GUARDED_BY(mu_);
+  absl::Condition to_flush_empty_;
+  absl::Condition to_flush_non_empty_;
   std::time_t start_time_;  // Not necessary to guard.
-  std::time_t last_log_update_time_ GUARDED_BY(mu_);
-  int64 next_status_update_duration_seconds_ GUARDED_BY(mu_) = 60;
+  std::time_t last_log_update_time_ ABSL_GUARDED_BY(mu_);
+  int64 next_status_update_duration_seconds_ ABSL_GUARDED_BY(mu_) = 60;
 
   std::vector<int64> length_histogram_;
   std::vector<int64> bucket_upper_bound_;
 
   // Conditions.
-  bool CurrEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool CurrEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return ((stop_ && stop_status_.ok()) ||  // The object is being destroyed
             curr_.empty());                  // We can push work onto curr_.
   }
 
-  bool CurrNonEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool CurrNonEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return (!curr_.empty() ||    // There is data to deliver to GetNext().
             merger_loop_done_);  // There merger loop is done (no more data).
   }
 
-  bool ToFlushEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool ToFlushEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return stop_ || to_flush_.empty();
   }
 
-  bool ToFlushNonEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool ToFlushNonEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return ((stop_ && stop_status_.ok()) ||  // The object is being destroyed.
             !to_flush_.empty() ||            // There is work to flush.
             ProcessorsDone());  // All processor threads have exited.
   }
 
-  bool ProcessorsDone() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool ProcessorsDone() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return processor_loop_done_count_ == opts_.num_threads;
   }
 
   void ProcessorLoop();
   void MergerLoop();
 
-  void AdjustBuckets() EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void FlushAllBuckets() EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void IncrementHistogram(int64 bucket) EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void AdjustBuckets() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void FlushAllBuckets() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void IncrementHistogram(int64 bucket) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   // For performance debugging.
-  void WaitForCurrEmpty() EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void WaitForCurrNonEmpty() EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void WaitForToFlushEmpty() EXCLUSIVE_LOCKS_REQUIRED(mu_);
-  void WaitForToFlushNonEmpty() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void WaitForCurrEmpty() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void WaitForCurrNonEmpty() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void WaitForToFlushEmpty() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void WaitForToFlushNonEmpty() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(RecordBatcher);
 };

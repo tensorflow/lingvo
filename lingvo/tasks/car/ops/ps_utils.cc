@@ -20,7 +20,7 @@ limitations under the License.
 #include <random>
 #include <vector>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/framework/tensor_shape.h"
 #include "tensorflow/core/lib/strings/stringprintf.h"
@@ -222,12 +222,12 @@ class RNG {
   RNG() : rng_(std::random_device("/dev/urandom")()) {}
 
   uint64 Get() {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     return rng_();
   }
 
  private:
-  Mutex mu_;
+  absl::Mutex mu_;
   std::mt19937_64 rng_;
 };
 

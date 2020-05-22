@@ -51,22 +51,6 @@ cc_library(
         executable = False,
     )
 
-def _nsync_includes_repo_impl(repo_ctx):
-    tf_include_path = _find_tf_include_path(repo_ctx)
-    repo_ctx.symlink(tf_include_path + "/external", "nsync_includes")
-    repo_ctx.file(
-        "BUILD",
-        content = """
-cc_library(
-    name = "includes",
-    hdrs = glob(["nsync_includes/nsync/public/*.h"]),
-    includes = ["nsync_includes"],
-    visibility = ["//visibility:public"],
-)
-""",
-        executable = False,
-    )
-
 def _absl_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(
@@ -90,7 +74,7 @@ cc_library(
 def _zlib_includes_repo_impl(repo_ctx):
     tf_include_path = _find_tf_include_path(repo_ctx)
     repo_ctx.symlink(
-        tf_include_path + "/external/zlib_archive",
+        tf_include_path + "/external/zlib",
         "zlib",
     )
     repo_ctx.file(
@@ -164,10 +148,6 @@ def cc_tf_configure():
     """Autoconf pre-installed tensorflow repo."""
     make_eigen_repo = repository_rule(implementation = _eigen_archive_repo_impl)
     make_eigen_repo(name = "eigen_archive")
-    make_nsync_repo = repository_rule(
-        implementation = _nsync_includes_repo_impl,
-    )
-    make_nsync_repo(name = "nsync_includes")
     make_absl_repo = repository_rule(
         implementation = _absl_includes_repo_impl,
     )

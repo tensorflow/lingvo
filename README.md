@@ -26,7 +26,7 @@ pull requests, you should avoid using pip and clone the repository instead.
 **pip:**
 
 The [Lingvo pip package](https://pypi.org/project/lingvo) (available for python
-3.6 and 3.7) can be installed with just `pip3 install lingvo`.
+3.6, 3.7, and 3.8) can be installed with just `pip3 install lingvo`.
 
 See the
 [codelab](https://colab.research.google.com/github/tensorflow/lingvo/blob/master/codelabs/introduction.ipynb)
@@ -36,7 +36,7 @@ for how to get started with the pip package.
 
 The prerequisites are:
 
-*   a TensorFlow 2.0 [installation](https://www.tensorflow.org/install/),
+*   a TensorFlow 2.2 [installation](https://www.tensorflow.org/install/),
 *   a `C++` compiler (only g++ 7.3 is officially supported), and
 *   the bazel build system.
 

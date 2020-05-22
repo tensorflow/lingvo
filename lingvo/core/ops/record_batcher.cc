@@ -62,7 +62,7 @@ limitations under the License.
 #include <algorithm>
 #include <utility>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
@@ -92,28 +92,28 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
   length_histogram_.resize(opts_.bucket_upper_bound.back() + 1, 0);
   start_time_ = std::time(nullptr);
   {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     last_log_update_time_ = start_time_;
   }
 
   for (int i = 0; i < opts_.num_threads; i++) {
     processor_thread_->Schedule([this]() {
       ProcessorLoop();
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       processor_loop_done_count_++;
     });
   }
 
   merger_thread_->Schedule([this]() {
     MergerLoop();
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     merger_loop_done_ = true;
   });
 }
 
 RecordBatcher::~RecordBatcher() {
   {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     stop_ = true;
   }
   delete processor_thread_;
@@ -123,7 +123,7 @@ RecordBatcher::~RecordBatcher() {
 }
 
 Status RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
-  MutexLock l(&mu_);
+  absl::MutexLock l(&mu_);
   // Wait for either curr to be non-empty, or for the merger thread to be
   // complete.
   WaitForCurrNonEmpty();
@@ -284,7 +284,7 @@ void RecordBatcher::ProcessorLoop() {
   std::vector<int64> out_of_range_buckets;
   while (true) {
     {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       if (stop_) {
         return;
       }
@@ -297,7 +297,7 @@ void RecordBatcher::ProcessorLoop() {
     // If yielder returns OutOfRange, set
     // the out status appropriately and return.
     if (errors::IsOutOfRange(s)) {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       stop_status_ = s;
       stop_ = true;
       return;
@@ -336,7 +336,7 @@ void RecordBatcher::ProcessorLoop() {
       continue;
     }
 
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
 
     if (opts_.bucket_adjust_every_n > 0) {
       const int64 records_processed =
@@ -414,7 +414,7 @@ void RecordBatcher::MergerLoop() {
   bool continue_loop = true;
   while (continue_loop) {
     {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       WaitForToFlushNonEmpty();
       if (stop_ && stop_status_.ok()) {
         // The object is being destroyed, just exit.
@@ -450,7 +450,7 @@ void RecordBatcher::MergerLoop() {
         LOG(WARNING) << "Failed to create a batch: " << s;
       } else {
         merged.push_back(bucket_keys);
-        MutexLock l(&mu_);
+        absl::MutexLock l(&mu_);
         WaitForCurrEmpty();
 
         // If stopped due to destructor, just exit, since there should be no

@@ -21,7 +21,7 @@ limitations under the License.
 #include <thread>  // NOLINT(build/c++11)
 #include <unordered_map>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/versioned_file_set.pb.h"
 #include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/lib/hash/hash.h"
@@ -45,7 +45,7 @@ namespace {
 const int kRecordsPerAdd = 16;
 
 struct Factory {
-  Mutex mu;
+  absl::Mutex mu;
   std::unordered_map<string, RecordIterator::FactoryMethod> creators;
   std::unordered_map<string, RecordIterator::PatternParserMethod>
       pattern_parsers;
@@ -164,7 +164,7 @@ bool RecordIterator::RegisterWithPatternParser(
     const string& type_name, FactoryMethod method,
     PatternParserMethod parser_method) {
   Factory* factory = GetFactory();
-  MutexLock l(&factory->mu);
+  absl::MutexLock l(&factory->mu);
   bool ret = factory->creators.insert({type_name, std::move(method)}).second;
   CHECK(ret) << "Possibly duplicated registration: " << type_name;
   if (parser_method) {
@@ -178,7 +178,7 @@ RecordIterator* RecordIterator::New(const string& type_name,
   Factory* factory = GetFactory();
   RecordIterator::FactoryMethod method;
   {
-    MutexLock l(&factory->mu);
+    absl::MutexLock l(&factory->mu);
     const auto iter = factory->creators.find(type_name);
     CHECK(iter != factory->creators.end())
         << "Unable to create RecordIterator for format \"" << type_name << "\"";
@@ -214,7 +214,7 @@ Status RecordIterator::ParsePattern(const string& type_name,
   Factory* factory = GetFactory();
   RecordIterator::PatternParserMethod parser_method;
   {
-    MutexLock l(&factory->mu);
+    absl::MutexLock l(&factory->mu);
     const auto iter = factory->pattern_parsers.find(type_name);
     if (iter != factory->pattern_parsers.end()) {
       parser_method = iter->second;
@@ -273,7 +273,7 @@ class TFRecordIterator : public RecordIterator {
     Status s = reader_.ReadRecord(&record_);
     if (errors::IsOutOfRange(s)) return false;
     *key = strings::Printf("%08lld", static_cast<long long>(num_++));
-    *value = record_;
+    *value = Rope(record_);
     return true;
   }
 
@@ -398,7 +398,7 @@ void BasicRecordYielder::Start() {
 
 void BasicRecordYielder::Close() {
   {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     stop_ = true;
   }
   main_loop_done_.WaitForNotification();
@@ -409,7 +409,7 @@ void BasicRecordYielder::Close() {
 }
 
 Status BasicRecordYielder::Yield(Record* record) {
-  MutexLock l(&mu_);
+  absl::MutexLock l(&mu_);
   WaitForBufEnough();
   ++yields_;
 
@@ -426,7 +426,7 @@ Status BasicRecordYielder::Yield(Record* record) {
 }
 
 bool BasicRecordYielder::ShouldFinish(const Status& s) {
-  MutexLock l(&mu_);
+  absl::MutexLock l(&mu_);
   status_.Update(s);
   return stop_ || !status_.ok();
 }
@@ -440,7 +440,7 @@ void BasicRecordYielder::AdjustBufferSizeLoop() {
   // Wake up each second and adjust the buffer size.
   while (true) {
     {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
 
       // Quit if requested.
       if (stop_) break;
@@ -474,7 +474,7 @@ void BasicRecordYielder::AdjustBufferSizeLoop() {
 }
 
 void BasicRecordYielder::MainLoop() {
-  Notification adjust_done;
+  absl::Notification adjust_done;
   thread_->Schedule([this, &adjust_done]() {
     AdjustBufferSizeLoop();
     adjust_done.Notify();
@@ -496,7 +496,7 @@ void BasicRecordYielder::MainLoop() {
 
     int shuffle_seed = opts_.seed;
     if (opts_.seed == 0) {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       shuffle_seed = rnd_();
     }
 
@@ -523,7 +523,7 @@ void BasicRecordYielder::MainLoop() {
 
     // Do not start the next epoch until all buffered records are consumed.
     {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       epoch_end_ = true;
       mu_.Await(buf_empty_);
       epoch_end_ = false;
@@ -538,7 +538,7 @@ void BasicRecordYielder::MainLoop() {
 }
 
 bool BasicRecordYielder::Add(std::vector<Rope>* values) {
-  MutexLock l(&mu_);
+  absl::MutexLock l(&mu_);
   mu_.Await(buf_not_full_);
   while (BufNotFull() && !values->empty()) {
     // Adds values->back(). Swaps its position with another random

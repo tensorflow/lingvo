@@ -71,14 +71,6 @@ cc_library(
 )
 
 lingvo_cc_library(
-    name = "mutex",
-    hdrs = ["mutex.h"],
-    deps = [
-        "@nsync_includes//:includes",
-    ],
-)
-
-lingvo_cc_library(
     name = "rope",
     hdrs = ["rope.h"],
     deps = [
@@ -137,9 +129,9 @@ lingvo_cc_library(
         "weighted_mix_record_yielder.h",
     ],
     deps = [
-        ":mutex",
         ":rope",
         ":versioned_file_set_proto_cc",
+        # Implicit absl.synchronization dependency.
     ],
 )
 
@@ -319,7 +311,7 @@ custom_kernel_library(
     srcs = ["functional_ops_kernels.cc"],
     op_def_lib = [":x_ops"],
     deps = [
-        ":mutex",
+        # Implicit absl.synchronization dependency.
     ],
 )
 
@@ -350,7 +342,7 @@ custom_kernel_library(
     srcs = ["random_ops_kernels.cc"],
     op_def_lib = [":x_ops"],
     deps = [
-        ":mutex",
+        # Implicit absl.synchronization dependency.
     ],
 )
 
@@ -440,10 +432,10 @@ custom_kernel_library(
     srcs = ["pack_ops.cc"],
     op_def_lib = [":x_ops"],
     deps = [
-        ":mutex",
         ":text_packing",
         # Implicit absl.container.flat_hash_map dependency.
         # Implicit absl.strings dependency.
+        # Implicit absl.synchronization dependency.
     ],
 )
 

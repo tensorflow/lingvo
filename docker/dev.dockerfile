@@ -26,7 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         aria2 \
         build-essential \
         curl \
+        dirmngr \
         git \
+        gpg-agent \
         less \
         libfreetype6-dev \
         libhdf5-serial-dev \
@@ -34,7 +36,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libzmq3-dev \
         lsof \
         pkg-config \
-        python3-distutils \
         rename \
         rsync \
         sox \
@@ -43,6 +44,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+
+# Install python 3.7
+RUN apt-key adv --keyserver keyserver.ubuntu.com --recv-keys BA6932366A755776
+RUN echo "deb http://ppa.launchpad.net/deadsnakes/ppa/ubuntu bionic main" > /etc/apt/sources.list.d/deadsnakes-ppa-bionic.list
+RUN apt-get update && apt-get install -y python3.7
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.7 1000
+# bazel assumes the python executable is "python".
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.7 1000
 
 RUN curl -O https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py && rm get-pip.py
 
@@ -80,10 +89,10 @@ ARG pip_dependencies=' \
       sphinx \
       sphinx_rtd_theme \
       sympy \
-      waymo-open-dataset-tf-2-1-0'
+      waymo-open-dataset-tf-2-2-0'
 
-RUN pip3 --no-cache-dir install $pip_dependencies && \
-    python3 -m ipykernel.kernelspec
+RUN pip3 --no-cache-dir install $pip_dependencies
+RUN python3 -m ipykernel.kernelspec
 
 # The latest tensorflow requires CUDA 10 compatible nvidia drivers (410.xx).
 # If you are unable to update your drivers, an alternative is to compile
@@ -93,9 +102,6 @@ RUN pip3 uninstall -y tensorflow tensorflow-gpu tf-nightly tf-nightly-gpu
 RUN pip3 --no-cache-dir install tensorflow-gpu
 
 RUN jupyter serverextension enable --py jupyter_http_over_ws
-
-# bazel assumes the python executable is "python".
-RUN ln -s /usr/bin/python3 /usr/bin/python
 
 # TensorBoard
 EXPOSE 6006

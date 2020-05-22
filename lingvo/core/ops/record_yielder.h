@@ -24,7 +24,8 @@ limitations under the License.
 #include <utility>
 #include <vector>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
+#include "absl/synchronization/notification.h"
 #include "lingvo/core/ops/rope.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -190,13 +191,13 @@ class BasicRecordYielder : public RecordYielder {
   // the epoch number of the record returned by the next Yield() call.
   virtual int64 current_epoch() const {
     // TODO(tilarids): Use ReaderMutexLock here.
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     return epoch_;
   }
 
   // Returns the current buffer size.
   int64 bufsize() const {
-    MutexLock l(&mu_);
+    absl::MutexLock l(&mu_);
     return bufsize_;
   }
 
@@ -211,7 +212,7 @@ class BasicRecordYielder : public RecordYielder {
   struct Shard {
     int index;                      // Shard index.
     std::vector<string> filenames;  // File names given to this shard.
-    Notification done;              // Notified when this shard is done.
+    absl::Notification done;        // Notified when this shard is done.
     Status status;                  // Shard status.
   };
   void ShardLoop(Shard* shard);
@@ -231,48 +232,48 @@ class BasicRecordYielder : public RecordYielder {
   // Background threads. Owned.
   thread::ThreadPool* thread_;
 
-  mutable Mutex mu_;
+  mutable absl::Mutex mu_;
 
   // Epoch number.
-  int64 epoch_ GUARDED_BY(mu_);
+  int64 epoch_ ABSL_GUARDED_BY(mu_);
 
   // Turned to true when the yielder is deleted.
-  bool stop_ GUARDED_BY(mu_) = false;
-  Status status_ GUARDED_BY(mu_);
+  bool stop_ ABSL_GUARDED_BY(mu_) = false;
+  Status status_ ABSL_GUARDED_BY(mu_);
 
   // PRG used for randomization.
-  std::mt19937_64 rnd_ GUARDED_BY(mu_);
+  std::mt19937_64 rnd_ ABSL_GUARDED_BY(mu_);
 
   // Randomization buffer.
-  std::vector<Rope> buf_ GUARDED_BY(mu_);
+  std::vector<Rope> buf_ ABSL_GUARDED_BY(mu_);
 
   // True iff we are draining an epoch.
-  bool epoch_end_ GUARDED_BY(mu_) = false;
+  bool epoch_end_ ABSL_GUARDED_BY(mu_) = false;
 
   int64 num_records_yielded_in_epoch_ = 0;
 
   // Dynamically adjusted buffer size.
-  double bufsize_ GUARDED_BY(mu_);
+  double bufsize_ ABSL_GUARDED_BY(mu_);
 
   // Number of Yield calls in the current adjustment interval.
-  int64 yields_ GUARDED_BY(mu_);
+  int64 yields_ ABSL_GUARDED_BY(mu_);
 
   // Trigger when the main loop has exited.
-  Notification main_loop_done_;
+  absl::Notification main_loop_done_;
 
   // Conditions.
-  Condition buf_empty_;
-  bool BufEmpty() const SHARED_LOCKS_REQUIRED(mu_) {
+  absl::Condition buf_empty_;
+  bool BufEmpty() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return stop_ || buf_.empty();
   }
 
-  Condition buf_not_full_;
-  bool BufNotFull() const SHARED_LOCKS_REQUIRED(mu_) {
+  absl::Condition buf_not_full_;
+  bool BufNotFull() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return stop_ || static_cast<int64>(buf_.size()) < bufsize_;
   }
 
-  Condition buf_enough_;
-  bool BufEnough() const SHARED_LOCKS_REQUIRED(mu_) {
+  absl::Condition buf_enough_;
+  bool BufEnough() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     // NOTE: Unless we are finishing an epoch, we want to make sure
     // the buf_ contains enough randomized elements before yielding any.
     return stop_ || !status_.ok() || (epoch_end_ && !buf_.empty()) ||
@@ -280,7 +281,7 @@ class BasicRecordYielder : public RecordYielder {
                                std::max<int64>(1, bufsize_ / 2));
   }
 
-  void ExtractValue(Rope* value) EXCLUSIVE_LOCKS_REQUIRED(mu_) {
+  void ExtractValue(Rope* value) ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
     if (opts_.seed == 0) {
       // Randomize at the consumer side as well.
       const auto index = rnd_() % buf_.size();
@@ -299,7 +300,7 @@ class BasicRecordYielder : public RecordYielder {
   void AdjustBufferSizeLoop();
 
   // For performance debugging.
-  void WaitForBufEnough() EXCLUSIVE_LOCKS_REQUIRED(mu_);
+  void WaitForBufEnough() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
   TF_DISALLOW_COPY_AND_ASSIGN(BasicRecordYielder);
 };

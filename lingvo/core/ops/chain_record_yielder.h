@@ -62,9 +62,9 @@ class ChainRecordYielder : public RecordYielder {
       const std::vector<BasicRecordYielder::Options>& yielder_options);
 
  private:
-  mutable Mutex mu_;
-  int current_yielder_idx_ GUARDED_BY(mu_);
-  BasicRecordYielder* current_yielder_ GUARDED_BY(mu_);
+  mutable absl::Mutex mu_;
+  int current_yielder_idx_ ABSL_GUARDED_BY(mu_);
+  BasicRecordYielder* current_yielder_ ABSL_GUARDED_BY(mu_);
 
   std::vector<BasicRecordYielder::Options> yielder_options_;
 };

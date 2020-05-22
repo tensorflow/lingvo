@@ -72,10 +72,10 @@ class WeightedMixRecordYielder : public RecordYielder {
 
 
  private:
-  mutable Mutex mu_;
+  mutable absl::Mutex mu_;
 
   // PRG used for randomization.
-  std::mt19937_64 rnd_ GUARDED_BY(mu_);
+  std::mt19937_64 rnd_ ABSL_GUARDED_BY(mu_);
 
   std::discrete_distribution<size_t> sample_distribution_;
 

@@ -22,7 +22,7 @@ from setuptools.command.install import install
 from setuptools.dist import Distribution
 import tensorflow as tf  # pylint: disable=g-explicit-tensorflow-version-import
 
-__version__ = '0.6.6'
+__version__ = '0.7.1'
 project_name = 'lingvo'
 if '--project_name' in sys.argv:
   project_name_idx = sys.argv.index('--project_name')
@@ -41,7 +41,7 @@ REQUIRED_PACKAGES = [
     'sklearn',
     'sympy',
     'tensorflow-gpu==' + tf.__version__,
-    'waymo-open-dataset-tf-2-1-0',
+    'waymo-open-dataset-tf-2-2-0',
 ]
 
 

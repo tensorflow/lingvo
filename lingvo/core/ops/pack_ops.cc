@@ -20,7 +20,7 @@ limitations under the License.
 #include "absl/container/flat_hash_map.h"
 #include "absl/strings/str_join.h"
 #include "absl/strings/string_view.h"
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/text_packing.h"
 #include "tensorflow/core/framework/bounds_check.h"
 #include "tensorflow/core/framework/op_kernel.h"
@@ -128,7 +128,7 @@ class PackSequencesOp : public OpKernel {
                     const absl::flat_hash_map<int, int>& new_indices,
                     PackSequencesOutputs* outputs);
 
-  mutable Mutex mu_;
+  mutable absl::Mutex mu_;
   // Used for randomizing the dropping of input rows when needed.
   std::mt19937 rnd_ ABSL_GUARDED_BY(mu_);
 
@@ -257,7 +257,7 @@ bool PackSequencesOp::DropPackedRows(
     std::uniform_int_distribution<> distribution(0, i);
     int j;  // Uniformly picked on [0, i].
     {
-      MutexLock l(&mu_);
+      absl::MutexLock l(&mu_);
       j = distribution(rnd_);
     }
     if (j < packed_batch_size) {

@@ -92,7 +92,7 @@ lingvo_cc_library(
     srcs = ["ps_utils.cc"],
     hdrs = ["ps_utils.h"],
     deps = [
-        "//lingvo/core/ops:mutex",
+        # Implicit absl.synchronization dependency.
     ],
 )
 

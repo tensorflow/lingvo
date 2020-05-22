@@ -15,7 +15,7 @@ limitations under the License.
 
 #include <vector>
 
-#include "lingvo/core/ops/mutex.h"
+#include "absl/synchronization/mutex.h"
 #include "tensorflow/core/common_runtime/function.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
@@ -90,7 +90,7 @@ class CachedCallOp : public AsyncOpKernel {
                  }
                  done();
 
-                 MutexLock l(&mu_);
+                 absl::MutexLock l(&mu_);
                  status_ = s;
                  state_ = INITED;
                });
@@ -99,7 +99,7 @@ class CachedCallOp : public AsyncOpKernel {
  private:
   typedef CachedCallOp ME;
 
-  bool NotIniting() const SHARED_LOCKS_REQUIRED(mu_) {
+  bool NotIniting() const ABSL_SHARED_LOCKS_REQUIRED(mu_) {
     return state_ != INITING;
   }
 
@@ -107,8 +107,8 @@ class CachedCallOp : public AsyncOpKernel {
   FunctionLibraryRuntime::Options opts_;
   FHandle handle_;
 
-  Mutex mu_;
-  Condition not_initing_;
+  absl::Mutex mu_;
+  absl::Condition not_initing_;
   enum State {
     UNINIT,
     INITING,
