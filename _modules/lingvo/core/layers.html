@@ -4078,9 +4078,6 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">HighwaySkipLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_carry_gate</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_transform_gate</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">batch_norm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">,</span>
@@ -4125,6 +4122,65 @@
       <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_gate</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
       <span class="n">transform</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">transform_gate</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">transform_gate</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
     <span class="n">layer_out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">carry</span> <span class="o">+</span> <span class="n">transformed_x</span> <span class="o">*</span> <span class="n">transform</span>
+    <span class="k">return</span> <span class="n">layer_out</span></div></div>
+
+
+<div class="viewcode-block" id="GatingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatingLayer">[docs]</a><span class="k">class</span> <span class="nc">GatingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A gating layer.</span>
+
+<span class="sd">  This class represents a gating layer, which takes 2 inputs of the same shape</span>
+<span class="sd">  and gates them.</span>
+
+<span class="sd">  The output is: carry * x + (1 - carry) * y where, carry is given by</span>
+<span class="sd">  sigmoid(x @ w_1 + y @ w_2 + bias).</span>
+
+<span class="sd">  This is different from the HighwaySkipLayer above in that carry is also a</span>
+<span class="sd">  function of y (named transformed_x in HighwaySkipLayer).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="GatingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GatingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the input to the network.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_bias&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether carry has a bias term.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;carry_bias_init&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;carry gates bias initialization&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">GatingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">has_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">,</span>
+          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+          <span class="n">bias_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;carry&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;carry_gate&#39;</span><span class="p">,</span> <span class="n">carry_gate_params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="GatingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fprop for the gating layer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      x: An input feature, the last dimension must match p.input_dim.</span>
+<span class="sd">      y: Another input feature. Must have the same shape as &#39;x&#39;.</span>
+<span class="sd">      paddings: padding applied to the features. When x and y have shape [...,</span>
+<span class="sd">        input_dim], &#39;paddings&#39;, when specified, must have shaped [..., 1], where</span>
+<span class="sd">        all but the last dimension match.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      layer_out - activations after forward propagation. Same shape as x and y.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">y</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">y</span><span class="p">))],</span> <span class="n">y</span><span class="p">)</span>
+    <span class="n">carry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">carry_gate</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">carry_gate</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+                                  <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">layer_out</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">carry</span> <span class="o">+</span> <span class="n">y</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">carry</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">layer_out</span></div></div>
 
 
@@ -4926,7 +4982,7 @@
 <div class="viewcode-block" id="CCTGatingNetwork.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CCTGatingNetwork.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">p_c</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatingfflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gatingfflayer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
       <span class="n">ones</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">p_c</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">p_c</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
       <span class="n">p_c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>

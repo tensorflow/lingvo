@@ -220,6 +220,16 @@ experimental results see <a class="reference external" href="https://arxiv.org/a
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer._InitAttention">
+<code class="sig-name descname">_InitAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">atten_tpl</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer._InitAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer._InitAttention" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer._GetSourceLength">
+<code class="sig-name descname">_GetSourceLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer._GetSourceLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer._GetSourceLength" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">source_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">query_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">context_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer attention, residual and normalization layer.</p>
@@ -296,6 +306,40 @@ state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerMultiSourceAttentionLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerMultiSourceAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.layers_with_attention.TransformerAttentionLayer" title="lingvo.core.layers_with_attention.TransformerAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.layers_with_attention.TransformerAttentionLayer</span></code></a></p>
+<p>Multi-source multi-headed attention.</p>
+<p>Only supports scenarios 3 and 4 in the base class. Now the two scenarios are:</p>
+<ol class="arabic simple" start="3">
+<li><p>Multi-source multi-Headed Attention, where attention keys and attention
+values <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_vecs</span></code>, are different encodings and queries <code class="xref py py-obj docutils literal notranslate"><span class="pre">query_vec</span></code>,
+coming from the previous layer outputs (decoder). In addition,
+attention keys and values are NestedMaps containing encodings of different
+sources. This corresponds to a multi-source decoder-to-encoder attention
+mechanism, i.e., decoder attends to encoder outputs and other sources.</p></li>
+<li><p>Similar to 3 but attention values <code class="xref py py-obj docutils literal notranslate"><span class="pre">context_vecs</span></code> are coming from a
+different source than queries and keys.</p></li>
+</ol>
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerMultiSourceAttentionLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer._InitAttention">
+<code class="sig-name descname">_InitAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">atten_tpl</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerMultiSourceAttentionLayer._InitAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer._InitAttention" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer._GetSourceLength">
+<code class="sig-name descname">_GetSourceLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerMultiSourceAttentionLayer._GetSourceLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer._GetSourceLength" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 
@@ -683,58 +727,6 @@ attentions, used for fast decoding.</p></li>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.layers_with_attention.MergerLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">MergerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Merges a list of input tensors with various options into a single tensor.</p>
-<p>Implements a merger/combiner operator given a list of tensors. The merger
-operator outputs a single tensor with the following options (merger_op):</p>
-<ul class="simple">
-<li><p>atten: Applies attention over the set of input tensors given query vector.</p></li>
-<li><p>mean: Takes the mean of input tensors.</p></li>
-<li><p>concat: Concatenates the input tensors over the last dimension.</p></li>
-<li><p>sum: Sum up all the input tensors.</p></li>
-<li><p>weighted_sum: Use learnt weights to combine input tensors.</p></li>
-<li><p>gated_avg: Learnt input dependent gates are used to average tensors.</p></li>
-</ul>
-<p>This class is expected to be called by multi-source/multi-column models.</p>
-<dl class="py method">
-<dt id="lingvo.core.layers_with_attention.MergerLayer.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Params for this MergerLayer class.</p>
-</dd></dl>
-
-<dl class="py attribute">
-<dt id="lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS">
-<code class="sig-name descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']</em><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.layers_with_attention.MergerLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">query_vec</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#MergerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.MergerLayer.FProp" title="Permalink to this definition">¶</a></dt>
-<dd><p>Combines the list of input tensors into a single tensor.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
-its children layers.</p></li>
-<li><p><strong>inputs</strong> – A list of tensors of shape […, hidden_dim] or […,
-[pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.</p></li>
-<li><p><strong>query_vec</strong> – A tensor of shape […, hidden_dim].</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A tensor of the same shape with input tensors.</p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – p.merger_op is not defined.</p>
-</dd>
-</dl>
-</dd></dl>
-
-</dd></dl>
-
-<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.StyleLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">StyleLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#StyleLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.StyleLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -861,6 +853,98 @@ attentions, used for fast decoding.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers_with_attention.CCTAttentionLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">CCTAttentionLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTAttentionLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTAttentionLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Multi-headed attention, add and norm used by ‘Attention Is All You Need’.</p>
+<p>Supports CCT attention gating as in the paper here:
+<a class="reference external" href="https://arxiv.org/abs/2002.07106">https://arxiv.org/abs/2002.07106</a></p>
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.CCTAttentionLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTAttentionLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTAttentionLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.CCTAttentionLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">source_vecs</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">query_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTAttentionLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTAttentionLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>CCT attention, residual and normalization layer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>query_vec</strong> – [target_time, target_batch, dim]</p></li>
+<li><p><strong>source_paddings</strong> – [source_time, source_batch]</p></li>
+<li><p><strong>source_vecs</strong> – [source_time, source_batch, dim].</p></li>
+<li><p><strong>query_segment_id</strong> – [target_time, target_batch]</p></li>
+<li><p><strong>source_segment_id</strong> – [source_time, source_batch]</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>(output, atten_probs). output is of shape [target_time, target_batch,
+context_dim], atten_probs is of shape [target_time, target_batch,
+source_time].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.CCTAttentionLayer._FinishExtendStep">
+<code class="sig-name descname">_FinishExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">unnormalized_query_vec</span></em>, <em class="sig-param"><span class="n">extended_packed_src</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTAttentionLayer._FinishExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTAttentionLayer._FinishExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finish extending prefix by one more time step.</p>
+<p>Isolating this function from ExtendStep allows generalizing self-attention
+to causal attention on other inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>query_vec</strong> – [target_batch, dim]</p></li>
+<li><p><strong>unnormalized_query_vec</strong> – [target_batch, dim]</p></li>
+<li><p><strong>extended_packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing source_vecs,
+source_contexts, source_paddings, and source_segment_ids</p></li>
+<li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+representing the output from the current state, and new_state is the new
+state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.CCTAttentionLayer.ExtendStep">
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">prefix_state</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTAttentionLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTAttentionLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend prefix by one more time step.</p>
+<p>This function is expected to be called during fast decoding of the
+Transformer model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>query_vec</strong> – [target_batch, dim]</p></li>
+<li><p><strong>prefix_state</strong> – dict, containing tensors which are the results of previous
+attentions, used for fast decoding.</p></li>
+<li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A triplet (cur_output, atten_prob, new_state) where cur_output is a tensor
+representing the output from the current state, and new_state is the new
+state <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers_with_attention.CCTFeedForwardLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">CCTFeedForwardLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#CCTFeedForwardLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.CCTFeedForwardLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
@@ -894,6 +978,87 @@ its children layers.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>tensor of the same shape with inputs</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers_with_attention.</code><code class="sig-name descname">TransformerWithContextLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>A transformer layer with 3 attention layers.</p>
+<p>The same as layers_with_attention.TransformerLayer, but with an
+additional attention layer to attend to a third transformer stack
+representing context.</p>
+<p>self-attention =&gt; context attention (newly added as tertiary_atten) =&gt;
+encoder attention (named aux_atten in TransformerLayer).</p>
+<p>The weights are <em>not</em> shared between these three attention layers.</p>
+<p>See <a class="reference external" href="https://arxiv.org/pdf/1810.03581.pdf">https://arxiv.org/pdf/1810.03581.pdf</a></p>
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tertiary_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer.</p>
+<p>Please see docstring of TransformerAttentionLayer.FProp.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>source_vecs</strong> – [source_time, source_batch, dim].</p></li>
+<li><p><strong>source_paddings</strong> – [source_time, source_batch]</p></li>
+<li><p><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</p></li>
+<li><p><strong>aux_paddings</strong> – [aux_time, aux_batch]</p></li>
+<li><p><strong>tertiary_vecs</strong> – [tertiary_time, tertiary_batch, dim]</p></li>
+<li><p><strong>tertiary_paddings</strong> – [tertiary_time, tertiary_batch]</p></li>
+<li><p><strong>source_segment_id</strong> – [source_time, source_batch]</p></li>
+<li><p><strong>aux_segment_id</strong> – [aux_time, aux_batch]</p></li>
+<li><p><strong>tertiary_segment_id</strong> – [tertiary_time, tertiary_batch]</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>The attention context vector, [source_time, source_batch, dim].</p>
+<p>The attention probability vector, [source_time, source_batch, aux_time].</p>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep">
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Transformer Layer, extend one step in decoding.</p>
+<p>Please see docstring of TransformerAttentionLayer.ExtendStep.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>source_vecs</strong> – [source_batch, dim].</p></li>
+<li><p><strong>prefix_states</strong> – dict, containing tensors which are the results of previous
+attentions, used for fast decoding.</p></li>
+<li><p><strong>aux_vecs</strong> – [aux_time, aux_batch, dim]</p></li>
+<li><p><strong>aux_paddings</strong> – [aux_time, aux_batch] tertiary_vecs=None,
+tertiary_paddings=None,</p></li>
+<li><p><strong>tertiary_vecs</strong> – [tertiary_time, tertiary_batch, dim]</p></li>
+<li><p><strong>tertiary_paddings</strong> – [tertiary_time, tertiary_batch]</p></li>
+<li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>The attention context vector, [target_batch, source_dim]</p>
+<p>The attention probability vector from the encoder attention layer (the
+last attention layer) only, [source_time, target_batch].
+TODO(zhouwk): Return also the attention prob from the tertiary attention.</p>
+<p>Updated prefix states</p>
+</p>
 </dd>
 </dl>
 </dd></dl>

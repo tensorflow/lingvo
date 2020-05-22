@@ -171,6 +171,56 @@
 ByRotation: Calculate precision recall based on rotation in world coordinates.
 ByNumPoints: Calculate maximum recall based on number of points in bounding box.
 ByDifficulty: Calculate precision recall based on difficulty.</p>
+<dl class="py function">
+<dt id="lingvo.tasks.car.breakdown_metric._FindRecallAtGivenPrecision">
+<code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">_FindRecallAtGivenPrecision</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">precision_recall</span></em>, <em class="sig-param"><span class="n">precision_level</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#_FindRecallAtGivenPrecision"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric._FindRecallAtGivenPrecision" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the recall at given precision level.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>precision_recall</strong> – np.array of shape [n, m, 2] where n is the number of
+classes, m is then number of values in the curve, 2 indexes between
+precision [0] and recall [1]. np.float32.</p></li>
+<li><p><strong>precision_level</strong> – float32. Selected precision level between (0, 1).
+Typically, this may be 0.95.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>np.array of shape [n] consisting of recall for all classes</dt><dd><p>where the values are 0.0 if a given precision is never achieved.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>recall</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.car.breakdown_metric._FindMaximumRecall">
+<code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">_FindMaximumRecall</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">precision_recall</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#_FindMaximumRecall"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric._FindMaximumRecall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find the maximum recall in all precision recall curves.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>precision_recall</strong> – np.array of shape [n, m, 2] where n is the number of
+classes, m is then number of values in the curve, 2 indexes between
+precision [0] and recall [1]. np.float32.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>np.array of shape [n] consisting of max recall for all classes</dt><dd><p>where the values are 0.0 if objects are found.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>max_recall</p>
+</dd>
+</dl>
+</dd></dl>
+
 <dl class="py class">
 <dt id="lingvo.tasks.car.breakdown_metric.BreakdownMetric">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.breakdown_metric.</code><code class="sig-name descname">BreakdownMetric</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/breakdown_metric.html#BreakdownMetric"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.breakdown_metric.BreakdownMetric" title="Permalink to this definition">¶</a></dt>

@@ -164,6 +164,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
@@ -173,6 +174,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
@@ -1447,6 +1449,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">att_p</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
+
+<div class="viewcode-block" id="MultiHeadedAttention.SetOutputContextDim"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.SetOutputContextDim">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">SetOutputContextDim</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">):</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span> <span class="o">=</span> <span class="n">out_dim</span></div>
 
   <span class="nd">@py_utils</span><span class="o">.</span><span class="n">NameScopeDecorator</span><span class="p">(</span><span class="s1">&#39;MultiHeadedAttention/PackSource&#39;</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -3022,6 +3028,330 @@
         <span class="p">[</span><span class="n">new_position</span><span class="p">,</span> <span class="n">position_offset</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">priors</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span> <span class="n">new_atten_states</span></div></div>
+
+
+<div class="viewcode-block" id="MergerLayer"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer">[docs]</a><span class="k">class</span> <span class="nc">MergerLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Merges a list of input tensors with various options into a single tensor.</span>
+
+<span class="sd">  Implements a merger/combiner operator given a list of tensors. The merger</span>
+<span class="sd">  operator outputs a single tensor with the following options (merger_op):</span>
+
+<span class="sd">  - atten: Applies attention over the set of input tensors given query vector.</span>
+<span class="sd">  - mean: Takes the mean of input tensors.</span>
+<span class="sd">  - concat: Concatenates the input tensors over the last dimension.</span>
+<span class="sd">  - sum: Sum up all the input tensors.</span>
+<span class="sd">  - weighted_sum: Use learnt weights to combine input tensors.</span>
+<span class="sd">  - gated_avg: Learnt input dependent gates are used to average tensors.</span>
+
+<span class="sd">  This class is expected to be called by multi-source/multi-column models.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MergerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params for this MergerLayer class.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MergerLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;merger_op&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;How to merge input tensors.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of source nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;query_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of query nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of hidden nodes.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_tpl&#39;</span><span class="p">,</span> <span class="n">AdditiveAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Attention used by the merger layer when merger_op is atten.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pre_proj_input_dims&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;If set, should be a list of depths for the tensors to be merged.&#39;</span>
+        <span class="s1">&#39; Setting this will result in a pre-projection to source_dim&#39;</span>
+        <span class="s1">&#39; before the merger.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pre_proj_output_dims&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Should be a list of depths which the input tensors specified in &#39;</span>
+        <span class="s1">&#39;pre_proj_input_dims need to be projected to. Should match the length &#39;</span>
+        <span class="s1">&#39;of pre_proj_input_dims.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;proj_tpl&#39;</span><span class="p">,</span>
+        <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">weight_norm</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
+        <span class="s1">&#39;Configs template for the projection layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;gated_avg_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">GatedAverageLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Configs template for the gated average layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_sources&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If merger_op=weighted_sum, then must specify &#39;</span>
+             <span class="s1">&#39;num of sources.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="c1"># Merging operation keys supported by this layer.</span>
+  <span class="n">MERGER_OPS</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="s1">&#39;concat&#39;</span><span class="p">,</span> <span class="s1">&#39;sum&#39;</span><span class="p">,</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">,</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">]</span>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MergerLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Layer must have a specified name!&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="ow">not</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">MERGER_OPS</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Merger op must be one of: &#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">MERGER_OPS</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;atten&#39;</span><span class="p">:</span>
+      <span class="n">atten_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">atten_params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">atten_params</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+      <span class="n">atten_params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+      <span class="n">atten_params</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="k">if</span> <span class="n">atten_params</span><span class="o">.</span><span class="n">params_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">atten_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span>
+            <span class="mf">1.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">atten_params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">+</span> <span class="n">atten_params</span><span class="o">.</span><span class="n">query_dim</span><span class="p">),</span>
+            <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">atten_params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_proj_output_dims</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Output dims should be specified for projection.&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_output_dims</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;Output dims should be the same length as input dims. &#39;</span>
+            <span class="s1">&#39;Expected: </span><span class="si">%s</span><span class="s1"> obtained: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_output_dims</span><span class="p">)))</span>
+      <span class="n">pre_proj_params</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">pre_proj_input_dim</span><span class="p">,</span> <span class="n">pre_proj_output_dim</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+          <span class="nb">zip</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_proj_output_dims</span><span class="p">)):</span>
+        <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;merger_pre_proj_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">pre_proj_input_dim</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">pre_proj_output_dim</span>
+        <span class="n">pre_proj_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;pre_proj&#39;</span><span class="p">,</span> <span class="n">pre_proj_params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;For merger_op=weighted_sum, must specify &#39;</span>
+                                 <span class="s1">&#39;num_sources &gt; 0.&#39;</span><span class="p">)</span>
+      <span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span><span class="p">)</span>
+      <span class="c1"># Weights to be learned.</span>
+      <span class="n">pw</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_sources</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">params_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+        <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sum_weight</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;sum_weight&#39;</span><span class="p">,</span> <span class="n">pw</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;For merger_op=gated_avg, must specify &#39;</span>
+                                 <span class="s1">&#39;num_sources &gt; 0.&#39;</span><span class="p">)</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">gated_avg_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;g_avg_merger&#39;</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gated_average&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MergerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Combines the list of input tensors into a single tensor.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: A list of tensors of shape [..., hidden_dim] or [...,</span>
+<span class="sd">        [pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.</span>
+<span class="sd">      query_vec: A tensor of shape [..., hidden_dim].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A tensor of the same shape with input tensors.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: p.merger_op is not defined.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">n_sources</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">)</span> <span class="o">!=</span> <span class="n">n_sources</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;pre_proj_input_dims must be specified for each input.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">n_sources</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+    <span class="c1"># Pre-projection operation.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_proj_input_dims</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_sources</span><span class="p">):</span>
+        <span class="n">inputs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_proj</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">pre_proj</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">tensor_pairs</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">inputs</span><span class="p">[</span><span class="mi">1</span><span class="p">:]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+      <span class="c1"># Simply take the mean, all dims must match.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
+      <span class="p">]):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">/</span> <span class="n">n_sources</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;sum&#39;</span><span class="p">:</span>
+      <span class="c1"># Sum up all sources, all dims must match.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
+      <span class="p">]):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add_n</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">:</span>
+      <span class="c1"># Weighted sum of all sources, all dims must match.</span>
+      <span class="c1"># For weighted_sum, assume input is a list of rank 3 tensors</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
+      <span class="p">]):</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_sum_weight</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span>
+            <span class="n">w</span><span class="p">,</span>
+            <span class="p">[</span><span class="mi">1</span><span class="p">,</span>
+             <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span>
+             <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">2</span><span class="p">],</span>
+             <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">3</span><span class="p">]])</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">inputs</span> <span class="o">*</span> <span class="n">w</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;atten&#39;</span><span class="p">:</span>
+      <span class="c1"># Apply attention over the concatenated tensor, all dims must match.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t1</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">))</span>
+          <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
+      <span class="p">]):</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="n">batch_size</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">n_sources</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+        <span class="n">output</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVector</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">]))</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;concat&#39;</span><span class="p">:</span>
+      <span class="c1"># Concatenate over the last dim, all dims but last must match.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t1</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+                                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">t2</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="k">for</span> <span class="n">t1</span><span class="p">,</span> <span class="n">t2</span> <span class="ow">in</span> <span class="n">tensor_pairs</span>
+      <span class="p">]):</span>
+        <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;gated_avg&#39;</span><span class="p">:</span>
+      <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gated_average</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">gated_average</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized merge op!&#39;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">output</span></div></div>
+
+
+<div class="viewcode-block" id="MultiSourceAttention"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceAttention</span><span class="p">(</span><span class="n">BaseAttentionLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Attention with multiple source sub-attentions.</span>
+
+<span class="sd">  It attends to multiple sources and uses one query as input to generates a</span>
+<span class="sd">  combined attention context. The dimension of the combined context vector is a</span>
+<span class="sd">  sum of all source context vectors. Each source attention has its separate</span>
+<span class="sd">  params and is associated with a source key.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiSourceAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_atten_tpls&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;A list of (source_key, attention_param) &#39;</span>
+             <span class="s1">&#39;pairs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Default source dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;query_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of query nodes. Child attention params &#39;</span>
+        <span class="s1">&#39;must have query_dim less or euqal than 0 or equal to this value.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primary_source_key&#39;</span><span class="p">,</span> <span class="s1">&#39;source_0&#39;</span><span class="p">,</span> <span class="s1">&#39;Key for the primary source &#39;</span>
+        <span class="s1">&#39;whose attention probabilities will be used as an output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;atten_merger_tpl&#39;</span><span class="p">,</span>
+        <span class="n">MergerLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+            <span class="n">params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.04</span><span class="p">),</span> <span class="n">merger_op</span><span class="o">=</span><span class="s1">&#39;sum&#39;</span><span class="p">),</span>
+        <span class="s1">&#39;Params to specify how to merge source attention vectors.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an MultiSourceAttention object.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">atten_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+        <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+
+      <span class="c1"># Initialize source context vector merging layer.</span>
+      <span class="n">merger_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_merger&#39;</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_merger&#39;</span><span class="p">,</span> <span class="n">merger_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultiSourceAttention.PackSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention.PackSource">[docs]</a>  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">source_vecs</span><span class="p">,</span>
+                 <span class="n">source_contexts</span><span class="p">,</span>
+                 <span class="n">source_padding</span><span class="p">,</span>
+                 <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">packed_src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+        <span class="n">packed_src</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">]</span><span class="o">.</span><span class="n">InitForSourcePacked</span><span class="p">(</span>
+                <span class="n">theta</span><span class="p">[</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">],</span> <span class="n">source_vecs</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span>
+                <span class="n">source_contexts</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span> <span class="n">source_padding</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span>
+                <span class="n">source_segment_id</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span> <span class="k">if</span> <span class="n">source_segment_id</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">packed_src</span></div>
+
+<div class="viewcode-block" id="MultiSourceAttention.ZeroAttentionState"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention.ZeroAttentionState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroAttentionState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_seq_length</span><span class="p">,</span> <span class="n">decoder_batch_size</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+          <span class="n">source_key</span><span class="p">:</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">)</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span>
+              <span class="n">source_seq_length</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span> <span class="n">decoder_batch_size</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span>
+      <span class="p">})</span></div>
+
+<div class="viewcode-block" id="MultiSourceAttention.ComputeContextVectorWithSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention.ComputeContextVectorWithSource">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeContextVectorWithSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                     <span class="n">theta</span><span class="p">,</span>
+                                     <span class="n">packed_src</span><span class="p">,</span>
+                                     <span class="n">query_vec</span><span class="p">,</span>
+                                     <span class="n">attention_state</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">per_step_source_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                     <span class="n">query_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">per_step_source_padding</span> <span class="ow">is</span> <span class="kc">None</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">result_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+        <span class="n">result_map</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                          <span class="n">source_key</span><span class="p">]</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>
+                              <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">),</span>
+                              <span class="n">packed_src</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span> <span class="n">query_vec</span><span class="p">,</span>
+                              <span class="n">attention_state</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span>
+                              <span class="k">if</span> <span class="n">attention_state</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">per_step_source_padding</span><span class="p">,</span> <span class="n">query_segment_id</span><span class="p">))</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CombineContext</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">result_map</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSourceAttention._CombineContext"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention._CombineContext">[docs]</a>  <span class="k">def</span> <span class="nf">_CombineContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">context_map</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">):</span>
+    <span class="n">ctxs</span> <span class="o">=</span> <span class="n">context_map</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">combined_context</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atten_merger</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten_merger</span><span class="p">,</span> <span class="p">[</span><span class="n">ctx</span> <span class="k">for</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">ctxs</span><span class="p">],</span>
+                                <span class="n">query_vec</span><span class="p">))</span>
+    <span class="k">return</span> <span class="p">(</span>
+        <span class="n">combined_context</span><span class="p">,</span>
+        <span class="c1"># Return atten_probs of the primary source.</span>
+        <span class="c1"># TODO(huk): Maybe return a NestedMap.</span>
+        <span class="n">context_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">primary_source_key</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
+            <span class="n">src_key</span><span class="p">:</span> <span class="n">context_map</span><span class="p">[</span><span class="n">src_key</span><span class="p">][</span><span class="mi">2</span><span class="p">]</span>
+            <span class="k">for</span> <span class="n">src_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">source_atten_tpls</span>
+        <span class="p">}))</span></div></div>
 </pre></div>
 
            </div>

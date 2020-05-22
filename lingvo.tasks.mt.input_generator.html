@@ -275,6 +275,218 @@ and denotes the batch dimension.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.tasks.mt.input_generator._GetSegmentPos">
+<code class="sig-prename descclassname">lingvo.tasks.mt.input_generator.</code><code class="sig-name descname">_GetSegmentPos</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">weights</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#_GetSegmentPos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator._GetSegmentPos" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a segment_pos tensor from the given weights tensor.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.tasks.mt.input_generator._GetDescriptorSetForTextInput">
+<code class="sig-prename descclassname">lingvo.tasks.mt.input_generator.</code><code class="sig-name descname">_GetDescriptorSetForTextInput</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#_GetDescriptorSetForTextInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator._GetDescriptorSetForTextInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a string for tf.io.decode_proto’s descriptor_source.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.input_generator.</code><code class="sig-name descname">TextPackedInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseSequenceInputGenerator" title="lingvo.core.base_input_generator.BaseSequenceInputGenerator"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_input_generator.BaseSequenceInputGenerator</span></code></a></p>
+<p>Generator for packed text input.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defaults params for TextInput.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A Params object for TextPackedInput.</p>
+</dd>
+</dl>
+<p>Notes about usage:</p>
+<ul>
+<li><p>Input files contain UTF8 encoded texts. p.input_file_type controls
+what format to extract these texts from. The default is ‘tsv’, in which
+case p.file_pattern should be prefixed by file type ‘text:’, and
+every line in the input file should have text columns separated by
+a tab ‘t’. Otherwise p.input_file_type can be Sentence or SentencePair
+protos.</p>
+<p>For tsv input files, in the default case, the file should contain 2
+columns, for the source and the target sentence. Special cases:</p>
+<ul class="simple">
+<li><p>When quality scores are present (see p.quality_score_filter_fn below),
+it should contain 3 columns, the last being a quality score.</p></li>
+<li><p>When MASS is enabled, it should contain a single column.</p></li>
+</ul>
+</li>
+<li><p>p.tokenizer or p.tokenizer_dict is used to perform string to id
+conversions. If key <code class="xref py py-obj docutils literal notranslate"><span class="pre">src</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">tgt</span></code> is present in p.tokenizer_dict,
+it will be used for generating the ids for src or tgt, respectively.
+Otherwise the default tokenizer will be used.</p></li>
+<li><p>p.packing_factor depends on the training data and max lengths used.</p>
+<p>If this value is too small, we generate packed batches that contain
+too many padding that could have been used to pack more examples.
+If this value is too large, we use more memory and randomly discard
+examples that could not fit.</p>
+<p>One can look at the num_samples_in_batch graph to determine if its
+value is too small. For example, with an effective scaled batch size of
+1024, suppose we set p.packing_factor=3.0, and observe that
+num_samples_in_batch is saturated at 3072(=1024x3), this means 3.0 is
+likely too small. If we instead observe that num_samples_in_batch
+fluctuates around 2500, this means 3.0 is larger than needed.</p>
+<p>We believe that there can be a slight bias against longer sequences
+when packing is enabled. The remedy is either use larger effective
+batch size, or use a larger-than-optimal packing factor when effective
+batch size is smaller. For example, p.packing_factor = 8 seems to work
+reasonably well in practice.</p>
+</li>
+<li><p>p.source_max_length and p.target_max_length control both the shape of
+the generated input batch (how long each row is) and the filtering
+(max allowed lengths for source and targt, respectively).</p>
+<p>p.bucket_upper_bound also conrols the filtering of examples. Inputs
+with either source or target sequence lengths exceeding it will be
+filtered out.</p>
+<p>It’s not meaningful to set p.bucket_upper_bound higher than both
+p.source_max_length and p.target_max_length.</p>
+<p>When packing is enabled, however, a smaller p.bucket_upper_bound means
+that individual sequences have a smaller max length, but the packed
+batch may have a larger total length.</p>
+</li>
+<li><p>p.file_pattern_task_ids, p.task_to_{src,tgt}_lang_map are all used
+to manipulate batch.{src,tgt}.task_ids.</p>
+<p>For each eaxmple, its task is obtained from the source id, which is
+the index of the example’s origin file in p.file_pattern. The task
+id populated in the input batch is determined by:
+p.task_to_{src,tgt}_lang_map[ p.file_pattern_task_ids[souce_id] ],
+for src and tgt, respectively, where if a list is empty it falls
+back to an identity map.</p>
+<p>In the future we may define a separate lang_ids field to the input
+batch to disambiguate.</p>
+</li>
+<li><p>p.quality_score_filter_fn can be used when a column of quality score
+is present in the input .tsv file. The quality score must be the last
+column. This filter function returns True to filter, e.g. use
+p.quality_score_filter_fn = lambda x: x &lt;= 0.3 for scores where higher
+means better.</p>
+<p>p.quality_score_filter_fn typically should only contain a simple
+comparison (&lt;, &gt;, &lt;=, or &gt;=), as it relies on tf.Tensor’s overloading
+of __le__() etc. to work. For example: lambda x: ( 0.3 &lt; x and x &lt; 0.9)
+won’t work. But tf.math.logical_and(0.3 &lt; x, x &lt; 0.9) is okay.</p>
+<p>Also note that ‘p.quality_score_filter_fn = lambda _: False’ is
+equivalent with ‘p.quality_score_filter_fn = None’, in which case
+no quality score column is needed (or evaluated).</p>
+</li>
+<li><p>Consider enabling multithreading for the trainer job (in the Train()
+method). For example: p.num_batcher_threads = 128.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._GetBucketKey">
+<code class="sig-name descname">_GetBucketKey</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">features</span></em>, <em class="sig-param"><span class="n">filtered</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._GetBucketKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._GetBucketKey" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a the bucket key for a given input.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._GetTaskIds">
+<code class="sig-name descname">_GetTaskIds</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_id</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._GetTaskIds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._GetTaskIds" title="Permalink to this definition">¶</a></dt>
+<dd><p>Look up the correct task_id from the source_id tensor.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ProcessSingleInput">
+<code class="sig-name descname">_ProcessSingleInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_id</span></em>, <em class="sig-param"><span class="n">src</span></em>, <em class="sig-param"><span class="n">tgt</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ProcessSingleInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessSingleInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs strings-to-ids on the given input pair via p.tokenizer_dict.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ProcessMASSInput">
+<code class="sig-name descname">_ProcessMASSInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_id</span></em>, <em class="sig-param"><span class="n">src</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ProcessMASSInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessMASSInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Perform MASS input processing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordTsv">
+<code class="sig-name descname">_ReadRecordTsv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">record</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ReadRecordTsv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordTsv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads a single input record from a tab-separated values file.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordTsvSingleColumn">
+<code class="sig-name descname">_ReadRecordTsvSingleColumn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">record</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ReadRecordTsvSingleColumn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordTsvSingleColumn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads an input record, taking first column of one or more TSV columns.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordSentencePairProto">
+<code class="sig-name descname">_ReadRecordSentencePairProto</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">record</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ReadRecordSentencePairProto"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ReadRecordSentencePairProto" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads the input record as a binary SentencePair proto.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceFromFilePattern">
+<code class="sig-name descname">_DataSourceFromFilePattern</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_pattern</span></em>, <em class="sig-param"><span class="n">input_source_weights</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._DataSourceFromFilePattern"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceFromFilePattern" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read and return input batch from a string file_pattern.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_pattern</strong> – A string file pattern.</p></li>
+<li><p><strong>input_source_weights</strong> – A list of float input source weights to control
+input example mix in the batch. The records will be sampled from inputs
+proportionally to these weights. Defaults to None which should be
+treated as an empty list.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple of tf.Tensors where the tensors which contain the input data and
+have major dimension same as size of input batch.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._Pack">
+<code class="sig-name descname">_Pack</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">batch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._Pack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._Pack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Packs a given batch.</p>
+<p>Note that this may change the batch size.</p>
+<p>This function packs the input batch and adds .segment_ids and .segment_pos
+fields to its <code class="xref py py-obj docutils literal notranslate"><span class="pre">src</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">tgt</span></code> fields.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>batch</strong> – a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors to be packed. It is modified in
+place.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._ScaledBatchSize">
+<code class="sig-name descname">_ScaledBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._ScaledBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._ScaledBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch">
+<code class="sig-name descname">_DataSourceToInputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._DataSourceToInputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._DataSourceToInputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current input batch as a <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput._InputBatch">
+<code class="sig-name descname">_InputBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput._InputBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput._InputBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>The current input batch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of input tensors.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.input_generator.TextPackedInput.GlobalBatchSize">
+<code class="sig-name descname">GlobalBatchSize</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/input_generator.html#TextPackedInput.GlobalBatchSize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.input_generator.TextPackedInput.GlobalBatchSize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the total number of examples in the current batch.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

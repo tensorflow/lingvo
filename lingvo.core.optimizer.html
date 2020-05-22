@@ -235,6 +235,71 @@
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.optimizer.CompositeOptimizer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">CompositeOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>
+<p>Composite Optimizer.</p>
+<p>A composite optimizer is composed of one or more Lingvo Optimizer objects
+where regex specifies which variables should use which optimizer. The
+optimizer_map dictionary must specify a default_optimizer regex to a
+(Lingvo Optimizer, learning rate) tuple which will be applied to all variables
+which do not match an earlier regex.</p>
+<p>For example,</p>
+<p>optimizer_map = {‘a’: Adam, ‘b’: Adagrad, ‘default_optimizer’: SGD}</p>
+<p>will apply Adam to all variables which contain an ‘a’ in their name, apply
+Adagrad to all variables which contain a ‘b’ in their name, and apply SGD to
+the variables which do not contain either ‘a’ or ‘b’.</p>
+<p>If a non-default_optimizer matches more than one variable – in this example
+variables with both ‘a’ and ‘b’ in their name – an exception is thrown.</p>
+<dl class="py method">
+<dt id="lingvo.core.optimizer.CompositeOptimizer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.CompositeOptimizer.GetOptimizer">
+<code class="sig-name descname">GetOptimizer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.GetOptimizer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.GetOptimizer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a dictionary of regex to TF optimizer objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.CompositeOptimizer.Apply">
+<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lr</span></em>, <em class="sig-param"><span class="n">var_grad</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.Apply" title="Permalink to this definition">¶</a></dt>
+<dd><p>For each optimizer, apply the gradient to the variable.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>lr</strong> – A scalar. The base learning rate.</p></li>
+<li><p><strong>var_grad</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of (var, grad) pairs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The variable update op.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#Exception" title="(in Python v3.7)"><strong>Exception</strong></a> – When the regex overlaps with or does not cover all variables.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.optimizer.CompositeOptimizer.ApplyPostTrainingLoop">
+<code class="sig-name descname">ApplyPostTrainingLoop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">global_step</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#CompositeOptimizer.ApplyPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.CompositeOptimizer.ApplyPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply any computation to run after each tpu training loop for each optimizer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>global_step</strong> – Global step variable.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Ops to run after training loop ends.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.optimizer.SGD">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.optimizer.</code><code class="sig-name descname">SGD</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/optimizer.html#SGD"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.optimizer.SGD" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.optimizer.Base" title="lingvo.core.optimizer.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.optimizer.Base</span></code></a></p>

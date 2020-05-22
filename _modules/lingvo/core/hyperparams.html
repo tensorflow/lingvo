@@ -314,6 +314,27 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div></div>
 
 
+<div class="viewcode-block" id="CopyParamsTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CopyParamsTo">[docs]</a><span class="k">def</span> <span class="nf">CopyParamsTo</span><span class="p">(</span><span class="n">from_p</span><span class="p">,</span> <span class="n">to_p</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Copy from one Params to another, with optional skipped params.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    from_p: Source params to copy from.</span>
+<span class="sd">    to_p: Destination params to copy to.</span>
+<span class="sd">    skip: If not None, a list of strings of param names to skip.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    None</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">from_p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">skip</span> <span class="ow">and</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
+      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()})</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="p">})</span>
+  <span class="k">return</span> <span class="n">to_p</span></div>
+
+
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a set of parameters.</span>
 
@@ -777,7 +798,8 @@
 <span class="sd">      type_overrides: Overrides for the types of the params.</span>
 <span class="sd">    Raises:</span>
 <span class="sd">      AttributeError: text contains invalid parameter key</span>
-<span class="sd">      ValueError: text contains invalid parameter value</span>
+<span class="sd">      ValueError: text contains invalid parameter value, or the format is</span>
+<span class="sd">                  wrong.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
@@ -816,6 +838,8 @@
             <span class="n">string_continue</span> <span class="o">=</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">quote_char</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
             <span class="k">continue</span>
         <span class="n">kv</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_stripped</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Line </span><span class="si">{}</span><span class="s1"> is not in &lt;key&gt;:&lt;value&gt; format&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">line</span><span class="p">))</span>
 
     <span class="k">def</span> <span class="nf">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">old_val</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns the new param value from its text representation.&quot;&quot;&quot;</span>

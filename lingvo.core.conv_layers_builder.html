@@ -1,0 +1,368 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.conv_layers_builder module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.conv_layers_with_time_padding module" href="lingvo.core.conv_layers_with_time_padding.html" />
+    <link rel="prev" title="lingvo.core.constants module" href="lingvo.core.constants.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.conv_layers_builder module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.conv_layers_builder.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.conv_layers_builder">
+<span id="lingvo-core-conv-layers-builder-module"></span><h1>lingvo.core.conv_layers_builder module<a class="headerlink" href="#module-lingvo.core.conv_layers_builder" title="Permalink to this headline">¶</a></h1>
+<p>2D conv layers that are expected to be used with sequence inputs.</p>
+<dl class="py class">
+<dt id="lingvo.core.conv_layers_builder.BiasLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_builder.</code><code class="sig-name descname">BiasLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#BiasLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.BiasLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer" title="lingvo.core.builder_layers.BiasLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder_layers.BiasLayer</span></code></a></p>
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.BiasLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#BiasLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.BiasLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds bias to inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
+children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor.  Shaped […, dims].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Inputs plus bias.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.conv_layers_builder.CausalPoolingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_builder.</code><code class="sig-name descname">CausalPoolingLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#CausalPoolingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.CausalPoolingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Pooling layer with causal dependency on the time axis.</p>
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.CausalPoolingLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#CausalPoolingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.CausalPoolingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.CausalPoolingLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#CausalPoolingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.CausalPoolingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies causal pooling to inputs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor. It is expected to be of shape [batch, time,
+frequency, channel]. The time dimension corresponds to the height
+dimension as in images and the frequency dimension corresponds to the
+width dimension as in images.</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor. It is expected to be of shape [batch,
+time].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>outputs, out_paddings pair.</dt><dd><ul class="simple">
+<li><p>outputs: has the same shape as inputs.</p></li>
+<li><p>out_paddings: has the same tshape as paddings.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.conv_layers_builder.Builder">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_builder.</code><code class="sig-name descname">Builder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.builder.html#lingvo.core.builder.Base" title="lingvo.core.builder.Base"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.builder.Base</span></code></a></p>
+<p>Builder patterns for commonly used conv layers.</p>
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The params of this layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Bias">
+<code class="sig-name descname">_Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bias layer. The bias is added to the last dimension of the input.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._BN">
+<code class="sig-name descname">_BN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em>, <em class="sig-param"><span class="n">decay</span><span class="o">=</span><span class="default_value">0.999</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._BN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._BN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch norm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._BiasOrBN">
+<code class="sig-name descname">_BiasOrBN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._BiasOrBN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._BiasOrBN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._MaybeBN">
+<code class="sig-name descname">_MaybeBN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._MaybeBN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._MaybeBN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Activation">
+<code class="sig-name descname">_Activation</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">activation</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Activation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Activation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activation layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Padding">
+<code class="sig-name descname">_Padding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Padding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Padding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._RawConv2D">
+<code class="sig-name descname">_RawConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">out_dim</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">dilation</span></em>, <em class="sig-param"><span class="n">is_causal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._RawConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._RawConv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._RawDepthwiseConv2D">
+<code class="sig-name descname">_RawDepthwiseConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">depth_multiplier</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">dilation</span></em>, <em class="sig-param"><span class="n">is_causal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._RawDepthwiseConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._RawDepthwiseConv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._GlobalPooling">
+<code class="sig-name descname">_GlobalPooling</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">pooling_type</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._GlobalPooling"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._GlobalPooling" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.Conv2D">
+<code class="sig-name descname">Conv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">out_dim</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dilation</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">conv_last</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.Conv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.Conv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.DepthwiseConv2D">
+<code class="sig-name descname">DepthwiseConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">depth_multiplier</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dilation</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">conv_last</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.DepthwiseConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.DepthwiseConv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.SeparableConv2D">
+<code class="sig-name descname">SeparableConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">out_dim</span></em>, <em class="sig-param"><span class="n">depth_multiplier</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dilation</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">conv_last</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.SeparableConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.SeparableConv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.NormalizedDepthwiseConv2D">
+<code class="sig-name descname">NormalizedDepthwiseConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em>, <em class="sig-param"><span class="n">num_heads</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">dropconnect_prob</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">deterministic_dropout</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.NormalizedDepthwiseConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.NormalizedDepthwiseConv2D" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.conv_layers_with_time_padding.html" class="btn btn-neutral float-right" title="lingvo.core.conv_layers_with_time_padding module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.constants.html" class="btn btn-neutral float-left" title="lingvo.core.constants module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

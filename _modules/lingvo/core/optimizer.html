@@ -164,6 +164,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">re</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">adagraft</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -250,6 +252,141 @@
 <span class="sd">      Ops to run after training loop ends.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="CompositeOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer">[docs]</a><span class="k">class</span> <span class="nc">CompositeOptimizer</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Composite Optimizer.</span>
+
+<span class="sd">  A composite optimizer is composed of one or more Lingvo Optimizer objects</span>
+<span class="sd">  where regex specifies which variables should use which optimizer. The</span>
+<span class="sd">  optimizer_map dictionary must specify a default_optimizer regex to a</span>
+<span class="sd">  (Lingvo Optimizer, learning rate) tuple which will be applied to all variables</span>
+<span class="sd">  which do not match an earlier regex.</span>
+
+<span class="sd">  For example,</span>
+
+<span class="sd">  optimizer_map = {&#39;a&#39;: Adam, &#39;b&#39;: Adagrad, &#39;default_optimizer&#39;: SGD}</span>
+
+<span class="sd">  will apply Adam to all variables which contain an &#39;a&#39; in their name, apply</span>
+<span class="sd">  Adagrad to all variables which contain a &#39;b&#39; in their name, and apply SGD to</span>
+<span class="sd">  the variables which do not contain either &#39;a&#39; or &#39;b&#39;.</span>
+
+<span class="sd">  If a non-default_optimizer matches more than one variable -- in this example</span>
+<span class="sd">  variables with both &#39;a&#39; and &#39;b&#39; in their name -- an exception is thrown.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CompositeOptimizer.Params"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CompositeOptimizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;optimizer_map&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Mapping of variable regex to (Lingvo Optimizer, learning rate) tuple.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CompositeOptimizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_lr_map</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">regex</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">optimizer_map</span><span class="p">):</span>
+      <span class="n">sub_optimizer</span><span class="p">,</span> <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">optimizer_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;sub_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">sub_optimizer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">),</span>
+                       <span class="n">sub_optimizer</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;sub_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+          <span class="n">sub_optimizer</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">)]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_lr_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span> <span class="o">=</span> <span class="n">learning_rate</span>
+
+    <span class="k">if</span> <span class="s1">&#39;default_optimizer&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">KeyError</span><span class="p">(</span><span class="s1">&#39;default_optimizer is not found in optimizer_map. Please &#39;</span>
+                     <span class="s1">&#39;specify a default_optimizer regex and its associated &#39;</span>
+                     <span class="s1">&#39;(Lingvo Optimizer, learning rate) tuple.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CompositeOptimizer.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a dictionary of regex to TF optimizer objects.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lr_map</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">}</span></div>
+
+<div class="viewcode-block" id="CompositeOptimizer.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;For each optimizer, apply the gradient to the variable.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      lr: A scalar. The base learning rate.</span>
+<span class="sd">      var_grad: A `.NestedMap` of (var, grad) pairs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The variable update op.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      Exception: When the regex overlaps with or does not cover all variables.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Override inherited GetOptimizer even though learning rate is unused.</span>
+    <span class="n">tf_optimizer_map</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetOptimizer</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">var_grad_map</span> <span class="o">=</span> <span class="p">{</span><span class="n">regex</span><span class="p">:</span> <span class="p">[]</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">}</span>
+
+    <span class="k">for</span> <span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+      <span class="n">regex_match</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+          <span class="n">var_grad_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">g</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+          <span class="n">regex_match</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="k">if</span> <span class="n">regex_match</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">var_grad_map</span><span class="p">[</span><span class="s1">&#39;default_optimizer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">g</span><span class="p">,</span> <span class="n">v</span><span class="p">))</span>
+      <span class="k">if</span> <span class="n">regex_match</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s1">&#39;Variable </span><span class="si">{}</span><span class="s1"> is matched </span><span class="si">{}</span><span class="s1"> times by regex </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">regex_match</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+
+    <span class="k">def</span> <span class="nf">_Apply</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Use the matched optimizer to apply the gradients.&quot;&quot;&quot;</span>
+      <span class="n">train_ops</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">non_default_regex</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="n">regex</span> <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span> <span class="k">if</span> <span class="n">regex</span> <span class="o">!=</span> <span class="s1">&#39;default_optimizer&#39;</span>
+      <span class="p">]</span>
+      <span class="k">for</span> <span class="n">regex</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">var_grad_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]:</span>
+          <span class="n">opt</span> <span class="o">=</span> <span class="n">tf_optimizer_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span>
+          <span class="n">train_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">opt</span><span class="o">.</span><span class="n">apply_gradients</span><span class="p">(</span><span class="n">var_grad_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]))</span>
+          <span class="c1"># pylint: disable=cell-var-from-loop, g-long-lambda</span>
+          <span class="k">if</span> <span class="n">regex</span> <span class="o">==</span> <span class="s1">&#39;default_optimizer&#39;</span><span class="p">:</span>
+            <span class="n">filtered_var_grad</span> <span class="o">=</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span><span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">any</span><span class="p">(</span>
+                <span class="p">[</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">non_default_regex</span><span class="p">]))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">filtered_var_grad</span> <span class="o">=</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">FilterKeyVal</span><span class="p">(</span>
+                <span class="k">lambda</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regex</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">)))</span>
+          <span class="c1"># pylint: enable=cell-var-from-loop, g-long-lambda</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="p">[</span><span class="n">regex</span><span class="p">]</span><span class="o">.</span><span class="n">AddSummary</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_lr_map</span><span class="p">[</span><span class="n">regex</span><span class="p">],</span> <span class="n">opt</span><span class="p">,</span>
+                                                <span class="n">filtered_var_grad</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">train_ops</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;composite_optimizer_train_op&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_resource_variables</span><span class="p">():</span>
+      <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Many optimizers, e.g., Adam, Adagrad, etc., create</span>
+      <span class="c1"># variables. We need to ensure name scope and variable scope are</span>
+      <span class="c1"># cleared. Otherwise, tpu.batch_parallel does not work.</span>
+      <span class="n">var_reuse</span> <span class="o">=</span> <span class="kc">False</span>
+      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
+        <span class="n">var_reuse</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">VariableScope</span><span class="p">(</span><span class="n">use_resource</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">var_reuse</span><span class="p">)):</span>
+          <span class="n">var_update_op</span> <span class="o">=</span> <span class="n">_Apply</span><span class="p">()</span>
+    <span class="k">return</span> <span class="n">var_update_op</span></div>
+
+<div class="viewcode-block" id="CompositeOptimizer.ApplyPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.CompositeOptimizer.ApplyPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Apply any computation to run after each tpu training loop for each optimizer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      global_step: Global step variable.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Ops to run after training loop ends.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">post_training_ops</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">opt</span><span class="o">.</span><span class="n">ApplyPostTrainingLoop</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">opt</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_optimizer_map</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">post_training_ops</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="SGD"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.SGD">[docs]</a><span class="k">class</span> <span class="nc">SGD</span><span class="p">(</span><span class="n">Base</span><span class="p">):</span>

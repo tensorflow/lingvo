@@ -177,6 +177,70 @@
 <span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
+<div class="viewcode-block" id="_FindRecallAtGivenPrecision"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric._FindRecallAtGivenPrecision">[docs]</a><span class="k">def</span> <span class="nf">_FindRecallAtGivenPrecision</span><span class="p">(</span><span class="n">precision_recall</span><span class="p">,</span> <span class="n">precision_level</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Find the recall at given precision level.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    precision_recall: np.array of shape [n, m, 2] where n is the number of</span>
+<span class="sd">      classes, m is then number of values in the curve, 2 indexes between</span>
+<span class="sd">      precision [0] and recall [1]. np.float32.</span>
+<span class="sd">    precision_level: float32. Selected precision level between (0, 1).</span>
+<span class="sd">      Typically, this may be 0.95.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    recall: np.array of shape [n] consisting of recall for all classes</span>
+<span class="sd">      where the values are 0.0 if a given precision is never achieved.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># The method for computing precision-recall inserts precision = 0.0</span>
+  <span class="c1"># when a particular recall value has not been achieved. The maximum</span>
+  <span class="c1"># recall value is therefore the highest recall value when the associated</span>
+  <span class="c1"># precision &gt; 0.</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Invalid precision recall curve.&#39;</span>
+  <span class="k">assert</span> <span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Invalid precision recall curve.&#39;</span>
+  <span class="k">assert</span> <span class="n">precision_level</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Precision must be greater then 0.&#39;</span>
+  <span class="k">assert</span> <span class="n">precision_level</span> <span class="o">&lt;</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Precision must be less then 1.&#39;</span>
+  <span class="n">num_classes</span> <span class="o">=</span> <span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+  <span class="n">recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_classes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_classes</span><span class="p">):</span>
+    <span class="n">precisions</span> <span class="o">=</span> <span class="n">precision_recall</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span>
+    <span class="n">recalls</span> <span class="o">=</span> <span class="n">precision_recall</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="n">indices_at_precision_level</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">flatnonzero</span><span class="p">(</span><span class="n">precisions</span> <span class="o">&gt;=</span> <span class="n">precision_level</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">indices_at_precision_level</span><span class="o">.</span><span class="n">size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">recall</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">recalls</span><span class="p">[</span><span class="n">indices_at_precision_level</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">recall</span></div>
+
+
+<div class="viewcode-block" id="_FindMaximumRecall"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric._FindMaximumRecall">[docs]</a><span class="k">def</span> <span class="nf">_FindMaximumRecall</span><span class="p">(</span><span class="n">precision_recall</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Find the maximum recall in all precision recall curves.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    precision_recall: np.array of shape [n, m, 2] where n is the number of</span>
+<span class="sd">      classes, m is then number of values in the curve, 2 indexes between</span>
+<span class="sd">      precision [0] and recall [1]. np.float32.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    max_recall: np.array of shape [n] consisting of max recall for all classes</span>
+<span class="sd">      where the values are 0.0 if objects are found.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># The method for computing precision-recall inserts precision = 0.0</span>
+  <span class="c1"># when a particular recall value has not been achieved. The maximum</span>
+  <span class="c1"># recall value is therefore the highest recall value when the associated</span>
+  <span class="c1"># precision &gt; 0.</span>
+  <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Invalid precision recall curve.&#39;</span>
+  <span class="k">assert</span> <span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Invalid precision recall curve.&#39;</span>
+  <span class="n">num_classes</span> <span class="o">=</span> <span class="n">precision_recall</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+  <span class="n">max_recall</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_classes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+  <span class="n">valid_precisions</span> <span class="o">=</span> <span class="n">precision_recall</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_classes</span><span class="p">):</span>
+    <span class="n">valid_precisions_indices</span> <span class="o">=</span> <span class="n">valid_precisions</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:]</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_precisions_indices</span><span class="p">):</span>
+      <span class="n">max_recall</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">precision_recall</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">valid_precisions_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="k">return</span> <span class="n">max_recall</span></div>
+
+
 <div class="viewcode-block" id="BreakdownMetric"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.BreakdownMetric">[docs]</a><span class="k">class</span> <span class="nc">BreakdownMetric</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for calculating precision recall conditioned on a variate.&quot;&quot;&quot;</span>
 
@@ -371,39 +435,39 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_AccumulateHistogram</span><span class="p">(</span><span class="n">statistics</span><span class="o">=</span><span class="n">distances</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByDistance.ComputeMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByDistance.ComputeMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_metrics_fn</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by distance: start&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by distance: start&#39;</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NumBinsOfHistogram</span><span class="p">()):</span>
       <span class="n">value_at_histogram</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">d</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">()</span> <span class="o">+</span>
           <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">()</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)</span>
-      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">distance</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
-      <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ap&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_at_histogram</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by distance: finished&#39;</span><span class="p">)</span></div>
+
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">distance</span><span class="o">=</span><span class="n">d</span><span class="p">)</span>
+      <span class="n">curves</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;curves&#39;</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">d</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;pr&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by distance: finished&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByDistance.GenerateSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByDistance.GenerateSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">GenerateSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate an image summary for AP versus distance by class.&quot;&quot;&quot;</span>
-    <span class="n">num_distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">():</span>
+      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="n">num_distances</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_distances</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">())),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
-      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
-      <span class="k">for</span> <span class="n">distance</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">:</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">distance</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">ys</span><span class="p">[</span><span class="n">distance</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">for</span> <span class="n">dist</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">:</span>
+      <span class="n">ys</span><span class="p">[</span><span class="n">dist</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_FindMaximumRecall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">dist</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_Setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Configure the plot for mAP versus distance.&quot;&quot;&quot;</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">14</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
         <span class="k">for</span> <span class="n">d</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">):</span>
@@ -419,13 +483,13 @@
               <span class="mf">0.0</span><span class="p">,</span>
               <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">MaximumDistance</span><span class="p">()</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">(),</span>
               <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DistanceBinWidth</span><span class="p">()))</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;average precision (AP)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;maximum recall&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">))</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">legend_names</span><span class="p">],</span> <span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
       <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
-    <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/AP_by_distance&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/recall_by_distance&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">image_summary</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span>
         <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
@@ -479,7 +543,7 @@
         <span class="n">statistics</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">num_points</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByNumPoints.ComputeMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByNumPoints.ComputeMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_metrics_fn</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating max recall by number of points: start&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by number of points: start&#39;</span><span class="p">)</span>
     <span class="c1"># Note that we skip the last edge as the number of edges is one greater</span>
     <span class="c1"># then the number of bins.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogSpacedBinEdgesofPoints</span><span class="p">()[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -488,38 +552,24 @@
       <span class="n">curves</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;curves&#39;</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;pr&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating max recall by number of points: finished&#39;</span><span class="p">)</span></div>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by number of points: finished&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByNumPoints.GenerateSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByNumPoints.GenerateSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">GenerateSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate an image summary for max recall by number of points by class.&quot;&quot;&quot;</span>
     <span class="n">image_summaries</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GenerateCumulativeSummaries</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
+    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">():</span>
+      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
+
     <span class="n">num_points_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_points_bins</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">())),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-    <span class="c1"># The method for computing precision-recall inserts precision = 0.0</span>
-    <span class="c1"># when a particular recall value has not been achieved. The maximum</span>
-    <span class="c1"># recall value is therefore the highest recall value when the associated</span>
-    <span class="c1"># precision &gt; 0.</span>
-    <span class="n">valid_precisions</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">num_points</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">:</span>
-      <span class="n">valid_precisions</span><span class="p">[</span><span class="n">num_points</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">num_points</span><span class="p">][:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">)</span>
-
-    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
-      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
-      <span class="k">for</span> <span class="n">num_points</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">:</span>
-        <span class="n">valid_precisions_indices</span> <span class="o">=</span> <span class="n">valid_precisions</span><span class="p">[</span><span class="n">num_points</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">valid_precisions_indices</span><span class="p">):</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">num_points</span><span class="p">]</span>
-                     <span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">valid_precisions_indices</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-        <span class="n">ys</span><span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+      <span class="n">ys</span><span class="p">[</span><span class="n">num_points</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_FindMaximumRecall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">num_points</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_Setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Configure the plot for max recall versus number of points.&quot;&quot;&quot;</span>
@@ -676,7 +726,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_AccumulateHistogram</span><span class="p">(</span><span class="n">statistics</span><span class="o">=</span><span class="n">rotations</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">labels</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByRotation.ComputeMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByRotation.ComputeMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_metrics_fn</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by rotation: start&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by rotation: start&#39;</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NumBinsOfHistogram</span><span class="p">(),</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
@@ -685,44 +735,39 @@
     <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">NumBinsOfHistogram</span><span class="p">()):</span>
       <span class="c1"># Calculate the center of the histogram bin.</span>
       <span class="n">value_at_histogram</span> <span class="o">=</span> <span class="n">r</span> <span class="o">*</span> <span class="n">bin_width</span> <span class="o">+</span> <span class="n">bin_width</span> <span class="o">/</span> <span class="mf">2.0</span>
-      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
-      <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="p">[</span><span class="s1">&#39;ap&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">scalars</span><span class="p">]</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">value_at_histogram</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by rotation: finished&#39;</span><span class="p">)</span></div>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">rotation</span><span class="o">=</span><span class="n">r</span><span class="p">)</span>
+      <span class="n">curves</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;curves&#39;</span><span class="p">]</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">r</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">c</span><span class="p">[</span><span class="s1">&#39;pr&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">curves</span><span class="p">])</span>
+    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by rotation: finished&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByRotation.GenerateSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByRotation.GenerateSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">GenerateSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate an image summary for AP versus rotation by class.&quot;&quot;&quot;</span>
-    <span class="n">num_rotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">():</span>
+      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
+
+    <span class="n">num_rotations</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">rotation_in_degrees</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_values</span> <span class="o">*</span> <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span>
     <span class="n">ys</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">num_rotations</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">())),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
 
-    <span class="n">legend_names</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
-      <span class="n">legend_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">])</span>
-      <span class="k">for</span> <span class="n">rotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">:</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_average_precisions</span><span class="p">[</span><span class="n">rotation</span><span class="p">][</span><span class="n">i</span><span class="p">]</span>
-        <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="mf">0.0</span>
-        <span class="n">ys</span><span class="p">[</span><span class="n">rotation</span><span class="p">,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">for</span> <span class="n">rotation</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">:</span>
+      <span class="n">ys</span><span class="p">[</span><span class="n">rotation</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="n">_FindMaximumRecall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">rotation</span><span class="p">])</span>
 
     <span class="k">def</span> <span class="nf">_Setter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Configure the plot for mAP versus distance.&quot;&quot;&quot;</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="sd">&quot;&quot;&quot;Configure the plot for max recall versus distance.&quot;&quot;&quot;</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">grid</span><span class="p">(</span><span class="n">b</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">fontsize</span> <span class="o">=</span> <span class="mi">14</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
         <span class="k">for</span> <span class="n">r</span><span class="p">,</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rotation_in_degrees</span><span class="p">):</span>
           <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_histogram</span><span class="p">[</span><span class="n">r</span><span class="p">][</span><span class="n">j</span><span class="p">]</span>
           <span class="n">y</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">r</span><span class="p">][</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.03</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
-          <span class="c1"># TODO(shlens): Only display car currently for visual clarity</span>
-          <span class="c1"># but relax this soon.</span>
-          <span class="k">if</span> <span class="n">h</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;Car&#39;</span><span class="p">,</span> <span class="s1">&#39;Vehicle&#39;</span><span class="p">]:</span>
-            <span class="n">text_label</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">legend_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()[:</span><span class="mi">3</span><span class="p">])</span>
-            <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">text_label</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;fontsize&#39;</span><span class="p">:</span> <span class="n">fontsize</span> <span class="o">-</span> <span class="mi">2</span><span class="p">})</span>
+          <span class="n">text_label</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> </span><span class="si">{}</span><span class="s1">s&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">legend_names</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">lower</span><span class="p">()[:</span><span class="mi">3</span><span class="p">])</span>
+          <span class="n">axes</span><span class="o">.</span><span class="n">text</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">text_label</span><span class="p">,</span> <span class="n">fontdict</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;fontsize&#39;</span><span class="p">:</span> <span class="n">fontsize</span> <span class="o">-</span> <span class="mi">2</span><span class="p">})</span>
 
       <span class="n">axes</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;rotation (degrees)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
       <span class="n">bin_width</span> <span class="o">=</span> <span class="p">(</span>
@@ -731,8 +776,8 @@
           <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span>
                     <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">MaximumRotation</span><span class="p">()</span> <span class="o">+</span> <span class="n">bin_width</span><span class="p">,</span> <span class="n">bin_width</span><span class="p">)</span> <span class="o">*</span>
           <span class="mf">180.0</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;average precision (AP)&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
-      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">0.02</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;maximum recall&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="n">fontsize</span><span class="p">)</span>
+      <span class="n">axes</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="o">-</span><span class="mf">0.01</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">])</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">1.05</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">))</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">set_xlim</span><span class="p">([</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">180.0</span><span class="p">])</span>
       <span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">([</span><span class="n">name</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">legend_names</span><span class="p">],</span>
@@ -740,7 +785,7 @@
                   <span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper right&#39;</span><span class="p">)</span>
       <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
-    <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/AP_by_rotation&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">tag_str</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/recall_by_rotation&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="n">image_summary</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">Curve</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">tag_str</span><span class="p">,</span>
         <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
@@ -777,7 +822,7 @@
 
 <div class="viewcode-block" id="ByDifficulty.ComputeMetrics"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByDifficulty.ComputeMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">compute_metrics_fn</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by difficulty: start&#39;</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by difficulty: start&#39;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
       <span class="n">metrics</span> <span class="o">=</span> <span class="n">compute_metrics_fn</span><span class="p">(</span><span class="n">difficulty</span><span class="o">=</span><span class="n">difficulty</span><span class="p">)</span>
       <span class="n">scalars</span> <span class="o">=</span> <span class="n">metrics</span><span class="p">[</span><span class="s1">&#39;scalars&#39;</span><span class="p">]</span>
@@ -792,7 +837,7 @@
       <span class="k">if</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">:</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="p">[</span><span class="n">difficulty</span><span class="p">]</span><span class="o">.</span><span class="n">Calculate</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
 
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating AP by difficulty: finished&#39;</span><span class="p">)</span></div>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Calculating by difficulty: finished&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ByDifficulty.GenerateSummaries"><a class="viewcode-back" href="../../../../lingvo.tasks.car.breakdown_metric.html#lingvo.tasks.car.breakdown_metric.ByDifficulty.GenerateSummaries">[docs]</a>  <span class="k">def</span> <span class="nf">GenerateSummaries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generate an image summary for PR by difficulty and for calibration.</span>
@@ -812,7 +857,7 @@
         <span class="n">num_objects</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_histogram</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">class_id</span><span class="p">]</span>
         <span class="n">legend</span><span class="p">[</span><span class="n">class_id</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> (</span><span class="si">%d</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">difficulty</span><span class="p">,</span> <span class="n">num_objects</span><span class="p">))</span>
 
-    <span class="n">image_summaries</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">summaries</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
 
       <span class="k">def</span> <span class="nf">_PRSetter</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
@@ -823,7 +868,9 @@
         <span class="n">axes</span><span class="o">.</span><span class="n">set_xticks</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span>
         <span class="n">axes</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Precision&#39;</span><span class="p">)</span>
         <span class="n">axes</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">(</span><span class="n">ticks</span><span class="p">)</span>
+        <span class="c1"># pylint: disable=undefined-loop-variable</span>
         <span class="n">axes</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">legend</span><span class="p">[</span><span class="n">j</span><span class="p">],</span> <span class="n">numpoints</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># pylint: disable=cell-var-from-loop</span>
+        <span class="c1"># pylint: enable=undefined-loop-variable</span>
         <span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">()</span>
 
       <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
@@ -845,15 +892,39 @@
           <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;-&#39;</span><span class="p">,</span>
           <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
           <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
-      <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
+      <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">image_summary</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">difficulty</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_calibration</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="c1"># Note that we only generate a calibration for a single difficulty level.</span>
       <span class="n">calibration_summaries</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">calibration_summary</span> <span class="ow">in</span> <span class="n">calibration_summaries</span><span class="p">:</span>
-        <span class="n">image_summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calibration_summary</span><span class="p">)</span>
+        <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">calibration_summary</span><span class="p">)</span>
 
-    <span class="k">return</span> <span class="n">image_summaries</span></div></div>
+    <span class="c1"># Generate scalar summaries for the various recalls for each difficulty.</span>
+    <span class="k">for</span> <span class="n">difficulty</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">DifficultyLevels</span><span class="p">():</span>
+      <span class="n">max_recall</span> <span class="o">=</span> <span class="n">_FindMaximumRecall</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">difficulty</span><span class="p">])</span>
+      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+        <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">summary</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
+                <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/max_recall_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="n">difficulty</span><span class="p">),</span>
+                <span class="n">simple_value</span><span class="o">=</span><span class="n">max_recall</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="p">])</span>
+        <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+
+      <span class="k">for</span> <span class="n">precision_level</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">RecallAtPrecision</span><span class="p">():</span>
+        <span class="n">recall_at_precision</span> <span class="o">=</span> <span class="n">_FindRecallAtGivenPrecision</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_precision_recall</span><span class="p">[</span><span class="n">difficulty</span><span class="p">],</span> <span class="n">precision_level</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">EvalClassIndices</span><span class="p">()):</span>
+          <span class="n">classname</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">metadata</span><span class="o">.</span><span class="n">ClassNames</span><span class="p">()[</span><span class="n">j</span><span class="p">]</span>
+          <span class="n">summary</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">value</span><span class="o">=</span><span class="p">[</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span>
+                  <span class="n">tag</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/</span><span class="si">{}</span><span class="s1">/recall_</span><span class="si">{}</span><span class="s1">_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                      <span class="n">name</span><span class="p">,</span> <span class="n">classname</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">precision_level</span> <span class="o">*</span> <span class="mi">100</span><span class="p">),</span> <span class="n">difficulty</span><span class="p">),</span>
+                  <span class="n">simple_value</span><span class="o">=</span><span class="n">recall_at_precision</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+          <span class="p">])</span>
+          <span class="n">summaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">summaries</span></div></div>
 </pre></div>
 
            </div>

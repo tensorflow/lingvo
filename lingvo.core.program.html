@@ -394,6 +394,57 @@ decoder run.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">ExperimentalDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.DecodeProgram" title="lingvo.core.program.DecodeProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.DecodeProgram</span></code></a></p>
+<p>DecodeProgram in a tpu loop.</p>
+<p>TODO(huangyp) test this for beam search decoders and replace the
+default DecodeProgram.</p>
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>“Defaults parameters for Programs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph">
+<code class="sig-name descname">BuildTpuSubgraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.BuildTpuSubgraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sub classes should construct a model/graph to be executed by Run.</p>
+<p>Specific to TPU execution, this may involve a
+&#64;tpu_function.on_device_training_loop etc.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue">
+<code class="sig-name descname">_OutfeedDequeue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._OutfeedDequeue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._OutfeedDequeue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Collect outfeed dequeue from all devices.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop">
+<code class="sig-name descname">_DecodeLoop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram._DecodeLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram._DecodeLoop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.program.ExperimentalDecodeProgram.Run">
+<code class="sig-name descname">Run</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#ExperimentalDecodeProgram.Run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.ExperimentalDecodeProgram.Run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Execute the program using the given session handle.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – TF Session.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Whether to end all execution.</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>done</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.program.MLPerfTrainDecodeProgram">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">MLPerfTrainDecodeProgram</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#MLPerfTrainDecodeProgram"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.MLPerfTrainDecodeProgram" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.program.BaseProgram" title="lingvo.core.program.BaseProgram"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.program.BaseProgram</span></code></a></p>
@@ -481,7 +532,7 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt id="lingvo.core.program.SimpleProgramScheduleForTask">
-<code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_dataset_name</span></em>, <em class="sig-param"><span class="n">train_steps_per_loop</span></em>, <em class="sig-param"><span class="n">eval_dataset_names</span></em>, <em class="sig-param"><span class="n">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="n">decode_steps_per_loop</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">train_dataset_name</span></em>, <em class="sig-param"><span class="n">train_steps_per_loop</span></em>, <em class="sig-param"><span class="n">eval_dataset_names</span></em>, <em class="sig-param"><span class="n">eval_steps_per_loop</span></em>, <em class="sig-param"><span class="n">decode_steps_per_loop</span></em>, <em class="sig-param"><span class="n">experimental_decoder</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -491,6 +542,8 @@ Run all the eval_programs</p>
 <li><p><strong>eval_dataset_names</strong> – List of eval dataset_name strings, eg: [‘Train’].</p></li>
 <li><p><strong>eval_steps_per_loop</strong> – Number of steps to execute the eval program.</p></li>
 <li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</p></li>
+<li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
+placed in a tpu loop.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

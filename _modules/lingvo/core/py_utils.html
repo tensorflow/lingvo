@@ -1142,10 +1142,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span><span class="p">):</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span><span class="p">):</span>
       <span class="k">return</span> <span class="kc">False</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_vset</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="nb">id</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
       <span class="k">return</span> <span class="kc">True</span></div>
 
 
@@ -3169,7 +3169,7 @@
   <span class="n">bs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
   <span class="n">vs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vdtype</span><span class="p">)</span>
   <span class="c1"># The following is equivalent to &#39;return vs[index]&#39;.</span>
-  <span class="n">index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">bs</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+  <span class="n">index</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">x_in</span><span class="p">,</span> <span class="n">bs</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
   <span class="n">one_hot_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">depth</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">vdtype</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">Matmul</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">vs</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">one_hot_vec</span><span class="p">))[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span></div>
@@ -3430,10 +3430,10 @@
       <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">input0</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">),</span>
       <span class="n">assert_equal</span><span class="p">(</span><span class="n">GetShape</span><span class="p">(</span><span class="n">padding1</span><span class="p">)[</span><span class="n">batch_dim</span><span class="p">],</span> <span class="n">batch_size</span><span class="p">)</span>
   <span class="p">],</span> <span class="n">input0</span><span class="p">)</span>
-  <span class="n">input0_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding0</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]))</span>
-  <span class="n">input1_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding1</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]))</span>
+  <span class="n">input0_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding0</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">input1_seq_dim</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">padding1</span><span class="p">)[</span><span class="n">seq_dim</span><span class="p">]],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">]),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
   <span class="c1"># LengthsFromPaddings assumes that paddings is of size [batch, max_length].</span>
   <span class="k">if</span> <span class="n">seq_dim</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
     <span class="n">seq_length0</span> <span class="o">=</span> <span class="n">LengthsFromPaddings</span><span class="p">(</span><span class="n">padding0</span><span class="p">)</span>
@@ -3444,12 +3444,14 @@
   <span class="c1"># We assume that the tensors have no leading paddings.</span>
   <span class="c1"># TODO(arunnt): Concatenate tensors with leading paddings correctly.</span>
   <span class="n">seq_length0</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
-      <span class="n">assert_equal</span><span class="p">(</span><span class="n">seq_length0</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding0</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">)))</span>
+      <span class="n">assert_equal</span><span class="p">(</span>
+          <span class="n">seq_length0</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding0</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
   <span class="p">],</span> <span class="n">seq_length0</span><span class="p">)</span>
   <span class="n">seq_length1</span> <span class="o">=</span> <span class="n">with_dependencies</span><span class="p">([</span>
-      <span class="n">assert_equal</span><span class="p">(</span><span class="n">seq_length1</span><span class="p">,</span>
-                   <span class="n">tf</span><span class="o">.</span><span class="n">to_int32</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding1</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">)))</span>
+      <span class="n">assert_equal</span><span class="p">(</span>
+          <span class="n">seq_length1</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">padding1</span><span class="p">,</span> <span class="n">seq_dim</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
   <span class="p">],</span> <span class="n">seq_length1</span><span class="p">)</span>
   <span class="c1"># Concatenate input sequences.</span>
   <span class="n">reversed_input0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse_sequence</span><span class="p">(</span>
@@ -3492,13 +3494,15 @@
   <span class="k">return</span> <span class="n">Retry</span><span class="p">(</span><span class="n">transient_tf_errors</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="PadOrTrimTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">PadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="PadOrTrimTo"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.PadOrTrimTo">[docs]</a><span class="k">def</span> <span class="nf">PadOrTrimTo</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">,</span> <span class="n">pad_val</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">pad_after_contents</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Pad and slice x to the given shape.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    x: A tensor.</span>
 <span class="sd">    shape: The shape of the returned tensor.</span>
 <span class="sd">    pad_val: An int or float used to pad x.</span>
+<span class="sd">    pad_after_contents: Whether to pad and trim after the original contents</span>
+<span class="sd">      of each dimension.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    &#39;x&#39; is padded with pad_val and sliced so that the result has the given</span>
@@ -3518,13 +3522,25 @@
     <span class="n">shape</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
     <span class="n">expected_rank</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
   <span class="n">x</span> <span class="o">=</span> <span class="n">HasRank</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">expected_rank</span><span class="p">)</span>
-  <span class="c1"># If dim-i is less than shape[i], pads on the right shape[i] -</span>
-  <span class="c1"># dim-i.  Otherwise, pads [0, 0] for dim-i.</span>
+
   <span class="n">pad</span> <span class="o">=</span> <span class="n">shape</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">shape</span><span class="p">)</span>
   <span class="n">zeros</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">pad</span><span class="p">)</span>
-  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">zeros</span><span class="p">,</span> <span class="n">pad</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_val</span><span class="p">)</span>
-  <span class="c1"># If dim-i is larger than shape[i], we slice [0:shape[i]] for dim-i.</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">shape</span><span class="p">),</span> <span class="n">shape</span><span class="p">)</span></div>
+  <span class="k">if</span> <span class="n">pad_after_contents</span><span class="p">:</span>
+    <span class="c1"># If dim_i is less than shape[i], pads after contents.</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">zeros</span><span class="p">,</span> <span class="n">pad</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># If dim_i is larger than shape[i], we slice [0:shape[i]] for dim_i.</span>
+    <span class="n">slice_begin</span> <span class="o">=</span> <span class="n">zeros</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># If dim_i is less than shape[i], pads before contents.</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">pad</span><span class="p">,</span> <span class="n">zeros</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># If dim-i is larger than shape[i], we slice [dim_i - shape[i]:dim_i]</span>
+    <span class="c1"># for dim_i.</span>
+    <span class="n">slice_begin</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="o">+</span> <span class="n">pad</span> <span class="o">-</span> <span class="n">shape</span>
+
+  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_val</span><span class="p">)</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">slice_begin</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="RepeatDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RepeatDim">[docs]</a><span class="k">def</span> <span class="nf">RepeatDim</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">multiple</span><span class="p">,</span> <span class="n">axis</span><span class="p">):</span>

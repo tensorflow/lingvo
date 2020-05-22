@@ -224,6 +224,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="s1">&#39;train&#39;</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="kc">None</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_dequeue_thread_complete</span> <span class="o">=</span> <span class="kc">False</span>
@@ -368,6 +370,13 @@
         <span class="c1">#   InvalidArgumentError: variables were not initialized. Comes from</span>
         <span class="c1">#       ResourceVariableOp.</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="c1"># Do not retry within Vizier study when NaNs cause InvalidArgumentError.</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InVizierStudy</span><span class="p">()</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span>
+                                                <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">InvalidArgumentError</span><span class="p">):</span>
+          <span class="k">if</span> <span class="s1">&#39;Tensor had NaN values&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+            <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done (infeasible result due to NaN values).&#39;</span><span class="p">,</span>
+                            <span class="n">job_name</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
 

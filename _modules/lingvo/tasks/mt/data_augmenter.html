@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.tasks.mt.data_augmenter &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+        <script src="../../../../_static/jquery.js"></script>
+        <script src="../../../../_static/underscore.js"></script>
+        <script src="../../../../_static/doctools.js"></script>
+        <script src="../../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.tasks.mt.data_augmenter</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.tasks.mt.data_augmenter</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;Classes which modifies inputs for pretraining.</span>
+
+<span class="sd">Currently support: MASS</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+
+<div class="viewcode-block" id="MASS"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.data_augmenter.html#lingvo.tasks.mt.data_augmenter.MASS">[docs]</a><span class="k">class</span> <span class="nc">MASS</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Prepare data for MASS pretraining.</span>
+
+<span class="sd">  This class is a wrapper for the MASS op.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MASS.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.data_augmenter.html#lingvo.tasks.mt.data_augmenter.MASS.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="c1"># Params for the MASS op api.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MASS</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mask_id&#39;</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="s1">&#39;Id for the mask token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mask_ratio&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;Mask fraction.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mask_minlen&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Minimum number of tokens to mask.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;span_len&#39;</span><span class="p">,</span> <span class="mi">100000</span><span class="p">,</span>
+        <span class="s1">&#39;Split total mask_len into segments of this size and randomly&#39;</span>
+        <span class="s1">&#39; distribute them across the src sentence for segmented masking.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;random_start_prob&#39;</span><span class="p">,</span> <span class="mf">0.6</span><span class="p">,</span>
+        <span class="s1">&#39;Probability that placement of masked segments will be entirely &#39;</span>
+        <span class="s1">&#39;random. Remaining cases are split evenly between masking at the &#39;</span>
+        <span class="s1">&#39;beginning and at the end.&#39;</span><span class="p">)</span>
+    <span class="c1"># keep_prob/rand_prob/mask_prob must sum to 1.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;keep_prob&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s1">&#39;Probability that a token designated for masking will be &#39;</span>
+        <span class="s1">&#39;unchanged.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;rand_prob&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span>
+        <span class="s1">&#39;Probability that a token designated for masking will be replaced &#39;</span>
+        <span class="s1">&#39;with a random token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mask_prob&#39;</span><span class="p">,</span> <span class="mf">0.8</span><span class="p">,</span>
+        <span class="s1">&#39;Probability that a token designated for masking will be replaced &#39;</span>
+        <span class="s1">&#39;with mask_id.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mask_target&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;If true, the target is masked with the inverse of the source &#39;</span>
+        <span class="s1">&#39;mask.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
+             <span class="s1">&#39;Used when selecting a random token to replaced a masked token.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;first_unreserved_id&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span>
+        <span class="s1">&#39;Tokens greater than or equal to this may be selected at random &#39;</span>
+        <span class="s1">&#39;to replace a masked token.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MASS</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isclose</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">rand_prob</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_prob</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;keep_prob, rand_prob, mask_prob must sum to 1&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;vocab_size parameter must be set explicitly&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MASS.Mask"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.data_augmenter.html#lingvo.tasks.mt.data_augmenter.MASS.Mask">[docs]</a>  <span class="k">def</span> <span class="nf">Mask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seq_ids</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">actual_seq_len</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="p">(</span><span class="n">src_ids</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_weights</span><span class="p">)</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">mass</span><span class="p">(</span>
+        <span class="n">seq_ids</span><span class="p">,</span>
+        <span class="n">weights</span><span class="p">,</span>
+        <span class="n">actual_seq_len</span><span class="p">,</span>
+        <span class="n">mask_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_id</span><span class="p">,</span>
+        <span class="n">mask_ratio</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_ratio</span><span class="p">,</span>
+        <span class="n">mask_minlen</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_minlen</span><span class="p">,</span>
+        <span class="n">span_len</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">span_len</span><span class="p">,</span>
+        <span class="n">random_start_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_start_prob</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">keep_prob</span><span class="p">,</span>
+        <span class="n">rand_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">rand_prob</span><span class="p">,</span>
+        <span class="n">mask_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_prob</span><span class="p">,</span>
+        <span class="n">mask_target</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mask_target</span><span class="p">,</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
+        <span class="n">first_unreserved_id</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">first_unreserved_id</span><span class="p">)</span>
+
+    <span class="n">mass_out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">src_ids</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tgt_ids</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tgt_labels</span>
+    <span class="n">mass_out</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="n">tgt_weights</span>
+    <span class="k">return</span> <span class="n">mass_out</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

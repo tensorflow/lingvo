@@ -1,0 +1,471 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.builder module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.builder_layers module" href="lingvo.core.builder_layers.html" />
+    <link rel="prev" title="lingvo.core.build_data module" href="lingvo.core.build_data.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.builder module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.builder.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.builder">
+<span id="lingvo-core-builder-module"></span><h1>lingvo.core.builder module<a class="headerlink" href="#module-lingvo.core.builder" title="Permalink to this headline">¶</a></h1>
+<p>A library to build composite layers.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The builder pattern is still experimental and we need to gain experience
+on when to use and when not to use.
+Please discuss w/ teammates before using it to build complicated
+layers.</p>
+</div>
+<dl class="py class">
+<dt id="lingvo.core.builder.Base">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.builder.</code><code class="sig-name descname">Base</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Model builder with commonly used layers.</p>
+<p>A method in a builder class constructs a layer param.  FProp of a layer
+constructed by a builder takes a tuple of tf.Tensor (one or more) and returns
+a tuple of tf.Tensor (one or more). Even though certain layers support FProp
+argument being None (e.g., Conv2DLayer), builder should not depend on such a
+support.</p>
+<p>The constructed layer is often a composition of multiple sub-layers connected
+in certain patterns. We expect to have a few methods to facilitate building
+these patterns. For example, _Seq() helps to build a sequential layer that
+calls its sub-layer one after another.</p>
+<p>TODO(zhifengc): Adds a more concrete example.</p>
+<dl class="py method">
+<dt id="lingvo.core.builder.Base.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The params of this layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base.params">
+<em class="property">property </em><code class="sig-name descname">params</code><a class="headerlink" href="#lingvo.core.builder.Base.params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the params upon which this layer is built.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Rep">
+<code class="sig-name descname">_Rep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">repeat</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">subs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Rep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Rep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects sub-layers sequentially and repeat multiple times.</p>
+<p>E.g., _Rep(‘foo’, 2, sa, sb, sc) constructs a layer with 6 layers
+sequentially connected: [sa1, sb1, sc1, sa2, sb2, sc2].  sa1 and sa2 have
+the same structure as the given sa, but sa1 and sa2 do not share the same
+weight.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The layer name.</p></li>
+<li><p><strong>repeat</strong> – Repeat *subs this many times in the compose layer.</p></li>
+<li><p><strong>*subs</strong> – A list of sub-layers.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The param for the composed layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Seq">
+<code class="sig-name descname">_Seq</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">subs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Seq"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Seq" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects sub-layers sequentially.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Graph">
+<code class="sig-name descname">_Graph</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_endpoints</span></em>, <em class="sig-param"><span class="n">output_endpoints</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">signature_sub_param_list</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Graph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Graph" title="Permalink to this definition">¶</a></dt>
+<dd><p>Connects sub-layers into a data flow graph.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Id">
+<code class="sig-name descname">_Id</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Id"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Id" title="Permalink to this definition">¶</a></dt>
+<dd><p>Identity. (t_1, …, t_n) -&gt; (t1, …, t_n).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Arg">
+<code class="sig-name descname">_Arg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Arg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Arg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Picks index-th element. (t_1, …, t_n) -&gt; (t_{index},).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Par">
+<code class="sig-name descname">_Par</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">subs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Par"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Par" title="Permalink to this definition">¶</a></dt>
+<dd><p>y = (f1, f2, …, fn)(x).</p>
+<p>We feed the input tuple to all sub-layers and concatenates their output
+tuples into one tuple.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The layer name.</p></li>
+<li><p><strong>*subs</strong> – A list of sub-layers.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The param for the composed layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Fn">
+<code class="sig-name descname">_Fn</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">fn</span></em>, <em class="sig-param"><span class="n">fn_out</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fn_flops</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Fn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Fn" title="Permalink to this definition">¶</a></dt>
+<dd><p>y = fn(x).</p>
+<p>Applies a fn: tuple(Tensor) -&gt; a single Tensor or tuple(Tensor) to the input
+tuple.  Typically, fn is a very simple python function. If fn is rather
+complicated, we advice to implement the logic as a sub-class of BaseLayer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The layer name.</p></li>
+<li><p><strong>fn</strong> – A lambda tuple(Tensor) -&gt; tuple(Tensor).</p></li>
+<li><p><strong>fn_out</strong> – A lambda tuple(tshape.Shape) -&gt; output tuple(tshape.Shape)</p></li>
+<li><p><strong>fn_flops</strong> – A lambda tuple(tshape.Shape) -&gt; estimated flops of fn.
+If None, we assume flops == sum of elements in the inputs.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The param for the composed layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Save">
+<code class="sig-name descname">_Save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a layer from which the activation and gradient can be accessed.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._AddFetches">
+<code class="sig-name descname">_AddFetches</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">body</span></em>, <em class="sig-param"><span class="n">fetches</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._AddFetches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._AddFetches" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fetches saved activations in the body sub-layer.</p>
+<p>E.g.:
+_AddFetches(‘foo’, _Seq( ‘stack’, _Layer(‘layer1’, …),
+_Save(‘layer1_out’, …), _Layer(‘layer2’, …), _Save(‘layer2_out’, …),
+_Output(‘output’, …)), [‘layer1_out’, ‘layer2_out’])</p>
+<p>The layer returns the stack’s final output together with intermediate
+activations from layer1_out and layer2_out.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – This layer’s name.</p></li>
+<li><p><strong>body</strong> – The sub-layer.</p></li>
+<li><p><strong>fetches</strong> – A list of fetch names inside the sub-layer body.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A layer whose outputs correspond to the activations of fetch points
+in the sub-layer body. [input1, input2, …, inputN, fetch1, …, fetchM].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Rematerialize">
+<code class="sig-name descname">_Rematerialize</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">body</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Rematerialize"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Rematerialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Forces rematerialization on FProp of the body layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._BatchParallel">
+<code class="sig-name descname">_BatchParallel</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">sub</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._BatchParallel"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._BatchParallel" title="Permalink to this definition">¶</a></dt>
+<dd><p>Splits the batch and compute the forward pass on multiple devices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – This layer’s name.</p></li>
+<li><p><strong>sub</strong> – The sub-layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A BatchParallel layer which splits the batch and computes the forward pass
+on multiple devices.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._PrintShape">
+<code class="sig-name descname">_PrintShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._PrintShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._PrintShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Print FProp input shape information.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._BN">
+<code class="sig-name descname">_BN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._BN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._BN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Batch norm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._LN">
+<code class="sig-name descname">_LN</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em>, <em class="sig-param"><span class="n">use_fused_layernorm</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._LN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._LN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Layer norm.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Dropout">
+<code class="sig-name descname">_Dropout</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">keep_prob</span></em>, <em class="sig-param"><span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Dropout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Dropout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a DropoutLayer Params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Linear">
+<code class="sig-name descname">_Linear</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">idims</span></em>, <em class="sig-param"><span class="n">odims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear layer. y = matmul([…, idims], [idims, odims]).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Bias">
+<code class="sig-name descname">_Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bias layer. The bias is added to the last dimension of the input.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Activation">
+<code class="sig-name descname">_Activation</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">fn=&lt;function relu&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Activation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Activation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Activation layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._FC">
+<code class="sig-name descname">_FC</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">idims</span></em>, <em class="sig-param"><span class="n">odims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._FC"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._FC" title="Permalink to this definition">¶</a></dt>
+<dd><p>Feed-forward fully connected. y = relu(matmul(x, w) + b).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._MLP">
+<code class="sig-name descname">_MLP</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._MLP"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._MLP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Multiple layers of feed-forward fully connected.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – The layer name.</p></li>
+<li><p><strong>dims</strong> – A list of int. i-th layer has dims[i] as its input dimension, and
+dims[i+1] as its output dimensions.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The param for the composed layer.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder.Base._Conv2D">
+<code class="sig-name descname">_Conv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">filter_shape</span></em>, <em class="sig-param"><span class="n">filter_stride</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder.html#Base._Conv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder.Base._Conv2D" title="Permalink to this definition">¶</a></dt>
+<dd><p>Conv2D layer.</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.builder_layers.html" class="btn btn-neutral float-right" title="lingvo.core.builder_layers module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.build_data.html" class="btn btn-neutral float-left" title="lingvo.core.build_data module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

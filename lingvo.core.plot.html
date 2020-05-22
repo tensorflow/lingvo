@@ -200,13 +200,23 @@
 </dd></dl>
 
 <dl class="py attribute">
+<dt id="lingvo.core.plot._SubplotMetadata._field_defaults">
+<code class="sig-name descname">_field_defaults</code><em class="property"> = {}</em><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._field_defaults" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
 <dt id="lingvo.core.plot._SubplotMetadata._fields">
 <code class="sig-name descname">_fields</code><em class="property"> = ('tensor_list', 'plot_func')</em><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._fields" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt id="lingvo.core.plot._SubplotMetadata._fields_defaults">
+<code class="sig-name descname">_fields_defaults</code><em class="property"> = {}</em><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._fields_defaults" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt id="lingvo.core.plot._SubplotMetadata._make">
-<em class="property">classmethod </em><code class="sig-name descname">_make</code><span class="sig-paren">(</span><em class="sig-param">iterable</em>, <em class="sig-param">new=&lt;built-in method __new__ of type object at 0x9d43a0&gt;</em>, <em class="sig-param">len=&lt;built-in function len&gt;</em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._make" title="Permalink to this definition">¶</a></dt>
+<em class="property">classmethod </em><code class="sig-name descname">_make</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">iterable</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._make" title="Permalink to this definition">¶</a></dt>
 <dd><p>Make a new _SubplotMetadata object from a sequence or iterable</p>
 </dd></dl>
 
@@ -215,11 +225,6 @@
 <code class="sig-name descname">_replace</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwds</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._replace" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return a new _SubplotMetadata object replacing specified fields with new values</p>
 </dd></dl>
-
-<dl class="py attribute">
-<dt id="lingvo.core.plot._SubplotMetadata._source">
-<code class="sig-name descname">_source</code><em class="property"> = &quot;from builtins import property as _property, tuple as _tuple\nfrom operator import itemgetter as _itemgetter\nfrom collections import OrderedDict\n\nclass _SubplotMetadata(tuple):\n    '_SubplotMetadata(tensor_list, plot_func)'\n\n    __slots__ = ()\n\n    _fields = ('tensor_list', 'plot_func')\n\n    def __new__(_cls, tensor_list, plot_func):\n        'Create new instance of _SubplotMetadata(tensor_list, plot_func)'\n        return _tuple.__new__(_cls, (tensor_list, plot_func))\n\n    &#64;classmethod\n    def _make(cls, iterable, new=tuple.__new__, len=len):\n        'Make a new _SubplotMetadata object from a sequence or iterable'\n        result = new(cls, iterable)\n        if len(result) != 2:\n            raise TypeError('Expected 2 arguments, got %d' % len(result))\n        return result\n\n    def _replace(_self, **kwds):\n        'Return a new _SubplotMetadata object replacing specified fields with new values'\n        result = _self._make(map(kwds.pop, ('tensor_list', 'plot_func'), _self))\n        if kwds:\n            raise ValueError('Got unexpected field names: %r' % list(kwds))\n        return result\n\n    def __repr__(self):\n        'Return a nicely formatted representation string'\n        return self.__class__.__name__ + '(tensor_list=%r, plot_func=%r)' % self\n\n    def _asdict(self):\n        'Return a new OrderedDict which maps field names to their values.'\n        return OrderedDict(zip(self._fields, self))\n\n    def __getnewargs__(self):\n        'Return self as a plain tuple.  Used by copy and pickle.'\n        return tuple(self)\n\n    tensor_list = _property(_itemgetter(0), doc='Alias for field number 0')\n\n    plot_func = _property(_itemgetter(1), doc='Alias for field number 1')\n\n&quot;</em><a class="headerlink" href="#lingvo.core.plot._SubplotMetadata._source" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.plot._SubplotMetadata.plot_func">

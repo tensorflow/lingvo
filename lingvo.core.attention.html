@@ -672,6 +672,11 @@ attention prob.</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.attention.MultiHeadedAttention.SetOutputContextDim">
+<em class="property">classmethod </em><code class="sig-name descname">SetOutputContextDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">out_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiHeadedAttention.SetOutputContextDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention.SetOutputContextDim" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.attention.MultiHeadedAttention.PackSource">
 <code class="sig-name descname">PackSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention.PackSource" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1047,6 +1052,145 @@ concated_source_vecs.</p>
 </dd>
 </dl>
 </dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.attention.MergerLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.attention.</code><code class="sig-name descname">MergerLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MergerLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MergerLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Merges a list of input tensors with various options into a single tensor.</p>
+<p>Implements a merger/combiner operator given a list of tensors. The merger
+operator outputs a single tensor with the following options (merger_op):</p>
+<ul class="simple">
+<li><p>atten: Applies attention over the set of input tensors given query vector.</p></li>
+<li><p>mean: Takes the mean of input tensors.</p></li>
+<li><p>concat: Concatenates the input tensors over the last dimension.</p></li>
+<li><p>sum: Sum up all the input tensors.</p></li>
+<li><p>weighted_sum: Use learnt weights to combine input tensors.</p></li>
+<li><p>gated_avg: Learnt input dependent gates are used to average tensors.</p></li>
+</ul>
+<p>This class is expected to be called by multi-source/multi-column models.</p>
+<dl class="py method">
+<dt id="lingvo.core.attention.MergerLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MergerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MergerLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for this MergerLayer class.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.attention.MergerLayer.MERGER_OPS">
+<code class="sig-name descname">MERGER_OPS</code><em class="property"> = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']</em><a class="headerlink" href="#lingvo.core.attention.MergerLayer.MERGER_OPS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention.MergerLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">query_vec</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MergerLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MergerLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines the list of input tensors into a single tensor.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – A list of tensors of shape […, hidden_dim] or […,
+[pre_proj_input_dims[i]]] if pre_proj_input_dims is specified.</p></li>
+<li><p><strong>query_vec</strong> – A tensor of shape […, hidden_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of the same shape with input tensors.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – p.merger_op is not defined.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.attention.MultiSourceAttention">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.attention.</code><code class="sig-name descname">MultiSourceAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.attention.BaseAttentionLayer" title="lingvo.core.attention.BaseAttentionLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.attention.BaseAttentionLayer</span></code></a></p>
+<p>Attention with multiple source sub-attentions.</p>
+<p>It attends to multiple sources and uses one query as input to generates a
+combined attention context. The dimension of the combined context vector is a
+sum of all source context vectors. Each source attention has its separate
+params and is associated with a source key.</p>
+<dl class="py method">
+<dt id="lingvo.core.attention.MultiSourceAttention.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention.MultiSourceAttention.PackSource">
+<code class="sig-name descname">PackSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_contexts</span></em>, <em class="sig-param"><span class="n">source_padding</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention.PackSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention.PackSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Packs source vectors.</p>
+<p>Does not change attention state.</p>
+<p>Note: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_segment_id</span></code>, if present, should always have the same shape as
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_padding</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>source_vecs</strong> – A single tensor of shape [time, batch_size, source_dim].</p></li>
+<li><p><strong>source_contexts</strong> – A single tensor of shape [time, batch_size, some_dim].</p></li>
+<li><p><strong>source_padding</strong> – A tensor of shape [time, batch_size].</p></li>
+<li><p><strong>source_segment_id</strong> – A tensor of shape [time, batch_size]. source_segment_id
+is not None for packed inputs where one training example may pack
+multiple sequences.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object to be passed to ComputeContextVectorWithSource.
+The internal structure of the return value should be considered an
+implementation detail of the attention mechanism and should not be
+inspected or modified by its callers.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention.MultiSourceAttention.ZeroAttentionState">
+<code class="sig-name descname">ZeroAttentionState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">source_seq_length</span></em>, <em class="sig-param"><span class="n">decoder_batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention.ZeroAttentionState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention.ZeroAttentionState" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention.MultiSourceAttention.ComputeContextVectorWithSource">
+<code class="sig-name descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">packed_src</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">attention_state</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_step_source_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">query_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention.ComputeContextVectorWithSource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes the context vector given the current query output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
+InitForSourcePacked.</p></li>
+<li><p><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</p></li>
+<li><p><strong>attention_state</strong> – previous attention state.</p></li>
+<li><p><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should have shape [target_batch_size, source_length].</p></li>
+<li><p><strong>query_segment_id</strong> – a tensor of shape [batch_size].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of 3 elements.</p>
+<ul class="simple">
+<li><p>The attention context vector: [batch_size, context_dim]</p></li>
+<li><p>The attention probability vector: [batch_size, time]</p></li>
+<li><p>The new attention mechanism state: possibly nested tuple of tensors
+with dimensions [target_batch, …]</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention.MultiSourceAttention._CombineContext">
+<code class="sig-name descname">_CombineContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">context_map</span></em>, <em class="sig-param"><span class="n">query_vec</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention.html#MultiSourceAttention._CombineContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention.MultiSourceAttention._CombineContext" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 </dd></dl>
 

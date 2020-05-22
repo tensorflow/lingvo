@@ -307,6 +307,8 @@
         <span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Configs for the RNN cell. Supported classes are LSTMCellSimpleExt, &#39;</span>
         <span class="s1">&#39;LayerNormalizedLSTMCellLeanExt.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;reverse&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether or not to unroll the sequence in reversed order.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -367,6 +369,11 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+      <span class="n">inputs</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">inputs</span><span class="p">]</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">reset_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">reset_mask</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="n">state0</span><span class="p">:</span>
       <span class="n">batch_size</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">state0</span> <span class="o">=</span> <span class="n">rcell</span><span class="o">.</span><span class="n">zero_state</span><span class="p">(</span><span class="n">cell_theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
@@ -387,6 +394,8 @@
         <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">allow_implicit_capture</span><span class="p">)</span>
 
     <span class="n">act</span> <span class="o">=</span> <span class="n">rcell</span><span class="o">.</span><span class="n">GetOutput</span><span class="p">(</span><span class="n">acc_state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">reverse</span><span class="p">:</span>
+      <span class="n">act</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">act</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">act</span><span class="p">,</span> <span class="n">final_state</span></div></div>
 </pre></div>
 

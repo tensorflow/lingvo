@@ -222,6 +222,7 @@
 <span class="c1"># Move this V2 symbol here to avoid being overwritten by its following V1</span>
 <span class="c1"># version.</span>
 <span class="n">where_v2</span> <span class="o">=</span> <span class="n">where</span>
+<span class="n">while_loop_v2</span> <span class="o">=</span> <span class="n">while_loop</span>
 
 <span class="c1"># Import the local V2 module to maker sure the following V1 overwritting never</span>
 <span class="c1"># applies to the global module and symbol.</span>
@@ -382,11 +383,6 @@
 <span class="c1"># the API, and uses &#39;partition_strategy=&quot;div&quot;&#39; by default;</span>
 <span class="c1"># while v1 uses &#39;partition_strategy=&quot;mod&quot;&#39; by default. Keep this for now.</span>
 <span class="n">nn</span><span class="o">.</span><span class="n">embedding_lookup</span> <span class="o">=</span> <span class="n">embedding_ops</span><span class="o">.</span><span class="n">embedding_lookup</span>
-
-<span class="c1"># TF 2.x symbols.</span>
-<span class="c1"># Please keep this list short by using TF 2.x API in-place in the codebase.</span>
-<span class="n">to_int32</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ToInt32&quot;</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int32</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-<span class="n">to_int64</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;ToInt64&quot;</span><span class="p">:</span> <span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int64</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
 <span class="c1"># pylint: enable=undefined-variable</span>
 </pre></div>
 

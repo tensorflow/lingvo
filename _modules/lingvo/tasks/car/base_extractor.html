@@ -362,14 +362,16 @@
 <span class="sd">      structure.</span>
 
 <span class="sd">      Returns:</span>
-<span class="sd">        A structure with the same Tensor dtype and shape as the output of</span>
+<span class="sd">        A structure with the same Tensor dtype as the output of</span>
 <span class="sd">        Preprocess.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">shapes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Shape</span><span class="p">()</span>
-      <span class="n">rets</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
-          <span class="k">for</span> <span class="p">(</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-      <span class="p">]</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">DType</span><span class="p">()</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()):</span>
+        <span class="k">if</span> <span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">():</span>
+          <span class="n">rets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)]</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">rets</span> <span class="o">+=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[])]</span>  <span class="c1"># Our best guess.</span>
       <span class="k">return</span> <span class="n">shapes</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">Preprocess</span><span class="p">(</span><span class="n">extracted</span><span class="p">):</span>
@@ -383,6 +385,9 @@
     <span class="c1">#</span>
     <span class="c1"># Preprocessors can then assume that only examples that pass filtering will</span>
     <span class="c1"># be executed.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Note that the NullLike branch may return tensors with shapes different</span>
+    <span class="c1"># from self.Shape().</span>
     <span class="n">final_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">max_bucket</span><span class="p">,</span> <span class="n">BUCKET_UPPER_BOUND</span><span class="p">),</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">Preprocess</span><span class="p">(</span><span class="n">extracted</span><span class="p">),</span>
         <span class="n">NullLike</span><span class="p">)</span>

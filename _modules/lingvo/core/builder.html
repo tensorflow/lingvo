@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.builder &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.builder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.builder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;A library to build composite layers.</span>
+
+<span class="sd">WARNING:</span>
+<span class="sd">  The builder pattern is still experimental and we need to gain experience</span>
+<span class="sd">  on when to use and when not to use.</span>
+<span class="sd">  Please discuss w/ teammates before using it to build complicated</span>
+<span class="sd">  layers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">functools</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
+<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
+
+
+<div class="viewcode-block" id="Base"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base">[docs]</a><span class="k">class</span> <span class="nc">Base</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Model builder with commonly used layers.</span>
+
+<span class="sd">  A method in a builder class constructs a layer param.  FProp of a layer</span>
+<span class="sd">  constructed by a builder takes a tuple of tf.Tensor (one or more) and returns</span>
+<span class="sd">  a tuple of tf.Tensor (one or more). Even though certain layers support FProp</span>
+<span class="sd">  argument being None (e.g., Conv2DLayer), builder should not depend on such a</span>
+<span class="sd">  support.</span>
+
+<span class="sd">  The constructed layer is often a composition of multiple sub-layers connected</span>
+<span class="sd">  in certain patterns. We expect to have a few methods to facilitate building</span>
+<span class="sd">  these patterns. For example, _Seq() helps to build a sequential layer that</span>
+<span class="sd">  calls its sub-layer one after another.</span>
+
+<span class="sd">  TODO(zhifengc): Adds a more concrete example.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Base.Params"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The params of this layer.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">InstantiableParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;deterministic_dropout&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Used deterministic dropout or not.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;fprop_dtype&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Activations datatype to use. To enable bfloat16 activations for &#39;</span>
+        <span class="s1">&#39;layers built using model builder, set fprop_dtype to &#39;</span>
+        <span class="s1">&#39;tf.bfloat16, which will be propagated to layers that support &#39;</span>
+        <span class="s1">&#39;bfloat16 activations. Default is None, which will use float32 &#39;</span>
+        <span class="s1">&#39;activations.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">params</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the params upon which this layer is built.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="c1"># Sub-classes should put some options common to many layers in __init__.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+
+  <span class="c1">######################################################################</span>
+  <span class="c1"># Layers to compose multiple layers.</span>
+  <span class="c1">#</span>
+  <span class="c1"># Sub-classes are discouraged to override these composition method.</span>
+  <span class="c1">######################################################################</span>
+<div class="viewcode-block" id="Base._Rep"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Rep">[docs]</a>  <span class="k">def</span> <span class="nf">_Rep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">repeat</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
+    <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Connects sub-layers sequentially and repeat multiple times.</span>
+
+<span class="sd">    E.g., _Rep(&#39;foo&#39;, 2, sa, sb, sc) constructs a layer with 6 layers</span>
+<span class="sd">    sequentially connected: [sa1, sb1, sc1, sa2, sb2, sc2].  sa1 and sa2 have</span>
+<span class="sd">    the same structure as the given sa, but sa1 and sa2 do not share the same</span>
+<span class="sd">    weight.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: The layer name.</span>
+<span class="sd">      repeat: Repeat \*subs this many times in the compose layer.</span>
+<span class="sd">      *subs: A list of sub-layers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The param for the composed layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">iterations</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">repeat</span><span class="p">):</span>
+      <span class="n">iterations</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;iter_</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">subs</span><span class="p">]))</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">iterations</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Seq"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Seq">[docs]</a>  <span class="k">def</span> <span class="nf">_Seq</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Connects sub-layers sequentially.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">SequentialLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">subs</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Base._Graph"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Graph">[docs]</a>  <span class="k">def</span> <span class="nf">_Graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_endpoints</span><span class="p">,</span> <span class="n">output_endpoints</span><span class="p">,</span>
+             <span class="o">*</span><span class="n">signature_sub_param_list</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Connects sub-layers into a data flow graph.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">GraphLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_endpoints</span><span class="o">=</span><span class="n">input_endpoints</span><span class="p">,</span>
+        <span class="n">output_endpoints</span><span class="o">=</span><span class="n">output_endpoints</span><span class="p">,</span>
+        <span class="n">sub</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">signature_sub_param_list</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Base._Id"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Id">[docs]</a>  <span class="k">def</span> <span class="nf">_Id</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Identity. (t_1, ..., t_n) -&gt; (t1, ..., t_n).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Arg"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Arg">[docs]</a>  <span class="k">def</span> <span class="nf">_Arg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Picks index-th element. (t_1, ..., t_n) -&gt; (t_{index},).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">ArgIndexLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="p">[</span><span class="n">index</span><span class="p">])</span></div>
+
+<div class="viewcode-block" id="Base._Par"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Par">[docs]</a>  <span class="k">def</span> <span class="nf">_Par</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">subs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;y = (f1, f2, ..., fn)(x).</span>
+
+<span class="sd">    We feed the input tuple to all sub-layers and concatenates their output</span>
+<span class="sd">    tuples into one tuple.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: The layer name.</span>
+<span class="sd">      *subs: A list of sub-layers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The param for the composed layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">ConcatTuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">):</span>
+      <span class="c1"># tuples is a list of tuples.</span>
+      <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">tuples</span><span class="p">,</span> <span class="p">[]))</span>
+
+    <span class="k">def</span> <span class="nf">ConcatMeta</span><span class="p">(</span><span class="n">tuples</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">flops</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+          <span class="n">out_shapes</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+              <span class="n">functools</span><span class="o">.</span><span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span> <span class="n">x</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="n">tuples</span><span class="p">,</span> <span class="p">[])))</span>
+
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">ParallelLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">subs</span><span class="p">),</span> <span class="n">merge</span><span class="o">=</span><span class="n">ConcatTuples</span><span class="p">,</span> <span class="n">merge_meta</span><span class="o">=</span><span class="n">ConcatMeta</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Fn"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Fn">[docs]</a>  <span class="k">def</span> <span class="nf">_Fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">,</span> <span class="n">fn_out</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">fn_flops</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;y = fn(x).</span>
+
+<span class="sd">    Applies a fn: tuple(Tensor) -&gt; a single Tensor or tuple(Tensor) to the input</span>
+<span class="sd">    tuple.  Typically, fn is a very simple python function. If fn is rather</span>
+<span class="sd">    complicated, we advice to implement the logic as a sub-class of BaseLayer.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: The layer name.</span>
+<span class="sd">      fn: A lambda tuple(Tensor) -&gt; tuple(Tensor).</span>
+<span class="sd">      fn_out: A lambda tuple(tshape.Shape) -&gt; output tuple(tshape.Shape)</span>
+<span class="sd">      fn_flops: A lambda tuple(tshape.Shape) -&gt; estimated flops of fn.</span>
+<span class="sd">        If None, we assume flops == sum of elements in the inputs.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The param for the composed layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">FnMeta</span><span class="p">(</span><span class="o">*</span><span class="n">shapes</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;A lambda tuple(tshape.Shape) -&gt; NestedMap{flops, out_shapes}.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">fn_out</span><span class="p">:</span>
+        <span class="n">out_shapes</span> <span class="o">=</span> <span class="n">fn_out</span><span class="p">(</span><span class="o">*</span><span class="n">shapes</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">out_shapes</span><span class="p">,</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">):</span>
+          <span class="n">out_shapes</span> <span class="o">=</span> <span class="p">(</span><span class="n">out_shapes</span><span class="p">,)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">out_shapes</span> <span class="o">=</span> <span class="n">shapes</span>
+      <span class="k">if</span> <span class="n">fn_flops</span><span class="p">:</span>
+        <span class="n">flops</span> <span class="o">=</span> <span class="n">fn_flops</span><span class="p">(</span><span class="o">*</span><span class="n">shapes</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">flops</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">([</span><span class="n">s</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">shapes</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="n">out_shapes</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">FnLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">fn</span><span class="p">,</span> <span class="n">fn_meta</span><span class="o">=</span><span class="n">FnMeta</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Save"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Save">[docs]</a>  <span class="k">def</span> <span class="nf">_Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a layer from which the activation and gradient can be accessed.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">FetchLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._AddFetches"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._AddFetches">[docs]</a>  <span class="k">def</span> <span class="nf">_AddFetches</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">,</span> <span class="n">fetches</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Fetches saved activations in the body sub-layer.</span>
+
+<span class="sd">    E.g.:</span>
+<span class="sd">    _AddFetches(&#39;foo&#39;, _Seq( &#39;stack&#39;, _Layer(&#39;layer1&#39;, ...),</span>
+<span class="sd">    _Save(&#39;layer1_out&#39;, ...), _Layer(&#39;layer2&#39;, ...), _Save(&#39;layer2_out&#39;, ...),</span>
+<span class="sd">    _Output(&#39;output&#39;, ...)), [&#39;layer1_out&#39;, &#39;layer2_out&#39;])</span>
+
+<span class="sd">    The layer returns the stack&#39;s final output together with intermediate</span>
+<span class="sd">    activations from layer1_out and layer2_out.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: This layer&#39;s name.</span>
+<span class="sd">      body: The sub-layer.</span>
+<span class="sd">      fetches: A list of fetch names inside the sub-layer body.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A layer whose outputs correspond to the activations of fetch points</span>
+<span class="sd">      in the sub-layer body. [input1, input2, ..., inputN, fetch1, ..., fetchM].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BranchLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">,</span> <span class="n">fetches</span><span class="o">=</span><span class="n">fetches</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Rematerialize"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Rematerialize">[docs]</a>  <span class="k">def</span> <span class="nf">_Rematerialize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Forces rematerialization on FProp of the body layer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">RematerializationLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">body</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._BatchParallel"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._BatchParallel">[docs]</a>  <span class="k">def</span> <span class="nf">_BatchParallel</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Splits the batch and compute the forward pass on multiple devices.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: This layer&#39;s name.</span>
+<span class="sd">      sub: The sub-layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A BatchParallel layer which splits the batch and computes the forward pass</span>
+<span class="sd">      on multiple devices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BatchParallelLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="n">sub</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._PrintShape"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._PrintShape">[docs]</a>  <span class="k">def</span> <span class="nf">_PrintShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Print FProp input shape information.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">PrintShapeLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+  <span class="c1">###########################################################################</span>
+  <span class="c1"># Basic nn layers.</span>
+  <span class="c1">#</span>
+  <span class="c1"># The following method returns a layer param, whose FProp takes a single</span>
+  <span class="c1"># Tensor and returns a single Tensor.</span>
+  <span class="c1">#</span>
+  <span class="c1"># These methods are designed to have minimal knobs. Sub-classes which needs to</span>
+  <span class="c1"># be flexible can override these methods with different options. E.g., a</span>
+  <span class="c1"># sub-class builder can override _BN() to tune the decay option.</span>
+  <span class="c1">###########################################################################</span>
+<div class="viewcode-block" id="Base._BN"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._BN">[docs]</a>  <span class="k">def</span> <span class="nf">_BN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Batch norm.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">BatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="mf">0.99</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._LN"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._LN">[docs]</a>  <span class="k">def</span> <span class="nf">_LN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Layer norm.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span>
+        <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">use_fused_layernorm</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Dropout"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Dropout">[docs]</a>  <span class="k">def</span> <span class="nf">_Dropout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">keep_prob</span><span class="p">,</span> <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a DropoutLayer Params.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+          <span class="n">keep_prob</span><span class="o">=</span><span class="n">keep_prob</span><span class="p">,</span>
+          <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="n">noise_shape_broadcast_dims</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="n">keep_prob</span><span class="p">,</span>
+        <span class="n">noise_shape_broadcast_dims</span><span class="o">=</span><span class="n">noise_shape_broadcast_dims</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Linear"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Linear layer. y = matmul([..., idims], [idims, odims]).&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">LinearLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dims</span><span class="o">=</span><span class="n">idims</span><span class="p">,</span>
+        <span class="n">output_dims</span><span class="o">=</span><span class="n">odims</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Bias"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bias layer. The bias is added to the last dimension of the input.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Activation"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Activation">[docs]</a>  <span class="k">def</span> <span class="nf">_Activation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Activation layer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._FC"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._FC">[docs]</a>  <span class="k">def</span> <span class="nf">_FC</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Feed-forward fully connected. y = relu(matmul(x, w) + b).&quot;&quot;&quot;</span>
+    <span class="c1"># pyformat: disable</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">idims</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">odims</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Base._MLP"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._MLP">[docs]</a>  <span class="k">def</span> <span class="nf">_MLP</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Multiple layers of feed-forward fully connected.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: The layer name.</span>
+<span class="sd">      dims: A list of int. i-th layer has dims[i] as its input dimension, and</span>
+<span class="sd">        dims[i+1] as its output dimensions.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      The param for the composed layer.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">dims</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:])):</span>
+      <span class="n">l</span> <span class="o">+=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_FC</span><span class="p">(</span><span class="s1">&#39;l</span><span class="si">%03d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">n</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">o</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">l</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Base._Conv2D"><a class="viewcode-back" href="../../../lingvo.core.builder.html#lingvo.core.builder.Base._Conv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_Conv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">filter_stride</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Conv2D layer.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">Conv2DLayerNoPadding</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">filter_shape</span><span class="o">=</span><span class="n">filter_shape</span><span class="p">,</span> <span class="n">filter_stride</span><span class="o">=</span><span class="n">filter_stride</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

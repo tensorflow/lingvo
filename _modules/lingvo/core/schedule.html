@@ -186,7 +186,7 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="BaseSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate schedule value.</span>
 
 <span class="sd">    Args:</span>
@@ -198,6 +198,8 @@
 <span class="sd">      multiplied by the returned schedule value is used as the</span>
 <span class="sd">      effective learning rate.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">current_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">current_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">)</span></div></div>
 
 
@@ -917,7 +919,8 @@
     <span class="k">for</span> <span class="n">interval_start</span><span class="p">,</span> <span class="n">schedule</span><span class="p">,</span> <span class="n">schedule_theta</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span>
         <span class="n">interval_starts</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedules</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">schedules</span><span class="p">):</span>
       <span class="n">relative_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">current_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">current_step</span> <span class="o">-</span> <span class="n">interval_start</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">current_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+          <span class="n">current_step</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">interval_start</span><span class="p">,</span> <span class="n">current_step</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
       <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">schedule</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">schedule_theta</span><span class="p">,</span> <span class="n">relative_step</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
@@ -940,6 +943,41 @@
     <span class="n">learning_rate</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">step_num</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">))</span>
     <span class="n">learning_rate</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">multiplier</span>
     <span class="k">return</span> <span class="n">learning_rate</span></div></div>
+
+
+<div class="viewcode-block" id="CycleSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CycleSchedule">[docs]</a><span class="k">class</span> <span class="nc">CycleSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Piecewise schedule composed of sub-schedules in a cycle.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CycleSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CycleSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CycleSchedule</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of sub-schedules. Unlike PiecewiseSchedule, &#39;</span>
+        <span class="s1">&#39;the absolute step is passed to the sub-schedule.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;steps&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The number of steps to run each sub-schedule.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CycleSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">steps</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;len(schedules) != len(steps): </span><span class="si">%s</span><span class="s1"> vs </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                       <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">steps</span><span class="p">)))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">)</span>
+    <span class="n">boundaries</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">step</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">steps</span><span class="p">:</span>
+      <span class="n">boundaries</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">boundaries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">step</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_period</span> <span class="o">=</span> <span class="n">boundaries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_boundaries</span> <span class="o">=</span> <span class="n">boundaries</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+<div class="viewcode-block" id="CycleSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CycleSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
+    <span class="n">values</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">schedule</span><span class="p">,</span> <span class="n">schedule_theta</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">schedules</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">schedules</span><span class="p">):</span>
+      <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">schedule</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">schedule_theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">))</span>
+    <span class="n">relative_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">mod</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_period</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PiecewiseConstant</span><span class="p">(</span><span class="n">relative_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_boundaries</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span>
+                                      <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div></div>
 </pre></div>
 
            </div>

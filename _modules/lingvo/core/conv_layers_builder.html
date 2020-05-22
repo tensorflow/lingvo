@@ -1,0 +1,488 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.conv_layers_builder &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.conv_layers_builder</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.conv_layers_builder</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;2D conv layers that are expected to be used with sequence inputs.&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">absl</span> <span class="kn">import</span> <span class="n">flags</span>
+
+<span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder_layers</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
+
+<span class="n">Conv2DLayerWithPadding</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">Conv2DLayerWithPadding</span>
+<span class="n">CausalConv2DLayerWithPadding</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">CausalConv2DLayerWithPadding</span>
+<span class="n">DepthwiseConv2DLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">DepthwiseConv2DLayer</span>
+<span class="n">CausalDepthwiseConv2DLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">CausalDepthwiseConv2DLayer</span>
+<span class="n">ConvBatchNormLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">ConvBatchNormLayer</span>
+<span class="n">ActivationLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">ActivationLayer</span>
+<span class="n">PaddingLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">PaddingLayer</span>
+<span class="n">NormalizedDepthwiseConv2DLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">NormalizedDepthwiseConv2DLayer</span>
+<span class="n">CausalNormalizedDepthwiseConv2DLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">CausalNormalizedDepthwiseConv2DLayer</span>
+<span class="n">GlobalPoolingLayer</span> <span class="o">=</span> <span class="n">conv_layers_with_time_padding</span><span class="o">.</span><span class="n">GlobalPoolingLayer</span>
+
+
+<div class="viewcode-block" id="BiasLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.BiasLayer">[docs]</a><span class="k">class</span> <span class="nc">BiasLayer</span><span class="p">(</span><span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="p">):</span>
+
+<div class="viewcode-block" id="BiasLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.BiasLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="n">bias_added</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BiasLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bias_added</span><span class="p">,</span> <span class="n">paddings</span></div></div>
+
+
+<div class="viewcode-block" id="CausalPoolingLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.CausalPoolingLayer">[docs]</a><span class="k">class</span> <span class="nc">CausalPoolingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Pooling layer with causal dependency on the time axis.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CausalPoolingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.CausalPoolingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CausalPoolingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pooling_type&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">,</span> <span class="s1">&#39;Pooling type: MAX|AVG&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of frames to the left in the pooling&#39;</span>
+        <span class="s1">&#39;window (including the current frame).&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="CausalPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.CausalPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies causal pooling to inputs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      inputs: The inputs tensor. It is expected to be of shape [batch, time,</span>
+<span class="sd">        frequency, channel]. The time dimension corresponds to the height</span>
+<span class="sd">        dimension as in images and the frequency dimension corresponds to the</span>
+<span class="sd">        width dimension as in images.</span>
+<span class="sd">      paddings: The paddings tensor. It is expected to be of shape [batch,</span>
+<span class="sd">        time].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      outputs, out_paddings pair.</span>
+<span class="sd">       - outputs: has the same shape as inputs.</span>
+<span class="sd">       - out_paddings: has the same tshape as paddings.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;left_context must be set.&#39;</span><span class="p">)</span>
+    <span class="n">window_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
+    <span class="n">left_pad_size</span> <span class="o">=</span> <span class="n">window_size</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+    <span class="n">out_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span>
+        <span class="n">window_shape</span><span class="o">=</span><span class="p">(</span><span class="n">window_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">pooling_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span><span class="p">,</span>
+        <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;VALID&#39;</span><span class="p">)</span>
+
+    <span class="n">out_feature</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">out_feature</span><span class="p">,</span> <span class="n">paddings</span></div></div>
+
+
+<div class="viewcode-block" id="Builder"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder">[docs]</a><span class="k">class</span> <span class="nc">Builder</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">Base</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Builder patterns for commonly used conv layers.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="Builder.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Builder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bn&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Add additional bn layers to conv layers or not.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Add weight norm for kernel weights or not.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="Builder._Bias"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Bias layer. The bias is added to the last dimension of the input.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">dims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._BN"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._BN">[docs]</a>  <span class="k">def</span> <span class="nf">_BN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="mf">0.999</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ConvBatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="n">dims</span><span class="p">,</span> <span class="n">decay</span><span class="o">=</span><span class="n">decay</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._BiasOrBN"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._BiasOrBN">[docs]</a>  <span class="k">def</span> <span class="nf">_BiasOrBN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_bn</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._MaybeBN"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._MaybeBN">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeBN</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_bn</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BN</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._Activation"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._Activation">[docs]</a>  <span class="k">def</span> <span class="nf">_Activation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">activation</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">ActivationLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._Padding"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._Padding">[docs]</a>  <span class="k">def</span> <span class="nf">_Padding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">PaddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._RawConv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._RawConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_RawConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">name</span><span class="p">,</span>
+                 <span class="n">in_dim</span><span class="p">,</span>
+                 <span class="n">out_dim</span><span class="p">,</span>
+                 <span class="n">filter_shape</span><span class="p">,</span>
+                 <span class="n">stride</span><span class="p">,</span>
+                 <span class="n">dilation</span><span class="p">,</span>
+                 <span class="n">is_causal</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">is_causal</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">CausalConv2DLayerWithPadding</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">Conv2DLayerWithPadding</span>
+    <span class="k">return</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">filter_shape</span><span class="o">=</span><span class="n">filter_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">],</span>
+        <span class="n">filter_stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+        <span class="n">dilation_rate</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
+        <span class="n">weight_norm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._RawDepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._RawDepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">_RawDepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                          <span class="n">name</span><span class="p">,</span>
+                          <span class="n">in_dim</span><span class="p">,</span>
+                          <span class="n">depth_multiplier</span><span class="p">,</span>
+                          <span class="n">filter_shape</span><span class="p">,</span>
+                          <span class="n">stride</span><span class="p">,</span>
+                          <span class="n">dilation</span><span class="p">,</span>
+                          <span class="n">is_causal</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">is_causal</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">CausalDepthwiseConv2DLayer</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">DepthwiseConv2DLayer</span>
+    <span class="k">return</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">filter_shape</span><span class="o">=</span><span class="n">filter_shape</span> <span class="o">+</span> <span class="p">[</span><span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">],</span>
+        <span class="n">filter_stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+        <span class="n">dilation_rate</span><span class="o">=</span><span class="n">dilation</span><span class="p">,</span>
+        <span class="n">weight_norm</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder._GlobalPooling"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._GlobalPooling">[docs]</a>  <span class="k">def</span> <span class="nf">_GlobalPooling</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">pooling_type</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">GlobalPoolingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">pooling_type</span><span class="o">=</span><span class="n">pooling_type</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.Conv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.Conv2D">[docs]</a>  <span class="k">def</span> <span class="nf">Conv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+             <span class="n">name</span><span class="p">,</span>
+             <span class="n">in_dim</span><span class="p">,</span>
+             <span class="n">out_dim</span><span class="p">,</span>
+             <span class="n">filter_shape</span><span class="p">,</span>
+             <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">dilation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+             <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+             <span class="n">conv_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+             <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">stride</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">stride</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dilation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dilation</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">conv_last</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeBN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span>
+                          <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span> <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span>
+                          <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_BiasOrBN</span><span class="p">(</span><span class="s1">&#39;bn_or_bias&#39;</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">layers_in_sequence</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.DepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.DepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">DepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">name</span><span class="p">,</span>
+                      <span class="n">in_dim</span><span class="p">,</span>
+                      <span class="n">depth_multiplier</span><span class="p">,</span>
+                      <span class="n">filter_shape</span><span class="p">,</span>
+                      <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">dilation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+                      <span class="n">conv_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                      <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">stride</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">stride</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dilation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dilation</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">conv_last</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeBN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_BiasOrBN</span><span class="p">(</span><span class="s1">&#39;bn_or_bias&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">layers_in_sequence</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.SeparableConv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.SeparableConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">SeparableConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                      <span class="n">name</span><span class="p">,</span>
+                      <span class="n">in_dim</span><span class="p">,</span>
+                      <span class="n">out_dim</span><span class="p">,</span>
+                      <span class="n">depth_multiplier</span><span class="p">,</span>
+                      <span class="n">filter_shape</span><span class="p">,</span>
+                      <span class="n">stride</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">dilation</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                      <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
+                      <span class="n">conv_last</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                      <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">stride</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">stride</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">dilation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">dilation</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">conv_last</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeBN</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="c1"># No need to add a padding layer here as subsequent conv layer always</span>
+          <span class="c1"># properly zeros out padded nodes.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawConv2D</span><span class="p">(</span><span class="s1">&#39;conv_1x1&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span>
+                          <span class="n">filter_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dilation</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                          <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">layers_in_sequence</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawDepthwiseConv2D</span><span class="p">(</span><span class="s1">&#39;conv_2d&#39;</span><span class="p">,</span> <span class="n">in_dim</span><span class="p">,</span> <span class="n">depth_multiplier</span><span class="p">,</span>
+                                   <span class="n">filter_shape</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">dilation</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">),</span>
+          <span class="c1"># No need to add a padding layer here as subsequent conv layer always</span>
+          <span class="c1"># properly zeros out padded nodes.</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_RawConv2D</span><span class="p">(</span><span class="s1">&#39;conv_1x1&#39;</span><span class="p">,</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">depth_multiplier</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">,</span>
+                          <span class="n">filter_shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">stride</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dilation</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+                          <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_BiasOrBN</span><span class="p">(</span><span class="s1">&#39;bn_or_bias&#39;</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_Padding</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)</span>
+      <span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="o">*</span><span class="n">layers_in_sequence</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Builder.NormalizedDepthwiseConv2D"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.NormalizedDepthwiseConv2D">[docs]</a>  <span class="k">def</span> <span class="nf">NormalizedDepthwiseConv2D</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                                <span class="n">name</span><span class="p">,</span>
+                                <span class="n">kernel_size</span><span class="p">,</span>
+                                <span class="n">num_heads</span><span class="p">,</span>
+                                <span class="n">in_dim</span><span class="p">,</span>
+                                <span class="n">dropconnect_prob</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                                <span class="n">deterministic_dropout</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">is_causal</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">CausalNormalizedDepthwiseConv2DLayer</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">conv_cls</span> <span class="o">=</span> <span class="n">NormalizedDepthwiseConv2DLayer</span>
+    <span class="k">return</span> <span class="n">conv_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">filter_shape</span><span class="o">=</span><span class="p">[</span><span class="n">kernel_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
+        <span class="n">weight_tiling_factor</span><span class="o">=</span><span class="n">in_dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">deterministic_dropout</span><span class="o">=</span><span class="n">deterministic_dropout</span><span class="p">,</span>
+        <span class="n">params_init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">TruncatedGaussian</span><span class="p">(</span>
+            <span class="n">scale</span><span class="o">=</span><span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">2.6</span> <span class="o">/</span> <span class="n">kernel_size</span><span class="p">)),</span>  <span class="c1"># Fan-out initialization.</span>
+        <span class="n">dropconnect_prob</span><span class="o">=</span><span class="n">dropconnect_prob</span><span class="p">)</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

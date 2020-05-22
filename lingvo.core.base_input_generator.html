@@ -257,9 +257,32 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuFeeds">
-<code class="sig-name descname">CreateTpuFeeds</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuFeeds"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuFeeds" title="Permalink to this definition">¶</a></dt>
-<dd><p>Creates the TPU infeed queue from preprocessed batch.</p>
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.tpu_number_of_shards">
+<em class="property">property </em><code class="sig-name descname">tpu_number_of_shards</code><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.tpu_number_of_shards" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">
+<code class="sig-name descname">CreateTpuEnqueueOps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEnqueueOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create the host-side enqueue ops.</p>
+<p>This should be called in an outer non-TPU context.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.TpuDequeueBatch">
+<code class="sig-name descname">TpuDequeueBatch</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.TpuDequeueBatch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.TpuDequeueBatch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create TPU dequeue ops.</p>
+<p>This should only be called within a TPU context.</p>
+<p>Returns:
+- A NestedMap of the input batch.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps">
+<code class="sig-name descname">CreateTpuEmbeddingEnqueueOps</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#BaseInputGenerator.CreateTpuEmbeddingEnqueueOps"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEmbeddingEnqueueOps" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates the TpuEmbedding enqueue ops on the host.</p>
+<p>Note that this must be called after the instantiation of the
+monolithic TPUEmbeddingLayer.</p>
 </dd></dl>
 
 <dl class="py method">
