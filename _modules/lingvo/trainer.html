@@ -1818,10 +1818,10 @@
         <span class="n">FLAGS</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;controller,trainer_client&#39;</span>
 
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">local_job</span> <span class="o">=</span> <span class="s1">&#39;/job:localhost&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_job</span> <span class="o">=</span> <span class="n">local_job</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">controller_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
-
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_job</span> <span class="o">=</span> <span class="n">local_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;gpu&#39;</span><span class="p">:</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_gpus</span><span class="p">:</span>
@@ -1837,21 +1837,21 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">worker_split_size</span> <span class="o">=</span> <span class="mi">1</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_job</span> <span class="o">=</span> <span class="n">local_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">ps_gpus</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_job</span> <span class="o">=</span> <span class="n">local_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">input_replicas</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_job</span> <span class="o">=</span> <span class="n">local_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;gpu&#39;</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_gpus</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">evaler_gpus</span> <span class="o">=</span> <span class="mi">0</span>
 
-    <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span> <span class="o">=</span> <span class="s1">&#39;/job:local&#39;</span>
+    <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_job</span> <span class="o">=</span> <span class="n">local_job</span>
     <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_replicas</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">run_locally</span> <span class="o">==</span> <span class="s1">&#39;gpu&#39;</span><span class="p">:</span>
       <span class="n">FLAGS</span><span class="o">.</span><span class="n">decoder_gpus</span> <span class="o">=</span> <span class="mi">1</span>
