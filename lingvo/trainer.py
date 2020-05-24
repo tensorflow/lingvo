@@ -1673,10 +1673,10 @@ class RunnerManager(object):
         FLAGS.job = 'controller,trainer_client'
 
     FLAGS.task = 0
+    local_job = '/job:localhost'
+    FLAGS.controller_job = local_job
 
-    FLAGS.controller_job = '/job:local'
-
-    FLAGS.worker_job = '/job:local'
+    FLAGS.worker_job = local_job
     FLAGS.worker_replicas = 1
     if FLAGS.run_locally == 'gpu':
       if not FLAGS.worker_gpus:
@@ -1692,21 +1692,21 @@ class RunnerManager(object):
     if not FLAGS.worker_split_size:
       FLAGS.worker_split_size = 1
 
-    FLAGS.ps_job = '/job:local'
+    FLAGS.ps_job = local_job
     FLAGS.ps_replicas = 1
     FLAGS.ps_gpus = 0
 
-    FLAGS.input_job = '/job:local'
+    FLAGS.input_job = local_job
     FLAGS.input_replicas = 0
 
-    FLAGS.evaler_job = '/job:local'
+    FLAGS.evaler_job = local_job
     FLAGS.evaler_replicas = 1
     if FLAGS.run_locally == 'gpu':
       FLAGS.evaler_gpus = 1
     else:
       FLAGS.evaler_gpus = 0
 
-    FLAGS.decoder_job = '/job:local'
+    FLAGS.decoder_job = local_job
     FLAGS.decoder_replicas = 1
     if FLAGS.run_locally == 'gpu':
       FLAGS.decoder_gpus = 1
