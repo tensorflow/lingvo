@@ -81,7 +81,13 @@ class CausalPoolingLayer(base_layer.BaseLayer):
       raise ValueError('left_context must be set.')
     window_size = p.left_context
     left_pad_size = window_size - 1
-    inputs = tf.pad(inputs, [[0, 0], [left_pad_size, 0], [0, 0], [0, 0]])
+    large_negative = p.dtype.max * tf.constant(-0.7, dtype=p.dtype)
+    # For max pooling, use a large negative padding value such that the max
+    # element is almost always from a non-padding position.
+    pad_value = 0 if p.pooling_type == 'AVG' else large_negative
+    inputs = tf.pad(
+        inputs, [[0, 0], [left_pad_size, 0], [0, 0], [0, 0]],
+        constant_values=pad_value)
 
     out_feature = tf.nn.pool(
         inputs,
@@ -89,6 +95,18 @@ class CausalPoolingLayer(base_layer.BaseLayer):
         pooling_type=p.pooling_type,
         padding='VALID')
 
+    if p.pooling_type == 'AVG':
+      # Count the fraction of non-padding elements inside each pooling window.
+      in_mask = tf.pad(1.0 - paddings, [[0, 0], [left_pad_size, 0]])
+
+      non_padding_ratio = tf.nn.pool(
+          in_mask[:, :, tf.newaxis],
+          window_shape=(window_size,),
+          pooling_type='AVG',
+          padding='VALID')
+      # Divide by non-padding ratios to eliminate the effect of padded zeros.
+      out_feature *= tf.math.reciprocal_no_nan(non_padding_ratio[...,
+                                                                 tf.newaxis])
     out_feature *= 1.0 - paddings[..., tf.newaxis, tf.newaxis]
     return out_feature, paddings
 
