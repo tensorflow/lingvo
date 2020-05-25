@@ -226,7 +226,13 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;left_context must be set.&#39;</span><span class="p">)</span>
     <span class="n">window_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
     <span class="n">left_pad_size</span> <span class="o">=</span> <span class="n">window_size</span> <span class="o">-</span> <span class="mi">1</span>
-    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+    <span class="n">large_negative</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="c1"># For max pooling, use a large negative padding value such that the max</span>
+    <span class="c1"># element is almost always from a non-padding position.</span>
+    <span class="n">pad_value</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span> <span class="k">else</span> <span class="n">large_negative</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span>
+        <span class="n">inputs</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]],</span>
+        <span class="n">constant_values</span><span class="o">=</span><span class="n">pad_value</span><span class="p">)</span>
 
     <span class="n">out_feature</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
         <span class="n">inputs</span><span class="p">,</span>
@@ -234,6 +240,18 @@
         <span class="n">pooling_type</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span><span class="p">,</span>
         <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;VALID&#39;</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span><span class="p">:</span>
+      <span class="c1"># Count the fraction of non-padding elements inside each pooling window.</span>
+      <span class="n">in_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">,</span> <span class="p">[[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">left_pad_size</span><span class="p">,</span> <span class="mi">0</span><span class="p">]])</span>
+
+      <span class="n">non_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+          <span class="n">in_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+          <span class="n">window_shape</span><span class="o">=</span><span class="p">(</span><span class="n">window_size</span><span class="p">,),</span>
+          <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
+          <span class="n">padding</span><span class="o">=</span><span class="s1">&#39;VALID&#39;</span><span class="p">)</span>
+      <span class="c1"># Divide by non-padding ratios to eliminate the effect of padded zeros.</span>
+      <span class="n">out_feature</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">[</span><span class="o">...</span><span class="p">,</span>
+                                                                 <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">])</span>
     <span class="n">out_feature</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">out_feature</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
