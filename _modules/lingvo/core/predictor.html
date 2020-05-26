@@ -286,6 +286,20 @@
   <span class="k">def</span> <span class="nf">feed_keys</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">feed_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Conversion from dict to NestedMap required.</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_feeds</span><span class="p">))</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">fetch_shapes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Conversion from dict to NestedMap required.</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span>
+        <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_tensor_by_name</span><span class="p">(</span><span class="n">x</span><span class="p">)</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">(),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">))</span>
+
 <div class="viewcode-block" id="Predictor._CreateNewSession"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor._CreateNewSession">[docs]</a>  <span class="nd">@py_utils</span><span class="o">.</span><span class="n">RetryOnTransientTfError</span><span class="p">()</span>
   <span class="k">def</span> <span class="nf">_CreateNewSession</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates self._sess with a new session.&quot;&quot;&quot;</span>
