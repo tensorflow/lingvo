@@ -900,6 +900,274 @@ be the batch index.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.mt.decoder.</code><code class="sig-name descname">TransformerBatchMajorDecoder</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder" title="lingvo.tasks.mt.decoder.MTBaseDecoder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.mt.decoder.MTBaseDecoder</span></code></a></p>
+<p>Transformer decoder with batch major implementation.</p>
+<p>Implements the decoder of Transformer model:
+<a class="reference external" href="https://arxiv.org/abs/1706.03762">https://arxiv.org/abs/1706.03762</a>.</p>
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._MaybeTransposeEncoderOutputs">
+<code class="sig-name descname">_MaybeTransposeEncoderOutputs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">target_data_format</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._MaybeTransposeEncoderOutputs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._MaybeTransposeEncoderOutputs" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._MaybeTransposeTargets">
+<code class="sig-name descname">_MaybeTransposeTargets</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._MaybeTransposeTargets"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._MaybeTransposeTargets" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._FProp">
+<code class="sig-name descname">_FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A ‘.NestedMap’ object computed by encoder. * encoded -
+Source encoding of shape [source_time, source_batch, dim] or
+[source_batch, source_time, dim], depending on p.input_data_format. *
+paddings - Source encoding’s padding of shape [source_time,
+source_batch] or [source_batch, source_time].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, target_time].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Tensor of shape [target_time, batch, dim].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>softmax_input</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ExtendStep">
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">new_ids</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extend prefix as represented by <code class="xref py py-obj docutils literal notranslate"><span class="pre">prefix_states</span></code> by one more step.</p>
+<p>This function is expected to be called during fast decoding of Transformer
+models.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A ‘.NestedMap’ object computed by encoder. * encoded -
+Source encoding of shape [source_time, source_batch, dim] or
+[source_batch, source_time, dim], depending on p.input_data_format. *
+paddings - Source encoding’s padding of shape [source_time,
+source_batch] or [source_batch, source_time].</p></li>
+<li><p><strong>new_ids</strong> – New input ids, of shape [target_batch, 1].</p></li>
+<li><p><strong>time_step</strong> – A scalar, the current decode step, 0-based.</p></li>
+<li><p><strong>prefix_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the previous decoded states.
+key   - [target_time, target_batch, num_heads, dim_per_head]. value -
+[target_time, target_batch, num_heads, dim_per_head].</p></li>
+<li><p><strong>use_short_seq_opt</strong> – A bool, whether using short sequence optimization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The last decoder layer of shape [target_batch, dim].
+updated_prefix_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the updated states.
+key   - [target_time, target_batch, num_heads, dim_per_head].
+value - [target_time, target_batch, num_heads, dim_per_head].</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>last_decoder_out</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ComputePredictions">
+<code class="sig-name descname">ComputePredictions</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder.ComputePredictions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ComputePredictions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decodes <code class="xref py py-obj docutils literal notranslate"><span class="pre">targets</span></code> given encoded source.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A ‘.NestedMap’ object computed by encoder. * encoded -
+Source encoding of shape [source_time, source_batch, dim] or
+[source_batch, source_time, dim], depending on p.input_data_format. *
+paddings - Source encoding’s padding of shape [source_time,
+source_batch] or [source_batch, source_time].</p></li>
+<li><p><strong>targets</strong> – A dict of string to tensors representing the targets one try to
+predict. Each tensor in targets is of shape [batch, target_time].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output of the last decoder layer, of shape [target_time, batch, dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._FPropFastSoftmax">
+<code class="sig-name descname">_FPropFastSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._FPropFastSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._FPropFastSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy loss with label smoothing.</p>
+<p>As compared to the _FPropSoftmax, this version is faster by removing the
+data formatting overheads and bias of the linear projection. A normalizing
+factor is also added to the xentropy result be better model quality.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</p></li>
+<li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
+<li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>time_axis</strong> – If 0, the inputs are time-major: [time, batch, …]; if 1, the
+inputs are batch-major: [batch, time, …].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (metrics, per_example_tensors).</dt><dd><dl class="simple">
+<dt>metrics:</dt><dd><p>A dictionary containing metrics for the xent loss and prediction
+accuracy.</p>
+</dd>
+<dt>per_example_tensors:</dt><dd><p>A dictionary of per-example tensors.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ComputeLoss">
+<code class="sig-name descname">ComputeLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">predictions</span></em>, <em class="sig-param"><span class="n">targets</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder.ComputeLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.ComputeLoss" title="Permalink to this definition">¶</a></dt>
+<dd><p>Populates a metrics dictionary based on the output of ComputePredictions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Nested map describing decoder model parameters.</p></li>
+<li><p><strong>predictions</strong> – NestedMap describing the decoding process, requiring:
+.softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].</p></li>
+<li><p><strong>targets</strong> – NestedMap describing the target sequences.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>Two dicts.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>A map from metric name (a python string) to a tuple (value, weight).
+Both value and weight are scalar Tensors.</p></li>
+<li><p>A map from name to arbitrary tensors, where the first dimension must
+be the batch index.</p></li>
+</ul>
+</div></blockquote>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._InitBeamSearchStateCallback">
+<code class="sig-name descname">_InitBeamSearchStateCallback</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">num_hyps_per_beam</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._InitBeamSearchStateCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._InitBeamSearchStateCallback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns initial beams search states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A ‘.NestedMap’ object computed by encoder. * encoded -
+Source encoding of shape [source_time, source_batch, dim] or
+[source_batch, source_time, dim], depending on p.input_data_format. *
+paddings - Source encoding’s padding of shape [source_time,
+source_batch] or [source_batch, source_time].</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – An int, number hyps to keep for source sentence.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial beam search results.</dt><dd><dl class="simple">
+<dt>log_probs - Log prob for each of the tokens in the target vocab,</dt><dd><p>of shape [target_batch, vocab_size].</p>
+</dd>
+<dt>atten_probs - The updated attention probs, of shape</dt><dd><p>[target_batch, source_time].</p>
+</dd>
+</dl>
+</dd>
+<dt>states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of initial model states.</dt><dd><p>prefix_states - A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the empty decoded states.
+key   - [target_time, target_batch, num_heads, dim_per_head].
+value - [target_time, target_batch, num_heads, dim_per_head].
+time_step - A scalar, the initial decode step (0).</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>initial_results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._PreBeamSearchStepCallback">
+<code class="sig-name descname">_PreBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">new_ids</span></em>, <em class="sig-param"><span class="n">states</span></em>, <em class="sig-param"><span class="n">num_hyps_per_beam</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._PreBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._PreBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns logits for sampling ids and the next model states.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>encoder_outputs</strong> – A ‘.NestedMap’ object computed by encoder. * encoded -
+Source encoding of shape [source_time, source_batch, dim] or
+[source_batch, source_time, dim], depending on p.input_data_format. *
+paddings - Source encoding’s padding of shape [source_time,
+source_batch] or [source_batch, source_time].</p></li>
+<li><p><strong>new_ids</strong> – A tensor of shape [target_batch, 1].</p></li>
+<li><p><strong>states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of tensors representing states that the clients
+would like to keep track of for each of the active hyps. prefix_states -
+A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the previous decoded states. key   -
+[target_time, target_batch, num_heads, dim_per_head]. value -
+[target_time, target_batch, num_heads, dim_per_head]. time_step - A
+scalar, the current decode step, 0-based.</p></li>
+<li><p><strong>num_hyps_per_beam</strong> – A scalar, beam size.</p></li>
+<li><p><strong>use_short_seq_opt</strong> – A bool, whether using short sequence optimization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of beam search results.</dt><dd><dl class="simple">
+<dt>log_probs - Log prob for each of the tokens in the target vocab,</dt><dd><p>of shape [target_batch, vocab_size].</p>
+</dd>
+<dt>atten_probs - The updated attention probs, of shape</dt><dd><p>[target_batch, source_time].</p>
+</dd>
+</dl>
+</dd>
+<dt>new_states: A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object. The updated states.</dt><dd><p>prefix_states - A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> representing the updated decoded states.
+key   - [target_time, target_batch, num_heads, dim_per_head].
+value - [target_time, target_batch, num_heads, dim_per_head].
+time_step - A scalar, the current decode step, 0-based.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>bs_results</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._PostBeamSearchStepCallback">
+<code class="sig-name descname">_PostBeamSearchStepCallback</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">encoder_outputs</span></em>, <em class="sig-param"><span class="n">new_step_ids</span></em>, <em class="sig-param"><span class="n">states</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._PostBeamSearchStepCallback"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._PostBeamSearchStepCallback" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
 
 
