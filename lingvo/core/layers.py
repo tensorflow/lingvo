@@ -1611,9 +1611,15 @@ class PoolingLayer(quant_utils.QuantizableLayer):
       if paddings is not None:
         out_padding = _ComputeConvOutputPadding(paddings, window[0], stride[0],
                                                 p.padding_algorithm)
+        if p.pooling_type == 'MAX':
+          # Fill dtype.min in padded positions.
+          min_value = tf.ones_like(inputs) * p.dtype.min
+          inputs = py_utils.ApplyPadding(paddings[..., tf.newaxis, tf.newaxis],
+                                         inputs, min_value)
       else:
         out_padding = None
       inputs = self.QTensor('output', inputs)
+
       out = tf.nn.pool(
           inputs,
           window,
@@ -1622,6 +1628,18 @@ class PoolingLayer(quant_utils.QuantizableLayer):
           padding=p.padding_algorithm,
           data_format='NHWC',
       )
+      if paddings is not None and p.pooling_type == 'AVG':
+        # Count the fraction of non-padding elements inside each pooling window.
+        in_mask = 1.0 - paddings
+        non_padding_ratio = tf.nn.pool(
+            in_mask[:, :, tf.newaxis],
+            window_shape=(p.window_shape[0],),
+            pooling_type='AVG',
+            strides=(p.window_stride[0],),
+            padding=p.padding_algorithm)
+        # Divide by non-padding ratios to eliminate the effect of padded values.
+        out *= tf.math.reciprocal_no_nan(non_padding_ratio)[..., tf.newaxis]
+
       out = self.QTensor('output', out)
       if out_padding is not None:
         out *= tf.expand_dims(tf.expand_dims(1.0 - out_padding, -1), -1)

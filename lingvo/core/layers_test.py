@@ -1393,7 +1393,59 @@ class ConvLayerTest(test_utils.TestCase):
   # TODO(yonghui): more test for convolution layer
 
 
-class PoolingLayerTest(test_utils.TestCase):
+class PoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
+
+  # TODO(lingvo): fix 'VALID' padding in pooling.
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'max_pooling_same_padding',
+          'pooling_type': 'MAX',
+          'padding_algorithm': 'SAME',
+          'window_shape': (3, 1),
+          'window_stride': (1, 1),
+          'inputs': np.array([-2, -10, -3, -4, 0, 0]),
+          'input_paddings': np.array([0, 0, 0, 0, 1, 1]),
+          'expected_output': np.array([-2, -2, -3, -3, 0, 0]),
+          'expected_output_padding': np.array([0, 0, 0, 0, 1, 1]),
+          'expected_output_without_padding': np.array([-2, -2, -3, 0, 0, 0]),
+      }, {
+          'testcase_name': 'avg_pooling_same_padding',
+          'pooling_type': 'AVG',
+          'padding_algorithm': 'SAME',
+          'window_shape': (3, 1),
+          'window_stride': (1, 1),
+          'inputs': np.array([-2, 0, 2, 4, 0, 0]),
+          'input_paddings': np.array([0, 0, 0, 0, 1, 1]),
+          'expected_output': np.array([-1, 0, 2, 3, 0, 0]),
+          'expected_output_padding': np.array([0, 0, 0, 0, 1, 1]),
+          'expected_output_without_padding': np.array([-1, 0, 2, 2, 4 / 3, 0]),
+      })
+  def testSimpleCases(self, inputs, input_paddings, pooling_type, window_shape,
+                      window_stride, padding_algorithm, expected_output,
+                      expected_output_padding, expected_output_without_padding):
+    inputs = inputs[np.newaxis, :, np.newaxis, np.newaxis]
+    input_paddings = input_paddings[np.newaxis, :]
+    param = layers.PoolingLayer.Params().Set(
+        name='test_layer',
+        pooling_type=pooling_type,
+        window_shape=window_shape,
+        window_stride=window_stride,
+        padding_algorithm=padding_algorithm)
+    pooling_layer = param.Instantiate()
+    with self.session(use_gpu=True) as sess:
+      inputs = tf.convert_to_tensor(inputs, dtype=tf.float32)
+      input_paddings = tf.convert_to_tensor(input_paddings, dtype=tf.float32)
+      output, output_paddings = pooling_layer.FPropDefaultTheta(
+          inputs, input_paddings)
+      output_without_padding, _ = pooling_layer.FPropDefaultTheta(inputs)
+      tf.global_variables_initializer().run()
+      output_val, output_paddings_val, output_without_padding_val = sess.run(
+          [output, output_paddings, output_without_padding])
+
+    self.assertAllClose(expected_output, output_val.flatten())
+    self.assertAllEqual(expected_output_padding, output_paddings_val.flatten())
+    self.assertAllClose(expected_output_without_padding,
+                        output_without_padding_val.flatten())
 
   def testPoolLayerFProp(self):
     with self.session(use_gpu=True):
