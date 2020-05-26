@@ -389,6 +389,7 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">cluster_placer_in_executor</span>
           <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variable_renaming_rules</span><span class="p">):</span>
+          <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
           <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
             <span class="n">program</span><span class="o">.</span><span class="n">BuildTpuSubgraph</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_programs</span><span class="p">:</span>
