@@ -98,7 +98,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
                     target_labels,
                     target_weights,
                     target_paddings,
-                    target_segment_ids=None):
+                    target_segment_ids=None,
+                    time_axis=0):
     """Computes cross-entropy loss given the softmax input, labels and weights.
 
     Args:
@@ -109,6 +110,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       target_weights: A matrix of params.dtype. [time, batch].
       target_paddings: A matrix of params.dtype. [time, batch].
       target_segment_ids: A matrix of params.dtype. [time, batch].
+      time_axis: If 0, the inputs are time-major: [time, batch, ...]; if 1, the
+        inputs are batch-major: [batch, time, ...].
 
     Returns:
       A tuple (metrics, per_example_tensors).
@@ -128,10 +131,16 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
           class_ids=tf.reshape(target_labels, [-1, 1]))
     else:
       # [time, batch, num_classes]
-      target_probs = tf.transpose(
-          self.smoother.FProp(theta.smoother, tf.transpose(target_paddings),
-                              tf.transpose(target_labels),
-                              target_ids=None), [1, 0, 2])
+      if time_axis == 0:
+        target_probs = tf.transpose(
+            self.smoother.FProp(
+                theta.smoother,
+                tf.transpose(target_paddings),
+                tf.transpose(target_labels),
+                target_ids=None), [1, 0, 2])
+      else:
+        target_probs = self.smoother.FProp(
+            theta.smoother, target_paddings, target_labels, target_ids=None)
       xent_loss = self.softmax.FProp(
           theta.softmax, [softmax_input],
           class_weights=tf.reshape(target_weights, [-1, 1]),
@@ -148,7 +157,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       # [time, batch]
       per_example_loss = tf.reshape(xent_loss.per_example_xent,
                                     py_utils.GetShape(target_weights))
-      per_sequence_loss = tf.reduce_sum(per_example_loss * target_weights, 0)
+      per_sequence_loss = tf.reduce_sum(
+          per_example_loss * target_weights, axis=time_axis)
       if p.packed_input:
         assert target_segment_ids is not None, (
             'Need target segment ids for '
@@ -173,7 +183,8 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
       per_example_tensors['per_example_loss'] = tf.reshape(
           xent_loss.per_example_xent, py_utils.GetShape(target_weights))
       per_example_tensors['per_sequence_loss'] = tf.reduce_sum(
-          per_example_tensors['per_example_loss'] * target_weights, 0)
+          per_example_tensors['per_example_loss'] * target_weights,
+          axis=time_axis)
       per_example_tensors['loss'] = per_example_tensors['per_sequence_loss']
       per_example_tensors['logits'] = tf.reshape(
           xent_loss.logits,
