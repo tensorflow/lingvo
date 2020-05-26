@@ -1756,9 +1756,15 @@
       <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">out_padding</span> <span class="o">=</span> <span class="n">_ComputeConvOutputPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">window</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
                                                 <span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;MAX&#39;</span><span class="p">:</span>
+          <span class="c1"># Fill dtype.min in padded positions.</span>
+          <span class="n">min_value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">min</span>
+          <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+                                         <span class="n">inputs</span><span class="p">,</span> <span class="n">min_value</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">out_padding</span> <span class="o">=</span> <span class="kc">None</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+
       <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span>
           <span class="n">window</span><span class="p">,</span>
@@ -1767,6 +1773,18 @@
           <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">,</span>
           <span class="n">data_format</span><span class="o">=</span><span class="s1">&#39;NHWC&#39;</span><span class="p">,</span>
       <span class="p">)</span>
+      <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span><span class="p">:</span>
+        <span class="c1"># Count the fraction of non-padding elements inside each pooling window.</span>
+        <span class="n">in_mask</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+        <span class="n">non_padding_ratio</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">pool</span><span class="p">(</span>
+            <span class="n">in_mask</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+            <span class="n">window_shape</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">window_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span>
+            <span class="n">pooling_type</span><span class="o">=</span><span class="s1">&#39;AVG&#39;</span><span class="p">,</span>
+            <span class="n">strides</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">window_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],),</span>
+            <span class="n">padding</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">padding_algorithm</span><span class="p">)</span>
+        <span class="c1"># Divide by non-padding ratios to eliminate the effect of padded values.</span>
+        <span class="n">out</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reciprocal_no_nan</span><span class="p">(</span><span class="n">non_padding_ratio</span><span class="p">)[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+
       <span class="n">out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">out_padding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">out</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">out_padding</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
