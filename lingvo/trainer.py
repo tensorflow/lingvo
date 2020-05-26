@@ -572,6 +572,9 @@ class TrainerTpu(base_runner.BaseRunner):
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.job_spec.name):
         self._eval_metrics = metrics.TpuEvalMetrics()
+        # Needed due to the AddExtraTheta() reference to global_Step when
+        # instantiating the InputGenerator.
+        _ = py_utils.GetOrCreateGlobalStepVar()
         input_params = self._cluster.PlaceInput(self.params.input)
         self._input = input_params.Instantiate()
         self._input.CreateTpuEnqueueOps()

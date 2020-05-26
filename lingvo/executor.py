@@ -244,6 +244,7 @@ class ExecutorTpu(base_runner.BaseRunner):
           self._cluster.job_spec.name if not FLAGS.cluster_placer_in_executor
           else self._cluster.GetPlacer()):
         with py_utils.VariableRenameScope(self._variable_renaming_rules):
+          _ = py_utils.GetOrCreateGlobalStepVar()
           for program in self._programs:
             program.BuildTpuSubgraph()
         for program in self._programs:
