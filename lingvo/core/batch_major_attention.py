@@ -245,6 +245,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define('proj_tpl', MultiHeadedProjectionLayer.Params(), 'Params for '
              'projection layer.')
     p.Define('packed_input', False, 'Whether there is packed input.')
+    p.Define('use_bias', True, 'Whether to use bias for projection layers.')
     return p
 
   @base_layer.initializer
@@ -266,7 +267,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         return p.proj_tpl.Copy().Set(
             input_dim=p.input_dim,
             num_heads=p.num_heads,
-            dim_per_head=dim_per_head)
+            dim_per_head=dim_per_head,
+            use_bias=p.use_bias)
 
       self.CreateChild('key', ProjectInput())
       self.CreateChild('query', ProjectInput())
@@ -285,7 +287,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
               input_dim=p.input_dim,
               num_heads=p.num_heads,
               dim_per_head=dim_per_head,
-              is_output_projection=True))
+              is_output_projection=True,
+              use_bias=p.use_bias))
 
   def _AttenLogits(self, theta, query, key, per_step_padding):
     """Computes attention logits.
@@ -2268,6 +2271,7 @@ class Builder(builder.Base):
     p.Define('enable_per_dim_scale', True,
              'Whether using per_dim_scale or scaling by a constant factor.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define('use_bias', True, 'Whether to use bias for projection layer.')
     return p
 
   def __init__(self, params):
@@ -2331,7 +2335,8 @@ class Builder(builder.Base):
         enable_value_proj=p.selfatten_enable_value_proj,
         enable_per_dim_scale=p.enable_per_dim_scale,
         packed_input=p.packed_input,
-        fprop_dtype=p.fprop_dtype
+        fprop_dtype=p.fprop_dtype,
+        use_bias=p.use_bias
     )
     if p.deterministic_dropout:
       atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
