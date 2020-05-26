@@ -243,7 +243,8 @@
                     <span class="n">target_labels</span><span class="p">,</span>
                     <span class="n">target_weights</span><span class="p">,</span>
                     <span class="n">target_paddings</span><span class="p">,</span>
-                    <span class="n">target_segment_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                    <span class="n">target_segment_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">time_axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes cross-entropy loss given the softmax input, labels and weights.</span>
 
 <span class="sd">    Args:</span>
@@ -254,6 +255,8 @@
 <span class="sd">      target_weights: A matrix of params.dtype. [time, batch].</span>
 <span class="sd">      target_paddings: A matrix of params.dtype. [time, batch].</span>
 <span class="sd">      target_segment_ids: A matrix of params.dtype. [time, batch].</span>
+<span class="sd">      time_axis: If 0, the inputs are time-major: [time, batch, ...]; if 1, the</span>
+<span class="sd">        inputs are batch-major: [batch, time, ...].</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tuple (metrics, per_example_tensors).</span>
@@ -273,10 +276,16 @@
           <span class="n">class_ids</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_labels</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]))</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># [time, batch, num_classes]</span>
-      <span class="n">target_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">smoother</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">),</span>
-                              <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">target_labels</span><span class="p">),</span>
-                              <span class="n">target_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">time_axis</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">target_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+                <span class="n">theta</span><span class="o">.</span><span class="n">smoother</span><span class="p">,</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">),</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">target_labels</span><span class="p">),</span>
+                <span class="n">target_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">target_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">smoother</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span> <span class="n">target_labels</span><span class="p">,</span> <span class="n">target_ids</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
       <span class="n">xent_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">softmax</span><span class="p">,</span> <span class="p">[</span><span class="n">softmax_input</span><span class="p">],</span>
           <span class="n">class_weights</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]),</span>
@@ -293,7 +302,8 @@
       <span class="c1"># [time, batch]</span>
       <span class="n">per_example_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">xent_loss</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span>
                                     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">))</span>
-      <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_example_loss</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+      <span class="n">per_sequence_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+          <span class="n">per_example_loss</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">time_axis</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
         <span class="k">assert</span> <span class="n">target_segment_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="p">(</span>
             <span class="s1">&#39;Need target segment ids for &#39;</span>
@@ -318,7 +328,8 @@
       <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">xent_loss</span><span class="o">.</span><span class="n">per_example_xent</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">))</span>
       <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_sequence_loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
-          <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+          <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_example_loss&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">target_weights</span><span class="p">,</span>
+          <span class="n">axis</span><span class="o">=</span><span class="n">time_axis</span><span class="p">)</span>
       <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;loss&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;per_sequence_loss&#39;</span><span class="p">]</span>
       <span class="n">per_example_tensors</span><span class="p">[</span><span class="s1">&#39;logits&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
           <span class="n">xent_loss</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span>

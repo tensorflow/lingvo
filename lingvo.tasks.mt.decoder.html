@@ -198,7 +198,7 @@
 
 <dl class="py method">
 <dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">
-<code class="sig-name descname">_FPropSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_paddings</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_FPropSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_paddings</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes cross-entropy loss given the softmax input, labels and weights.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -210,6 +210,8 @@ layer and its children layers.</p></li>
 <li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
 <li><p><strong>target_paddings</strong> – A matrix of params.dtype. [time, batch].</p></li>
 <li><p><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>time_axis</strong> – If 0, the inputs are time-major: [time, batch, …]; if 1, the
+inputs are batch-major: [batch, time, …].</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
