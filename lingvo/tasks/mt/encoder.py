@@ -21,6 +21,7 @@ from __future__ import print_function
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import batch_major_attention
 from lingvo.core import layers
 from lingvo.core import model_helper
 from lingvo.core import py_utils
@@ -734,3 +735,194 @@ class TransformerEncoder(base_layer.BaseLayer):
   def FPropFullSequence(self, theta, ids, paddings):
     return self.FProp(theta, py_utils.NestedMap(ids=ids,
                                                 paddings=paddings))['encoded']
+
+
+class TransformerBatchMajorEncoder(base_layer.BaseLayer):
+  """Transformer encoder with batch major implementation.
+
+  This encoder first applies dropout to the input embeddings,
+  then returns encoded output produced by p.transformer_stack using
+  self_attention_layer builder.
+
+  Example definition for a stack of 6 transformer layers:
+
+  builder_params = self_attention_layer.Builder.Params().Set(
+      model_dim=model_dim,
+      ff_hidden_dim=ff_hidden_dim,
+      num_heads=num_heads,
+      selfatten_add_unnormalized_input=False,
+      selfatten_enable_value_proj=True)
+
+  p.transformer_stack = builder_params.Instantiate().TransformerStack(
+      'transformer_stack', 6)
+
+  Implements the encoder of 'Attention is All You Need':
+  https://arxiv.org/abs/1706.03762.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerBatchMajorEncoder, cls).Params()
+
+    # Default config for the token embedding.
+    p.Define(
+        'token_emb',
+        layers.EmbeddingLayer.Params().Set(
+            vocab_size=32000,
+            embedding_dim=1024,
+            max_num_shards=16,
+            params_init=py_utils.WeightInit.Gaussian(1.0 / math.sqrt(1024)),
+            scale_sqrt_depth=True), 'Embedding layer params.')
+
+    p.Define('shared_emb', None, 'Embedding shared with Decoder.')
+
+    # Default config for the position embedding.
+    p.Define('position_emb',
+             layers.PositionalEmbeddingLayer.Params().Set(embedding_dim=1024),
+             'Positional Embedding layer params.')
+
+    p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
+    p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
+    p.Define('input_dropout_tpl', layers.DropoutLayer.Params(),
+             'Input dropout layer params.')
+    p.Define('transformer_stack', None, 'TransformerStack layer params.')
+    p.Define(
+        'packed_input', False, 'If True, encoder and all layers support '
+        'multiple examples in a single sequence.')
+    p.Define('final_layer_norm', False,
+             'Whether or not to apply the final layer normalization.')
+    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define(
+        'output_data_format', 'TBC', 'The data format of output features: '
+        'TBC for [time, batch, feature_dim], '
+        'BTC for [batch, time, feature_dim].')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerBatchMajorEncoder, self).__init__(params)
+    p = self.params
+
+    assert p.output_data_format in ('TBC', 'BTC')
+
+    if p.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.CreateChild('softmax', p.shared_emb)
+
+    with tf.variable_scope(p.name):
+      p.token_emb.dtype = p.dtype
+      if not p.shared_emb:
+        self.CreateChild('token_emb', p.token_emb)
+      self.CreateChild('position_emb', p.position_emb)
+
+      dropout_tpl = p.input_dropout_tpl.Copy()
+      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+      self.CreateChild('input_dropout', dropout_tpl)
+
+      if p.transformer_stack:
+        self.CreateChild('transformer_stack', p.transformer_stack)
+
+      if p.final_layer_norm:
+        layer_norm_p = layers.LayerNorm.Params().Set(
+            name='final_ln',
+            input_dim=p.model_dim,
+            use_fused_layernorm=p.use_fused_layernorm,
+            fprop_dtype=p.input_dropout_tpl.fprop_dtype)
+        self.CreateChild('final_ln', layer_norm_p)
+
+  def FProp(self, theta, input_batch):
+    """Embeds source ids and transforms with TransformerStack.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      input_batch: A `.NestedMap` object containing: ids - The inputs tensor of
+        shape [batch, time]. paddings - The ids' paddings of shape [batch,
+        time].
+
+    Returns:
+      A '.NestedMap' object containing:
+        encoded - The encoded features of shape [time, batch, dim] or [batch,
+          time, dim], depending p.output_data_format.
+        padding - The encoded features' padding of shape [time, batch] or
+          [batch, time].
+        segment_id - The segmentation of packed inputs of shape [time, batch] or
+          [batch, time] if it is supported by the model, or None otherwise.
+        embedded_inputs - The embedded inputs tokens without positional
+          encodings of shape [time, batch, dim] or [batch, time, dim].
+    """
+
+    p = self.params
+    with tf.name_scope(p.name):
+      # [batch, time]
+      input_ids = input_batch.ids
+      # [batch, time]
+      paddings = input_batch.paddings
+
+      # [batch, time]
+      segment_ids = input_batch.segment_ids if p.packed_input else None
+
+      batch = py_utils.GetShape(input_ids)[0]
+      time = py_utils.GetShape(input_ids)[1]
+
+      # Embedding layer.
+      # [batch, time, dim]
+      if not p.shared_emb:
+        input_embs = self.token_emb.EmbLookup(theta.token_emb, input_ids)
+      else:
+        input_embs = self.softmax.EmbLookup(theta.softmax, input_ids)
+      orig_input_embs = input_embs
+
+      # [1, time, dim]
+      if p.packed_input:
+        positions = input_batch.segment_pos
+        position_embs = tf.expand_dims(
+            self.position_emb.FPropWithPosition(theta.position_emb, positions),
+            0)
+      else:
+        position_embs = tf.expand_dims(
+            self.position_emb.FProp(theta.position_emb, time), 0)
+
+      # [batch, time, dim]
+      input_embs += position_embs
+
+      if p.input_dropout_tpl.fprop_dtype:
+        input_embs = tf.cast(input_embs, p.input_dropout_tpl.fprop_dtype)
+        paddings = tf.cast(paddings, p.input_dropout_tpl.fprop_dtype)
+
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+      # [batch, time, dim]
+      transformer_input = input_embs
+      # Explicitly set the input shape of Transformer layers, to avoid
+      # unknown shape error occurred to tf.einsum on nonTPU devices.
+      transformer_input = tf.reshape(transformer_input,
+                                     [batch, time, p.model_dim])
+
+      # Compute self-attention segment mask once.
+      if p.packed_input:
+        segment_mask = batch_major_attention.SegmentMask(
+            segment_ids, segment_ids, dtype=transformer_input.dtype)
+      else:
+        segment_mask = tf.zeros([batch, 1, time, time])
+
+      encoded, padding = self.transformer_stack.FProp(theta.transformer_stack,
+                                                      transformer_input,
+                                                      paddings, segment_mask)
+
+      if p.final_layer_norm:
+        encoded = self.final_ln.FProp(theta.final_ln, encoded)
+
+      seq_lengths = tf.cast(tf.reduce_sum(1. - padding, axis=1), tf.int32)
+
+      if p.output_data_format == 'TBC':
+        encoded = tf.transpose(encoded, [1, 0, 2])  # [time, batch, dim]
+        padding = tf.transpose(padding)  # [time, batch]
+        segment_ids = tf.transpose(segment_ids) if p.packed_input else None
+        orig_input_embs = tf.transpose(orig_input_embs, [1, 0, 2])
+
+      return py_utils.NestedMap(
+          encoded=encoded,
+          padding=padding,
+          seq_lengths=seq_lengths,  # used by beam_search_helper.
+          segment_id=segment_ids,
+          embedded_inputs=orig_input_embs)

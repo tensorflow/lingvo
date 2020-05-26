@@ -58,6 +58,7 @@ py_library(
         ":layers",
         "//lingvo:compat",
         "//lingvo/core:base_layer",
+        "//lingvo/core:batch_major_attention",
         "//lingvo/core:layers",
         "//lingvo/core:model_helper",
         "//lingvo/core:py_utils",
@@ -76,6 +77,7 @@ py_test(
         ":encoder",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
+        "//lingvo/core:self_attention_layer",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
     ],
@@ -90,6 +92,7 @@ py_library(
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
         "//lingvo/core:base_layer",
+        "//lingvo/core:batch_major_attention",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:model_helper",

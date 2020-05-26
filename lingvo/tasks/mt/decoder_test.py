@@ -1132,5 +1132,179 @@ class InsertionDecoderTest(TransformerDecoderTestCaseBase):
     self.assertIsInstance(dec, decoder.InsertionDecoder)
 
 
+class TransformerBatchMajorDecoderTest(test_utils.TestCase,
+                                       parameterized.TestCase):
+  """Test Transformer decoder."""
+
+  def _ConstructTransformerBatchMajorDecoder(self,
+                                             dtype=tf.float32,
+                                             packed_input=False,
+                                             **kwargs):
+    p = decoder.TransformerBatchMajorDecoder.Params()
+    p.name = 'decoder'
+    p.packed_input = packed_input
+    p.source_dim = 4
+    p.model_dim = 4
+    p.num_trans_layers = 6
+    disable_vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.token_emb.vn = disable_vn
+    p.token_emb.vocab_size = 20
+    p.token_emb.embedding_dim = 4
+    p.token_emb.max_num_shards = 1
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.position_emb.embedding_dim = 4
+    p.trans_decoder_tpl.vn = disable_vn
+    p.trans_decoder_tpl.input_dim = 4
+    p.trans_decoder_tpl.tr_atten_tpl.input_dim = 4
+    p.trans_decoder_tpl.tr_atten_tpl.num_heads = 2
+    p.trans_decoder_tpl.tr_fflayer_tpl.input_dim = 4
+    p.trans_decoder_tpl.tr_fflayer_tpl.hidden_dim = 8
+    p.trans_decoder_tpl.packed_input = packed_input
+    p.softmax.vn = disable_vn
+    p.softmax.num_classes = 20
+    p.softmax.num_shards = 1
+    p.per_word_avg_loss = False
+    p.random_seed = 12345
+    p.target_seq_len = 5
+    p.beam_search.num_hyps_per_beam = 2
+    p.beam_search.coverage_penalty = 0.0
+    p.beam_search.length_normalization = 0
+    p.dtype = dtype
+    for k, v in kwargs.items():
+      setattr(p, k, v)
+    for lp in base_layer.RecursiveFindLayerParams(p):
+      lp.dtype = dtype
+    return decoder.TransformerBatchMajorDecoder(p)
+
+  def _Inputs(self, dtype=tf.float32, packed_input=False):
+    np.random.seed(9885784)
+    source_time = 5
+    batch = 4
+    dim = 4
+    encoded = tf.constant(
+        np.random.normal(size=[source_time, batch, dim]), dtype=dtype)
+    padding = tf.zeros([source_time, batch], dtype=dtype)
+    target_time = 5
+    target_ids = tf.constant(
+        np.random.randint(20, size=[batch, target_time]), dtype=tf.int32)
+    target_labels = tf.constant(
+        np.random.randint(20, size=[batch, target_time]), dtype=tf.int32)
+    target_paddings = tf.zeros([batch, target_time], dtype=dtype)
+    target_weights = 1.0 - target_paddings
+    targets = py_utils.NestedMap({
+        'ids': target_ids,
+        'labels': target_labels,
+        'weights': target_weights,
+        'paddings': target_paddings
+    })
+    encoder_outputs = py_utils.NestedMap(encoded=encoded, padding=padding)
+
+    if packed_input:
+      encoder_outputs.segment_id = tf.tile(
+          tf.constant(np.asarray([[1, 1, 2, 2, 2]]), dtype=tf.float32),
+          [batch, 1])
+      encoder_outputs.segment_id = tf.transpose(encoder_outputs.segment_id)
+      targets.segment_pos = tf.tile(
+          tf.constant(np.asarray([[0, 1, 0, 1, 2]]), dtype=tf.float32),
+          [batch, 1])
+      targets.segment_ids = tf.tile(
+          tf.constant(np.asarray([[1, 1, 2, 2, 2]]), dtype=tf.float32),
+          [batch, 1])
+    return encoder_outputs, targets
+
+  def testDecoderConstruction(self):
+    _ = self._ConstructTransformerBatchMajorDecoder()
+
+  def testDecoderConstructionPackedInput(self):
+    self._ConstructTransformerBatchMajorDecoder(packed_input=True)
+
+  @parameterized.named_parameters(('TBC', 'TBC'), ('BTC', 'BTC'))
+  def testDecoderFProp(self, prediction_data_format):
+    with self.session(use_gpu=True) as sess:
+      dec = self._ConstructTransformerBatchMajorDecoder(
+          prediction_data_format=prediction_data_format,
+          per_example_tensors=True)
+      encoder_outputs, targets = self._Inputs()
+      dec_out = dec.FPropDefaultTheta(encoder_outputs, targets)
+      dec_out = tf.nest.map_structure(tf.convert_to_tensor, dec_out)
+      tf.global_variables_initializer().run()
+      actual_dec_out = sess.run(dec_out)
+      print('actual decoder output =', actual_dec_out)
+      self.assertAllClose(21.456993, actual_dec_out.metrics['loss'][0])
+
+  def testDecoderFPropPackedInput(self):
+    with self.session(use_gpu=True) as sess:
+      dec = self._ConstructTransformerBatchMajorDecoder(packed_input=True)
+      encoder_outputs, targets = self._Inputs(packed_input=True)
+      loss, _ = dec.FPropDefaultTheta(encoder_outputs, targets).metrics['loss']
+      tf.global_variables_initializer().run()
+      actual_loss = sess.run(loss)
+      print('actual loss = ', actual_loss)
+      self.assertAllClose(11.993881, actual_loss)
+
+  def testDecoderExtendStep(self):
+    with self.session(use_gpu=True) as sess:
+      dec = self._ConstructTransformerBatchMajorDecoder()
+      encoder_outputs, targets = self._Inputs()
+
+      layer_out1 = dec._FProp(dec.theta, encoder_outputs, targets)
+
+      prefix_states = py_utils.NestedMap()
+      for i in range(6):
+        layer_i_states = py_utils.NestedMap()
+        layer_i_states.key = tf.zeros([5, 4, 2, 2])
+        layer_i_states.value = tf.zeros([5, 4, 2, 2])
+        prefix_states['layer_%i' % i] = layer_i_states
+
+      layer_out2 = []
+      for i in range(5):
+        layer_i_out, prefix_states = dec.ExtendStep(
+            dec.theta, encoder_outputs, tf.expand_dims(targets.ids[:, i], 1), i,
+            prefix_states)
+        layer_out2.append(layer_i_out)
+      layer_out2 = tf.stack(layer_out2)
+
+      tf.global_variables_initializer().run()
+      actual_layer_out1, actual_layer_out2 = sess.run([layer_out1, layer_out2])
+      self.assertAllClose(actual_layer_out1, actual_layer_out2)
+
+  def testBeamSearchDecode(self):
+    with self.session(use_gpu=True) as sess:
+      dec = self._ConstructTransformerBatchMajorDecoder()
+      encoder_outputs, _ = self._Inputs()
+      decode = dec.BeamSearchDecode(encoder_outputs)
+      # topk_decoded is None in MT decoder, set it to a fake tensor to pass
+      # sess.run(decode).
+      decode = decode._replace(topk_decoded=tf.constant(0, tf.float32))
+
+      tf.global_variables_initializer().run()
+      actual_decode = sess.run(decode)
+
+      source_batch = 4
+      source_time = 5
+      num_hyps_per_beam = 2
+      self.assertTupleEqual((source_time, source_batch * num_hyps_per_beam),
+                            actual_decode.done_hyps.shape)
+      self.assertTupleEqual((source_batch, num_hyps_per_beam),
+                            actual_decode.topk_hyps.shape)
+      self.assertTupleEqual((source_batch * num_hyps_per_beam, source_time),
+                            actual_decode.topk_ids.shape)
+      self.assertTupleEqual((source_batch * num_hyps_per_beam,),
+                            actual_decode.topk_lens.shape)
+      self.assertTupleEqual((source_batch, num_hyps_per_beam),
+                            actual_decode.topk_scores.shape)
+
+      expected_topk_ids = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [2, 0, 0, 0, 0],
+                           [16, 11, 18, 2, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
+                           [2, 0, 0, 0, 0], [16, 16, 8, 2, 0]]
+      expected_topk_lens = [0, 0, 1, 4, 0, 0, 1, 4]
+      expected_topk_scores = [[0., 0.], [-1.325442, -5.175302], [0., 0.],
+                              [-1.85333, -6.320226]]
+
+      self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
+      self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)
+      self.assertAllClose(expected_topk_scores, actual_decode.topk_scores)
+
+
 if __name__ == '__main__':
   tf.test.main()

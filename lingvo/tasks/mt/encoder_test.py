@@ -16,6 +16,7 @@
 
 import lingvo.compat as tf
 from lingvo.core import py_utils
+from lingvo.core import self_attention_layer
 from lingvo.core import test_utils
 from lingvo.tasks.mt import encoder
 import numpy as np
@@ -458,6 +459,103 @@ class TransformerEncoderTest(test_utils.TestCase):
     enc_vars = mt_enc.vars
     flatten_vars = enc_vars.Flatten()
     self.assertEqual(len(flatten_vars), 91)
+
+
+class TransformerBatchMajorEncoderTest(test_utils.TestCase):
+
+  def _TestBuilder(self, model_dim, ff_hidden_dim, num_heads, packed_input):
+    return self_attention_layer.Builder.Params().Set(
+        model_dim=model_dim,
+        ff_hidden_dim=ff_hidden_dim,
+        num_heads=num_heads,
+        selfatten_add_unnormalized_input=False,
+        selfatten_enable_value_proj=False,
+        packed_input=packed_input).Instantiate()
+
+  def _EncoderParams(self, packed_input=False):
+    p = encoder.TransformerBatchMajorEncoder.Params()
+    p.name = 'transformer_encoder'
+    p.packed_input = packed_input
+    p.token_emb.params_init = py_utils.WeightInit.GaussianSqrtDim()
+    p.token_emb.vocab_size = 64
+    p.token_emb.embedding_dim = 16
+    p.token_emb.max_num_shards = 1
+    p.token_emb.vn = py_utils.VariationalNoiseParams(1.0, False, False)
+    p.model_dim = 16
+    p.position_emb.embedding_dim = 16
+    stack = self._TestBuilder(16, 5, 2, packed_input).TransformerStack(
+        'transformer_stack', 6)
+    p.transformer_stack = (
+        self_attention_layer.StackedTransformerEncoderLayers.Cast(stack))
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    return p
+
+  def testEncoderConstruction(self):
+    p = self._EncoderParams()
+    p.Instantiate()
+
+  def testForwardPass(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 21
+      d = 16
+      tf.random.set_seed(8372749040)
+      p = self._EncoderParams()
+      mt_enc = p.Instantiate()
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, sl], dtype=np.int32))
+      batch.paddings = tf.zeros([bs, sl])
+      out = mt_enc.FPropDefaultTheta(batch)
+      enc_out_sum = tf.reduce_sum(out.encoded)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+
+      self.assertAllEqual([sl, bs, d], actual_enc_out.shape)
+      self.assertAllClose(306.010132, actual_enc_out_sum)
+
+  def testForwardPassPackedInput(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 21
+      d = 16
+      tf.random.set_seed(8372749040)
+      p = self._EncoderParams(packed_input=True)
+
+      mt_enc = p.Instantiate()
+      batch = py_utils.NestedMap()
+      batch.ids = tf.constant(
+          np.random.randint(low=0, high=63, size=[bs, sl], dtype=np.int32))
+
+      # Pack these into a single batch
+      packed_bs = 1
+      packed_sl = 2 * sl
+      batch.ids = tf.reshape(batch.ids, [packed_bs, packed_sl])
+
+      batch.paddings = tf.zeros([packed_bs, packed_sl])
+      batch.segment_pos = [
+          [i for i in range(sl)] + [i for i in range(sl)],
+      ]
+      batch.segment_ids = [
+          [0 for i in range(sl)] + [1 for i in range(sl)],
+      ]
+
+      out = mt_enc.FPropDefaultTheta(batch)
+      enc_out_sum = tf.reduce_sum(out.encoded)
+
+      tf.global_variables_initializer().run()
+      actual_enc_out, actual_enc_out_sum = sess.run([out.encoded, enc_out_sum])
+
+      self.assertAllEqual([packed_sl, packed_bs, d], actual_enc_out.shape)
+      self.assertAllClose(306.010132, actual_enc_out_sum)
+
+  def testEncoderVars(self):
+    p = self._EncoderParams()
+    mt_enc = p.Instantiate()
+    enc_vars = mt_enc.vars
+    flatten_vars = enc_vars.Flatten()
+    self.assertLen(flatten_vars, 91)
 
 
 if __name__ == '__main__':

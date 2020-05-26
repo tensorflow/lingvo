@@ -3,6 +3,7 @@
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
+#
 # You may obtain a copy of the License at
 #
 #     http://www.apache.org/licenses/LICENSE-2.0
@@ -23,6 +24,7 @@ import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_decoder
 from lingvo.core import base_layer
+from lingvo.core import batch_major_attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import model_helper
@@ -32,8 +34,10 @@ from lingvo.core import quant_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import summary_utils
-from six.moves import range
+import six
 from six.moves import zip
+
+from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
 
 
 @tf.Defun()
@@ -1520,6 +1524,7 @@ class TransformerDecoder(MTBaseDecoder):
             A tensor of shape [src_batch, src_len].
           target_ids:
             Initial empty list of decoded ids. [num_hyps, 0].
+
     """
     p = self.params
 
@@ -1600,6 +1605,7 @@ class TransformerDecoder(MTBaseDecoder):
              A tensor of shape [src_batch, src_len].
            target_ids:
              Updated list of decoded ids. [num_hyps, Num of decoded ids].
+
     """
     p = self.params
 
@@ -1958,3 +1964,650 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
         'log_probs': log_probs,
         'logits': logits
     })
+
+
+class TransformerBatchMajorDecoder(MTBaseDecoder):
+  """Transformer decoder with batch major implementation.
+
+  Implements the decoder of Transformer model:
+  https://arxiv.org/abs/1706.03762.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerBatchMajorDecoder, cls).Params()
+    p.Define('token_emb', layers.EmbeddingLayer.Params(),
+             'Token embedding layer params.')
+    p.Define('shared_emb', None, 'Embedding shared with softmax.')
+    p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
+             'Position embedding layer params.')
+    p.Define('source_dim', 1024, 'Dimension of encoder outputs.')
+    p.Define(
+        'model_dim', 1024, 'Model dimension that applies to embedding '
+        'layers and all Transformer layers.')
+    p.Define('num_trans_layers', 6, 'Number of Transformer layers.')
+    p.Define('trans_decoder_tpl',
+             batch_major_attention.TransformerDecoderLayer.Params(),
+             'Transformer layer params.')
+    p.Define('input_dropout_prob', 0.0, 'Prob at which we do input dropout.')
+    p.Define('input_dropout_tpl', layers.DropoutLayer.Params(),
+             'Input dropout layer params.')
+    p.Define('final_layer_norm', False,
+             'Whether or not to apply layer norm after transformer stack.')
+    p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define('use_fast_softmax', False,
+             'Whether or not to use a faster softmax with label smoothing.')
+    p.Define(
+        'input_data_format', 'TBC', 'The data format of input features: '
+        'TBC for [time, batch, feature_dim], '
+        'BTC for [batch, time, feature_dim].')
+    p.Define(
+        'prediction_data_format', 'TBC',
+        'The data format of predictions and per-example losses: '
+        'TBC for [time, batch, ...], '
+        'BTC for [batch, time, ...].')
+
+    # Default config for the token embedding.
+    p.token_emb.vocab_size = 32000
+    p.token_emb.embedding_dim = p.model_dim
+    p.token_emb.max_num_shards = 16
+    p.token_emb.params_init = py_utils.WeightInit.Gaussian(
+        1.0 / math.sqrt(p.token_emb.embedding_dim))
+    p.token_emb.scale_sqrt_depth = True
+
+    # Default config for the position embedding.
+    p.position_emb.embedding_dim = p.model_dim
+
+    # Default config for the transformer decoder layers.
+    p.trans_decoder_tpl.input_dim = p.model_dim
+    p.trans_decoder_tpl.tr_atten_tpl.input_dim = p.model_dim
+    p.trans_decoder_tpl.tr_atten_tpl.num_heads = 8
+    p.trans_decoder_tpl.tr_fflayer_tpl.input_dim = p.model_dim
+    p.trans_decoder_tpl.tr_fflayer_tpl.hidden_dim = 2048
+
+    # Default config for beam search.
+    p.target_seq_len = 300
+    p.beam_search.length_normalization = 0.5
+    p.beam_search.coverage_penalty = 0.0
+    p.beam_search.batch_major_state = False
+    p.beam_search.batch_major_compute = True
+    p.beam_search.short_seq_limit = 40
+
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TransformerBatchMajorDecoder, self).__init__(params)
+    p = self.params
+
+    if p.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.CreateChild('softmax', p.shared_emb)
+
+    with tf.variable_scope(p.name):
+      if not p.shared_emb:
+        self.CreateChild('token_emb', p.token_emb)
+      self.CreateChild('position_emb', p.position_emb)
+
+      dropout_tpl = p.input_dropout_tpl.Copy()
+      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+      self.CreateChild('input_dropout', dropout_tpl)
+
+      params_trans_layers = []
+      for i in range(p.num_trans_layers):
+        params = p.trans_decoder_tpl.Copy()
+        params.name = 'decoder_trans_layer_%d' % i
+        params_trans_layers.append(params)
+      self.CreateChildren('decoder_trans', params_trans_layers)
+
+      p.softmax.input_dim = p.model_dim
+      if not p.shared_emb:
+        self.CreateChild('softmax', p.softmax)
+
+      if p.final_layer_norm:
+        layer_norm_p = layers.LayerNorm.Params().Set(
+            name='final_ln',
+            input_dim=p.model_dim,
+            use_fused_layernorm=p.use_fused_layernorm,
+            fprop_dtype=p.input_dropout_tpl.fprop_dtype)
+        self.CreateChild('final_ln', layer_norm_p)
+
+  def _MaybeTransposeEncoderOutputs(self, encoder_outputs, target_data_format):
+    p = self.params
+    if p.input_data_format == target_data_format:
+      return encoder_outputs
+    transposed = py_utils.NestedMap(
+        encoded=tf.transpose(encoder_outputs.encoded, [1, 0, 2]),
+        padding=tf.transpose(encoder_outputs.padding))
+    if getattr(encoder_outputs, 'segment_id', None) is None:
+      transposed.segment_id = None
+    else:
+      transposed.segment_id = tf.transpose(encoder_outputs.segment_id)
+    return transposed
+
+  def _MaybeTransposeTargets(self, targets):
+    p = self.params
+    if p.prediction_data_format == 'BTC':
+      return targets
+    transposed = py_utils.NestedMap()
+    for k, v in targets.items():
+      if v is not None:
+        with tf.name_scope('transpose_%s' % k):
+          v = tf.transpose(py_utils.HasShape(v, [-1, -1]))
+      transposed[k] = v
+    return transposed
+
+  def _FProp(self, theta, encoder_outputs, targets):
+    """Decodes `targets` given encoded source.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: A '.NestedMap' object computed by encoder. * encoded -
+        Source encoding of shape [source_time, source_batch, dim] or
+        [source_batch, source_time, dim], depending on p.input_data_format. *
+        paddings - Source encoding's padding of shape [source_time,
+        source_batch] or [source_batch, source_time].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [batch, target_time].
+
+    Returns:
+      softmax_input: Tensor of shape [target_time, batch, dim].
+    """
+    p = self.params
+    # [batch, source_time, dim]
+    encoder_out_bm = self._MaybeTransposeEncoderOutputs(encoder_outputs, 'BTC')
+    aux_vec = encoder_out_bm.encoded
+    aux_paddings = encoder_out_bm.padding
+    aux_segment_id = getattr(encoder_out_bm, 'segment_id', None)
+
+    with tf.name_scope(p.name):
+      # [batch, target_time]
+      target_ids = targets.ids
+      target_paddings = targets.paddings
+      target_time = py_utils.GetShape(target_ids)[1]
+      target_segment_pos = None
+      target_segment_id = None
+      if p.packed_input:
+        target_segment_id = targets.segment_ids
+        target_segment_pos = targets.segment_pos
+        assert aux_segment_id is not None, ('Need to provide aux_segment_id '
+                                            'for packed input.')
+
+      # Embedding layer
+      # [batch, target_time, dim]
+      if not p.shared_emb:
+        token_embs = self.token_emb.EmbLookup(theta.token_emb, target_ids)
+      else:
+        token_embs = self.softmax.EmbLookup(theta.softmax, target_ids)
+      # [1, target_time, dim]
+      if p.packed_input:
+        posit_embs = self.position_emb.FPropWithPosition(
+            theta.position_emb, target_segment_pos)
+      else:
+        posit_embs = tf.expand_dims(
+            self.position_emb.FProp(theta.position_emb, target_time), 0)
+      # [batch, target_time, dim]
+      input_embs = token_embs + posit_embs
+
+      if p.input_dropout_tpl.fprop_dtype:
+        input_embs = tf.cast(input_embs, p.input_dropout_tpl.fprop_dtype)
+        target_paddings = tf.cast(target_paddings,
+                                  p.input_dropout_tpl.fprop_dtype)
+
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+      layer_in = input_embs
+      # Explicitly set the input shape of Transformer layers, to avoid
+      # unknown shape error occurred to tf.einsum on nonTPU devices.
+      batch, _, dim = py_utils.GetShape(aux_vec, 3)
+      layer_in = tf.reshape(layer_in, [batch, target_time, dim])
+      if p.packed_input:
+        segment_mask = batch_major_attention.SegmentMask(
+            target_segment_id, target_segment_id, dtype=layer_in.dtype)
+        causal_padding = tf.expand_dims(
+            tf.tile(
+                tf.expand_dims(
+                    batch_major_attention.CausalPadding(
+                        target_time, dtype=layer_in.dtype), 0), [batch, 1, 1]),
+            1)
+        causal_mask = causal_padding * segment_mask.dtype.max * tf.constant(
+            -0.7, dtype=segment_mask.dtype)
+        segment_mask += causal_mask
+        aux_segment_mask = batch_major_attention.SegmentMask(
+            target_segment_id, aux_segment_id, dtype=layer_in.dtype)
+      for layer, layer_theta in zip(self.decoder_trans, theta.decoder_trans):
+        # [batch, target_time, dim]
+        layer_out, _ = layer.FProp(
+            layer_theta,
+            layer_in,
+            target_paddings,
+            aux_vec,
+            aux_paddings,
+            segment_mask=segment_mask if p.packed_input else None,
+            aux_segment_mask=aux_segment_mask if p.packed_input else None)
+        layer_in = layer_out
+
+      if p.final_layer_norm:
+        layer_out = self.final_ln.FProp(theta.final_ln, layer_out)
+      if p.prediction_data_format == 'TBC':
+        # Transpose the softmax_input to match the input requirement of
+        # ComputePredictions.
+        layer_out = tf.transpose(layer_out, [1, 0, 2])
+      return layer_out
+
+  def ExtendStep(self,
+                 theta,
+                 encoder_outputs,
+                 new_ids,
+                 time_step,
+                 prefix_states,
+                 use_short_seq_opt=False):
+    """Extend prefix as represented by `prefix_states` by one more step.
+
+    This function is expected to be called during fast decoding of Transformer
+    models.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: A '.NestedMap' object computed by encoder. * encoded -
+        Source encoding of shape [source_time, source_batch, dim] or
+        [source_batch, source_time, dim], depending on p.input_data_format. *
+        paddings - Source encoding's padding of shape [source_time,
+        source_batch] or [source_batch, source_time].
+      new_ids: New input ids, of shape [target_batch, 1].
+      time_step: A scalar, the current decode step, 0-based.
+      prefix_states: A `.NestedMap` representing the previous decoded states.
+        key   - [target_time, target_batch, num_heads, dim_per_head]. value -
+        [target_time, target_batch, num_heads, dim_per_head].
+      use_short_seq_opt: A bool, whether using short sequence optimization.
+
+    Returns:
+      last_decoder_out: The last decoder layer of shape [target_batch, dim].
+      updated_prefix_states: A `.NestedMap` representing the updated states.
+      key   - [target_time, target_batch, num_heads, dim_per_head].
+      value - [target_time, target_batch, num_heads, dim_per_head].
+    """
+    p = self.params
+    encoder_out_bm = self._MaybeTransposeEncoderOutputs(encoder_outputs, 'BTC')
+    # [source_batch, source_time, dim]
+    aux_vec = encoder_out_bm.encoded
+    # [source_batch, source_time]
+    aux_paddings = encoder_out_bm.padding
+
+    with tf.name_scope(p.name):
+      # Embedding layer
+      # [target_batch, 1, dim]
+      if not p.shared_emb:
+        token_embs = self.token_emb.EmbLookup(theta.token_emb, new_ids)
+      else:
+        token_embs = self.softmax.EmbLookup(theta.softmax, new_ids)
+      # [1, 1, dim]
+      if isinstance(time_step, tf.Tensor):
+        time_step_t = tf.reshape(time_step, [1, 1])
+      elif isinstance(time_step, six.integer_types):
+        time_step_t = tf.constant([[time_step]], dtype=tf.int32)
+      else:
+        raise ValueError('Unexpected input type `%s` for `time_step`.' %
+                         type(time_step))
+      posit_embs = self.position_emb.FPropWithPosition(theta.position_emb,
+                                                       time_step_t)
+      # [target_batch, 1, dim]
+      input_embs = token_embs + posit_embs
+
+      if p.input_dropout_tpl.fprop_dtype:
+        input_embs = tf.cast(input_embs, p.input_dropout_tpl.fprop_dtype)
+
+      # Make a copy of the input.
+      updated_prefix_states = prefix_states.DeepCopy()
+
+      input_embs = self.input_dropout.FProp(theta.input_dropout, input_embs)
+      layer_in = input_embs
+      for i, (layer, layer_theta) in enumerate(
+          zip(self.decoder_trans, theta.decoder_trans)):
+        # [target_batch, 1, dim]
+        layer_out, updated_states = layer.ExtendStep(
+            layer_theta, layer_in, aux_vec, aux_paddings,
+            prefix_states['layer_%i' % i], time_step, use_short_seq_opt)
+        updated_prefix_states['layer_%i' % i] = updated_states
+        layer_in = layer_out
+
+      # [target_batch, dim]
+      last_decoder_out = tf.squeeze(layer_out, 1)
+      if p.final_layer_norm:
+        last_decoder_out = self.final_ln.FProp(theta.final_ln, last_decoder_out)
+      return last_decoder_out, updated_prefix_states
+
+  def ComputePredictions(self, theta, encoder_outputs, targets):
+    """Decodes `targets` given encoded source.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: A '.NestedMap' object computed by encoder. * encoded -
+        Source encoding of shape [source_time, source_batch, dim] or
+        [source_batch, source_time, dim], depending on p.input_data_format. *
+        paddings - Source encoding's padding of shape [source_time,
+        source_batch] or [source_batch, source_time].
+      targets: A dict of string to tensors representing the targets one try to
+        predict. Each tensor in targets is of shape [batch, target_time].
+
+    Returns:
+      Output of the last decoder layer, of shape [target_time, batch, dim].
+    """
+    return self._FProp(theta, encoder_outputs, targets)
+
+  def _FPropFastSoftmax(self,
+                        theta,
+                        softmax_input,
+                        target_labels,
+                        target_weights,
+                        time_axis=0):
+    """Computes cross-entropy loss with label smoothing.
+
+    As compared to the _FPropSoftmax, this version is faster by removing the
+    data formatting overheads and bias of the linear projection. A normalizing
+    factor is also added to the xentropy result be better model quality.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].
+      target_labels: A matrix of tf.int32. [time, batch].
+      target_weights: A matrix of params.dtype. [time, batch].
+      time_axis: If 0, the inputs are time-major: [time, batch, ...]; if 1, the
+        inputs are batch-major: [batch, time, ...].
+
+    Returns:
+      A tuple (metrics, per_example_tensors).
+        metrics:
+          A dictionary containing metrics for the xent loss and prediction
+          accuracy.
+        per_example_tensors:
+          A dictionary of per-example tensors.
+    """
+    p = self.params
+    assert p.label_smoothing is not None
+    assert p.per_word_avg_loss
+
+    softmax_input = tf.reshape(softmax_input, [-1, p.softmax.input_dim])
+
+    logits = self.softmax.SimpleLogits(theta.softmax, softmax_input)
+    logits = tf.cast(logits, tf.float32)
+
+    high_confidence = 1.0 - p.label_smoothing.uncertainty
+    low_confidence = p.label_smoothing.uncertainty / tf.cast(
+        p.label_smoothing.num_classes - 1, tf.float32)
+    normalizing = -(
+        high_confidence * tf.math.log(high_confidence) +
+        tf.cast(p.softmax.num_classes - 1, tf.float32) * low_confidence *
+        tf.math.log(low_confidence + 1e-20))
+
+    target_labels = tf.reshape(target_labels, [-1])
+    soft_targets = tf.one_hot(
+        tf.cast(target_labels, tf.int32),
+        depth=p.softmax.num_classes,
+        on_value=high_confidence,
+        off_value=low_confidence)
+
+    xentropy = tf.nn.softmax_cross_entropy_with_logits(
+        logits=logits, labels=soft_targets)
+    xent = xentropy - normalizing
+
+    target_weights_shape = py_utils.GetShape(target_weights)
+    orig_target_weights = target_weights
+    target_weights = tf.cast(tf.reshape(target_weights, [-1]), xent.dtype)
+    total_xent = tf.reduce_sum(xent * target_weights)
+    total_weights = tf.reduce_sum(target_weights)
+
+    final_loss = total_xent / total_weights
+    loss_weight = total_weights
+
+    metrics = {
+        'loss': (final_loss, loss_weight),
+        'log_pplx': (final_loss, loss_weight),
+    }
+
+    per_example_tensors = {}
+    if p.per_example_tensors:
+      per_example_tensors['per_example_loss'] = tf.reshape(
+          xent, target_weights_shape)
+      per_example_tensors['per_sequence_loss'] = tf.reduce_sum(
+          per_example_tensors['per_example_loss'] * orig_target_weights,
+          axis=time_axis)
+      per_example_tensors['loss'] = per_example_tensors['per_sequence_loss']
+      per_example_tensors['logits'] = tf.reshape(
+          logits, tf.concat([target_weights_shape, [-1]], 0))
+      per_example_tensors['log_probs'] = tf.reshape(
+          tf.nn.log_softmax(logits), tf.concat([target_weights_shape, [-1]], 0))
+
+    # NOTE: tf.argmax is not implemented for the JF backend, see b/36093673
+    # Skip the fraction_of_correct_next_step_preds during training.
+    if self.do_eval:
+      correct_preds = tf.cast(
+          tf.equal(
+              tf.cast(tf.reshape(tf.argmax(logits, 1), [-1]), tf.int32),
+              tf.reshape(target_labels, [-1])), p.dtype)
+      correct_next_preds = tf.reduce_sum(
+          correct_preds * tf.reshape(tf.cast(target_weights, p.dtype), [-1]))
+      num_preds = tf.reduce_sum(tf.cast(target_weights, p.dtype))
+      accuracy = tf.identity(
+          correct_next_preds / num_preds,
+          name='fraction_of_correct_next_step_preds')
+      metrics['fraction_of_correct_next_step_preds'] = (accuracy, num_preds)
+    return metrics, per_example_tensors
+
+  def ComputeLoss(self, theta, predictions, targets):
+    """Populates a metrics dictionary based on the output of ComputePredictions.
+
+    Args:
+      theta: Nested map describing decoder model parameters.
+      predictions: NestedMap describing the decoding process, requiring:
+        .softmax_input: Tensor of shape [time, batch, params.softmax.input_dim].
+      targets: NestedMap describing the target sequences.
+
+    Returns:
+      Two dicts.
+
+        - A map from metric name (a python string) to a tuple (value, weight).
+          Both value and weight are scalar Tensors.
+        - A map from name to arbitrary tensors, where the first dimension must
+          be the batch index.
+    """
+    p = self.params
+    targets = self._MaybeTransposeTargets(targets)
+    if isinstance(predictions, py_utils.NestedMap):
+      predictions = predictions.softmax_input
+    time_axis = {'TBC': 0, 'BTC': 1}.get(p.prediction_data_format)
+    if p.use_fast_softmax:
+      return self._FPropFastSoftmax(
+          theta,
+          predictions,
+          targets.labels,
+          targets.weights,
+          time_axis=time_axis)
+    else:
+      return self._FPropSoftmax(
+          theta,
+          predictions,
+          targets.labels,
+          targets.weights,
+          targets.paddings,
+          targets.get('segment_ids', None),
+          time_axis=time_axis)
+
+  def _InitBeamSearchStateCallback(self, theta, encoder_outputs,
+                                   num_hyps_per_beam):
+    """Returns initial beams search states.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: A '.NestedMap' object computed by encoder. * encoded -
+        Source encoding of shape [source_time, source_batch, dim] or
+        [source_batch, source_time, dim], depending on p.input_data_format. *
+        paddings - Source encoding's padding of shape [source_time,
+        source_batch] or [source_batch, source_time].
+      num_hyps_per_beam: An int, number hyps to keep for source sentence.
+
+    Returns:
+      initial_results: A `.NestedMap` of initial beam search results.
+        log_probs - Log prob for each of the tokens in the target vocab,
+                    of shape [target_batch, vocab_size].
+        atten_probs - The updated attention probs, of shape
+                      [target_batch, source_time].
+      states: A `.NestedMap` of initial model states.
+        prefix_states - A `.NestedMap` representing the empty decoded states.
+        key   - [target_time, target_batch, num_heads, dim_per_head].
+        value - [target_time, target_batch, num_heads, dim_per_head].
+        time_step - A scalar, the initial decode step (0).
+    """
+    p = self.params
+
+    # [source_batch, source_time, dim]
+    encoder_out_bm = self._MaybeTransposeEncoderOutputs(encoder_outputs, 'BTC')
+    aux_vec = encoder_out_bm.encoded
+    target_batch = py_utils.GetShape(aux_vec)[0] * num_hyps_per_beam
+    source_time = py_utils.GetShape(aux_vec)[1]
+    target_time = p.target_seq_len
+
+    log_probs = tf.zeros([target_batch, p.softmax.num_classes],
+                         dtype=py_utils.FPropDtype(p))
+    # Dummy attention probs
+    atten_probs = (
+        tf.ones([target_batch, source_time], dtype=py_utils.FPropDtype(p)) /
+        tf.cast(source_time, py_utils.FPropDtype(p)))
+    initial_results = py_utils.NestedMap(
+        log_probs=log_probs, atten_probs=atten_probs)
+
+    dim = p.trans_decoder_tpl.tr_atten_tpl.hidden_dim
+    if not dim:
+      dim = p.model_dim
+    num_heads = p.trans_decoder_tpl.tr_atten_tpl.num_heads
+    # If per-head dim is less than 128, make the cached shape 128 to avoid
+    # padding and more efficient interpolation in beamsearch.
+    if dim // num_heads < 128 and dim % 128 == 0:
+      num_heads = dim // 128
+
+    def _GenStates():
+      return py_utils.NestedMap({
+          'key':
+              inplace_ops.empty(
+                  [target_time, target_batch, num_heads, dim // num_heads],
+                  dtype=py_utils.FPropDtype(p.trans_decoder_tpl),
+                  init=True),
+          'value':
+              inplace_ops.empty(
+                  [target_time, target_batch, num_heads, dim // num_heads],
+                  dtype=py_utils.FPropDtype(p.trans_decoder_tpl),
+                  init=True),
+      })
+
+    prefix_states = py_utils.NestedMap({
+        'layer_%d' % layer: _GenStates() for layer in range(p.num_trans_layers)
+    })
+
+    return initial_results, py_utils.NestedMap({
+        'prefix_states': prefix_states,
+        'time_step': tf.constant(0)
+    })
+
+  def _PreBeamSearchStepCallback(self,
+                                 theta,
+                                 encoder_outputs,
+                                 new_ids,
+                                 states,
+                                 num_hyps_per_beam,
+                                 use_short_seq_opt=False):
+    """Returns logits for sampling ids and the next model states.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      encoder_outputs: A '.NestedMap' object computed by encoder. * encoded -
+        Source encoding of shape [source_time, source_batch, dim] or
+        [source_batch, source_time, dim], depending on p.input_data_format. *
+        paddings - Source encoding's padding of shape [source_time,
+        source_batch] or [source_batch, source_time].
+      new_ids: A tensor of shape [target_batch, 1].
+      states: A `.NestedMap` of tensors representing states that the clients
+        would like to keep track of for each of the active hyps. prefix_states -
+        A `.NestedMap` representing the previous decoded states. key   -
+        [target_time, target_batch, num_heads, dim_per_head]. value -
+        [target_time, target_batch, num_heads, dim_per_head]. time_step - A
+        scalar, the current decode step, 0-based.
+      num_hyps_per_beam: A scalar, beam size.
+      use_short_seq_opt: A bool, whether using short sequence optimization.
+
+    Returns:
+      bs_results: A `.NestedMap` of beam search results.
+        log_probs - Log prob for each of the tokens in the target vocab,
+                    of shape [target_batch, vocab_size].
+        atten_probs - The updated attention probs, of shape
+                      [target_batch, source_time].
+      new_states: A `.NestedMap` object. The updated states.
+        prefix_states - A `.NestedMap` representing the updated decoded states.
+        key   - [target_time, target_batch, num_heads, dim_per_head].
+        value - [target_time, target_batch, num_heads, dim_per_head].
+        time_step - A scalar, the current decode step, 0-based.
+    """
+    p = self.params
+    # [source_batch, source_time, dim]
+    encoder_out_bm = self._MaybeTransposeEncoderOutputs(encoder_outputs, 'BTC')
+
+    target_batch = py_utils.GetShape(new_ids)[0]
+    source_batch = target_batch // num_hyps_per_beam
+
+    new_states = states.Pack(states.Flatten())
+    time_step = states.time_step
+    prefix_states = states.prefix_states
+
+    # The inputs are ordered as num_hyps_per_beam by num_beams,
+    # which needs to be transposed for the layer computation.
+    # [num_hyps_per_beam, source_batch, 1]
+    new_ids = tf.reshape(new_ids, [num_hyps_per_beam, source_batch, 1])
+    # [source_batch, num_hyps_per_beam, 1]
+    new_ids = tf.transpose(new_ids, [1, 0, 2])
+    # [source_batch * num_hyps_per_beam, 1]
+    new_ids = tf.reshape(new_ids, [-1, 1])
+
+    softmax_input, updated_prefix_states = self.ExtendStep(
+        theta, encoder_outputs, new_ids, time_step, prefix_states,
+        use_short_seq_opt)
+
+    # Transpose the outputs as num_beams by num_hyps_per_beam to match the
+    # beam search requirement.
+    # [source_batch, num_hyps_per_beam, dim]
+    softmax_input = tf.reshape(softmax_input,
+                               [source_batch, num_hyps_per_beam, -1])
+    # [num_hyps_per_beam, source_batch, dim]
+    softmax_input = tf.transpose(softmax_input, [1, 0, 2])
+    # [num_hyps_per_beam * source_batch, dim]
+    softmax_input = tf.reshape(softmax_input, [target_batch, -1])
+
+    # [target_batch, vocab_size]
+    logits = self.softmax.Logits(theta.softmax, [softmax_input])
+
+    # Only return logits for the last ids
+    log_probs = tf.nn.log_softmax(logits)
+
+    # Dummy attention probs
+    source_time = py_utils.GetShape(encoder_out_bm.padding)[1]
+    atten_probs = (
+        tf.ones([target_batch, source_time], dtype=py_utils.FPropDtype(p)) /
+        tf.cast(source_time, py_utils.FPropDtype(p)))
+
+    bs_results = py_utils.NestedMap({
+        'log_probs': log_probs,
+        'atten_probs': atten_probs,
+    })
+
+    new_states.prefix_states = updated_prefix_states
+    new_states.time_step = time_step + 1
+
+    return bs_results, new_states
+
+  def _PostBeamSearchStepCallback(self, theta, encoder_outputs, new_step_ids,
+                                  states):
+    # There is nothing to do here.
+    return states
