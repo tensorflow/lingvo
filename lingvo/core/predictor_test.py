@@ -46,6 +46,14 @@ class PredictorTest(test_utils.TestCase):
     inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(p)
     return inference_graph
 
+  def testPredictorFeedShapes(self):
+    pred = predictor.Predictor(self._testInferenceGraph())
+    self.assertEqual([1], pred.feed_shapes.feed1)
+
+  def testPredictorFetchShapes(self):
+    pred = predictor.Predictor(self._testInferenceGraph())
+    self.assertEqual([1], pred.fetch_shapes.fetch1)
+
   def testPredictor(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     [fetch1] = pred.Run(['fetch1'], feed1=[12345])

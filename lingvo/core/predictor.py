@@ -141,6 +141,20 @@ class Predictor(object):
   def feed_keys(self):
     return list(self._feeds.keys())
 
+  @property
+  def feed_shapes(self):
+    # Conversion from dict to NestedMap required.
+    return py_utils.Transform(
+        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
+        py_utils.NestedMap(self._feeds))
+
+  @property
+  def fetch_shapes(self):
+    # Conversion from dict to NestedMap required.
+    return py_utils.Transform(
+        lambda x: self._graph.get_tensor_by_name(x).shape.as_list(),
+        py_utils.NestedMap(self._fetches))
+
   @py_utils.RetryOnTransientTfError()
   def _CreateNewSession(self):
     """Updates self._sess with a new session."""
