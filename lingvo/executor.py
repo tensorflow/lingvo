@@ -71,28 +71,33 @@ def GetExecutorParams(model_name, cluster_params, model_registry):
 
     if issubclass(train_cfg.cls, base_model.MultiTaskModel):
       multi_task_train_cfg = train_cfg
-      # Create SingleTaskModelParams from a MultiTaskModelParams.
+      # Create MultiTaskSubModel params from a MultiTaskModelParams.
       for k, _ in multi_task_train_cfg.task_params.IterParams():
-        single_task_params = base_model.SingleTaskModel.Params()
-        single_task_params.cluster = multi_task_train_cfg.cluster
-        single_task_params.input = multi_task_train_cfg.input.Get(k)
-        single_task_params.task = multi_task_train_cfg.task_params.Get(k)
-        single_task_params.train = single_task_params.task.train
+        train_task_params = base_model.MultiTaskSubModel.Params()
+        train_task_params.name = k + '_executor_train_task'
+        train_task_params.model_params = multi_task_train_cfg.Copy()
+        train_task_params.task_name = k
+        train_task_params.cluster = multi_task_train_cfg.cluster
+        train_task_params.input = multi_task_train_cfg.input.Get(k).Copy()
+        train_task_params.train = multi_task_train_cfg.task_params.Get(k).train
         if k not in ps_cfg.program_schedule_dict:
           tf.logging.fatal(
               'Could not find %s in ps_cfg.program_schedule_dict: %s', k,
               ps_cfg)
         program_schedule_params = ps_cfg.program_schedule_dict[k]
 
-        program_schedule_params.task_dict = {'Train': single_task_params}
+        program_schedule_params.task_dict = {'Train': train_task_params}
 
         for eval_dataset_name in program_schedule_params.dataset_names:
           multi_task_eval_cfg = model_registry.GetParams(
               model_name, eval_dataset_name)
-          eval_task_params = base_model.SingleTaskModel.Params()
-          eval_task_params.cluster = single_task_params.cluster
-          eval_task_params.input = multi_task_eval_cfg.input.Get(k)
-          eval_task_params.task = multi_task_eval_cfg.task_params.Get(k)
+          eval_task_params = base_model.MultiTaskSubModel.Params()
+          eval_task_params.name = (
+              k + '_' + eval_dataset_name + '_executor_eval_task')
+          eval_task_params.model_params = multi_task_train_cfg.Copy()
+          eval_task_params.task_name = k
+          eval_task_params.cluster = multi_task_eval_cfg.cluster
+          eval_task_params.input = multi_task_eval_cfg.input.Get(k).Copy()
           program_schedule_params.task_dict[
               eval_dataset_name] = eval_task_params
         ps_params_dict[k] = program_schedule_params

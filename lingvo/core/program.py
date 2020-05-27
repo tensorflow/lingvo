@@ -174,6 +174,13 @@ class BaseProgram(object):
   def RestoreIfNeeded(self, sess):
     self._checkpointer.RestoreIfNeeded(sess)
 
+  def SkipCreateChild(self, params):
+    if issubclass(params.cls, base_model.MultiTaskSubModel):
+      for _, sub_params in params.model_params.input.IterParams():
+        if 'skip_create_child' not in params:
+          sub_params.Define('skip_create_child', True, '')
+    params.input.Define('skip_create_child', True, '')
+
 
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
@@ -280,7 +287,7 @@ class TrainProgram(BaseProgram):
       # Instantiate input generator first.
       self._input = self._task_params.input.Instantiate()
       self._input.CreateTpuEnqueueOps()
-      self._task_params.input.Define('skip_create_child', True, '')
+      self.SkipCreateChild(self._task_params)
 
       def TpuTrainStep(*args):
         """Train a shard of a batch on a single TPU core.
@@ -380,7 +387,7 @@ class EvalProgram(BaseProgram):
 
       self._input = self._task_params.input.Instantiate()
       self._input.CreateTpuEnqueueOps()
-      self._task_params.input.Define('skip_create_child', True, '')
+      self.SkipCreateChild(self._task_params)
 
       def TpuEvalStep(*args):
         """Eval a shard of a batch on a single TPU core.
@@ -470,7 +477,7 @@ class DecodeProgram(BaseProgram):
     # Instantiate input generator first.
     self._input = self._task_params.input.Instantiate()
     self._input.CreateTpuEnqueueOps()
-    self._task_params.input.Define('skip_create_child', True, '')
+    self.SkipCreateChild(self._task_params)
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""
@@ -679,7 +686,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
-      self._train_task_params.input.Define('skip_create_child', True, '')
+      self.SkipCreateChild(self._train_task_params)
       self._train_input = self._train_task_params.input.Instantiate()
       self._train_input.CreateTpuEnqueueOps()
 
@@ -710,7 +717,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     self._decode_input = self._decode_task_params.input.Instantiate()
     self._decode_input.CreateTpuEnqueueOps()
-    self._decode_task_params.input.Define('skip_create_child', True, '')
+    self.SkipCreateChild(self._decode_task_params)
 
     def _DecodeFn():
       """Decode call to be compiled for TPU."""

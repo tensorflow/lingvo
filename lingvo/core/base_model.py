@@ -1134,7 +1134,47 @@ class BaseModel(base_layer.BaseLayer):
     pass
 
 
-class SingleTaskModel(BaseModel):
+class SingleTaskBase(BaseModel):
+  """Represents a single task from a model.
+
+  Subclasses must create a Task in self._task by the end of __init__.
+  """
+
+  @classmethod
+  def Params(cls):
+    return super(SingleTaskBase, cls).Params()
+
+  @base_layer.initializer
+  def __init__(self, params):
+    assert issubclass(params.cls, SingleTaskBase)
+    super(SingleTaskBase, self).__init__(params)
+
+  @property
+  def tasks(self):
+    return [self._task]
+
+  def GetTask(self, task_name=None):
+    assert not task_name, 'Must not specify >task_name< for single-task model.'
+    return self._task
+
+  def SampleTask(self, global_step):
+    return self._task
+
+  def ConstructFPropBPropGraph(self):
+    if self.ema:
+      tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
+      self._task.ApplyExponentialMovingAverage(self.ema)
+    self._task.FPropDefaultTheta()
+    self._task.BProp()
+
+  def ConstructPostTrainingLoop(self):
+    self._task.PostTrainingLoop()
+
+  def ConstructFPropGraph(self):
+    self._task.FPropDefaultTheta()
+
+
+class SingleTaskModel(SingleTaskBase):
   """Model that consists of a single task."""
 
   @classmethod
@@ -1184,29 +1224,31 @@ class SingleTaskModel(BaseModel):
     with py_utils.GlobalStepContext(self.global_step):
       self.CreateChild('_task', p.task)
 
-  @property
-  def tasks(self):
-    return [self._task]
 
-  def GetTask(self, task_name=None):
-    assert not task_name, 'Must not specify >task_name< for single-task model.'
-    return self._task
+class MultiTaskSubModel(SingleTaskBase):
+  """'Model' consisting of a task from a multi-task model.
 
-  def SampleTask(self, global_step):
-    return self._task
+  The entire multi-task model is constructed, but otherwise this model
+  appears to be a SingleTaskModel consisting of just one of the multi-task
+  model's tasks.
+  """
 
-  def ConstructFPropBPropGraph(self):
-    if self.ema:
-      tf.logging.info('ApplyExponentialMovingAverage on %s', self._task)
-      self._task.ApplyExponentialMovingAverage(self.ema)
-    self._task.FPropDefaultTheta()
-    self._task.BProp()
+  @classmethod
+  def Params(cls):
+    p = super(MultiTaskSubModel, cls).Params()
+    p.name = 'multi_task_sub_model'
+    p.Define('model_params', None, 'Params of a model to create.')
+    p.Define('task_name', '', 'The name of the task to execute from the '
+             'enclosing model.')
+    return p
 
-  def ConstructPostTrainingLoop(self):
-    self._task.PostTrainingLoop()
-
-  def ConstructFPropGraph(self):
-    self._task.FPropDefaultTheta()
+  @base_layer.initializer
+  def __init__(self, params):
+    super(MultiTaskSubModel, self).__init__(params)
+    p = self.params
+    with py_utils.GlobalStepContext(self.global_step):
+      self.CreateChild('_model', p.model_params)
+      self._task = self._model.children.Get(p.task_name)
 
 
 class MultiTaskModel(BaseModel):
