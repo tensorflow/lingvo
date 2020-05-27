@@ -317,7 +317,14 @@
                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseProgram.SkipCreateChild"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.SkipCreateChild">[docs]</a>  <span class="k">def</span> <span class="nf">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">sub_params</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">model_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
+        <span class="k">if</span> <span class="s1">&#39;skip_create_child&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+          <span class="n">sub_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
@@ -425,7 +432,7 @@
       <span class="c1"># Instantiate input generator first.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
@@ -525,7 +532,7 @@
 
       <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
 
       <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Eval a shard of a batch on a single TPU core.</span>
@@ -615,7 +622,7 @@
     <span class="c1"># Instantiate input generator first.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
@@ -824,7 +831,7 @@
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
       <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
@@ -855,7 +862,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decode_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="p">)</span>
 
     <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
       <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>

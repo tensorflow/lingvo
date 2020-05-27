@@ -1279,7 +1279,47 @@
     <span class="k">pass</span></div></div>
 
 
-<div class="viewcode-block" id="SingleTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+<div class="viewcode-block" id="SingleTaskBase"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskBase</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Represents a single task from a model.</span>
+
+<span class="sd">  Subclasses must create a Task in self._task by the end of __init__.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SingleTaskBase.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span></div>
+
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">SingleTaskBase</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">]</span>
+
+<div class="viewcode-block" id="SingleTaskBase.GetTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.GetTask">[docs]</a>  <span class="k">def</span> <span class="nf">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">task_name</span><span class="p">,</span> <span class="s1">&#39;Must not specify &gt;task_name&lt; for single-task model.&#39;</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.SampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.SampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="SingleTaskBase.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SingleTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel">[docs]</a><span class="k">class</span> <span class="nc">SingleTaskModel</span><span class="p">(</span><span class="n">SingleTaskBase</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Model that consists of a single task.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="SingleTaskModel.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1327,31 +1367,33 @@
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_task&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_task&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task</span><span class="p">)</span></div>
 
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">]</span>
 
-<div class="viewcode-block" id="SingleTaskModel.GetTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.GetTask">[docs]</a>  <span class="k">def</span> <span class="nf">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="n">task_name</span><span class="p">,</span> <span class="s1">&#39;Must not specify &gt;task_name&lt; for single-task model.&#39;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+<div class="viewcode-block" id="MultiTaskSubModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskSubModel">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskSubModel</span><span class="p">(</span><span class="n">SingleTaskBase</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;&#39;Model&#39; consisting of a task from a multi-task model.</span>
 
-<div class="viewcode-block" id="SingleTaskModel.SampleTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.SampleTask">[docs]</a>  <span class="k">def</span> <span class="nf">SampleTask</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span></div>
+<span class="sd">  The entire multi-task model is constructed, but otherwise this model</span>
+<span class="sd">  appears to be a SingleTaskModel consisting of just one of the multi-task</span>
+<span class="sd">  model&#39;s tasks.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="SingleTaskModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ApplyExponentialMovingAverage on </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ema</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">BProp</span><span class="p">()</span></div>
+<div class="viewcode-block" id="MultiTaskSubModel.Params"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskSubModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiTaskSubModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multi_task_sub_model&#39;</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_params&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params of a model to create.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;task_name&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;The name of the task to execute from the &#39;</span>
+             <span class="s1">&#39;enclosing model.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="SingleTaskModel.ConstructPostTrainingLoop"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructPostTrainingLoop">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructPostTrainingLoop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostTrainingLoop</span><span class="p">()</span></div>
-
-<div class="viewcode-block" id="SingleTaskModel.ConstructFPropGraph"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel.ConstructFPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">()</span></div></div>
+  <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MultiTaskSubModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_model&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_params</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="MultiTaskModel"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskModel</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
