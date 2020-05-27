@@ -1093,6 +1093,7 @@ py_test(
         ":symbolic",
         ":test_helper",
         ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",

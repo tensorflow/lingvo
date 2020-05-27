@@ -22,6 +22,7 @@ import itertools
 import os
 import sys
 
+from absl.testing import flagsaver
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -464,12 +465,12 @@ class PyUtilsTest(test_utils.TestCase):
         sess.run(d, feed_dict={c: np.array([[1, 2]])})
 
   def testTensorRankDisableAsserts(self):
-    FLAGS.enable_asserts = False
-    c = tf.placeholder(tf.int32, shape=None)
-    d = py_utils.HasAtLeastRank(c, 3)
-    with self.session() as sess:
-      d_v = sess.run(d, feed_dict={c: np.array([[1, 2]])})
-      self.assertAllEqual([[1, 2]], d_v)
+    with flagsaver.flagsaver(enable_asserts=False):
+      c = tf.placeholder(tf.int32, shape=None)
+      d = py_utils.HasAtLeastRank(c, 3)
+      with self.session() as sess:
+        d_v = sess.run(d, feed_dict={c: np.array([[1, 2]])})
+        self.assertAllEqual([[1, 2]], d_v)
 
   def testGetShape(self):
     a = tf.constant([1])
