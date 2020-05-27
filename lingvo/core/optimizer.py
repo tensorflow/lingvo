@@ -314,7 +314,6 @@ class Adagrad(Base):
         learning_rate=lr, initial_accumulator_value=p.initial_accumulator_value)
 
   def AddSummary(self, lr, optimizer, var_grad):
-    p = self.params
     summary_utils.scalar('adagrad_lr', lr)
     for v, _ in var_grad.Flatten():
       slot = optimizer.get_slot(v, 'accumulator')
@@ -357,15 +356,15 @@ class Adam(Base):
     p.name = 'Adam'
     return p
 
-  @staticmethod
-  def ParamsA():
+  @classmethod
+  def ParamsA(cls):
     """Convenient method for a commonly used Adam config."""
-    return Adam.Params().Set(beta1=0.9, beta2=0.997, epsilon=1e-9)
+    return cls.Params().Set(beta1=0.9, beta2=0.997, epsilon=1e-9)
 
-  @staticmethod
-  def ParamsB():
+  @classmethod
+  def ParamsB(cls):
     """Convenient method for another commonly used Adam config."""
-    return Adam.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
+    return cls.Params().Set(beta1=0.9, beta2=0.98, epsilon=1e-9)
 
   def GetOptimizer(self, lr):
     p = self.params
