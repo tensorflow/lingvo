@@ -557,6 +557,7 @@
     <span class="c1"># Since we are concatenating the dummy bbox, the index corresponds to the</span>
     <span class="c1"># number of boxes.</span>
     <span class="n">dummy_bbox_idx</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="mi">1</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">dummy_bbox_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dummy_bbox_idx</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
     <span class="n">gt_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">dummy_bbox</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="n">gt_bboxes_labels</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">gt_bboxes_labels</span><span class="p">,</span> <span class="p">[</span><span class="n">background_class_id</span><span class="p">]],</span>
@@ -564,12 +565,8 @@
 
     <span class="c1"># Gather indices so that all foreground boxes are gathered from gt_bboxes,</span>
     <span class="c1"># while all background and ignore boxes gather the dummy_bbox.</span>
-    <span class="n">anchor_gather_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
-        <span class="n">foreground_anchors</span><span class="p">,</span> <span class="n">anchor_max_idx</span><span class="p">,</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
-            <span class="n">dummy_bbox_idx</span><span class="p">,</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">anchor_max_idx</span><span class="p">),</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">anchor_max_idx</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="n">anchor_gather_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">foreground_anchors</span><span class="p">,</span> <span class="n">anchor_max_idx</span><span class="p">,</span>
+                                 <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">anchor_max_idx</span><span class="p">)</span> <span class="o">*</span> <span class="n">dummy_bbox_idx</span><span class="p">)</span>
 
     <span class="c1"># Gather the bboxes and weights.</span>
     <span class="n">assigned_gt_bbox</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">gt_bboxes</span><span class="p">,</span> <span class="n">anchor_gather_idx</span><span class="p">)</span>
