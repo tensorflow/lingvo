@@ -196,6 +196,21 @@ available to be executed on demand without significant delay.</p>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.program.BaseProgram._WriteSummaries">
+<code class="sig-name descname">_WriteSummaries</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_name</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">summaries</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._WriteSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._WriteSummaries" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write summaries to be viewed by TensorBoard.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>job_name</strong> – The name of this job (‘trainer’, ‘evaler’, etc.)</p></li>
+<li><p><strong>global_step</strong> – Integer number of trainer steps (not a tensor).</p></li>
+<li><p><strong>summaries</strong> – Dict of {summary_name: tf.Summary()}.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.program.BaseProgram._InfeedLoop">
 <code class="sig-name descname">_InfeedLoop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#BaseProgram._InfeedLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.BaseProgram._InfeedLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -366,11 +381,6 @@ evaluation.</p>
 the existing Decoder as the input generator is not recreated
 per-eval. Thus different random samples are selected each
 decoder run.</p>
-<dl class="py method">
-<dt id="lingvo.core.program.DecodeProgram._WriteSummaries">
-<code class="sig-name descname">_WriteSummaries</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">job_name</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">summaries</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram._WriteSummaries"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram._WriteSummaries" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 <dl class="py method">
 <dt id="lingvo.core.program.DecodeProgram.BuildTpuSubgraph">
 <code class="sig-name descname">BuildTpuSubgraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#DecodeProgram.BuildTpuSubgraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.DecodeProgram.BuildTpuSubgraph" title="Permalink to this definition">¶</a></dt>
