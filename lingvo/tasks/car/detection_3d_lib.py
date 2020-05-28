@@ -412,6 +412,7 @@ class Utils3D(object):
     # Since we are concatenating the dummy bbox, the index corresponds to the
     # number of boxes.
     dummy_bbox_idx = py_utils.GetShape(gt_bboxes, 1)[0]
+    dummy_bbox_idx = tf.cast(dummy_bbox_idx, tf.int64)
 
     gt_bboxes = tf.concat([gt_bboxes, dummy_bbox], axis=0)
     gt_bboxes_labels = tf.concat([gt_bboxes_labels, [background_class_id]],
@@ -419,12 +420,8 @@ class Utils3D(object):
 
     # Gather indices so that all foreground boxes are gathered from gt_bboxes,
     # while all background and ignore boxes gather the dummy_bbox.
-    anchor_gather_idx = tf.where(
-        foreground_anchors, anchor_max_idx,
-        tf.constant(
-            dummy_bbox_idx,
-            shape=py_utils.GetShape(anchor_max_idx),
-            dtype=anchor_max_idx.dtype))
+    anchor_gather_idx = tf.where(foreground_anchors, anchor_max_idx,
+                                 tf.ones_like(anchor_max_idx) * dummy_bbox_idx)
 
     # Gather the bboxes and weights.
     assigned_gt_bbox = tf.array_ops.batch_gather(gt_bboxes, anchor_gather_idx)
