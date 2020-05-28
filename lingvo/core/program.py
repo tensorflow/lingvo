@@ -115,6 +115,25 @@ class BaseProgram(object):
     self._summary_writer.add_summary(
         metrics.CreateScalarSummary(tag, value), steps)
 
+  def _WriteSummaries(self, job_name, global_step, summaries):
+    """Write summaries to be viewed by TensorBoard.
+
+    Args:
+      job_name: The name of this job ('trainer', 'evaler', etc.)
+      global_step: Integer number of trainer steps (not a tensor).
+      summaries: Dict of {summary_name: tf.Summary()}.
+    """
+    if not summaries:
+      return
+    for unused_name, summary in sorted(summaries.items()):
+      self._summary_writer.add_summary(summary, global_step)
+      if summary.value:
+        for value in summary.value:
+          if value.HasField('simple_value'):
+            tf.logging.info('%s summary on checkpoint@%d %s = %.8g', job_name,
+                            global_step, value.tag, value.simple_value)
+      self._summary_writer.flush()
+
   def _InfeedLoop(self, sess):
     tf.logging.info('_InfeedLoop start')
     try:
@@ -361,8 +380,10 @@ class TrainProgram(BaseProgram):
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):
       self._SummarizeValue(global_step, key, val)
 
-    self._model.GetTask().ProcessFPropResults(sess, global_step, eval_metrics,
-                                              outfeeds)
+    summaries = self._model.GetTask().ProcessFPropResults(
+        sess, global_step, eval_metrics, outfeeds)
+    self._WriteSummaries(
+        os.path.basename(self._program_dir), global_step, summaries)
     return False
 
 
@@ -458,17 +479,6 @@ class DecodeProgram(BaseProgram):
   def __init__(self, params):
     super(DecodeProgram, self).__init__(params)
     self._program_name = 'DecodeProgram'
-
-  def _WriteSummaries(self, job_name, global_step, summaries):
-    for unused_name, summary in sorted(summaries.items()):
-      self._summary_writer.add_summary(summary, global_step)
-      if summary.value:
-        for value in summary.value:
-          if value.HasField('simple_value'):
-            tf.logging.info('%s summary on checkpoint@%d %s = %.8g',
-                                 job_name, global_step, value.tag,
-                                 value.simple_value)
-      self._summary_writer.flush()
 
   def BuildTpuSubgraph(self):
     tf.logging.info('DecodeProgram BuildTpuSubGraph')
