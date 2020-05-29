@@ -23,18 +23,21 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
+import sys
 
 
 def _Import(name):
   """Imports the python module of the given name."""
-  print('model_imports.py: Importing %s' % name)
+  print('model_imports.py: Importing %s' % name, file=sys.stderr)
   try:
     importlib.import_module(name)
-    print('model_imports.py: Imported %s' % name)
+    print('model_imports.py: Imported %s' % name, file=sys.stderr)
     return True
   except ImportError as e:
     # It is expected that some imports may be missing.
-    print('model_imports.py: Could not import %s: %s' % (name, e))
+    print(
+        'model_imports.py: Could not import %s: %s' % (name, e),
+        file=sys.stderr)
   return False
 
 
