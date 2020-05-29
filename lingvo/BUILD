@@ -68,7 +68,6 @@ py_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],
     srcs_version = "PY2AND3",
-    deps = [":compat"],
 )
 
 # Depend on this for access to the model registry with params for all tasks as

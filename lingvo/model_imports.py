@@ -23,18 +23,19 @@ from __future__ import division
 from __future__ import print_function
 
 import importlib
-import lingvo.compat as tf
 
 
 def _Import(name):
   """Imports the python module of the given name."""
-  tf.logging.info('Importing %s', name)
+  print('model_imports.py: Importing %s' % name)
   try:
     importlib.import_module(name)
-    tf.logging.info('Imported %s', name)
+    print('model_imports.py: Imported %s' % name)
+    return True
   except ImportError as e:
     # It is expected that some imports may be missing.
-    tf.logging.info('Could not import %s: %s', name, e)
+    print('model_imports.py: Could not import %s: %s' % (name, e))
+  return False
 
 
 _TASK_ROOT = 'lingvo.tasks'
@@ -52,26 +53,44 @@ _TASK_DIRS = (
 # LINT.ThenChange(tasks/BUILD:task_dirs)
 
 
-def ImportAllParams(task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
-  # Import all ModelParams to ensure that they are added to the global registry.
+def ImportAllParams(task_root=_TASK_ROOT,
+                    task_dirs=_TASK_DIRS,
+                    require_success=False):
+  """Import all ModelParams to add to the global registry."""
+  success = False
   for task in task_dirs:
     # By our code repository convention, there is a params.py under the task's
     # params directory. params.py imports _all_ modules that may registers a
     # model param.
-    _Import('{}.{}.params.params'.format(task_root, task))
+    success = success or _Import('{}.{}.params.params'.format(task_root, task))
+  if require_success and not success:
+    raise LookupError('Could not import any task params. Make sure task params '
+                      'are linked into the binary.')
+  return success
 
 
-def ImportParams(model_name, task_root=_TASK_ROOT, task_dirs=_TASK_DIRS):
+def ImportParams(model_name,
+                 task_root=_TASK_ROOT,
+                 task_dirs=_TASK_DIRS,
+                 require_success=True):
   """Attempts to only import the files that may contain the model."""
   # 'model_name' follows <task>.<path>.<class name>
   if '.' not in model_name:
     raise ValueError('Invalid model name %s' % model_name)
   model_module = model_name.rpartition('.')[0]
   # Try importing the module directly, in case it's a local import.
-  _Import(model_module)
+  success = _Import(model_module)
 
   # Try built-in tasks imports.
   for task in sorted(task_dirs):
     if model_module.startswith(task + '.'):
       path = model_module[len(task) + 1:]
-      _Import('{}.{}.params.{}'.format(task_root, task, path))
+      success = success or _Import('{}.{}.params.{}'.format(
+          task_root, task, path))
+
+  if require_success and not success:
+    raise LookupError(
+        'Could not find any valid import paths for module %s. Check the logs '
+        'above to see if there were errors importing the module, and make sure '
+        'the relevant params files are linked into the binary.' % model_module)
+  return success
