@@ -4236,6 +4236,65 @@
   <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="If"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.If">[docs]</a><span class="k">def</span> <span class="nf">If</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">then_branch</span><span class="p">,</span> <span class="n">else_branch</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Helper to construct an if/else statement.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    cond: A scalar `Tensor` that can be converted to boolean.</span>
+<span class="sd">    inputs: A NestedMap representing the input tensors of the if/else statement.</span>
+<span class="sd">    then_branch: A callable &#39;inputs&#39; -&gt; NestedMap. The returned NestedMap should</span>
+<span class="sd">      be compatible with what &#39;else_branch&#39; returns.</span>
+<span class="sd">    else_branch: A callable &#39;inputs&#39; -&gt; NestedMap. The returned NestedMap should</span>
+<span class="sd">      be compatible with what &#39;then_branch&#39; returns.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    NestedMap returned by the call to either &#39;then_branch&#39; or &#39;else_branch&#39;.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    TypeError: if</span>
+<span class="sd">      - &#39;inputs&#39; is not a NestedMap, or</span>
+<span class="sd">      - &#39;then_branch&#39; or &#39;else_branch&#39; doesn&#39;t return a NestedMap, or</span>
+<span class="sd">      - the outputs of &#39;then_branch&#39; and &#39;else_branch&#39; are not compatible.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;inputs must be a NestedMap, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">inputs</span><span class="p">))</span>
+
+  <span class="n">then_out</span> <span class="o">=</span> <span class="n">then_branch</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">then_out</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;then_branch must return a NestedMap, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">then_out</span><span class="p">))</span>
+
+  <span class="n">else_out</span> <span class="o">=</span> <span class="n">else_branch</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">else_out</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;else_branch must return a NestedMap, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                    <span class="nb">type</span><span class="p">(</span><span class="n">else_out</span><span class="p">))</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">then_out</span><span class="o">.</span><span class="n">IsCompatible</span><span class="p">(</span><span class="n">else_out</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+        <span class="s1">&#39;Outputs of then_branch and else_branch are not compatible.&#39;</span><span class="p">)</span>
+
+  <span class="n">dtypes</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ThenBranch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">inp</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">then_branch</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">ElseBranch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">inp</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">out</span> <span class="o">=</span> <span class="n">else_branch</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+  <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
+      <span class="n">cond</span><span class="o">=</span><span class="n">cond</span><span class="p">,</span>
+      <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+      <span class="n">then_branch</span><span class="o">=</span><span class="n">ThenBranch</span><span class="p">,</span>
+      <span class="n">else_branch</span><span class="o">=</span><span class="n">ElseBranch</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">then_out</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="_Itype"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Itype">[docs]</a><span class="k">def</span> <span class="nf">_Itype</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Loop iterator data type.&quot;&quot;&quot;</span>
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">if</span> <span class="n">use_xla</span><span class="p">()</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span></div>

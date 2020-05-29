@@ -2397,6 +2397,33 @@ custom backprop function for fwd.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.If">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">If</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cond</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">then_branch</span></em>, <em class="sig-param"><span class="n">else_branch</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#If"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.If" title="Permalink to this definition">¶</a></dt>
+<dd><p>Helper to construct an if/else statement.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cond</strong> – A scalar <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> that can be converted to boolean.</p></li>
+<li><p><strong>inputs</strong> – A NestedMap representing the input tensors of the if/else statement.</p></li>
+<li><p><strong>then_branch</strong> – A callable ‘inputs’ -&gt; NestedMap. The returned NestedMap should
+be compatible with what ‘else_branch’ returns.</p></li>
+<li><p><strong>else_branch</strong> – A callable ‘inputs’ -&gt; NestedMap. The returned NestedMap should
+be compatible with what ‘then_branch’ returns.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>NestedMap returned by the call to either ‘then_branch’ or ‘else_branch’.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#TypeError" title="(in Python v3.7)"><strong>TypeError</strong></a> – if
+    - ‘inputs’ is not a NestedMap, or
+    - ‘then_branch’ or ‘else_branch’ doesn’t return a NestedMap, or
+    - the outputs of ‘then_branch’ and ‘else_branch’ are not compatible.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils._Itype">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_Itype</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_Itype"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._Itype" title="Permalink to this definition">¶</a></dt>
 <dd><p>Loop iterator data type.</p>
