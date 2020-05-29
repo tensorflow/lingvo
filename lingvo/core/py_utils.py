@@ -4091,6 +4091,65 @@ def CallDefun(fwd, bak, args):
   return Pack(sigs.rets, flat_rets)
 
 
+def If(cond, inputs, then_branch, else_branch):
+  """Helper to construct an if/else statement.
+
+  Args:
+    cond: A scalar `Tensor` that can be converted to boolean.
+    inputs: A NestedMap representing the input tensors of the if/else statement.
+    then_branch: A callable 'inputs' -> NestedMap. The returned NestedMap should
+      be compatible with what 'else_branch' returns.
+    else_branch: A callable 'inputs' -> NestedMap. The returned NestedMap should
+      be compatible with what 'then_branch' returns.
+
+  Returns:
+    NestedMap returned by the call to either 'then_branch' or 'else_branch'.
+
+  Raises:
+    TypeError: if
+      - 'inputs' is not a NestedMap, or
+      - 'then_branch' or 'else_branch' doesn't return a NestedMap, or
+      - the outputs of 'then_branch' and 'else_branch' are not compatible.
+  """
+  if not isinstance(inputs, NestedMap):
+    raise TypeError('inputs must be a NestedMap, got %s' % type(inputs))
+
+  then_out = then_branch(inputs)
+  if not isinstance(then_out, NestedMap):
+    raise TypeError('then_branch must return a NestedMap, got %s' %
+                    type(then_out))
+
+  else_out = else_branch(inputs)
+  if not isinstance(else_out, NestedMap):
+    raise TypeError('else_branch must return a NestedMap, got %s' %
+                    type(else_out))
+
+  if not then_out.IsCompatible(else_out):
+    raise TypeError(
+        'Outputs of then_branch and else_branch are not compatible.')
+
+  dtypes = inputs.Transform(lambda x: x.dtype).Flatten()
+
+  @tf.Defun(*dtypes)
+  def ThenBranch(*args):
+    inp = inputs.Pack(args)
+    out = then_branch(inp)
+    return out.Flatten()
+
+  @tf.Defun(*dtypes)
+  def ElseBranch(*args):
+    inp = inputs.Pack(args)
+    out = else_branch(inp)
+    return out.Flatten()
+
+  ret = tf.If(
+      cond=cond,
+      inputs=inputs.Flatten(),
+      then_branch=ThenBranch,
+      else_branch=ElseBranch)
+  return then_out.Pack(ret)
+
+
 def _Itype():
   """Loop iterator data type."""
   return tf.int32 if use_xla() else tf.int64

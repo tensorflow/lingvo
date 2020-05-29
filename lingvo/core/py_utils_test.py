@@ -2884,6 +2884,32 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
 
+class IfTest(test_utils.TestCase):
+
+  def testSimple(self):
+    g = tf.Graph()
+    with g.as_default():
+
+      def ThenBody(nmap):
+        nmap.value -= 1.
+        return nmap
+
+      def ElseBody(nmap):
+        nmap.value += 1.
+        return nmap
+
+      inputs = py_utils.NestedMap(value=tf.constant(0.))
+      true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
+      false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
+
+    with self.session(graph=g):
+      true_out = self.evaluate(true_out)
+      false_out = self.evaluate(false_out)
+
+    self.assertEqual(-1., true_out.value)
+    self.assertEqual(1., false_out.value)
+
+
 class ForLoopTest(test_utils.TestCase):
 
   def testSimple(self):
