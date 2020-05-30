@@ -378,37 +378,35 @@ class _Recurrent(object):
     #  acc_state: Each timestep's computed new state is also stashed into
     #    acc_state.
     #  acc_extras: Each timestep's computed extras is stashed into acc_extras
-    fwdloop_sig = [
-        self._theta, self._state, self._inputs, self._state, self._extras
-    ]
 
-    @tf.Defun(t_type, t_type, *py_utils.Dtypes(fwdloop_sig))
-    def ForwardLoopCond(t, limit, *args):
+    def ForwardLoopCond(loop_state):
       """The condition of forward loop."""
-      should_continue = t < limit
+      should_continue = loop_state.t < loop_state.limit
       if self._stop_fn:
-        theta, state0, _, _, _ = py_utils.Pack(fwdloop_sig, args)
         should_continue = tf.math.logical_and(
             should_continue,
-            tf.reduce_any(tf.math.logical_not(self._stop_fn(t, theta, state0))))
+            tf.reduce_any(
+                tf.math.logical_not(
+                    self._stop_fn(loop_state.t, loop_state.theta,
+                                  loop_state.state0))))
       return should_continue
 
-    @tf.Defun(t_type, t_type, *py_utils.Dtypes(fwdloop_sig))
-    def ForwardLoopBody(t, limit, *args):
+    def ForwardLoopBody(loop_state):
       """The body of forward loop."""
-      theta, state0, inputs, acc_state, acc_extras = py_utils.Pack(
-          fwdloop_sig, args)
-      inputs_t = _Index(inputs, t)  # external input at time step t.
-      state1, extras = py_utils.Pack(
+      t = loop_state.t
+      # external input at time step t.
+      inputs_t = _Index(loop_state.inputs, t)
+      loop_state.state0, extras = py_utils.Pack(
           [self._state, self._extras],
-          Fwd(*py_utils.Flatten([theta, state0, inputs_t])))
+          Fwd(*py_utils.Flatten([loop_state.theta, loop_state.state0, inputs_t])
+             ))
       # Saves state1 and extras in their accumulators.
       if not self._unused_acc_state:
-        acc_state = _Update(acc_state, state1, t)
-      acc_extras = _Update(acc_extras, extras, t)
-
-      return [tf.add(t, 1), limit] + py_utils.Flatten(
-          [theta, state1, inputs, acc_state, acc_extras])
+        loop_state.acc_state = _Update(loop_state.acc_state, loop_state.state0,
+                                       t)
+      loop_state.acc_extras = _Update(loop_state.acc_extras, extras, t)
+      loop_state.t = tf.add(t, 1)
+      return loop_state
 
     def Grad(op, *args):
       """The python grad function for the Forward function.
@@ -558,17 +556,19 @@ class _Recurrent(object):
         limit = tf.cast(limit, tf.int64)
 
       with py_utils.RemoveAssertContext(remove=noinline):
-        run = tf.While(
-            [t, limit] +
-            py_utils.Flatten([theta, state0, inputs, acc_state, acc_extras]),
-            cond=ForwardLoopCond,
-            body=ForwardLoopBody)
-      t = run[0]
-      _, state1, _, acc_state, acc_extras = py_utils.Pack(
-          [self._theta, self._state, self._inputs, self._state, self._extras],
-          run[2:])
-
-      return [t] + py_utils.Flatten([acc_state, state1, acc_extras])
+        run = py_utils.WhileLoop(
+            ForwardLoopCond,
+            ForwardLoopBody,
+            loop_state=py_utils.NestedMap(
+                t=t,
+                limit=limit,
+                theta=theta,
+                state0=state0,
+                inputs=inputs,
+                acc_state=acc_state,
+                acc_extras=acc_extras))
+      return py_utils.Flatten(
+          [run.t, run.acc_state, run.state0, run.acc_extras])
 
     # The per-step backward computes:
     #    d_theta, d_state0, d_inputs = cell_grad(
@@ -647,67 +647,43 @@ class _Recurrent(object):
     #  d_acc_state: The backprop-ed gradient for acc_state.
     #  d_captured: All timestep's gradient for theta is accumulated (added)
     #      into d_captured.
-    bakloop_sig = [
-        self._theta,
-        self._state,
-        self._inputs,
-        self._state,
-        self._extras,
-        # End of forward params
-        self._theta,
-        self._state,
-        self._inputs,
-        self._state,
-        self._implicit_captures,
-    ]
 
-    @tf.Defun(t_type, t_type, *py_utils.Dtypes(bakloop_sig))
-    def BackwardLoopCond(t, limit, *unused_args):
+    def BackwardLoopCond(loop_state):
       """Backward loop condition function."""
-      return t >= limit
+      return loop_state.t >= loop_state.limit
 
-    @tf.Defun(t_type, t_type, *py_utils.Dtypes(bakloop_sig))
-    def BackwardLoopBody(t, limit, *args):
+    def BackwardLoopBody(loop_state):
       """Backward loop body function."""
-      (
-          theta,
-          orig_state0,
-          inputs,
-          acc_state,
-          acc_extras,
-          # End of forward params
-          d_theta,
-          d_state1,
-          d_inputs,
-          d_acc_state,
-          d_captured) = py_utils.Pack(bakloop_sig, args)
-
+      t = loop_state.t
       # The input recurrent state for time step t is previous time step's
       # output, or the original state0 when on time step 0.
-      state_from_acc = _Index(acc_state,
+      state_from_acc = _Index(loop_state.acc_state,
                               tf.maximum(tf.constant(0, t.dtype), t - 1))
       state0 = tf.If(
           tf.equal(t, tf.constant(0, t.dtype)),
-          py_utils.Flatten([state_from_acc, orig_state0]), ReturnOrigState0,
-          ReturnAccState)
-      state0 = orig_state0.Pack(state0)
+          py_utils.Flatten([state_from_acc, loop_state.state0]),
+          ReturnOrigState0, ReturnAccState)
+      state0 = loop_state.state0.Pack(state0)
 
       # The external inputs for time step t.
-      inputs_t = _Index(inputs, t)
+      inputs_t = _Index(loop_state.inputs, t)
       # The extras for time step t.
-      extras_t = _Index(acc_extras, t)
+      extras_t = _Index(loop_state.acc_extras, t)
 
-      d_state1 = _Add(_Index(d_acc_state, t), d_state1)
-      (d_theta_t, d_state0, d_inputs_t, d_captured_t) = py_utils.Pack(
-          [self._theta, self._state, self._inputs, self._implicit_captures],
-          Bak(*py_utils.Flatten([theta, state0, inputs_t, extras_t, d_state1])))
+      d_state1 = _Add(_Index(loop_state.d_acc_state, t), loop_state.d_state1)
+      (d_theta_t, loop_state.d_state1, d_inputs_t,
+       d_captured_t) = py_utils.Pack(
+           [self._theta, self._state, self._inputs, self._implicit_captures],
+           Bak(*py_utils.Flatten(
+               [loop_state.theta, state0, inputs_t, extras_t, d_state1])))
 
       if self._unused_acc_state:
         # XLA IF op requires the same shape for if and else branches.
-        d_state0 = d_state0.Transform(tf.reduce_sum)
-      d_theta = _Add(d_theta, d_theta_t)
-      d_inputs = _Update(d_inputs, d_inputs_t, t)
-      d_captured = _Add(d_captured, d_captured_t)
+        loop_state.d_state1 = loop_state.d_state1.Transform(tf.reduce_sum)
+      loop_state.d_theta = _Add(loop_state.d_theta, d_theta_t)
+      loop_state.d_inputs = _Update(loop_state.d_inputs, d_inputs_t, t)
+      loop_state.d_captured = _Add(loop_state.d_captured, d_captured_t)
+      loop_state.t = tf.subtract(t, 1)
 
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the call
@@ -715,19 +691,7 @@ class _Recurrent(object):
       _AssertSameTensors(py_utils.GetExtraInputs(),
                          self._implicit_captures.Flatten())
 
-      return [tf.subtract(t, 1), limit] + py_utils.Flatten([
-          theta,
-          orig_state0,
-          inputs,
-          acc_state,
-          acc_extras,
-          # End of forward params
-          d_theta,
-          d_state0,
-          d_inputs,
-          d_acc_state,
-          d_captured,
-      ])
+      return loop_state
 
     # Backward calls BackwardLoopBody n times.  Each time computes the backprop
     # for one time step of the recurrent net.
@@ -766,25 +730,24 @@ class _Recurrent(object):
         limit = tf.cast(limit, tf.int32)
       else:
         limit = tf.cast(limit, tf.int64)
-      with py_utils.RemoveAssertContext(remove=noinline):
-        run = tf.While(
-            [start - 1, limit] + py_utils.Flatten([
-                theta,
-                state0,
-                inputs,
-                acc_state,
-                acc_extras,
-                d_theta,
-                d_state1,
-                d_inputs,
-                d_acc_state,
-                d_captured,
-            ]),
-            cond=BackwardLoopCond,
-            body=BackwardLoopBody)
 
-      (theta, state0, inputs, acc_state, _, d_theta, d_state0, d_inputs,
-       d_acc_state, d_captured) = py_utils.Pack(bakloop_sig, run[2:])
+      with py_utils.RemoveAssertContext(remove=noinline):
+        run = py_utils.WhileLoop(
+            cond=BackwardLoopCond,
+            body=BackwardLoopBody,
+            loop_state=py_utils.NestedMap(
+                t=start - 1,
+                limit=limit,
+                theta=theta,
+                state0=state0,
+                inputs=inputs,
+                acc_state=acc_state,
+                acc_extras=acc_extras,
+                d_theta=d_theta,
+                d_state1=d_state1,
+                d_inputs=d_inputs,
+                d_acc_state=d_acc_state,
+                d_captured=d_captured))
 
       # Make sure this function didn't capture anything different than the
       # cell_fn when reflected on at the beginning. Must come after the
@@ -792,6 +755,7 @@ class _Recurrent(object):
       _AssertSameTensors(py_utils.GetExtraInputs(),
                          self._implicit_captures.Flatten())
 
+      d_state0 = run.d_state1
       if self._unused_acc_state:
         # Match the shape of gradient of the init_state.
         d_state0 = self._state.Transform(tf.zeros_like)
@@ -799,9 +763,10 @@ class _Recurrent(object):
       # The `extra` input in the Forward function is actually an output of the
       # function. It was supplied as an input only to create acc_extras with
       # proper shape, so its gradients should be zero.
-      return py_utils.Flatten(
-          [d_theta, d_state0, d_inputs,
-           _EmptyLike(self._extras), d_captured])
+      return py_utils.Flatten([
+          run.d_theta, d_state0, run.d_inputs,
+          _EmptyLike(self._extras), run.d_captured
+      ])
 
     self._forward = Forward
 
