@@ -199,7 +199,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pooling_type&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">,</span> <span class="s1">&#39;Pooling type: MAX|AVG&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of frames to the left in the pooling&#39;</span>
-        <span class="s1">&#39;window (including the current frame).&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;window (including the current frame). A special value &quot;-1&quot; means &#39;</span>
+        <span class="s1">&#39;using all left frames&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="CausalPoolingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.CausalPoolingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
@@ -222,8 +223,19 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;left_context must be set.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="o">==</span> <span class="s1">&#39;AVG&#39;</span><span class="p">:</span>
+        <span class="n">cumulative_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">cumulative_count</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+        <span class="n">cumulative_mean</span> <span class="o">=</span> <span class="n">cumulative_sum</span> <span class="o">/</span> <span class="n">cumulative_count</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span>
+                                                            <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span>
+                                                            <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="n">cumulative_mean</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">cumulative_mean</span><span class="p">,</span> <span class="n">paddings</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Cumulative max pooling not implemented.&#39;</span><span class="p">)</span>
+
     <span class="n">window_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">left_context</span>
     <span class="n">left_pad_size</span> <span class="o">=</span> <span class="n">window_size</span> <span class="o">-</span> <span class="mi">1</span>
     <span class="n">large_negative</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
