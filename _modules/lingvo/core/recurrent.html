@@ -523,37 +523,35 @@
     <span class="c1">#  acc_state: Each timestep&#39;s computed new state is also stashed into</span>
     <span class="c1">#    acc_state.</span>
     <span class="c1">#  acc_extras: Each timestep&#39;s computed extras is stashed into acc_extras</span>
-    <span class="n">fwdloop_sig</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span>
-    <span class="p">]</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">t_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">ForwardLoopCond</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">ForwardLoopCond</span><span class="p">(</span><span class="n">loop_state</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;The condition of forward loop.&quot;&quot;&quot;</span>
-      <span class="n">should_continue</span> <span class="o">=</span> <span class="n">t</span> <span class="o">&lt;</span> <span class="n">limit</span>
+      <span class="n">should_continue</span> <span class="o">=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span> <span class="o">&lt;</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">limit</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span><span class="p">:</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
         <span class="n">should_continue</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span>
             <span class="n">should_continue</span><span class="p">,</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">))))</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_not</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_stop_fn</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+                                  <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="p">))))</span>
       <span class="k">return</span> <span class="n">should_continue</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">t_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">fwdloop_sig</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">ForwardLoopBody</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">ForwardLoopBody</span><span class="p">(</span><span class="n">loop_state</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;The body of forward loop.&quot;&quot;&quot;</span>
-      <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
-          <span class="n">fwdloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>  <span class="c1"># external input at time step t.</span>
-      <span class="n">state1</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+      <span class="n">t</span> <span class="o">=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span>
+      <span class="c1"># external input at time step t.</span>
+      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="p">,</span> <span class="n">extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
           <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span>
-          <span class="n">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">])))</span>
+          <span class="n">Fwd</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">loop_state</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">])</span>
+             <span class="p">))</span>
       <span class="c1"># Saves state1 and extras in their accumulators.</span>
       <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
-        <span class="n">acc_state</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-      <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-
-      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">theta</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
+        <span class="n">loop_state</span><span class="o">.</span><span class="n">acc_state</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="p">,</span>
+                                       <span class="n">t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">acc_extras</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">loop_state</span>
 
     <span class="k">def</span> <span class="nf">Grad</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;The python grad function for the Forward function.</span>
@@ -703,17 +701,19 @@
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
-        <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">]),</span>
-            <span class="n">cond</span><span class="o">=</span><span class="n">ForwardLoopCond</span><span class="p">,</span>
-            <span class="n">body</span><span class="o">=</span><span class="n">ForwardLoopBody</span><span class="p">)</span>
-      <span class="n">t</span> <span class="o">=</span> <span class="n">run</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">acc_extras</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
-          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">],</span>
-          <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
-
-      <span class="k">return</span> <span class="p">[</span><span class="n">t</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">state1</span><span class="p">,</span> <span class="n">acc_extras</span><span class="p">])</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WhileLoop</span><span class="p">(</span>
+            <span class="n">ForwardLoopCond</span><span class="p">,</span>
+            <span class="n">ForwardLoopBody</span><span class="p">,</span>
+            <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">t</span><span class="p">,</span>
+                <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+                <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+                <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">acc_state</span><span class="o">=</span><span class="n">acc_state</span><span class="p">,</span>
+                <span class="n">acc_extras</span><span class="o">=</span><span class="n">acc_extras</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">run</span><span class="o">.</span><span class="n">t</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">state0</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">acc_extras</span><span class="p">])</span>
 
     <span class="c1"># The per-step backward computes:</span>
     <span class="c1">#    d_theta, d_state0, d_inputs = cell_grad(</span>
@@ -792,67 +792,43 @@
     <span class="c1">#  d_acc_state: The backprop-ed gradient for acc_state.</span>
     <span class="c1">#  d_captured: All timestep&#39;s gradient for theta is accumulated (added)</span>
     <span class="c1">#      into d_captured.</span>
-    <span class="n">bakloop_sig</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">,</span>
-        <span class="c1"># End of forward params</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span>
-    <span class="p">]</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">t_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">BackwardLoopCond</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="o">*</span><span class="n">unused_args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">BackwardLoopCond</span><span class="p">(</span><span class="n">loop_state</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Backward loop condition function.&quot;&quot;&quot;</span>
-      <span class="k">return</span> <span class="n">t</span> <span class="o">&gt;=</span> <span class="n">limit</span>
+      <span class="k">return</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span> <span class="o">&gt;=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">limit</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">t_type</span><span class="p">,</span> <span class="n">t_type</span><span class="p">,</span> <span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Dtypes</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">))</span>
-    <span class="k">def</span> <span class="nf">BackwardLoopBody</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">BackwardLoopBody</span><span class="p">(</span><span class="n">loop_state</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Backward loop body function.&quot;&quot;&quot;</span>
-      <span class="p">(</span>
-          <span class="n">theta</span><span class="p">,</span>
-          <span class="n">orig_state0</span><span class="p">,</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="n">acc_state</span><span class="p">,</span>
-          <span class="n">acc_extras</span><span class="p">,</span>
-          <span class="c1"># End of forward params</span>
-          <span class="n">d_theta</span><span class="p">,</span>
-          <span class="n">d_state1</span><span class="p">,</span>
-          <span class="n">d_inputs</span><span class="p">,</span>
-          <span class="n">d_acc_state</span><span class="p">,</span>
-          <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-
+      <span class="n">t</span> <span class="o">=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span>
       <span class="c1"># The input recurrent state for time step t is previous time step&#39;s</span>
       <span class="c1"># output, or the original state0 when on time step 0.</span>
-      <span class="n">state_from_acc</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">acc_state</span><span class="p">,</span>
+      <span class="n">state_from_acc</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span>
                               <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>
       <span class="n">state0</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">state_from_acc</span><span class="p">,</span> <span class="n">orig_state0</span><span class="p">]),</span> <span class="n">ReturnOrigState0</span><span class="p">,</span>
-          <span class="n">ReturnAccState</span><span class="p">)</span>
-      <span class="n">state0</span> <span class="o">=</span> <span class="n">orig_state0</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">state_from_acc</span><span class="p">,</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="p">]),</span>
+          <span class="n">ReturnOrigState0</span><span class="p">,</span> <span class="n">ReturnAccState</span><span class="p">)</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">state0</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">state0</span><span class="p">)</span>
 
       <span class="c1"># The external inputs for time step t.</span>
-      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="n">inputs_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
       <span class="c1"># The extras for time step t.</span>
-      <span class="n">extras_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="n">extras_t</span> <span class="o">=</span> <span class="n">_Index</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">acc_extras</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
-      <span class="n">d_state1</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">_Index</span><span class="p">(</span><span class="n">d_acc_state</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="n">d_state1</span><span class="p">)</span>
-      <span class="p">(</span><span class="n">d_theta_t</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
-          <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">],</span>
-          <span class="n">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">,</span> <span class="n">extras_t</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">])))</span>
+      <span class="n">d_state1</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">_Index</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">d_acc_state</span><span class="p">,</span> <span class="n">t</span><span class="p">),</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">d_state1</span><span class="p">)</span>
+      <span class="p">(</span><span class="n">d_theta_t</span><span class="p">,</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">d_state1</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span>
+       <span class="n">d_captured_t</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
+           <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_theta</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">],</span>
+           <span class="n">Bak</span><span class="p">(</span><span class="o">*</span><span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
+               <span class="p">[</span><span class="n">loop_state</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs_t</span><span class="p">,</span> <span class="n">extras_t</span><span class="p">,</span> <span class="n">d_state1</span><span class="p">])))</span>
 
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># XLA IF op requires the same shape for if and else branches.</span>
-        <span class="n">d_state0</span> <span class="o">=</span> <span class="n">d_state0</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">)</span>
-      <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_theta_t</span><span class="p">)</span>
-      <span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
-      <span class="n">d_captured</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">d_captured</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span>
+        <span class="n">loop_state</span><span class="o">.</span><span class="n">d_state1</span> <span class="o">=</span> <span class="n">loop_state</span><span class="o">.</span><span class="n">d_state1</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">d_theta</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_theta_t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_Update</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">d_inputs</span><span class="p">,</span> <span class="n">d_inputs_t</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">d_captured</span> <span class="o">=</span> <span class="n">_Add</span><span class="p">(</span><span class="n">loop_state</span><span class="o">.</span><span class="n">d_captured</span><span class="p">,</span> <span class="n">d_captured_t</span><span class="p">)</span>
+      <span class="n">loop_state</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the call</span>
@@ -860,19 +836,7 @@
       <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
                          <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
-      <span class="k">return</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">subtract</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
-          <span class="n">theta</span><span class="p">,</span>
-          <span class="n">orig_state0</span><span class="p">,</span>
-          <span class="n">inputs</span><span class="p">,</span>
-          <span class="n">acc_state</span><span class="p">,</span>
-          <span class="n">acc_extras</span><span class="p">,</span>
-          <span class="c1"># End of forward params</span>
-          <span class="n">d_theta</span><span class="p">,</span>
-          <span class="n">d_state0</span><span class="p">,</span>
-          <span class="n">d_inputs</span><span class="p">,</span>
-          <span class="n">d_acc_state</span><span class="p">,</span>
-          <span class="n">d_captured</span><span class="p">,</span>
-      <span class="p">])</span>
+      <span class="k">return</span> <span class="n">loop_state</span>
 
     <span class="c1"># Backward calls BackwardLoopBody n times.  Each time computes the backprop</span>
     <span class="c1"># for one time step of the recurrent net.</span>
@@ -911,25 +875,24 @@
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
-        <span class="n">run</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
-            <span class="p">[</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">limit</span><span class="p">]</span> <span class="o">+</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
-                <span class="n">theta</span><span class="p">,</span>
-                <span class="n">state0</span><span class="p">,</span>
-                <span class="n">inputs</span><span class="p">,</span>
-                <span class="n">acc_state</span><span class="p">,</span>
-                <span class="n">acc_extras</span><span class="p">,</span>
-                <span class="n">d_theta</span><span class="p">,</span>
-                <span class="n">d_state1</span><span class="p">,</span>
-                <span class="n">d_inputs</span><span class="p">,</span>
-                <span class="n">d_acc_state</span><span class="p">,</span>
-                <span class="n">d_captured</span><span class="p">,</span>
-            <span class="p">]),</span>
-            <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
-            <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">)</span>
 
-      <span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">acc_state</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span>
-       <span class="n">d_acc_state</span><span class="p">,</span> <span class="n">d_captured</span><span class="p">)</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">bakloop_sig</span><span class="p">,</span> <span class="n">run</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+        <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WhileLoop</span><span class="p">(</span>
+            <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
+            <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">,</span>
+            <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">start</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
+                <span class="n">theta</span><span class="o">=</span><span class="n">theta</span><span class="p">,</span>
+                <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">acc_state</span><span class="o">=</span><span class="n">acc_state</span><span class="p">,</span>
+                <span class="n">acc_extras</span><span class="o">=</span><span class="n">acc_extras</span><span class="p">,</span>
+                <span class="n">d_theta</span><span class="o">=</span><span class="n">d_theta</span><span class="p">,</span>
+                <span class="n">d_state1</span><span class="o">=</span><span class="n">d_state1</span><span class="p">,</span>
+                <span class="n">d_inputs</span><span class="o">=</span><span class="n">d_inputs</span><span class="p">,</span>
+                <span class="n">d_acc_state</span><span class="o">=</span><span class="n">d_acc_state</span><span class="p">,</span>
+                <span class="n">d_captured</span><span class="o">=</span><span class="n">d_captured</span><span class="p">))</span>
 
       <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
       <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
@@ -937,6 +900,7 @@
       <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
                          <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
+      <span class="n">d_state0</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">d_state1</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># Match the shape of gradient of the init_state.</span>
         <span class="n">d_state0</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">)</span>
@@ -944,9 +908,10 @@
       <span class="c1"># The `extra` input in the Forward function is actually an output of the</span>
       <span class="c1"># function. It was supplied as an input only to create acc_extras with</span>
       <span class="c1"># proper shape, so its gradients should be zero.</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span>
-          <span class="p">[</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">d_inputs</span><span class="p">,</span>
-           <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">),</span> <span class="n">d_captured</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">([</span>
+          <span class="n">run</span><span class="o">.</span><span class="n">d_theta</span><span class="p">,</span> <span class="n">d_state0</span><span class="p">,</span> <span class="n">run</span><span class="o">.</span><span class="n">d_inputs</span><span class="p">,</span>
+          <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">),</span> <span class="n">run</span><span class="o">.</span><span class="n">d_captured</span>
+      <span class="p">])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
 
