@@ -421,6 +421,14 @@ class CausalPoolingLayerTest(test_utils.TestCase, parameterized.TestCase):
           'input_paddings': np.array([0, 0, 0, 0, 1, 1]),
           'expected_output': np.array([-2, -1, 0, 1, 0, 0]),
           'expected_output_padding': np.array([0, 0, 0, 0, 1, 1]),
+      }, {
+          'testcase_name': 'avg_pooling_infinte_window',
+          'pooling_type': 'AVG',
+          'left_context': -1,
+          'inputs': np.array([-2, 0, 2, 4, 0, 0]),
+          'input_paddings': np.array([0, 0, 0, 0, 1, 1]),
+          'expected_output': np.array([-2, -1, 0, 1, 0, 0]),
+          'expected_output_padding': np.array([0, 0, 0, 0, 1, 1]),
       })
   def testSimpleCase(self, pooling_type, left_context, inputs, input_paddings,
                      expected_output, expected_output_padding):

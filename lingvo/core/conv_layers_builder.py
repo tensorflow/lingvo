@@ -54,7 +54,8 @@ class CausalPoolingLayer(base_layer.BaseLayer):
     p.Define('pooling_type', 'AVG', 'Pooling type: MAX|AVG')
     p.Define(
         'left_context', None, 'Number of frames to the left in the pooling'
-        'window (including the current frame).')
+        'window (including the current frame). A special value "-1" means '
+        'using all left frames')
     return p
 
   def FProp(self, theta, inputs, paddings):
@@ -77,8 +78,19 @@ class CausalPoolingLayer(base_layer.BaseLayer):
     """
 
     p = self.params
-    if p.left_context is None:
-      raise ValueError('left_context must be set.')
+    if p.left_context == -1:
+      if p.pooling_type == 'AVG':
+        cumulative_sum = tf.math.cumsum(inputs, axis=1)
+        cumulative_count = 1.0 + tf.range(
+            py_utils.GetShape(inputs)[1], dtype=p.dtype)
+        cumulative_mean = cumulative_sum / cumulative_count[tf.newaxis, :,
+                                                            tf.newaxis,
+                                                            tf.newaxis]
+        cumulative_mean *= 1.0 - paddings[..., tf.newaxis, tf.newaxis]
+        return cumulative_mean, paddings
+      else:
+        raise NotImplementedError('Cumulative max pooling not implemented.')
+
     window_size = p.left_context
     left_pad_size = window_size - 1
     large_negative = p.dtype.max * tf.constant(-0.7, dtype=p.dtype)
