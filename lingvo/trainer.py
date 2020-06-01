@@ -45,6 +45,7 @@ from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
 import lingvo.compat as tf
+from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import checkpointer
@@ -575,7 +576,9 @@ class TrainerTpu(base_runner.BaseRunner):
         # Needed due to the AddExtraTheta() reference to global_Step when
         # instantiating the InputGenerator.
         _ = py_utils.GetOrCreateGlobalStepVar()
-        input_params = self._cluster.PlaceInput(self.params.input)
+        input_params = base_layer.BaseLayer.CopyBaseParams(
+            self.params, self.params.input.Copy())
+        input_params = self._cluster.PlaceInput(input_params)
         self._input = input_params.Instantiate()
         self._input.CreateTpuEnqueueOps()
         self.params.input.Define('skip_create_child', True, '')
