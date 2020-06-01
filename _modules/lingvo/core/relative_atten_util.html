@@ -459,8 +459,10 @@
     <span class="n">positional_bias</span> <span class="o">=</span> <span class="mi">0</span>
 
   <span class="c1"># [B, N, T, S=T]</span>
-  <span class="n">term_ac</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,BSNH-&gt;BNTS&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-  <span class="n">term_bd</span> <span class="o">=</span> <span class="n">RelPositionBias</span><span class="p">(</span><span class="n">query</span> <span class="o">+</span> <span class="n">positional_bias</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_ac&#39;</span><span class="p">):</span>
+    <span class="n">term_ac</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,BSNH-&gt;BNTS&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_bd&#39;</span><span class="p">):</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">RelPositionBias</span><span class="p">(</span><span class="n">query</span> <span class="o">+</span> <span class="n">positional_bias</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">is_causal</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div>
 
 
