@@ -359,7 +359,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     if segment_mask is not None and self.params.packed_input:
       segment_mask = py_utils.HasShape(segment_mask, [b, 1, t, s])
 
-    logits = self._AttenLogits(theta, query, key, per_step_padding)
+    with tf.name_scope('logits'):
+      logits = self._AttenLogits(theta, query, key, per_step_padding)
 
     # Apply segment mask.
     if self.params.packed_input and segment_mask is not None:
@@ -432,14 +433,15 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       query *= (p.hidden_dim // p.num_heads)**-0.5
 
     # Compute prob with shape [batch, heads, target_time, source_time].
-    probs = self.AttenProbs(theta, query, key, paddings, segment_mask,
-                            per_step_padding)
-
-    # Apply dropout to probs.
-    probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
+    with tf.name_scope('probs'):
+      probs = self.AttenProbs(theta, query, key, paddings, segment_mask,
+                              per_step_padding)
+      # Apply dropout to probs.
+      probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
 
     # Compute the attention context vector.
-    encoded = self._AttenContext(theta, probs, value)
+    with tf.name_scope('ctx'):
+      encoded = self._AttenContext(theta, probs, value)
     return encoded, probs
 
   def _DotAttenOneStep(self,

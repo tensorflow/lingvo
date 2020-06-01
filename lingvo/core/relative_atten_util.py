@@ -314,8 +314,10 @@ def _AttenLogits(query,
     positional_bias = 0
 
   # [B, N, T, S=T]
-  term_ac = tf.einsum('BTNH,BSNH->BNTS', query + content_bias, key)
-  term_bd = RelPositionBias(query + positional_bias, abs_pos_emb, is_causal)
+  with tf.name_scope('term_ac'):
+    term_ac = tf.einsum('BTNH,BSNH->BNTS', query + content_bias, key)
+  with tf.name_scope('term_bd'):
+    term_bd = RelPositionBias(query + positional_bias, abs_pos_emb, is_causal)
   return term_ac + term_bd
 
 
