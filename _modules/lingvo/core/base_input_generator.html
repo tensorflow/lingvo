@@ -466,7 +466,10 @@
         <span class="n">input_ops_list</span> <span class="o">+=</span> <span class="n">input_ops</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;input_ops_list </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">input_ops_list</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)]</span></div>
+    <span class="n">grouped_infeed_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">input_ops_list</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">tpu_infeed_parallelism</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_infeed_op</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">grouped_infeed_op</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseInputGenerator.TpuDequeueBatch"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.TpuDequeueBatch">[docs]</a>  <span class="k">def</span> <span class="nf">TpuDequeueBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create TPU dequeue ops.</span>
