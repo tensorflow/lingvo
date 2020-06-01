@@ -190,6 +190,7 @@
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_registry</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model_params</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">checkpointer</span>
@@ -720,7 +721,9 @@
         <span class="c1"># Needed due to the AddExtraTheta() reference to global_Step when</span>
         <span class="c1"># instantiating the InputGenerator.</span>
         <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-        <span class="n">input_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">PlaceInput</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="p">)</span>
+        <span class="n">input_params</span> <span class="o">=</span> <span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="o">.</span><span class="n">CopyBaseParams</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
+        <span class="n">input_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">PlaceInput</span><span class="p">(</span><span class="n">input_params</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="n">input_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
