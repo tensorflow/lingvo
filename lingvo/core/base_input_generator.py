@@ -321,7 +321,10 @@ class BaseInputGenerator(base_layer.BaseLayer):
         input_ops_list += input_ops
 
     tf.logging.info('input_ops_list %s', input_ops_list)
-    self._tpu_infeed_op = [tf.group(*input_ops_list)]
+    grouped_infeed_op = tf.group(*input_ops_list)
+    self._tpu_infeed_op = []
+    for _ in range(p.tpu_infeed_parallelism):
+      self._tpu_infeed_op.append(grouped_infeed_op)
 
   def TpuDequeueBatch(self):
     """Create TPU dequeue ops.
