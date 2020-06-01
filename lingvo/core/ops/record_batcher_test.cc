@@ -52,7 +52,7 @@ class TestRP : public RecordProcessor {
     const string val = string(record.value);
     *bucket_key = val.size();
     Tensor t(DT_STRING, {});
-    t.scalar<tstring>()().append(record.value.ToString());
+    t.scalar<tstring>()().append(std::string(record.value));
     Tensor ids(DT_STRING, {1});
     auto lab = ids.flat<tensorflow::tstring>();
     lab(0) = absl::StrCat(record.source_id);

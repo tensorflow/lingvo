@@ -122,7 +122,7 @@ class GenericInputProcessor : public RecordProcessor {
     args[0] = Tensor(DT_INT32, {});
     args[0].scalar<int32>()() = record.source_id;
     args[1] = Tensor(DT_STRING, {});
-    args[1].scalar<tensorflow::tstring>()().append(record.value.ToString());
+    args[1].scalar<tensorflow::tstring>()().append(std::string(record.value));
     *bucket_key = 1;
     sample->clear();
     Status status;
