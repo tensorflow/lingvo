@@ -118,22 +118,12 @@ class Checkpointer(object):
     tf.logging.info('Save checkpoint done: %s', path)
 
   def _RestoreFromLatestCheckpoint(self, sess):
-    """Restore the latest checkpoint and return True, else return False."""
     assert not self._save_only
     path = tf.train.latest_checkpoint(self._train_dir)
-
-    if path is None:
-      return False
-    # First recover the checkpoint state in the directory.
-    #
-    # NOTE: latest_checkpoint() already calls this but to avoid duplicating
-    # v1 vs. v2 behavior here, we just query the state again.
-    ckpt_state = tf.train.get_checkpoint_state(self._train_dir)
-    self._saver.recover_last_checkpoints(ckpt_state.all_model_checkpoint_paths)
-
-    # Now restore the checkpoint.
-    self.RestoreFromPath(sess, path)
-    return True
+    if path:
+      self.RestoreFromPath(sess, path)
+      return True
+    return False
 
   def _GetUninitializedVarNames(self, sess):
     uninitialized_var_names = sorted(list(sess.run(self._uninitialized_vars)))
