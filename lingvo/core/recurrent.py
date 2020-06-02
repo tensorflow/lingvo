@@ -612,21 +612,6 @@ class _Recurrent(object):
           _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
                                       [dtheta, dstate0, dinputs, dcaptures]))
 
-    # Define defuns used by a functional.if in BackwardLoopBody.
-    state_if_sig = [self._state, self._state]
-
-    @tf.Defun(*py_utils.Dtypes(state_if_sig))
-    def ReturnOrigState0(*args):
-      """Returns original state0 from inputs."""
-      (_, orig_state0) = py_utils.Pack(state_if_sig, args)
-      return orig_state0.Flatten()
-
-    @tf.Defun(*py_utils.Dtypes(state_if_sig))
-    def ReturnAccState(*args):
-      """Returns acc_state[t-1] from inputs."""
-      (acc_state, _) = py_utils.Pack(state_if_sig, args)
-      return acc_state.Flatten()
-
     # Wraps cell_grad gradient function in a TF Function as a
     # for-loop's body for the Backward pass.
     #
@@ -659,11 +644,12 @@ class _Recurrent(object):
       # output, or the original state0 when on time step 0.
       state_from_acc = _Index(loop_state.acc_state,
                               tf.maximum(tf.constant(0, t.dtype), t - 1))
-      state0 = tf.If(
+      state0 = py_utils.If(
           tf.equal(t, tf.constant(0, t.dtype)),
-          py_utils.Flatten([state_from_acc, loop_state.state0]),
-          ReturnOrigState0, ReturnAccState)
-      state0 = loop_state.state0.Pack(state0)
+          inputs=py_utils.NestedMap(
+              orig_state0=loop_state.state0, state_from_acc=state_from_acc),
+          then_branch=lambda nmap: nmap.orig_state0,
+          else_branch=lambda nmap: nmap.state_from_acc)
 
       # The external inputs for time step t.
       inputs_t = _Index(loop_state.inputs, t)
