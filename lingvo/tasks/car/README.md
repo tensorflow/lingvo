@@ -105,7 +105,7 @@ TensorBoard to monitor it all, one can run:
     # For waymo, one can use the version generated via generate_waymo_tf.py
     # graciously hosted by Waymo; you must have registered for access to
     # the Waymo dataset to be able to access the following bucket.
-    # export DATA_ENV="WAYMO_DIR=gs://waymo_open_dataset_v_1_0_0_tf_example_lingvo/v.1.0.0/"
+    # export DATA_ENV="WAYMO_DIR=gs://waymo_open_dataset_v_1_0_0_tf_example_lingvo/v.1.2.0/"
 
     export SPLIT=dev  # Use 'minidev' for smaller Waymo validation set.
 
