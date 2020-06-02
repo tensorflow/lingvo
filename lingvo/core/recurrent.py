@@ -351,22 +351,17 @@ class _Recurrent(object):
     # following code often uses Pack to formulate a structure from a
     # list of tensors based on a "template".
 
-    # Wraps cell_fn in a TF Function:
-    #    state1 = cell_fn(theta, state0, inputs)
-    fwd_sig = [self._theta, self._state, self._inputs]
-
     compiled = py_utils.use_xla()
     noinline = not compiled
     t_type = tf.int32 if compiled else tf.int64
 
-    @tf.Defun(*py_utils.Dtypes(fwd_sig))
-    def Fwd(*args):
-      (theta, state0, inputs) = py_utils.Pack(fwd_sig, args)
-      py_utils.SetShapes(theta, fwd_sig[0])
+    # state1, extras = cell_fn(theta, state0, inputs)
+    def Fwd(theta, state0, inputs):
+      py_utils.SetShapes(theta, self._theta)
       state1, extras = self._cell_fn(theta, state0, inputs)
       py_utils.AssertIsCompatible(state1, self._state)
       py_utils.AssertIsCompatible(extras, self._extras)
-      return py_utils.Flatten([state1, extras])
+      return state1, extras
 
     # Wraps cell_fn in a TF Function as a for-loop's body.
     #
@@ -396,10 +391,8 @@ class _Recurrent(object):
       t = loop_state.t
       # external input at time step t.
       inputs_t = _Index(loop_state.inputs, t)
-      loop_state.state0, extras = py_utils.Pack(
-          [self._state, self._extras],
-          Fwd(*py_utils.Flatten([loop_state.theta, loop_state.state0, inputs_t])
-             ))
+      loop_state.state0, extras = Fwd(loop_state.theta, loop_state.state0,
+                                      inputs_t)
       # Saves state1 and extras in their accumulators.
       if not self._unused_acc_state:
         loop_state.acc_state = _Update(loop_state.acc_state, loop_state.state0,
@@ -576,19 +569,9 @@ class _Recurrent(object):
     # where d_state1 is the backprop-ed gradient for state1, and
     # extras is the computed by the forward step to facilitate the
     # backward step.
-    bak_sig = [
-        self._theta,
-        self._state,
-        self._inputs,
-        self._extras,
-        self._state,
-    ]
-
-    @tf.Defun(*py_utils.Dtypes(bak_sig))
-    def Bak(*args):
+    def Bak(theta, state0, inputs, extras, d_state1):
       """Backward step."""
-      (theta, state0, inputs, extras, d_state1) = py_utils.Pack(bak_sig, args)
-      py_utils.SetShapes(theta, bak_sig[0])
+      py_utils.SetShapes(theta, self._theta)
       (dtheta, dstate0, dinputs,
        dcaptures) = self._cell_grad(theta, state0, inputs, extras, d_state1)
       py_utils.AssertIsCompatible(dtheta, self._theta)
@@ -608,9 +591,8 @@ class _Recurrent(object):
                          self._implicit_captures.Flatten())
 
       captured = py_utils.Pack(self._implicit_captures, py_utils.GetExtraArgs())
-      return py_utils.Flatten(
-          _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
-                                      [dtheta, dstate0, dinputs, dcaptures]))
+      return _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
+                                         [dtheta, dstate0, dinputs, dcaptures])
 
     # Wraps cell_grad gradient function in a TF Function as a
     # for-loop's body for the Backward pass.
@@ -658,10 +640,8 @@ class _Recurrent(object):
 
       d_state1 = _Add(_Index(loop_state.d_acc_state, t), loop_state.d_state1)
       (d_theta_t, loop_state.d_state1, d_inputs_t,
-       d_captured_t) = py_utils.Pack(
-           [self._theta, self._state, self._inputs, self._implicit_captures],
-           Bak(*py_utils.Flatten(
-               [loop_state.theta, state0, inputs_t, extras_t, d_state1])))
+       d_captured_t) = Bak(loop_state.theta, state0, inputs_t, extras_t,
+                           d_state1)
 
       if self._unused_acc_state:
         # XLA IF op requires the same shape for if and else branches.
