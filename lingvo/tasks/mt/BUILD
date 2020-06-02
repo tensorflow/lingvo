@@ -129,6 +129,7 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:input_generator_helper",
         "//lingvo/core:layers",
+        "//lingvo/core:layers_with_attention",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",

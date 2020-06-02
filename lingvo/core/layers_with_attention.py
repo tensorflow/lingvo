@@ -2040,12 +2040,18 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
         TransformerAttentionLayer.Params().Set(num_attention_heads=8),
         'Transformer Attention Layer params. The same template is applied '
         'to all three attention layers.')
+    p.Define(
+        'tr_tertiary_atten_tpl', None,
+        'Transformer Attention Layer params for the tertiary attention. '
+        'When None, copies tr_atten_tpl above.')
     p.Define('tr_fflayer_tpl',
              TransformerFeedForwardLayer.Params().Set(hidden_dim=2048),
              'Transformer Feed-Forward Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
-    # removed: p.has_aux_atten and p.mask_self_atten: they are always True,
+    # Required params used by the decoder.
+    p.Define('has_aux_atten', True, 'Must be True.')
+    p.Define('mask_self_atten', True, 'Must be True.')
     # removed: p.num_aux_atten_post_proj, p.tr_post_ln_tpl
     return p
 
@@ -2053,6 +2059,8 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super(TransformerWithContextLayer, self).__init__(params)
     p = self.params
+    assert p.has_aux_atten
+    assert p.mask_self_atten
     if not p.source_dim:
       raise ValueError('p.source_dim not set')
 
@@ -2067,7 +2075,9 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
       self.CreateChild('self_atten', params)
 
       # Initialize tertiary attention.
-      params = p.tr_atten_tpl.Copy()
+      # If p.tr_tertiary_atten_tpl is None, we fall back to using
+      # p.tr_tertiary_atten_tpl.
+      params = p.tr_tertiary_atten_tpl or p.tr_atten_tpl.Copy()
       params.name = 'tertiary_multihead_atten'
       params.source_dim = p.source_dim
       params.packed_input = p.packed_input
@@ -2097,7 +2107,8 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
             tertiary_paddings,
             source_segment_id=None,
             aux_segment_id=None,
-            tertiary_segment_id=None):
+            tertiary_segment_id=None,
+            **kwargs):
     """Transformer Layer.
 
     Please see docstring of TransformerAttentionLayer.FProp.
@@ -2114,6 +2125,8 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
       source_segment_id: [source_time, source_batch]
       aux_segment_id: [aux_time, aux_batch]
       tertiary_segment_id: [tertiary_time, tertiary_batch]
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
 
     Returns:
       The attention context vector, [source_time, source_batch, dim].
@@ -2139,20 +2152,24 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
         source_segment_id, tertiary_segment_id)
     atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
                                              aux_paddings, aux_vecs,
-                                             source_segment_id, aux_segment_id)
+                                             source_segment_id, aux_segment_id,
+                                             **kwargs)
 
     h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
     return h, atten_prob
 
-  def ExtendStep(self,
-                 theta,
-                 source_vecs,
-                 prefix_states,
-                 aux_vecs,
-                 aux_paddings,
-                 tertiary_vecs,
-                 tertiary_paddings,
-                 t=None):
+  def ExtendStep(
+      self,
+      theta,
+      source_vecs,
+      prefix_states,
+      aux_vecs,
+      aux_paddings,
+      tertiary_vecs,
+      tertiary_paddings,
+      t=None,
+      **kwargs,
+  ):
     """Transformer Layer, extend one step in decoding.
 
     Please see docstring of TransformerAttentionLayer.ExtendStep.
@@ -2169,6 +2186,8 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
       tertiary_vecs: [tertiary_time, tertiary_batch, dim]
       tertiary_paddings: [tertiary_time, tertiary_batch]
       t: a scalar, the current time step, 0-based.
+      **kwargs: Can be optional params for the attention layer, eg. attention
+        projection index tensor.
 
     Returns:
       The attention context vector, [target_batch, source_dim]
@@ -2194,7 +2213,7 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
 
     # Next the source attention (aux_atten) layer.
     atten_vec, atten_prob = self.atten.FProp(theta.atten, atten_vec,
-                                             aux_paddings, aux_vecs)
+                                             aux_paddings, aux_vecs, **kwargs)
 
     # Finally, the feedforward layer.
     h = self.fflayer.FProp(

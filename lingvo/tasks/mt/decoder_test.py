@@ -20,6 +20,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import input_generator_helper as ig_helper
 from lingvo.core import layers
+from lingvo.core import layers_with_attention
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
@@ -814,6 +815,29 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       actual_loss = loss.eval()
       CompareToGoldenSingleFloat(self, 16.200066, actual_loss)
 
+  def testDecoderFPropWithContext(self, dtype=tf.float32):
+    with self.session(use_gpu=True):
+      with tf.variable_scope('transformer_test', reuse=tf.AUTO_REUSE):
+        tf.random.set_seed(_TF_RANDOM_SEED)
+        p = self._DecoderParams(per_word_avg_loss=True, dtype=dtype)
+        p.trans_tpl = layers_with_attention.TransformerWithContextLayer.Params()
+        p.trans_tpl.source_dim = 4
+        p.trans_tpl.tr_atten_tpl.source_dim = 4
+        p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
+        p.trans_tpl.tr_fflayer_tpl.input_dim = 4
+        p.trans_tpl.tr_fflayer_tpl.hidden_dim = 8
+        dec = p.Instantiate()
+
+        enc_outputs, targets, _ = self._Inputs()
+        encoder_outputs = py_utils.NestedMap(
+            encoded=enc_outputs.encoded,
+            padding=enc_outputs.padding,
+            context_encoded=enc_outputs.encoded,
+            context_padding=enc_outputs.padding)
+        loss, _ = dec.FProp(dec.theta, encoder_outputs, targets).metrics['loss']
+        self.evaluate(tf.global_variables_initializer())
+        CompareToGoldenSingleFloat(self, 3.816574, loss.eval())
+
   def _testExtendStep(self, sess, dec, encoder_outputs, tgts, num_hyps):
     p = self._DecoderParams()
 
@@ -917,6 +941,26 @@ class TransformerDecoderTest(TransformerDecoderTestCaseBase):
       dec = decoder.TransformerDecoder(p)
       encoder_outputs, targets, num_hyps = self._testTransparentInputs(
           dtype=dtype, is_eval_mode=True)
+      self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
+
+  def testDecoderExtendStepWithContext(self, dtype=tf.float32):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(_TF_RANDOM_SEED)
+      p = self._DecoderParams(dtype=dtype)
+      p.trans_tpl = layers_with_attention.TransformerWithContextLayer.Params()
+      p.trans_tpl.source_dim = 4
+      p.trans_tpl.tr_atten_tpl.source_dim = 4
+      p.trans_tpl.tr_atten_tpl.num_attention_heads = 2
+      p.trans_tpl.tr_fflayer_tpl.input_dim = 4
+      p.trans_tpl.tr_fflayer_tpl.hidden_dim = 8
+      dec = p.Instantiate()
+      enc_outputs, targets, num_hyps = (
+          self._InputsForAttentionTest(dtype=dtype, has_task_ids=True))
+      encoder_outputs = py_utils.NestedMap(
+          encoded=enc_outputs.encoded,
+          padding=enc_outputs.padding,
+          context_encoded=enc_outputs.encoded,
+          context_padding=enc_outputs.padding)
       self._testExtendStep(sess, dec, encoder_outputs, targets, num_hyps)
 
   def testDecoderFPropSplitBatch(self, dtype=tf.float32):

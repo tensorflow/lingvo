@@ -1198,6 +1198,13 @@ class TransformerDecoder(MTBaseDecoder):
       layer_in = input_embs
       per_layer_attn_probs = []
       for i, (layer, layer_theta) in enumerate(zip(self.trans, theta.trans)):
+        extra_kwargs = dict()
+        if isinstance(layer, layers_with_attention.TransformerWithContextLayer):
+          # If the encoder contains encodings for the context and the
+          # transformer layer in the decoder is able to attend to it, we pass
+          # them to the transformer layer.
+          extra_kwargs['tertiary_vecs'] = encoder_outputs.context_encoded
+          extra_kwargs['tertiary_paddings'] = encoder_outputs.context_padding
         # [time, batch, model_dim]
         layer_out, probs = layer.FProp(
             layer_theta,
@@ -1207,7 +1214,8 @@ class TransformerDecoder(MTBaseDecoder):
             source_paddings,
             source_segment_id=target_segment_id,
             aux_segment_id=src_segment_id,
-            atten_idx=atten_idx)
+            atten_idx=atten_idx,
+            **extra_kwargs)
         layer_in = layer_out
         pl_probs = tf.transpose(probs, [1, 0, 2])
         if p.packed_input:
@@ -1330,6 +1338,13 @@ class TransformerDecoder(MTBaseDecoder):
 
       atten_probs = []
       for i, (layer, layer_theta) in enumerate(zip(self.trans, theta.trans)):
+        extra_kwargs = dict()
+        if isinstance(layer, layers_with_attention.TransformerWithContextLayer):
+          # If the encoder contains encodings for the context and the
+          # transformer layer in the decoder is able to attend to it, we pass
+          # them to the transformer layer.
+          extra_kwargs['tertiary_vecs'] = encoder_outputs.context_encoded
+          extra_kwargs['tertiary_paddings'] = encoder_outputs.context_padding
         # [time, batch, model_dim]
         layer_prefix_states = prefix_states['layer_%i' % i]
         layer_out, probs, updated_prefix_states = layer.ExtendStep(
@@ -1338,8 +1353,9 @@ class TransformerDecoder(MTBaseDecoder):
             layer_prefix_states,
             source_encs[i],
             source_paddings,
-            t if p.beam_search.name == 'tpu_beam_search' else None,
-            atten_idx=atten_idx)
+            t=t if p.beam_search.name == 'tpu_beam_search' else None,
+            atten_idx=atten_idx,
+            **extra_kwargs)
         out_prefix_states['layer_%i' % i] = updated_prefix_states
         layer_in = layer_out
         # Enforce shape: [batch, src_len]
