@@ -1343,6 +1343,13 @@
       <span class="n">layer_in</span> <span class="o">=</span> <span class="n">input_embs</span>
       <span class="n">per_layer_attn_probs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">trans</span><span class="p">)):</span>
+        <span class="n">extra_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerWithContextLayer</span><span class="p">):</span>
+          <span class="c1"># If the encoder contains encodings for the context and the</span>
+          <span class="c1"># transformer layer in the decoder is able to attend to it, we pass</span>
+          <span class="c1"># them to the transformer layer.</span>
+          <span class="n">extra_kwargs</span><span class="p">[</span><span class="s1">&#39;tertiary_vecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">context_encoded</span>
+          <span class="n">extra_kwargs</span><span class="p">[</span><span class="s1">&#39;tertiary_paddings&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">context_padding</span>
         <span class="c1"># [time, batch, model_dim]</span>
         <span class="n">layer_out</span><span class="p">,</span> <span class="n">probs</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">layer_theta</span><span class="p">,</span>
@@ -1352,7 +1359,8 @@
             <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">source_segment_id</span><span class="o">=</span><span class="n">target_segment_id</span><span class="p">,</span>
             <span class="n">aux_segment_id</span><span class="o">=</span><span class="n">src_segment_id</span><span class="p">,</span>
-            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">)</span>
+            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">extra_kwargs</span><span class="p">)</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
         <span class="n">pl_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
@@ -1475,6 +1483,13 @@
 
       <span class="n">atten_probs</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layer_theta</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trans</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">trans</span><span class="p">)):</span>
+        <span class="n">extra_kwargs</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerWithContextLayer</span><span class="p">):</span>
+          <span class="c1"># If the encoder contains encodings for the context and the</span>
+          <span class="c1"># transformer layer in the decoder is able to attend to it, we pass</span>
+          <span class="c1"># them to the transformer layer.</span>
+          <span class="n">extra_kwargs</span><span class="p">[</span><span class="s1">&#39;tertiary_vecs&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">context_encoded</span>
+          <span class="n">extra_kwargs</span><span class="p">[</span><span class="s1">&#39;tertiary_paddings&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">encoder_outputs</span><span class="o">.</span><span class="n">context_padding</span>
         <span class="c1"># [time, batch, model_dim]</span>
         <span class="n">layer_prefix_states</span> <span class="o">=</span> <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span>
         <span class="n">layer_out</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">updated_prefix_states</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
@@ -1483,8 +1498,9 @@
             <span class="n">layer_prefix_states</span><span class="p">,</span>
             <span class="n">source_encs</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
             <span class="n">source_paddings</span><span class="p">,</span>
-            <span class="n">t</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
-            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">)</span>
+            <span class="n">t</span><span class="o">=</span><span class="n">t</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">beam_search</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;tpu_beam_search&#39;</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="n">atten_idx</span><span class="o">=</span><span class="n">atten_idx</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">extra_kwargs</span><span class="p">)</span>
         <span class="n">out_prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%i</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated_prefix_states</span>
         <span class="n">layer_in</span> <span class="o">=</span> <span class="n">layer_out</span>
         <span class="c1"># Enforce shape: [batch, src_len]</span>

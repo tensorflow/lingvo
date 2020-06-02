@@ -2185,12 +2185,18 @@
         <span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">num_attention_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">),</span>
         <span class="s1">&#39;Transformer Attention Layer params. The same template is applied &#39;</span>
         <span class="s1">&#39;to all three attention layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;tr_tertiary_atten_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Transformer Attention Layer params for the tertiary attention. &#39;</span>
+        <span class="s1">&#39;When None, copies tr_atten_tpl above.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tr_fflayer_tpl&#39;</span><span class="p">,</span>
              <span class="n">TransformerFeedForwardLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">hidden_dim</span><span class="o">=</span><span class="mi">2048</span><span class="p">),</span>
              <span class="s1">&#39;Transformer Feed-Forward Layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, each training example may pack multiple sequences.&#39;</span><span class="p">)</span>
-    <span class="c1"># removed: p.has_aux_atten and p.mask_self_atten: they are always True,</span>
+    <span class="c1"># Required params used by the decoder.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;has_aux_atten&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Must be True.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mask_self_atten&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Must be True.&#39;</span><span class="p">)</span>
     <span class="c1"># removed: p.num_aux_atten_post_proj, p.tr_post_ln_tpl</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -2198,6 +2204,8 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">TransformerWithContextLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;p.source_dim not set&#39;</span><span class="p">)</span>
 
@@ -2212,7 +2220,9 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
       <span class="c1"># Initialize tertiary attention.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="c1"># If p.tr_tertiary_atten_tpl is None, we fall back to using</span>
+      <span class="c1"># p.tr_tertiary_atten_tpl.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_tertiary_atten_tpl</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tertiary_multihead_atten&#39;</span>
       <span class="n">params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
       <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
@@ -2242,7 +2252,8 @@
             <span class="n">tertiary_paddings</span><span class="p">,</span>
             <span class="n">source_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
             <span class="n">aux_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-            <span class="n">tertiary_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+            <span class="n">tertiary_segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Layer.</span>
 
 <span class="sd">    Please see docstring of TransformerAttentionLayer.FProp.</span>
@@ -2259,6 +2270,8 @@
 <span class="sd">      source_segment_id: [source_time, source_batch]</span>
 <span class="sd">      aux_segment_id: [aux_time, aux_batch]</span>
 <span class="sd">      tertiary_segment_id: [tertiary_time, tertiary_batch]</span>
+<span class="sd">      **kwargs: Can be optional params for the attention layer, eg. attention</span>
+<span class="sd">        projection index tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The attention context vector, [source_time, source_batch, dim].</span>
@@ -2284,20 +2297,24 @@
         <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">tertiary_segment_id</span><span class="p">)</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
                                              <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span>
-                                             <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">)</span>
+                                             <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">,</span>
+                                             <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">h</span><span class="p">,</span> <span class="n">atten_prob</span></div>
 
-<div class="viewcode-block" id="TransformerWithContextLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
-                 <span class="n">theta</span><span class="p">,</span>
-                 <span class="n">source_vecs</span><span class="p">,</span>
-                 <span class="n">prefix_states</span><span class="p">,</span>
-                 <span class="n">aux_vecs</span><span class="p">,</span>
-                 <span class="n">aux_paddings</span><span class="p">,</span>
-                 <span class="n">tertiary_vecs</span><span class="p">,</span>
-                 <span class="n">tertiary_paddings</span><span class="p">,</span>
-                 <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="TransformerWithContextLayer.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span>
+      <span class="bp">self</span><span class="p">,</span>
+      <span class="n">theta</span><span class="p">,</span>
+      <span class="n">source_vecs</span><span class="p">,</span>
+      <span class="n">prefix_states</span><span class="p">,</span>
+      <span class="n">aux_vecs</span><span class="p">,</span>
+      <span class="n">aux_paddings</span><span class="p">,</span>
+      <span class="n">tertiary_vecs</span><span class="p">,</span>
+      <span class="n">tertiary_paddings</span><span class="p">,</span>
+      <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+      <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+  <span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Transformer Layer, extend one step in decoding.</span>
 
 <span class="sd">    Please see docstring of TransformerAttentionLayer.ExtendStep.</span>
@@ -2314,6 +2331,8 @@
 <span class="sd">      tertiary_vecs: [tertiary_time, tertiary_batch, dim]</span>
 <span class="sd">      tertiary_paddings: [tertiary_time, tertiary_batch]</span>
 <span class="sd">      t: a scalar, the current time step, 0-based.</span>
+<span class="sd">      **kwargs: Can be optional params for the attention layer, eg. attention</span>
+<span class="sd">        projection index tensor.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      The attention context vector, [target_batch, source_dim]</span>
@@ -2339,7 +2358,7 @@
 
     <span class="c1"># Next the source attention (aux_atten) layer.</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
-                                             <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">)</span>
+                                             <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">aux_vecs</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># Finally, the feedforward layer.</span>
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>

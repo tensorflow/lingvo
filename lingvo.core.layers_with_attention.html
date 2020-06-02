@@ -1004,7 +1004,7 @@ encoder attention (named aux_atten in TransformerLayer).</p>
 
 <dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer.FProp">
-<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tertiary_segment_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">source_paddings</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">source_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">tertiary_segment_id</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer.</p>
 <p>Please see docstring of TransformerAttentionLayer.FProp.</p>
 <dl class="field-list simple">
@@ -1021,6 +1021,8 @@ its children layers.</p></li>
 <li><p><strong>source_segment_id</strong> – [source_time, source_batch]</p></li>
 <li><p><strong>aux_segment_id</strong> – [aux_time, aux_batch]</p></li>
 <li><p><strong>tertiary_segment_id</strong> – [tertiary_time, tertiary_batch]</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1033,7 +1035,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">source_vecs</span></em>, <em class="sig-param"><span class="n">prefix_states</span></em>, <em class="sig-param"><span class="n">aux_vecs</span></em>, <em class="sig-param"><span class="n">aux_paddings</span></em>, <em class="sig-param"><span class="n">tertiary_vecs</span></em>, <em class="sig-param"><span class="n">tertiary_paddings</span></em>, <em class="sig-param"><span class="n">t</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers_with_attention.html#TransformerWithContextLayer.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers_with_attention.TransformerWithContextLayer.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Transformer Layer, extend one step in decoding.</p>
 <p>Please see docstring of TransformerAttentionLayer.ExtendStep.</p>
 <dl class="field-list simple">
@@ -1050,6 +1052,8 @@ tertiary_paddings=None,</p></li>
 <li><p><strong>tertiary_vecs</strong> – [tertiary_time, tertiary_batch, dim]</p></li>
 <li><p><strong>tertiary_paddings</strong> – [tertiary_time, tertiary_batch]</p></li>
 <li><p><strong>t</strong> – a scalar, the current time step, 0-based.</p></li>
+<li><p><strong>**kwargs</strong> – Can be optional params for the attention layer, eg. attention
+projection index tensor.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
