@@ -65,7 +65,7 @@ def ImportAllParams(task_root=_TASK_ROOT,
     # By our code repository convention, there is a params.py under the task's
     # params directory. params.py imports _all_ modules that may registers a
     # model param.
-    success = success or _Import('{}.{}.params.params'.format(task_root, task))
+    success = _Import('{}.{}.params.params'.format(task_root, task)) or success
   if require_success and not success:
     raise LookupError('Could not import any task params. Make sure task params '
                       'are linked into the binary.')
@@ -88,8 +88,8 @@ def ImportParams(model_name,
   for task in sorted(task_dirs):
     if model_module.startswith(task + '.'):
       path = model_module[len(task) + 1:]
-      success = success or _Import('{}.{}.params.{}'.format(
-          task_root, task, path))
+      success = _Import('{}.{}.params.{}'.format(task_root, task,
+                                                 path)) or success
 
   if require_success and not success:
     raise LookupError(
