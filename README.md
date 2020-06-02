@@ -128,13 +128,13 @@ processes.
 **pip:**
 
 ```shell
-python3 -m lingvo.trainer --job=evaler_test --run_locally=cpu --model=mnist.LeNet5 --logdir=/tmp/mnist/log
+python3 -m lingvo.trainer --job=evaler_test --run_locally=cpu --mode=sync --model=mnist.LeNet5 --logdir=/tmp/mnist/log
 ```
 
 **bazel:**
 
 ```shell
-bazel-bin/lingvo/trainer --job=evaler_test --run_locally=cpu --model=image.mnist.LeNet5 --logdir=/tmp/mnist/log --logtostderr
+bazel-bin/lingvo/trainer --job=evaler_test --run_locally=cpu --mode=sync --model=image.mnist.LeNet5 --logdir=/tmp/mnist/log --logtostderr
 ```
 
 Kill the job with Ctrl+C when it starts waiting for a new checkpoint.
