@@ -494,9 +494,8 @@ class ModelBase(point_detector.PointDetectorBase):
     """
     raise NotImplementedError('Abstract method: %s' % type(self))
 
-  def _BBoxesAndLogits(self, input_batch):
+  def _BBoxesAndLogits(self, input_batch, predictions):
     """Decode an input batch, computing predicted bboxes from residuals."""
-    predictions = self.ComputePredictions(self.theta, input_batch)
     batch_size, num_centers, num_predictions_per_center = py_utils.GetShape(
         predictions.residuals, 3)
 

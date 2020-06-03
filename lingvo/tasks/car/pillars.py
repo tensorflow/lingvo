@@ -639,16 +639,15 @@ class ModelV1(point_detector.PointDetectorBase):
 
     return metrics_dict, per_example_dict
 
-  def _BBoxesAndLogits(self, input_batch):
+  def _BBoxesAndLogits(self, input_batch, predictions):
     """Decode an input batch, computing predicted bboxes from residuals."""
     p = self.params
-    _, per_example_dict = self.FPropTower(self.theta, input_batch)
 
     # Decode residuals.
     min_angle_rad = -np.pi if p.direction_aware_rot_loss else 0
     predicted_bboxes = self._utils.ResidualsToBBoxes(
         input_batch.anchor_bboxes,
-        per_example_dict['residuals'],
+        predictions.residuals,
         min_angle_rad=min_angle_rad,
         max_angle_rad=np.pi)
 
@@ -659,8 +658,8 @@ class ModelV1(point_detector.PointDetectorBase):
     # Reshape to [batch_size, num_boxes, 7]
     predicted_bboxes = tf.reshape(predicted_bboxes, [batch_size, num_boxes, 7])
 
-    classification_logits = tf.reshape(
-        per_example_dict['classification_logits'], [batch_size, num_boxes, -1])
+    classification_logits = tf.reshape(predictions.classification_logits,
+                                       [batch_size, num_boxes, -1])
 
     return py_utils.NestedMap({
         'predicted_bboxes': predicted_bboxes,

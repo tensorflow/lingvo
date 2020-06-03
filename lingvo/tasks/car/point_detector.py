@@ -87,11 +87,12 @@ class PointDetectorBase(base_model.BaseTask):
     """Create decoder metrics."""
     return self.output_decoder.CreateDecoderMetrics()
 
-  def _BBoxesAndLogits(self, input_batch):
+  def _BBoxesAndLogits(self, input_batch, predictions):
     """Fetch and return the bounding boxes and logits from an input.
 
     Args:
       input_batch: The input batch from which to produce boxes and logits.
+      predictions: The output dictionary of ComputePredictions.
 
     Returns:
       A .NestedMap containing
@@ -200,7 +201,8 @@ class PointDetectorBase(base_model.BaseTask):
     subgraphs = {}
     with tf.name_scope('inference'):
       input_placeholders = self._Placeholders()
-      bboxes_and_logits = self._BBoxesAndLogits(input_placeholders)
+      predictions = self.ComputePredictions(self.theta, input_placeholders)
+      bboxes_and_logits = self._BBoxesAndLogits(input_placeholders, predictions)
       predicted_bboxes = bboxes_and_logits.predicted_bboxes
       classification_logits = bboxes_and_logits.classification_logits
       classification_scores = tf.sigmoid(classification_logits)
@@ -231,7 +233,8 @@ class PointDetectorBase(base_model.BaseTask):
     """Decode an input batch, computing predicted bboxes from residuals."""
     p = self.params
 
-    bboxes_and_logits = self._BBoxesAndLogits(input_batch)
+    predictions = self.ComputePredictions(self.theta, input_batch)
+    bboxes_and_logits = self._BBoxesAndLogits(input_batch, predictions)
     predicted_bboxes = bboxes_and_logits.predicted_bboxes
     batch_size, num_bboxes, _ = py_utils.GetShape(predicted_bboxes, 3)
     classification_logits = bboxes_and_logits.classification_logits
@@ -240,9 +243,9 @@ class PointDetectorBase(base_model.BaseTask):
 
     classification_scores = tf.sigmoid(classification_logits)
 
-    # Score scaler.
-    if 'score_scaler' in bboxes_and_logits:
-      classification_scores *= bboxes_and_logits.score_scaler
+    _, per_example_dict = self.ComputeLoss(self.theta, predictions, input_batch)
+    if 'score_scaler' in per_example_dict:
+      classification_scores *= per_example_dict['score_scaler']
 
     with tf.device('/cpu:0'):
       # Decode the predicted bboxes, performing NMS.
