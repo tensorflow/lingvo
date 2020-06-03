@@ -2158,18 +2158,16 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
     h = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings)
     return h, atten_prob
 
-  def ExtendStep(
-      self,
-      theta,
-      source_vecs,
-      prefix_states,
-      aux_vecs,
-      aux_paddings,
-      tertiary_vecs,
-      tertiary_paddings,
-      t=None,
-      **kwargs,
-  ):
+  def ExtendStep(self,
+                 theta,
+                 source_vecs,
+                 prefix_states,
+                 aux_vecs,
+                 aux_paddings,
+                 tertiary_vecs,
+                 tertiary_paddings,
+                 t=None,
+                 **kwargs):
     """Transformer Layer, extend one step in decoding.
 
     Please see docstring of TransformerAttentionLayer.ExtendStep.
