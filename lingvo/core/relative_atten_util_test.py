@@ -27,6 +27,26 @@ import numpy as np
 FLAGS = tf.flags.FLAGS
 
 
+class RelPositionBiasTest(test_utils.TestCase, parameterized.TestCase):
+
+  def testBasic(self):
+    with self.session():
+      t = 3
+      # [BTNH].
+      content = tf.linalg.diag(tf.ones([t]))[None, :, None, :]
+      # [LNH].
+      abs_pos_emb = tf.reshape(
+          tf.range(t * (2 * t - 1), dtype=tf.float32), [2 * t - 1, 1, t])
+      tf.logging.info('content=%s abs_pos_emb=%s', content.eval(),
+                      abs_pos_emb.eval())
+      self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
+                          relative_atten_util.RelPositionBias(
+                              content, abs_pos_emb, is_causal=False).eval())
+      self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
+                          relative_atten_util.RelPositionBias(
+                              content, abs_pos_emb, is_causal=True).eval())
+
+
 def OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
                           positional_bias, is_causal):
   """Computes expected attention logits using non-vectorized approach."""

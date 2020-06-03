@@ -182,56 +182,7 @@ def RelShift(x):
   return x
 
 
-def _RelPositionBias(query, abs_pos_emb):
-  """Computes relative position bias for general cases."""
-  _, t, n, h = py_utils.GetShape(query)
-  abs_pos_emb = py_utils.HasShape(abs_pos_emb, [2 * t - 1, n, h])
-
-  # abs_pos_emb is [-(T-1), -(T-2), ... 0, 1, 2, ... T-1]
-  # Change to [T-1, T-2, ... 0, -1, -2, ... -(T-2), -(T-1)]
-  abs_pos_emb = tf.reverse(abs_pos_emb, [0])
-
-  # [B, N, T, L=2T-1]
-  term_bd = tf.einsum('BTNH,LNH->BNTL', query, abs_pos_emb)
-
-  # Convert to [B, N, T, T]
-  # part1
-  term_bd_left = term_bd[:, :, :, :t]
-  term_bd_left = tf.reverse(term_bd_left, [2, 3])
-  term_bd_left = RelShift(term_bd_left)
-  # [B, N, T, T]
-  term_bd_left = tf.reverse(term_bd_left, [2, 3])
-  # part 2
-  term_bd_right = term_bd[:, :, :, t - 1:]
-  # [B, N, T, T]
-  term_bd_right = RelShift(term_bd_right)
-  # [lower triangle]
-  mask = tf.linalg.band_part(tf.ones_like(term_bd_right), -1, 0)
-
-  # stitching togather
-  return tf.where(mask > 0, term_bd_left, term_bd_right)
-
-
-def _RelPositionBiasCausal(query, abs_pos_emb):
-  """Computes relative position bias for causal self attention."""
-  _, t, n, h = py_utils.GetShape(query)
-
-  abs_pos_emb = py_utils.HasShape(abs_pos_emb, [2 * t - 1, n, h])
-
-  # abs_pos_emb is [-(T-1), -(T-2), ... 0, 1, 2, ... T-1]
-  # Retain only half and change order to [T-1, T-2, ... 0]
-  # [T, N, H]
-  abs_pos_emb = tf.reverse(abs_pos_emb, [0])[:t]
-
-  # [B, N, T, L=T]
-  term_bd = tf.einsum('BTNH,LNH->BNTL', query, abs_pos_emb)
-
-  # Perform shifting.
-  term_bd = tf.reverse(term_bd, [2, 3])
-  term_bd = RelShift(term_bd)
-  return tf.reverse(term_bd, [2, 3])
-
-
+# TODO(rpang): remove is_causal from the API.
 def RelPositionBias(content, abs_pos_emb, is_causal):
   """Compute relative position bias.
 
@@ -258,14 +209,19 @@ def RelPositionBias(content, abs_pos_emb, is_causal):
   Returns:
     The attention logits tensor. [B, N, T, T]
   """
-  if not isinstance(is_causal, tf.Tensor):
-    fn = (_RelPositionBiasCausal if is_causal else _RelPositionBias)
-    res = fn(content, abs_pos_emb)
-  else:
-    res = tf.cond(is_causal,
-                  lambda: _RelPositionBiasCausal(content, abs_pos_emb),
-                  lambda: _RelPositionBias(content, abs_pos_emb))
-  return res
+  del is_causal
+  b, t, n, h = py_utils.GetShape(content)
+  l = 2 * t - 1
+  abs_pos_emb = py_utils.HasShape(abs_pos_emb, [l, n, h])
+
+  # [B, N, T, L=2T-1]
+  term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
+  term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
+  # [B, N, T * (L + 1)].
+  term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, t)))
+  # [B, N, T, L + 1].
+  term_bd = tf.reshape(term_bd, [b, n, t, l + 1], name='restore')
+  return term_bd[:, :, :, t - 1::-1]
 
 
 def _AttenLogits(query,
