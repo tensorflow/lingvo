@@ -784,16 +784,15 @@
 
     <span class="k">return</span> <span class="n">metrics_dict</span><span class="p">,</span> <span class="n">per_example_dict</span></div>
 
-<div class="viewcode-block" id="ModelV1._BBoxesAndLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1._BBoxesAndLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxesAndLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelV1._BBoxesAndLogits"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.ModelV1._BBoxesAndLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_BBoxesAndLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">,</span> <span class="n">predictions</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decode an input batch, computing predicted bboxes from residuals.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">per_example_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
 
     <span class="c1"># Decode residuals.</span>
     <span class="n">min_angle_rad</span> <span class="o">=</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">direction_aware_rot_loss</span> <span class="k">else</span> <span class="mi">0</span>
     <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span><span class="o">.</span><span class="n">ResidualsToBBoxes</span><span class="p">(</span>
         <span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">,</span>
-        <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;residuals&#39;</span><span class="p">],</span>
+        <span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">,</span>
         <span class="n">min_angle_rad</span><span class="o">=</span><span class="n">min_angle_rad</span><span class="p">,</span>
         <span class="n">max_angle_rad</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
 
@@ -804,8 +803,8 @@
     <span class="c1"># Reshape to [batch_size, num_boxes, 7]</span>
     <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="mi">7</span><span class="p">])</span>
 
-    <span class="n">classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
-        <span class="n">per_example_dict</span><span class="p">[</span><span class="s1">&#39;classification_logits&#39;</span><span class="p">],</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">classification_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">,</span>
+                                       <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_boxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
 
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;predicted_bboxes&#39;</span><span class="p">:</span> <span class="n">predicted_bboxes</span><span class="p">,</span>
