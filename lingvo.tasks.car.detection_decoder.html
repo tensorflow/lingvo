@@ -193,7 +193,11 @@ or treat everything as one class and having no orientation.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
+<dt>Indices of the boxes selected after NMS. Tensor of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class] if per class NMS is used.
+If single class NMS, this will be of shape [batch_size,
+max_boxes_per_class].</p>
+</dd>
+<dt>predicted_bboxes: Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
 </dd>
 <dt>bbox_scores: A float32 Tensor with the score for each box of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class].</p>
 </dd>
@@ -204,7 +208,7 @@ or treat everything as one class and having no orientation.</p></li>
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>predicted_bboxes</p>
+<dd class="field-odd"><p>bbox_indices</p>
 </dd>
 </dl>
 </dd></dl>
@@ -233,7 +237,9 @@ None, this value is set to num_boxes from the shape of predicted_bboxes.</p></li
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
+<dt>Indices of the boxes selected after NMS. Tensor of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class].</p>
+</dd>
+<dt>predicted_bboxes: Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
 </dd>
 <dt>bbox_scores: A float32 Tensor with the score for each box of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class].</p>
 </dd>
@@ -244,7 +250,7 @@ None, this value is set to num_boxes from the shape of predicted_bboxes.</p></li
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>predicted_bboxes</p>
+<dd class="field-odd"><p>bbox_indices</p>
 </dd>
 </dl>
 </dd></dl>
@@ -270,7 +276,9 @@ None, this value is set to num_boxes from the shape of predicted_bboxes.</p></li
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p><dl class="simple">
-<dt>Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
+<dt>Indices of the boxes selected after NMS. Tensor of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class].</p>
+</dd>
+<dt>predicted_bboxes: Filtered bboxes after NMS of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class, 7].</p>
 </dd>
 <dt>bbox_scores: A float32 Tensor with the score for each box of shape</dt><dd><p>[batch_size, num_classes, max_boxes_per_class].</p>
 </dd>
@@ -281,7 +289,7 @@ None, this value is set to num_boxes from the shape of predicted_bboxes.</p></li
 </p>
 </dd>
 <dt class="field-odd">Return type</dt>
-<dd class="field-odd"><p>predicted_bboxes</p>
+<dd class="field-odd"><p>nms_indices</p>
 </dd>
 </dl>
 </dd></dl>

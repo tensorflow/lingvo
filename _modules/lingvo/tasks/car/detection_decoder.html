@@ -194,6 +194,10 @@
 <span class="sd">      or treat everything as one class and having no orientation.</span>
 
 <span class="sd">  Returns:</span>
+<span class="sd">    bbox_indices: Indices of the boxes selected after NMS. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class] if per class NMS is used.</span>
+<span class="sd">      If single class NMS, this will be of shape [batch_size,</span>
+<span class="sd">      max_boxes_per_class].</span>
 <span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
 <span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
 <span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
@@ -238,6 +242,8 @@
 <span class="sd">      None, this value is set to num_boxes from the shape of predicted_bboxes.</span>
 
 <span class="sd">  Returns:</span>
+<span class="sd">    bbox_indices: Indices of the boxes selected after NMS. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
 <span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
 <span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
 <span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
@@ -270,7 +276,7 @@
   <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>
                              <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
   <span class="n">predicted_bboxes</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">array_ops</span><span class="o">.</span><span class="n">batch_gather</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_indices</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+  <span class="k">return</span> <span class="n">bbox_indices</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">bbox_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
 
 
 <div class="viewcode-block" id="_SingleClassDecodeWithNMS"><a class="viewcode-back" href="../../../../lingvo.tasks.car.detection_decoder.html#lingvo.tasks.car.detection_decoder._SingleClassDecodeWithNMS">[docs]</a><span class="k">def</span> <span class="nf">_SingleClassDecodeWithNMS</span><span class="p">(</span><span class="n">predicted_bboxes</span><span class="p">,</span>
@@ -293,6 +299,8 @@
 <span class="sd">      None, this value is set to num_boxes from the shape of predicted_bboxes.</span>
 
 <span class="sd">  Returns:</span>
+<span class="sd">    nms_indices: Indices of the boxes selected after NMS. Tensor of shape</span>
+<span class="sd">      [batch_size, num_classes, max_boxes_per_class].</span>
 <span class="sd">    predicted_bboxes: Filtered bboxes after NMS of shape</span>
 <span class="sd">      [batch_size, num_classes, max_boxes_per_class, 7].</span>
 <span class="sd">    bbox_scores: A float32 Tensor with the score for each box of shape</span>
@@ -357,7 +365,7 @@
   <span class="n">classification_scores</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
       <span class="n">classification_scores</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="n">max_boxes_per_class</span><span class="p">])</span>
   <span class="n">valid_mask</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">valid_mask</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-  <span class="k">return</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">classification_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
+  <span class="k">return</span> <span class="n">nms_indices</span><span class="p">,</span> <span class="n">predicted_bboxes</span><span class="p">,</span> <span class="n">classification_scores</span><span class="p">,</span> <span class="n">valid_mask</span></div>
 </pre></div>
 
            </div>
