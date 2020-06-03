@@ -43,7 +43,7 @@ class DetectionDecoderTest(test_utils.TestCase):
       classification_scores = tf.random.uniform(
           [batch_size, num_preds, num_classes], minval=0, maxval=1)
 
-      bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(
+      idxs, bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(
           predicted_bboxes,
           classification_scores,
           nms_iou_threshold=nms_iou_threshold,
@@ -52,13 +52,15 @@ class DetectionDecoderTest(test_utils.TestCase):
 
       with self.session():
         outputs = self.evaluate([
-            predicted_bboxes, classification_scores, bboxes, bbox_scores,
+            predicted_bboxes, classification_scores, idxs, bboxes, bbox_scores,
             valid_mask
         ])
-        (input_bboxes, input_scores, output_bboxes, output_scores,
+        (input_bboxes, input_scores, output_idxs, output_bboxes, output_scores,
          mask) = outputs
 
         self.assertEqual((batch_size, num_preds, 7), input_bboxes.shape)
+        self.assertEqual((batch_size, num_classes, num_preds),
+                         output_idxs.shape)
         self.assertEqual((batch_size, num_classes, num_preds, 7),
                          output_bboxes.shape)
         self.assertEqual((batch_size, num_preds, num_classes),
@@ -89,7 +91,7 @@ class DetectionDecoderTest(test_utils.TestCase):
       classification_scores = tf.random.uniform(
           [batch_size, num_preds, num_classes], minval=0, maxval=1)
 
-      bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(
+      idxs, bboxes, bbox_scores, valid_mask = detection_decoder.DecodeWithNMS(
           predicted_bboxes,
           classification_scores,
           nms_iou_threshold=nms_iou_threshold,
@@ -98,13 +100,14 @@ class DetectionDecoderTest(test_utils.TestCase):
 
       with self.session():
         outputs = self.evaluate([
-            predicted_bboxes, classification_scores, bboxes, bbox_scores,
+            predicted_bboxes, classification_scores, idxs, bboxes, bbox_scores,
             valid_mask
         ])
-        (input_bboxes, input_scores, output_bboxes, output_scores,
+        (input_bboxes, input_scores, output_idxs, output_bboxes, output_scores,
          mask) = outputs
 
         self.assertEqual((batch_size, num_preds, 7), input_bboxes.shape)
+        self.assertEqual((batch_size, num_preds), output_idxs.shape)
         self.assertEqual((batch_size, num_classes, num_preds, 7),
                          output_bboxes.shape)
         self.assertEqual((batch_size, num_preds, num_classes),

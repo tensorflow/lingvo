@@ -207,7 +207,7 @@ class PointDetectorBase(base_model.BaseTask):
       classification_logits = bboxes_and_logits.classification_logits
       classification_scores = tf.sigmoid(classification_logits)
 
-      per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
+      _, per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
           detection_decoder.DecodeWithNMS(
               predicted_bboxes,
               classification_scores,
@@ -249,7 +249,7 @@ class PointDetectorBase(base_model.BaseTask):
 
     with tf.device('/cpu:0'):
       # Decode the predicted bboxes, performing NMS.
-      per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
+      _, per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
           detection_decoder.DecodeWithNMS(
               predicted_bboxes,
               classification_scores,

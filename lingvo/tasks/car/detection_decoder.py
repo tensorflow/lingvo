@@ -49,6 +49,10 @@ def DecodeWithNMS(predicted_bboxes,
       or treat everything as one class and having no orientation.
 
   Returns:
+    bbox_indices: Indices of the boxes selected after NMS. Tensor of shape
+      [batch_size, num_classes, max_boxes_per_class] if per class NMS is used.
+      If single class NMS, this will be of shape [batch_size,
+      max_boxes_per_class].
     predicted_bboxes: Filtered bboxes after NMS of shape
       [batch_size, num_classes, max_boxes_per_class, 7].
     bbox_scores: A float32 Tensor with the score for each box of shape
@@ -93,6 +97,8 @@ def _MultiClassOrientedDecodeWithNMS(predicted_bboxes,
       None, this value is set to num_boxes from the shape of predicted_bboxes.
 
   Returns:
+    bbox_indices: Indices of the boxes selected after NMS. Tensor of shape
+      [batch_size, num_classes, max_boxes_per_class].
     predicted_bboxes: Filtered bboxes after NMS of shape
       [batch_size, num_classes, max_boxes_per_class, 7].
     bbox_scores: A float32 Tensor with the score for each box of shape
@@ -125,7 +131,7 @@ def _MultiClassOrientedDecodeWithNMS(predicted_bboxes,
   predicted_bboxes = tf.tile(predicted_bboxes[:, tf.newaxis, :, :],
                              [1, num_classes, 1, 1])
   predicted_bboxes = tf.array_ops.batch_gather(predicted_bboxes, bbox_indices)
-  return predicted_bboxes, bbox_scores, valid_mask
+  return bbox_indices, predicted_bboxes, bbox_scores, valid_mask
 
 
 def _SingleClassDecodeWithNMS(predicted_bboxes,
@@ -148,6 +154,8 @@ def _SingleClassDecodeWithNMS(predicted_bboxes,
       None, this value is set to num_boxes from the shape of predicted_bboxes.
 
   Returns:
+    nms_indices: Indices of the boxes selected after NMS. Tensor of shape
+      [batch_size, num_classes, max_boxes_per_class].
     predicted_bboxes: Filtered bboxes after NMS of shape
       [batch_size, num_classes, max_boxes_per_class, 7].
     bbox_scores: A float32 Tensor with the score for each box of shape
@@ -212,4 +220,4 @@ def _SingleClassDecodeWithNMS(predicted_bboxes,
   classification_scores = py_utils.HasShape(
       classification_scores, [batch_size, num_classes, max_boxes_per_class])
   valid_mask = tf.tile(valid_mask[:, tf.newaxis, :], [1, num_classes, 1])
-  return predicted_bboxes, classification_scores, valid_mask
+  return nms_indices, predicted_bboxes, classification_scores, valid_mask
