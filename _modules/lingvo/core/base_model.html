@@ -990,7 +990,8 @@
           <span class="n">tp</span><span class="o">.</span><span class="n">pruning_hparams_dict</span><span class="p">)</span>
       <span class="n">pruning_obj</span> <span class="o">=</span> <span class="n">pruning</span><span class="o">.</span><span class="n">Pruning</span><span class="p">(</span>
           <span class="n">pruning_hparams</span><span class="p">,</span> <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
-      <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span><span class="p">:</span>
+        <span class="n">pruning_obj</span><span class="o">.</span><span class="n">add_pruning_summaries</span><span class="p">()</span>
       <span class="n">mask_update_op</span> <span class="o">=</span> <span class="n">pruning_obj</span><span class="o">.</span><span class="n">conditional_mask_update_op</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">mask_update_op</span></div></div>
 
