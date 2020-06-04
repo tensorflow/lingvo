@@ -249,7 +249,7 @@ above).</p>
 
 <dl class="py function">
 <dt id="lingvo.core.relative_atten_util.RelPositionBias">
-<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">RelPositionBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">content</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">is_causal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#RelPositionBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">RelPositionBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">content</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#RelPositionBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute relative position bias.</p>
 <p>This is a subroutine used by variants of self-attentions with relative
 positional embedding.</p>
@@ -266,8 +266,6 @@ H: per-head attention dimension.</p>
 <li><p><strong>content</strong> – [B, T, N, H]</p></li>
 <li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H], the absolute positional embedding.
 abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
-<li><p><strong>is_causal</strong> – A Python bool or a scalar bool Tensor. True for causal self
-attention.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -278,7 +276,7 @@ attention.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.relative_atten_util._AttenLogits">
-<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positional_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#_AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positional_bias</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#_AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
@@ -298,8 +296,6 @@ H: per-head attention dimension.</p>
 <li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
 <li><p><strong>content_bias</strong> – [N, H] or None</p></li>
 <li><p><strong>positional_bias</strong> – [N, H] or None</p></li>
-<li><p><strong>is_causal</strong> – A Python bool or a scalar bool Tensor. True for causal self</p></li>
-<li><p><strong>attention.</strong> – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -310,7 +306,7 @@ H: per-head attention dimension.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.relative_atten_util.AttenLogitsTransformerXL">
-<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">AttenLogitsTransformerXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span></em>, <em class="sig-param"><span class="n">positional_bias</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#AttenLogitsTransformerXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">AttenLogitsTransformerXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span></em>, <em class="sig-param"><span class="n">positional_bias</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#AttenLogitsTransformerXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
 self attention with relative position embedding.</p>
@@ -330,8 +326,6 @@ H: per-head attention dimension.</p>
 <li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
 <li><p><strong>content_bias</strong> – [N, H]</p></li>
 <li><p><strong>positional_bias</strong> – [N, H]</p></li>
-<li><p><strong>is_causal</strong> – A Python bool or a scalar bool Tensor. True for causal self</p></li>
-<li><p><strong>attention.</strong> – </p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -342,7 +336,7 @@ H: per-head attention dimension.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.relative_atten_util.AttenLogitsRPE">
-<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">AttenLogitsRPE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">is_causal</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#AttenLogitsRPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.relative_atten_util.</code><code class="sig-name descname">AttenLogitsRPE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/relative_atten_util.html#AttenLogitsRPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.relative_atten_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
 <dd><p>Attention logits from …</p>
 <p><a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a> with trainable rel position emb.</p>
 <p>Notice padding is supposed to be masked by the caller of this function.</p>
@@ -358,8 +352,6 @@ H: per-head attention dimension.</p>
 <li><p><strong>key</strong> – [B, T, N, H]</p></li>
 <li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is
 the emb of relative distance i - (T-1).</p></li>
-<li><p><strong>is_causal</strong> – A Python bool or a scalar bool Tensor. True for causal self
-attention.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
