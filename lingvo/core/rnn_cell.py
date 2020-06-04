@@ -487,7 +487,7 @@ class LSTMCellSimple(RNNCell):
                 tf.constant([0., p.forget_gate_bias, 0.], dtype=p.dtype),
                 axis=1))
       adjustment = tf.reshape(adjustment, [self.num_gates * self.hidden_size])
-      b += adjustment
+      b = b + adjustment
 
     return b
 
