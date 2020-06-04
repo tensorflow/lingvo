@@ -1,0 +1,524 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.saver &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="../../../_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.saver</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.saver</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python2, python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="sd">&quot;&quot;&quot;A saver that we use to save and restore variables.</span>
+
+<span class="sd">The implementation mimics tf.train.Saver. Meanwhile, it allows us</span>
+<span class="sd">to carry out extra sanity checks on the checkpoint.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
+<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
+
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.lib.io</span> <span class="kn">import</span> <span class="n">file_io</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">io_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.training.checkpoint_state_pb2</span> <span class="kn">import</span> <span class="n">CheckpointState</span>
+
+
+<div class="viewcode-block" id="SanityCheck"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.SanityCheck">[docs]</a><span class="k">class</span> <span class="nc">SanityCheck</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="SanityCheck.Check"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.SanityCheck.Check">[docs]</a>  <span class="k">def</span> <span class="nf">Check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns true iff the sanity check passes.&quot;&quot;&quot;</span>
+    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="InRange"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.InRange">[docs]</a><span class="k">class</span> <span class="nc">InRange</span><span class="p">(</span><span class="n">SanityCheck</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Sanity check a value is within [low, high].&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_low</span> <span class="o">=</span> <span class="n">low</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_high</span> <span class="o">=</span> <span class="n">high</span>
+
+  <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;InRange(</span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_low</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_high</span><span class="p">)</span>
+
+<div class="viewcode-block" id="InRange.Check"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.InRange.Check">[docs]</a>  <span class="k">def</span> <span class="nf">Check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_low</span> <span class="o">&lt;=</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_high</span></div></div>
+
+
+<div class="viewcode-block" id="IsFinite"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.IsFinite">[docs]</a><span class="k">class</span> <span class="nc">IsFinite</span><span class="p">(</span><span class="n">SanityCheck</span><span class="p">):</span>
+
+  <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s2">&quot;IsFinite&quot;</span>
+
+<div class="viewcode-block" id="IsFinite.Check"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.IsFinite.Check">[docs]</a>  <span class="k">def</span> <span class="nf">Check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">value</span><span class="p">))</span></div></div>
+
+
+<div class="viewcode-block" id="_VarKey"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver._VarKey">[docs]</a><span class="k">def</span> <span class="nf">_VarKey</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+  <span class="k">return</span> <span class="n">var</span><span class="o">.</span><span class="n">name</span><span class="p">[:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>  <span class="c1"># strip :0</span></div>
+
+
+<div class="viewcode-block" id="Saver"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver">[docs]</a><span class="k">class</span> <span class="nc">Saver</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Simpler version of tf.train.Saver with extra sanity checks.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">logdir</span><span class="p">,</span>
+               <span class="n">variables</span><span class="p">,</span>
+               <span class="n">sanity_checks</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">keep_latest_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">keep_every_n_hours</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span> <span class="o">=</span> <span class="n">logdir</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/checkpoint&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span> <span class="o">=</span> <span class="n">variables</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">sanity_checks</span> <span class="ow">or</span> <span class="nb">all</span><span class="p">(</span>
+        <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">SanityCheck</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sanity_checks</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_sanity_checks</span> <span class="o">=</span> <span class="n">sanity_checks</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">=</span> <span class="n">keep_latest_n</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="o">=</span> <span class="n">keep_every_n_hours</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;^.*/ckpt-(\d+).*$&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">placeholder</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">string</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="p">[])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_BuildSave</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_BuildRestore</span><span class="p">()</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saver: </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Saver._BuildSave"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._BuildSave">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildSave</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Builds save ops.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">strings</span><span class="o">.</span><span class="n">join</span><span class="p">([</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">,</span> <span class="s2">&quot;/ckpt-&quot;</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">as_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="n">width</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span> <span class="n">fill</span><span class="o">=</span><span class="s2">&quot;0&quot;</span><span class="p">)</span>
+    <span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">,</span>
+        <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
+        <span class="n">tensors</span><span class="o">=</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">],</span>
+        <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Saver._BuildRestore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._BuildRestore">[docs]</a>  <span class="k">def</span> <span class="nf">_BuildRestore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Builds restore ops.&quot;&quot;&quot;</span>
+    <span class="n">assign_ops</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">var</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_vars</span><span class="p">:</span>
+      <span class="n">val</span><span class="p">,</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">restore_v2</span><span class="p">(</span>
+          <span class="n">prefix</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">,</span>
+          <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">var</span><span class="p">)],</span>
+          <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+          <span class="n">dtypes</span><span class="o">=</span><span class="p">[</span><span class="n">var</span><span class="o">.</span><span class="n">dtype</span><span class="p">])</span>
+      <span class="n">assign_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">val</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="o">*</span><span class="n">assign_ops</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Saver._GetState"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GetState">[docs]</a>  <span class="k">def</span> <span class="nf">_GetState</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the latest checkpoint id.&quot;&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">CheckpointState</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">file_io</span><span class="o">.</span><span class="n">file_exists</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span><span class="p">):</span>
+      <span class="n">content</span> <span class="o">=</span> <span class="n">file_io</span><span class="o">.</span><span class="n">read_file_to_string</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span><span class="p">)</span>
+      <span class="n">text_format</span><span class="o">.</span><span class="n">Merge</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="Saver._SetState"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._SetState">[docs]</a>  <span class="k">def</span> <span class="nf">_SetState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="n">file_io</span><span class="o">.</span><span class="n">atomic_write_string_to_file</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_state_file</span><span class="p">,</span>
+                                        <span class="n">text_format</span><span class="o">.</span><span class="n">MessageToString</span><span class="p">(</span><span class="n">state</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Saver._GetCheckpointId"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GetCheckpointId">[docs]</a>  <span class="k">def</span> <span class="nf">_GetCheckpointId</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename_prefix</span><span class="p">):</span>
+    <span class="n">match</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">filename_prefix</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">match</span><span class="p">,</span> <span class="s2">&quot;Unexpected </span><span class="si">{}</span><span class="s2"> does not match re(</span><span class="si">{}</span><span class="s2">)&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+        <span class="n">filename_prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">pattern</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">int</span><span class="p">(</span><span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="Saver._GarbageCollect"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._GarbageCollect">[docs]</a>  <span class="k">def</span> <span class="nf">_GarbageCollect</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Garbage collect obsolete checkpoint files.&quot;&quot;&quot;</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span>
+
+    <span class="n">valid_ids</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">:</span>
+      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">:</span>
+      <span class="n">valid_ids</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">path</span><span class="p">))</span>
+
+    <span class="n">existing_files</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/ckpt-*&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">))</span>
+    <span class="c1"># Filter to make sure we catch only the ckpt files.</span>
+    <span class="n">existing_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">f</span> <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">existing_files</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_re_pattern</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">f</span><span class="p">)]</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">existing_files</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">valid_ids</span><span class="p">:</span>
+        <span class="c1"># TODO(zhifengc): May need to find a bulk delete method.</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Garbage collecting </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Saver._DoSanityCheck"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._DoSanityCheck">[docs]</a>  <span class="k">def</span> <span class="nf">_DoSanityCheck</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Sanity-check the content of the checkpoint.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanity_checks</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="n">reader</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">NewCheckpointReader</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">variables</span><span class="p">,</span> <span class="n">rule</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_sanity_checks</span><span class="p">:</span>
+      <span class="n">args</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">:</span>
+        <span class="n">key</span> <span class="o">=</span> <span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">content</span><span class="p">:</span>
+          <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">content</span><span class="p">[</span><span class="n">key</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">value</span> <span class="o">=</span> <span class="n">reader</span><span class="o">.</span><span class="n">get_tensor</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+          <span class="n">content</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+          <span class="n">args</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">rule</span><span class="o">.</span><span class="n">Check</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># TODO(zhifengc): Maybe should return an explicit signal</span>
+        <span class="c1"># so that the caller (the controller loop) can Restore()</span>
+        <span class="c1"># the latest checkpoint before raise the error.</span>
+        <span class="n">msg</span> <span class="o">=</span> <span class="s2">&quot;Checkpoint sanity check failed: </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">prefix</span><span class="p">,</span> <span class="s2">&quot;,&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="n">_VarKey</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">variables</span><span class="p">]),</span> <span class="n">rule</span><span class="p">)</span>
+        <span class="c1"># Also saves the error messge into a file.</span>
+        <span class="n">file_io</span><span class="o">.</span><span class="n">write_string_to_file</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">.failed&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prefix</span><span class="p">),</span> <span class="n">msg</span><span class="p">)</span>
+        <span class="k">raise</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Saver.Save"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generate a new checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: A session with tf.Graph under which this object is constructred.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      If the checkpoint is successfully generated, returns its global step</span>
+<span class="sd">      and file prefix. Otherwise, raises an Aborted error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Garbage collect. Do so before generates the checkpoint</span>
+    <span class="c1"># in case we repeatedly fails the sanity checks.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_GarbageCollect</span><span class="p">()</span>
+
+    <span class="n">_</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_save_op</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_prefix</span><span class="p">],</span>
+        <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir_ph</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">})</span>
+    <span class="n">prefix</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">as_text</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># Many users expect this as the tf.train.Saver does this by default.</span>
+    <span class="n">meta_graph_filename</span> <span class="o">=</span> <span class="n">prefix</span> <span class="o">+</span> <span class="s2">&quot;.meta&quot;</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">export_meta_graph</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="n">meta_graph_filename</span><span class="p">)</span>
+
+    <span class="c1"># We can do extra sanity checks.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_DoSanityCheck</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="c1"># Commit new state.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateState</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Saved </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div>
+
+<div class="viewcode-block" id="Saver._UpdateState"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver._UpdateState">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates the checkpoint state with the new checkpoint prefix.&quot;&quot;&quot;</span>
+    <span class="c1"># The checkpoint looks OK. Commit it to the state.</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span>
+
+    <span class="c1"># If a previous checkpoint exists and it was generated long</span>
+    <span class="c1"># after the checkpoint before it, we preserve it in</span>
+    <span class="c1"># all_model_checkpoint_{paths,timestamps}.</span>
+    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span> <span class="ow">and</span> <span class="p">(</span>
+        <span class="ow">not</span> <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span> <span class="ow">or</span>
+        <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span> <span class="ow">or</span>
+        <span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span> <span class="o">-</span>
+         <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">&gt;</span>
+         <span class="mf">3600.</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_every_n_hours</span><span class="p">)):</span>
+      <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span><span class="p">)</span>
+      <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span><span class="p">)</span>
+
+    <span class="c1"># Record the checkpoint we just generated.</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">model_checkpoint_path</span> <span class="o">=</span> <span class="n">prefix</span>
+    <span class="n">state</span><span class="o">.</span><span class="n">last_preserved_timestamp</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+
+    <span class="c1"># Applies the count-based GC policy.</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Use [:] to prevent &quot;Assignment not allowed to repeated field&quot; error.</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_keep_latest_n</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_paths</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:])</span>
+        <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[:]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">state</span><span class="o">.</span><span class="n">all_model_checkpoint_timestamps</span><span class="p">[</span><span class="o">-</span><span class="n">n</span><span class="p">:])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_SetState</span><span class="p">(</span><span class="n">state</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="Saver.Restore"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.Saver.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Restore variables from a checkpoint.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      sess: A session with tf.Graph under which this object is constructred.</span>
+<span class="sd">      checkpoint_id: If None, restore from the latest checkpoint. Otherwise,</span>
+<span class="sd">        restore from the specific checkpoint.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      If no checkpoint has been generated, returns (0, &quot;&quot;).  Otherwise, try to</span>
+<span class="sd">      restore from the specified or the latest checkpoint. If the checkpoint is</span>
+<span class="sd">      successfully restored, returns the checkpoint&#39;s global step and file</span>
+<span class="sd">      prefix. Otherwise, raises an error.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">checkpoint_id</span><span class="p">:</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">/ckpt-</span><span class="si">{:08d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_logdir</span><span class="p">,</span> <span class="n">checkpoint_id</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">prefix</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetState</span><span class="p">()</span><span class="o">.</span><span class="n">model_checkpoint_path</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">prefix</span><span class="p">:</span>
+        <span class="k">return</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+        <span class="n">fetches</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_op</span><span class="p">],</span> <span class="n">feed_dict</span><span class="o">=</span><span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_restore_prefix_ph</span><span class="p">:</span> <span class="n">prefix</span><span class="p">})</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetCheckpointId</span><span class="p">(</span><span class="n">prefix</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Restored </span><span class="si">%d</span><span class="s2"> </span><span class="si">%s</span><span class="s2">&quot;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">prefix</span></div></div>
+
+
+<div class="viewcode-block" id="WriteNpArrays"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.WriteNpArrays">[docs]</a><span class="k">def</span> <span class="nf">WriteNpArrays</span><span class="p">(</span><span class="n">file_prefix</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Writes a NestedMap of numpy arrays into a TF checkpoint.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    file_prefix: A TF checkpoint filename prefix.</span>
+<span class="sd">    nmap: A NestedMap of numpy arrays.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+  <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+
+    <span class="k">def</span> <span class="nf">Wrap</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+      <span class="n">dtype</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">val</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">dtype</span> <span class="o">!=</span> <span class="n">tf</span><span class="o">.</span><span class="n">string</span>  <span class="c1"># tf.string is not supported by py_func.</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">val</span><span class="p">,</span> <span class="p">[],</span> <span class="n">dtype</span><span class="p">)</span>
+
+    <span class="n">names</span><span class="p">,</span> <span class="n">values</span> <span class="o">=</span> <span class="p">[],</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">nmap</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+      <span class="n">names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span>
+      <span class="n">values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">Wrap</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
+
+    <span class="n">save</span> <span class="o">=</span> <span class="n">io_ops</span><span class="o">.</span><span class="n">save_v2</span><span class="p">(</span>
+        <span class="n">prefix</span><span class="o">=</span><span class="n">file_prefix</span><span class="p">,</span>
+        <span class="n">tensor_names</span><span class="o">=</span><span class="n">names</span><span class="p">,</span>
+        <span class="n">tensors</span><span class="o">=</span><span class="n">values</span><span class="p">,</span>
+        <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">))</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">save</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ReadNpArrays"><a class="viewcode-back" href="../../../lingvo.core.saver.html#lingvo.core.saver.ReadNpArrays">[docs]</a><span class="k">def</span> <span class="nf">ReadNpArrays</span><span class="p">(</span><span class="n">file_prefix</span><span class="p">,</span> <span class="n">nmap</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Reads from a tf checkpoint to fill in values of a NesteMap.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    file_prefix: A TF checkpoint filename prefix.</span>
+<span class="sd">    nmap: A NestedMap of numpy dtypes.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A NestedMap with numpy arrays compatible w/ nmap.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">g</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+  <span class="k">with</span> <span class="n">g</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
+    <span class="n">reads</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">dtype</span> <span class="ow">in</span> <span class="n">nmap</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+      <span class="n">reads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">io_ops</span><span class="o">.</span><span class="n">restore_v2</span><span class="p">(</span>
+              <span class="n">prefix</span><span class="o">=</span><span class="n">file_prefix</span><span class="p">,</span>
+              <span class="n">tensor_names</span><span class="o">=</span><span class="p">[</span><span class="n">name</span><span class="p">],</span>
+              <span class="n">shape_and_slices</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;&quot;</span><span class="p">],</span>
+              <span class="n">dtypes</span><span class="o">=</span><span class="p">[</span><span class="n">dtype</span><span class="p">])[</span><span class="mi">0</span><span class="p">])</span>
+
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">(</span><span class="n">graph</span><span class="o">=</span><span class="n">g</span><span class="p">)</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+    <span class="n">vals</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">reads</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">nmap</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">vals</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

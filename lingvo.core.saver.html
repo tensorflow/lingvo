@@ -1,0 +1,384 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.saver module &mdash; Lingvo  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+  <script type="text/javascript" src="_static/js/modernizr.min.js"></script>
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.schedule module" href="lingvo.core.schedule.html" />
+    <link rel="prev" title="lingvo.core.rnn_layers module" href="lingvo.core.rnn_layers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.saver module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.saver.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.saver">
+<span id="lingvo-core-saver-module"></span><h1>lingvo.core.saver module<a class="headerlink" href="#module-lingvo.core.saver" title="Permalink to this headline">¶</a></h1>
+<p>A saver that we use to save and restore variables.</p>
+<p>The implementation mimics tf.train.Saver. Meanwhile, it allows us
+to carry out extra sanity checks on the checkpoint.</p>
+<dl class="py class">
+<dt id="lingvo.core.saver.SanityCheck">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">SanityCheck</code><a class="reference internal" href="_modules/lingvo/core/saver.html#SanityCheck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.SanityCheck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<dl class="py method">
+<dt id="lingvo.core.saver.SanityCheck.Check">
+<code class="sig-name descname">Check</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#SanityCheck.Check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.SanityCheck.Check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true iff the sanity check passes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.saver.InRange">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">InRange</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">low</span></em>, <em class="sig-param"><span class="n">high</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#InRange"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.InRange" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.saver.SanityCheck" title="lingvo.core.saver.SanityCheck"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.saver.SanityCheck</span></code></a></p>
+<p>Sanity check a value is within [low, high].</p>
+<dl class="py method">
+<dt id="lingvo.core.saver.InRange.Check">
+<code class="sig-name descname">Check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#InRange.Check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.InRange.Check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true iff the sanity check passes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.saver.IsFinite">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">IsFinite</code><a class="reference internal" href="_modules/lingvo/core/saver.html#IsFinite"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.IsFinite" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.saver.SanityCheck" title="lingvo.core.saver.SanityCheck"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.saver.SanityCheck</span></code></a></p>
+<dl class="py method">
+<dt id="lingvo.core.saver.IsFinite.Check">
+<code class="sig-name descname">Check</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#IsFinite.Check"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.IsFinite.Check" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns true iff the sanity check passes.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.saver._VarKey">
+<code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">_VarKey</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#_VarKey"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver._VarKey" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.saver.Saver">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">Saver</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">logdir</span></em>, <em class="sig-param"><span class="n">variables</span></em>, <em class="sig-param"><span class="n">sanity_checks</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">keep_latest_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">keep_every_n_hours</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Simpler version of tf.train.Saver with extra sanity checks.</p>
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._BuildSave">
+<code class="sig-name descname">_BuildSave</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._BuildSave"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._BuildSave" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds save ops.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._BuildRestore">
+<code class="sig-name descname">_BuildRestore</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._BuildRestore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._BuildRestore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds restore ops.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._GetState">
+<code class="sig-name descname">_GetState</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._GetState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._GetState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the latest checkpoint id.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._SetState">
+<code class="sig-name descname">_SetState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">state</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._SetState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._SetState" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._GetCheckpointId">
+<code class="sig-name descname">_GetCheckpointId</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">filename_prefix</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._GetCheckpointId"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._GetCheckpointId" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._GarbageCollect">
+<code class="sig-name descname">_GarbageCollect</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._GarbageCollect"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._GarbageCollect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Garbage collect obsolete checkpoint files.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._DoSanityCheck">
+<code class="sig-name descname">_DoSanityCheck</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._DoSanityCheck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._DoSanityCheck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sanity-check the content of the checkpoint.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver.Save">
+<code class="sig-name descname">Save</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver.Save"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver.Save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate a new checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>sess</strong> – A session with tf.Graph under which this object is constructred.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>If the checkpoint is successfully generated, returns its global step
+and file prefix. Otherwise, raises an Aborted error.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver._UpdateState">
+<code class="sig-name descname">_UpdateState</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">prefix</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver._UpdateState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver._UpdateState" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the checkpoint state with the new checkpoint prefix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.saver.Saver.Restore">
+<code class="sig-name descname">Restore</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">sess</span></em>, <em class="sig-param"><span class="n">checkpoint_id</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#Saver.Restore"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.Saver.Restore" title="Permalink to this definition">¶</a></dt>
+<dd><p>Restore variables from a checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sess</strong> – A session with tf.Graph under which this object is constructred.</p></li>
+<li><p><strong>checkpoint_id</strong> – If None, restore from the latest checkpoint. Otherwise,
+restore from the specific checkpoint.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>If no checkpoint has been generated, returns (0, “”).  Otherwise, try to
+restore from the specified or the latest checkpoint. If the checkpoint is
+successfully restored, returns the checkpoint’s global step and file
+prefix. Otherwise, raises an error.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.saver.WriteNpArrays">
+<code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">WriteNpArrays</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_prefix</span></em>, <em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#WriteNpArrays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.WriteNpArrays" title="Permalink to this definition">¶</a></dt>
+<dd><p>Writes a NestedMap of numpy arrays into a TF checkpoint.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_prefix</strong> – A TF checkpoint filename prefix.</p></li>
+<li><p><strong>nmap</strong> – A NestedMap of numpy arrays.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.saver.ReadNpArrays">
+<code class="sig-prename descclassname">lingvo.core.saver.</code><code class="sig-name descname">ReadNpArrays</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">file_prefix</span></em>, <em class="sig-param"><span class="n">nmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/saver.html#ReadNpArrays"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.saver.ReadNpArrays" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads from a tf checkpoint to fill in values of a NesteMap.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_prefix</strong> – A TF checkpoint filename prefix.</p></li>
+<li><p><strong>nmap</strong> – A NestedMap of numpy dtypes.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A NestedMap with numpy arrays compatible w/ nmap.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.schedule.html" class="btn btn-neutral float-right" title="lingvo.core.schedule module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.rnn_layers.html" class="btn btn-neutral float-left" title="lingvo.core.rnn_layers module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
