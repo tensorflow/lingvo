@@ -782,15 +782,6 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     # This layer only supports self attention.
     key = py_utils.HasShape(key, [b, t, n, h])
 
-    if per_step_padding is None:
-      is_causal_padding = False
-    else:
-      causal_padding = tf.tile(
-          tf.reshape(CausalPadding(t), [1, t, t]), [b, 1, 1])
-      is_causal_padding = tf.reduce_all(
-          tf.equal(
-              tf.cast(per_step_padding, dtype=tf.int32),
-              tf.cast(causal_padding, dtype=tf.int32)))
     # [1, 2T - 1]
     pos = tf.expand_dims(tf.range(-(t - 1), t, name='relative_pos'), 0)
     sin_emb = self.pos_emb.FPropWithPosition(theta.pos_emb, pos)
@@ -800,7 +791,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     sin_emb = tf.squeeze(sin_emb, 0)
 
     logits = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, sin_emb, theta.u, theta.v, is_causal_padding)
+        query, key, sin_emb, theta.u, theta.v)
     return logits
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
@@ -964,16 +955,6 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     # This layer only supports self attention.
     key = py_utils.HasShape(key, [b, t, n, h])
 
-    if per_step_padding is None:
-      is_causal_padding = False
-    else:
-      causal_padding = tf.tile(
-          tf.reshape(CausalPadding(t), [1, t, t]), [b, 1, 1])
-      is_causal_padding = tf.reduce_all(
-          tf.equal(
-              tf.cast(per_step_padding, dtype=tf.int32),
-              tf.cast(causal_padding, dtype=tf.int32)))
-
     # [1, 2T - 1]
     pos = tf.expand_dims(tf.range(-(t - 1), t), 0)
     # [1, 2T - 1, rel_pos_emb_dim]
@@ -986,8 +967,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     else:
       abs_emb = tf.reshape(abs_emb, [2 * t - 1, n, h])
 
-    return relative_atten_util.AttenLogitsRPE(query, key, abs_emb,
-                                              is_causal_padding)
+    return relative_atten_util.AttenLogitsRPE(query, key, abs_emb)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.

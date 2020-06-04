@@ -41,30 +41,21 @@ class RelPositionBiasTest(test_utils.TestCase, parameterized.TestCase):
                       abs_pos_emb.eval())
       self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
                           relative_atten_util.RelPositionBias(
-                              content, abs_pos_emb, is_causal=False).eval())
-      self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
-                          relative_atten_util.RelPositionBias(
-                              content, abs_pos_emb, is_causal=True).eval())
+                              content, abs_pos_emb).eval())
 
 
 def OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
-                          positional_bias, is_causal):
+                          positional_bias):
   """Computes expected attention logits using non-vectorized approach."""
   batch, seqlen, num_heads, _ = query.shape
   tgtlen, srclen = seqlen, seqlen
 
   logits = np.zeros((batch, num_heads, tgtlen, srclen))
 
-  very_negative = np.finfo(logits.dtype).min * 0.7
-
   for b in range(batch):
     for n in range(num_heads):
       for i in range(tgtlen):
         for j in range(srclen):
-          if is_causal and j > i:
-            logits[b][n][i][j] = very_negative
-            continue
-          # Non-causal case.
           offset = seqlen - 1
           pos_emb = abs_pos_emb[i - j + offset]
           logits[b][n][i][j] = (
@@ -101,37 +92,24 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
                                           self.input_dim).astype(np.float32)
     return query, key, abs_pos_emb, content_bias, positional_bias
 
-  def _Compare(self, expected, actual, is_causal):
-    if is_causal:
-      # 0s are masked positions
-      mask = np.tril(np.ones(
-          (self.seqlen, self.seqlen)), -1) + np.eye(self.seqlen, self.seqlen)
-      expected = expected * mask
-      actual = actual * mask
-    self.assertAllClose(expected, actual)
-
-  @parameterized.named_parameters(('Basic', False), ('Causal', True))
-  def testTransformerXL(self, is_causal):
+  def testTransformerXL(self):
     (query, key, abs_pos_emb, content_bias,
      positional_bias) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
-                                     positional_bias, is_causal)
+                                     positional_bias)
     actual_t = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, abs_pos_emb, content_bias, positional_bias, is_causal)
+        query, key, abs_pos_emb, content_bias, positional_bias)
     with self.session() as sess:
       actual = sess.run(actual_t)
-    self._Compare(expected, actual, is_causal)
+    self.assertAllClose(expected, actual)
 
-  @parameterized.named_parameters(('Basic', False), ('Causal', True))
-  def testRPE(self, is_causal):
+  def testRPE(self):
     (query, key, abs_pos_emb, _, _) = self._GetTestInputs()
-    expected = OracleAttentionLogits(query, key, abs_pos_emb, None, None,
-                                     is_causal)
-    actual_t = relative_atten_util.AttenLogitsRPE(query, key, abs_pos_emb,
-                                                  is_causal)
+    expected = OracleAttentionLogits(query, key, abs_pos_emb, None, None)
+    actual_t = relative_atten_util.AttenLogitsRPE(query, key, abs_pos_emb)
     with self.session() as sess:
       actual = sess.run(actual_t)
-    self._Compare(expected, actual, is_causal)
+    self.assertAllClose(expected, actual)
 
 
 class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
