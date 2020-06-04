@@ -1829,7 +1829,7 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
     bboxes_xyz = geometry.CoordinateTransform(bboxes_xyz, pose)
 
     # The heading correction should subtract rot from the bboxes rotations.
-    bboxes_rot -= rot
+    bboxes_rot = geometry.WrapAngleRad(bboxes_rot - rot)
 
     features.labels.bboxes_3d = tf.concat([bboxes_xyz, bboxes_dims, bboxes_rot],
                                           axis=-1)
@@ -2216,7 +2216,8 @@ class RandomFlipY(Preprocessor):
     # Compensate rotation.
     bboxes_dims = features.labels.bboxes_3d[..., 3:6]
     bboxes_rot = features.labels.bboxes_3d[..., 6:]
-    bboxes_rot = tf.where(choice, -bboxes_rot + np.pi, bboxes_rot)
+    bboxes_rot = tf.where(choice, geometry.WrapAngleRad(-bboxes_rot + np.pi),
+                          bboxes_rot)
     features.labels.bboxes_3d = tf.concat([bboxes_xyz, bboxes_dims, bboxes_rot],
                                           axis=-1)
     return features
@@ -2877,7 +2878,7 @@ class GroundTruthAugmentor(Preprocessor):
     p = self.params
 
     tf.logging.info('Loading groundtruth database at %s' %
-                         (p.groundtruth_database))
+                    (p.groundtruth_database))
     db = p.groundtruth_database.Instantiate().BuildDataSource(self._ReadDB).data
 
     original_features_shape = tf.shape(features.lasers.points_feature)
