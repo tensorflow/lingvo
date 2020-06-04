@@ -845,7 +845,8 @@ class BaseTask(base_layer.BaseLayer):
           tp.pruning_hparams_dict)
       pruning_obj = pruning.Pruning(
           pruning_hparams, global_step=self.global_step)
-      pruning_obj.add_pruning_summaries()
+      if self.cluster.add_summary:
+        pruning_obj.add_pruning_summaries()
       mask_update_op = pruning_obj.conditional_mask_update_op()
     return mask_update_op
 
