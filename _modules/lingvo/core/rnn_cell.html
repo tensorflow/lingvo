@@ -632,7 +632,7 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">forget_gate_bias</span><span class="p">,</span> <span class="mf">0.</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
                 <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">))</span>
       <span class="n">adjustment</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">adjustment</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">num_gates</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">])</span>
-      <span class="n">b</span> <span class="o">+=</span> <span class="n">adjustment</span>
+      <span class="n">b</span> <span class="o">=</span> <span class="n">b</span> <span class="o">+</span> <span class="n">adjustment</span>
 
     <span class="k">return</span> <span class="n">b</span></div>
 
