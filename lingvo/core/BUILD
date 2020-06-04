@@ -805,6 +805,18 @@ py_library(
 )
 
 py_library(
+    name = "saver",
+    srcs = ["saver.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":py_utils",
+        # Implicit python proto dependency.
+        "//lingvo:compat",
+        # Implicit numpy dependency.
+    ],
+)
+
+py_library(
     name = "schedule",
     srcs = ["schedule.py"],
     srcs_version = "PY2AND3",
@@ -814,6 +826,22 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
+        # Implicit six dependency.
+    ],
+)
+
+py_test(
+    name = "saver_test",
+    srcs = ["saver_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":cluster_factory",
+        ":py_utils",
+        ":saver",
+        ":test_utils",
+        "//lingvo:compat",
+        "//lingvo/tasks/image/params:mnist",
+        # Implicit numpy dependency.
         # Implicit six dependency.
     ],
 )
