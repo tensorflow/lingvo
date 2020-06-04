@@ -1974,7 +1974,7 @@
     <span class="n">bboxes_xyz</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">CoordinateTransform</span><span class="p">(</span><span class="n">bboxes_xyz</span><span class="p">,</span> <span class="n">pose</span><span class="p">)</span>
 
     <span class="c1"># The heading correction should subtract rot from the bboxes rotations.</span>
-    <span class="n">bboxes_rot</span> <span class="o">-=</span> <span class="n">rot</span>
+    <span class="n">bboxes_rot</span> <span class="o">=</span> <span class="n">geometry</span><span class="o">.</span><span class="n">WrapAngleRad</span><span class="p">(</span><span class="n">bboxes_rot</span> <span class="o">-</span> <span class="n">rot</span><span class="p">)</span>
 
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bboxes_xyz</span><span class="p">,</span> <span class="n">bboxes_dims</span><span class="p">,</span> <span class="n">bboxes_rot</span><span class="p">],</span>
                                           <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
@@ -2361,7 +2361,8 @@
     <span class="c1"># Compensate rotation.</span>
     <span class="n">bboxes_dims</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
     <span class="n">bboxes_rot</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
-    <span class="n">bboxes_rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="o">-</span><span class="n">bboxes_rot</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">,</span> <span class="n">bboxes_rot</span><span class="p">)</span>
+    <span class="n">bboxes_rot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="n">geometry</span><span class="o">.</span><span class="n">WrapAngleRad</span><span class="p">(</span><span class="o">-</span><span class="n">bboxes_rot</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">),</span>
+                          <span class="n">bboxes_rot</span><span class="p">)</span>
     <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bboxes_xyz</span><span class="p">,</span> <span class="n">bboxes_dims</span><span class="p">,</span> <span class="n">bboxes_rot</span><span class="p">],</span>
                                           <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">features</span></div>
@@ -3022,7 +3023,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loading groundtruth database at </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                         <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">))</span>
+                    <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="p">))</span>
     <span class="n">db</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">groundtruth_database</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span><span class="o">.</span><span class="n">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ReadDB</span><span class="p">)</span><span class="o">.</span><span class="n">data</span>
 
     <span class="n">original_features_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_feature</span><span class="p">)</span>

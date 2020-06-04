@@ -2729,6 +2729,8 @@
         <span class="n">depth</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span>
         <span class="n">on_value</span><span class="o">=</span><span class="n">high_confidence</span><span class="p">,</span>
         <span class="n">off_value</span><span class="o">=</span><span class="n">low_confidence</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">embs_result</span></div></div>
 
 
