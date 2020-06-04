@@ -2584,6 +2584,8 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
         depth=p.vocab_size,
         on_value=high_confidence,
         off_value=low_confidence)
+    if p.fprop_dtype is not None:
+      embs_result = tf.cast(embs_result, p.fprop_dtype)
     return embs_result
 
 

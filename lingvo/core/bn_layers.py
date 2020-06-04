@@ -254,10 +254,14 @@ class BatchNormLayer(base_layer.BaseLayer):
                                 tf.cast(self.vars.moving_variance, tf.float32))
         summary_utils.histogram(
             '%s_mean_diff' % p.name,
-            tf.cast(mean - self.vars.moving_mean, tf.float32))
+            tf.cast(
+                tf.cast(mean, self.vars.moving_mean.dtype.base_dtype) -
+                self.vars.moving_mean, tf.float32))
         summary_utils.histogram(
             '%s_variance_diff' % p.name,
-            tf.cast(variance - self.vars.moving_variance, tf.float32))
+            tf.cast(
+                tf.cast(variance, self.vars.moving_variance.dtype.base_dtype) -
+                self.vars.moving_variance, tf.float32))
         if p.use_moving_avg_in_training:
           # Use the global statistics for normalization.
           # Control dependencies on mean and variance make sure

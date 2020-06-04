@@ -104,7 +104,11 @@ def ExtractBlockContext(x,
   return tf.concat(concat_list, axis=2)
 
 
-def MakeCausalPadding(seq_len, block_size, left_context, right_context):
+def MakeCausalPadding(seq_len,
+                      block_size,
+                      left_context,
+                      right_context,
+                      dtype=tf.float32):
   """Makes the causal padding tensor for a full sequence.
 
   Args:
@@ -112,6 +116,7 @@ def MakeCausalPadding(seq_len, block_size, left_context, right_context):
     block_size: int. Number of time frames in a block.
     left_context: int. Left context size.
     right_context: int. Right context size.
+    dtype: tf.dtype, default is tf.float32.
 
   Returns:
     A tensor of [num_blocks, block_size, context_size] taking values in {0, 1},
@@ -156,7 +161,7 @@ def MakeCausalPadding(seq_len, block_size, left_context, right_context):
   valid_atten &= tf.math.logical_and(valid_src[:, :, tf.newaxis],
                                      valid_tgt[:, tf.newaxis, :])
 
-  padding = 1.0 - tf.cast(valid_atten, dtype=tf.float32)
+  padding = 1.0 - tf.cast(valid_atten, dtype=dtype)
 
   return padding
 

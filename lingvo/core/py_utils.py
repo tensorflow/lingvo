@@ -2855,7 +2855,8 @@ def UpdateBatchNormVars(batch_norm_var, batch_norm_stats, decay):
     with tf.ops.colocate_with(batch_norm_var):
       decay = tf.convert_to_tensor(
           1.0 - decay, dtype=batch_norm_var.dtype.base_dtype)
-      update_delta = (batch_norm_var - batch_norm_stats) * decay
+      update_delta = (batch_norm_var - tf.cast(
+          batch_norm_stats, batch_norm_var.dtype.base_dtype)) * decay
       has_nan_or_inf = tf.reduce_any(
           tf.math.logical_or(
               tf.math.is_nan(update_delta), tf.math.is_inf(update_delta)))

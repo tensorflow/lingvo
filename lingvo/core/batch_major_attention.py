@@ -1186,7 +1186,8 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
         seq_len=t,
         block_size=p.block_size,
         left_context=p.left_context,
-        right_context=p.right_context)
+        right_context=p.right_context,
+        dtype=paddings.dtype)
     paddings += local_causal_padding
 
     # -> [B, N, U, W, C]
