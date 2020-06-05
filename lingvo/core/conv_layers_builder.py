@@ -109,16 +109,15 @@ class CausalPoolingLayer(base_layer.BaseLayer):
 
     if p.pooling_type == 'AVG':
       # Count the fraction of non-padding elements inside each pooling window.
-      in_mask = tf.pad(1.0 - paddings, [[0, 0], [left_pad_size, 0]])
-
-      non_padding_ratio = tf.nn.pool(
-          in_mask[:, :, tf.newaxis],
-          window_shape=(window_size,),
-          pooling_type='AVG',
-          padding='VALID')
+      max_seq_len = py_utils.GetShape(paddings)[1]
+      num_non_padded_elements = tf.range(1, 1 + max_seq_len, dtype=p.dtype)
+      num_non_padded_elements = tf.minimum(num_non_padded_elements,
+                                           tf.cast(window_size, p.dtype))
+      non_padded_ratio = num_non_padded_elements / tf.cast(window_size, p.dtype)
       # Divide by non-padding ratios to eliminate the effect of padded zeros.
-      out_feature *= tf.math.reciprocal_no_nan(non_padding_ratio[...,
-                                                                 tf.newaxis])
+      out_feature *= tf.math.reciprocal_no_nan(non_padded_ratio[tf.newaxis, :,
+                                                                tf.newaxis,
+                                                                tf.newaxis])
     out_feature *= 1.0 - paddings[..., tf.newaxis, tf.newaxis]
     return out_feature, paddings
 
