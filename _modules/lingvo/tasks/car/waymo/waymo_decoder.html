@@ -191,6 +191,12 @@
         <span class="s1">&#39;Dictionary of extra AP metrics to run in the decoder. The key&#39;</span>
         <span class="s1">&#39;is the name of the metric and the value is a sub-class of &#39;</span>
         <span class="s1">&#39;APMetric&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;save_residuals&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, this expects the residuals and ground-truth to be available &#39;</span>
+        <span class="s1">&#39;in the decoder output dictionary, and it will save it to the decoder &#39;</span>
+        <span class="s1">&#39;output file. See decode_include_residuals in PointDetectorBase &#39;</span>
+        <span class="s1">&#39;for details.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WaymoOpenDatasetDecoder.CreateDecoderMetrics"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.CreateDecoderMetrics">[docs]</a>  <span class="k">def</span> <span class="nf">CreateDecoderMetrics</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -413,6 +419,24 @@
           <span class="n">gt_bboxes</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
           <span class="n">gt_difficulties</span><span class="o">=</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">difficulties</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">gt_save_mask</span><span class="p">],</span>
       <span class="p">)</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">save_residuals</span><span class="p">:</span>
+        <span class="c1"># The leading shapes of these tensors should match bboxes and scores.</span>
+        <span class="c1"># These are the underlying tensors that can are used to compute score</span>
+        <span class="c1"># and bboxes.</span>
+        <span class="n">saved_results</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+            <span class="s1">&#39;bboxes_gt_residuals&#39;</span><span class="p">:</span>
+                <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_gt_residuals</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+            <span class="s1">&#39;bboxes_gt_labels&#39;</span><span class="p">:</span>
+                <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_gt_labels</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+            <span class="s1">&#39;bboxes_residuals&#39;</span><span class="p">:</span>
+                <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_residuals</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+            <span class="s1">&#39;bboxes_logits&#39;</span><span class="p">:</span>
+                <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_logits</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+            <span class="s1">&#39;bboxes_anchor_boxes&#39;</span><span class="p">:</span>
+                <span class="n">dec_out_dict</span><span class="o">.</span><span class="n">per_class_anchor_boxes</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">][</span><span class="n">pd_save_mask</span><span class="p">],</span>
+        <span class="p">})</span>
+
       <span class="n">serialized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">SaveTensors</span><span class="p">(</span><span class="n">saved_results</span><span class="p">)</span>
       <span class="n">output_to_save</span> <span class="o">+=</span> <span class="p">[(</span><span class="n">dec_out_dict</span><span class="o">.</span><span class="n">source_ids</span><span class="p">[</span><span class="n">batch_idx</span><span class="p">],</span> <span class="n">serialized</span><span class="p">)]</span>
     <span class="k">return</span> <span class="n">output_to_save</span></div></div>

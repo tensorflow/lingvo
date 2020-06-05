@@ -218,6 +218,11 @@
         <span class="s1">&#39;If specified, hardcodes the inference batch size to this value. &#39;</span>
         <span class="s1">&#39;Useful mostly for computing the FLOPS of a model so that the shape is &#39;</span>
         <span class="s1">&#39;fully defined.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;decode_include_residuals&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, includes the residuals and ground truth anchors in the &#39;</span>
+        <span class="s1">&#39;decoder output dictionary. This can be helpful for downstream &#39;</span>
+        <span class="s1">&#39;analysis.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="nd">@base_layer</span><span class="o">.</span><span class="n">initializer</span>
@@ -394,7 +399,7 @@
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
       <span class="c1"># Decode the predicted bboxes, performing NMS.</span>
-      <span class="n">_</span><span class="p">,</span> <span class="n">per_cls_bboxes</span><span class="p">,</span> <span class="n">per_cls_bbox_scores</span><span class="p">,</span> <span class="n">per_cls_valid_mask</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">per_cls_idxs</span><span class="p">,</span> <span class="n">per_cls_bboxes</span><span class="p">,</span> <span class="n">per_cls_bbox_scores</span><span class="p">,</span> <span class="n">per_cls_valid_mask</span> <span class="o">=</span> <span class="p">(</span>
           <span class="n">detection_decoder</span><span class="o">.</span><span class="n">DecodeWithNMS</span><span class="p">(</span>
               <span class="n">predicted_bboxes</span><span class="p">,</span>
               <span class="n">classification_scores</span><span class="p">,</span>
@@ -432,6 +437,38 @@
         <span class="s1">&#39;per_class_valid_mask&#39;</span><span class="p">:</span> <span class="n">per_cls_valid_mask</span><span class="p">,</span>
         <span class="s1">&#39;visualization_weights&#39;</span><span class="p">:</span> <span class="n">visualization_weights</span><span class="p">,</span>
     <span class="p">})</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">decode_include_residuals</span><span class="p">:</span>
+      <span class="c1"># Including the residuals in the decoder output makes it possible to save</span>
+      <span class="c1"># the outputs for further analysis. Note that we ensure that the outputs</span>
+      <span class="c1"># match the per-class NMS output format of [batch, num_classes, ...].</span>
+      <span class="k">def</span> <span class="nf">_ReshapeGather</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Reshapes tensor and then gathers using the nms indices.&quot;&quot;&quot;</span>
+        <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">num_bboxes</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+            <span class="n">per_cls_idxs</span><span class="p">,</span>
+            <span class="n">batch_dims</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_oriented_per_class_nms</span><span class="p">:</span>
+          <span class="c1"># Tile so that the data fits the expected per class shape of</span>
+          <span class="c1"># [batch_size, num_classes, ...]. When *not* using oriented NMS, the</span>
+          <span class="c1"># num_classes dimension will be missing since the indices will not</span>
+          <span class="c1"># have it.</span>
+          <span class="n">tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tensor</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:,</span> <span class="p">:],</span>
+                           <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">tensor</span>
+
+      <span class="n">decoder_outputs</span><span class="o">.</span><span class="n">update</span><span class="p">({</span>
+          <span class="s1">&#39;per_class_gt_residuals&#39;</span><span class="p">:</span>
+              <span class="n">_ReshapeGather</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_localization_residuals</span><span class="p">),</span>
+          <span class="s1">&#39;per_class_gt_labels&#39;</span><span class="p">:</span>
+              <span class="n">_ReshapeGather</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">assigned_gt_labels</span><span class="p">),</span>
+          <span class="s1">&#39;per_class_residuals&#39;</span><span class="p">:</span>
+              <span class="n">_ReshapeGather</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">residuals</span><span class="p">),</span>
+          <span class="s1">&#39;per_class_logits&#39;</span><span class="p">:</span>
+              <span class="n">_ReshapeGather</span><span class="p">(</span><span class="n">predictions</span><span class="o">.</span><span class="n">classification_logits</span><span class="p">),</span>
+          <span class="s1">&#39;per_class_anchor_boxes&#39;</span><span class="p">:</span>
+              <span class="n">_ReshapeGather</span><span class="p">(</span><span class="n">input_batch</span><span class="o">.</span><span class="n">anchor_bboxes</span><span class="p">),</span>
+      <span class="p">})</span>
 
     <span class="n">decoder_outputs</span><span class="o">.</span><span class="n">update</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">output_decoder</span><span class="o">.</span><span class="n">ProcessOutputs</span><span class="p">(</span><span class="n">input_batch</span><span class="p">,</span> <span class="n">model_outputs</span><span class="p">))</span>
