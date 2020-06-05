@@ -73,6 +73,11 @@ class PointDetectorBase(base_model.BaseTask):
         'If specified, hardcodes the inference batch size to this value. '
         'Useful mostly for computing the FLOPS of a model so that the shape is '
         'fully defined.')
+    p.Define(
+        'decode_include_residuals', False,
+        'If True, includes the residuals and ground truth anchors in the '
+        'decoder output dictionary. This can be helpful for downstream '
+        'analysis.')
     return p
 
   @base_layer.initializer
@@ -249,7 +254,7 @@ class PointDetectorBase(base_model.BaseTask):
 
     with tf.device('/cpu:0'):
       # Decode the predicted bboxes, performing NMS.
-      _, per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
+      per_cls_idxs, per_cls_bboxes, per_cls_bbox_scores, per_cls_valid_mask = (
           detection_decoder.DecodeWithNMS(
               predicted_bboxes,
               classification_scores,
@@ -287,6 +292,38 @@ class PointDetectorBase(base_model.BaseTask):
         'per_class_valid_mask': per_cls_valid_mask,
         'visualization_weights': visualization_weights,
     })
+
+    if p.decode_include_residuals:
+      # Including the residuals in the decoder output makes it possible to save
+      # the outputs for further analysis. Note that we ensure that the outputs
+      # match the per-class NMS output format of [batch, num_classes, ...].
+      def _ReshapeGather(tensor):
+        """Reshapes tensor and then gathers using the nms indices."""
+        tensor = tf.gather(
+            tf.reshape(tensor, [batch_size, num_bboxes, -1]),
+            per_cls_idxs,
+            batch_dims=1)
+        if not p.use_oriented_per_class_nms:
+          # Tile so that the data fits the expected per class shape of
+          # [batch_size, num_classes, ...]. When *not* using oriented NMS, the
+          # num_classes dimension will be missing since the indices will not
+          # have it.
+          tensor = tf.tile(tensor[:, tf.newaxis, :, :],
+                           [1, p.num_classes, 1, 1])
+        return tensor
+
+      decoder_outputs.update({
+          'per_class_gt_residuals':
+              _ReshapeGather(input_batch.anchor_localization_residuals),
+          'per_class_gt_labels':
+              _ReshapeGather(input_batch.assigned_gt_labels),
+          'per_class_residuals':
+              _ReshapeGather(predictions.residuals),
+          'per_class_logits':
+              _ReshapeGather(predictions.classification_logits),
+          'per_class_anchor_boxes':
+              _ReshapeGather(input_batch.anchor_bboxes),
+      })
 
     decoder_outputs.update(
         self.output_decoder.ProcessOutputs(input_batch, model_outputs))

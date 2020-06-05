@@ -46,6 +46,12 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'Dictionary of extra AP metrics to run in the decoder. The key'
         'is the name of the metric and the value is a sub-class of '
         'APMetric')
+    p.Define(
+        'save_residuals', False,
+        'If True, this expects the residuals and ground-truth to be available '
+        'in the decoder output dictionary, and it will save it to the decoder '
+        'output file. See decode_include_residuals in PointDetectorBase '
+        'for details.')
     return p
 
   def CreateDecoderMetrics(self):
@@ -268,6 +274,24 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
           gt_bboxes=dec_out_dict.bboxes_3d[batch_idx][gt_save_mask],
           gt_difficulties=dec_out_dict.difficulties[batch_idx][gt_save_mask],
       )
+
+      if p.save_residuals:
+        # The leading shapes of these tensors should match bboxes and scores.
+        # These are the underlying tensors that can are used to compute score
+        # and bboxes.
+        saved_results.update({
+            'bboxes_gt_residuals':
+                dec_out_dict.per_class_gt_residuals[batch_idx][pd_save_mask],
+            'bboxes_gt_labels':
+                dec_out_dict.per_class_gt_labels[batch_idx][pd_save_mask],
+            'bboxes_residuals':
+                dec_out_dict.per_class_residuals[batch_idx][pd_save_mask],
+            'bboxes_logits':
+                dec_out_dict.per_class_logits[batch_idx][pd_save_mask],
+            'bboxes_anchor_boxes':
+                dec_out_dict.per_class_anchor_boxes[batch_idx][pd_save_mask],
+        })
+
       serialized = self.SaveTensors(saved_results)
       output_to_save += [(dec_out_dict.source_ids[batch_idx], serialized)]
     return output_to_save
