@@ -25,10 +25,6 @@ from lingvo import base_trial
 from lingvo import model_registry
 from lingvo import trainer
 import lingvo.compat as tf
-from lingvo.core import base_input_generator
-from lingvo.core import base_layer
-from lingvo.core import base_model
-from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
@@ -46,6 +42,7 @@ class BaseTrainerTest(test_utils.TestCase):
     self._trial = base_trial.NoOpTrial()
 
   def setUp(self):
+    super(BaseTrainerTest, self).setUp()
     FLAGS.model_params_override = ''
     # TODO(donglin): Use tf.distribute.Server.create_local_server().target after
     # create_local_server() has been updated to use 'localhost' as job name
@@ -94,6 +91,7 @@ class BaseTrainerTest(test_utils.TestCase):
 class TrainerTest(BaseTrainerTest):
 
   def tearDown(self):
+    super(TrainerTest, self).tearDown()
     if hasattr(self, '_tmpdir'):
       shutil.rmtree(self._tmpdir)
 

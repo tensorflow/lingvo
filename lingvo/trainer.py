@@ -377,7 +377,7 @@ class Trainer(base_runner.BaseRunner):
       self._initialize_local_vars = tf.local_variables_initializer()
       self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
       tf.logging.info('Trainer number of enqueue ops: %d',
-                           len(self.enqueue_ops))
+                      len(self.enqueue_ops))
 
     try:
       self._task_probs_summary_writers = []
@@ -523,7 +523,7 @@ class TrainerTpu(base_runner.BaseRunner):
     assert data_parallelism
     num_devices_per_split = self._cluster.num_devices_per_split
     tf.logging.info('data_parallelism: %d, num_devices_per_split: %d',
-                         data_parallelism, num_devices_per_split)
+                    data_parallelism, num_devices_per_split)
 
     self._steps_per_loop = min(self.params.train.tpu_steps_per_loop,
                                self.params.train.max_steps)
@@ -560,10 +560,9 @@ class TrainerTpu(base_runner.BaseRunner):
             num_replicas=data_parallelism)
         py_utils.SetTpuDeviceAssignment(device_assignment)
         tf.logging.info('device_assignment.core_assignment: %s',
-                             str(device_assignment.core_assignment))
-        tf.logging.info(
-            'device_assignment.topology.device_coordinates: %s',
-            str(device_assignment.topology.device_coordinates))
+                        str(device_assignment.core_assignment))
+        tf.logging.info('device_assignment.topology.device_coordinates: %s',
+                        str(device_assignment.topology.device_coordinates))
       except py_utils.transient_tf_errors as e:
         tf.logging.info('TPU initialization failed: %s', e)
         raise
@@ -1071,8 +1070,8 @@ class Evaler(base_runner.BaseRunner):
       for name, (value, weight) in six.iteritems(ans):
         metrics_dict[name].Update(value, weight)
       tf.logging.info('Total examples done: %d/%d',
-                           num_samples_metric.total_value,
-                           self._model_task.params.eval.samples_per_summary)
+                      num_samples_metric.total_value,
+                      self._model_task.params.eval.samples_per_summary)
 
     # Replace average values with total values for certain metrics.
     if 'num_predictions' in metrics_dict:
@@ -1120,7 +1119,7 @@ def _GetCheckpointIdForDecodeOut(ckpt_id_from_file, global_step):
   """
   tf.logging.info('Loaded checkpoint is at global step: %d', global_step)
   tf.logging.info('Checkpoint id according to checkpoint path: %d',
-                       ckpt_id_from_file)
+                  ckpt_id_from_file)
   if global_step != ckpt_id_from_file:
     tf.logging.warning(
         'Checkpoint id %d != global step %d. '
@@ -1256,7 +1255,7 @@ class Decoder(base_runner.BaseRunner):
         self._summary_writer.add_summary(summary, global_step)
       post_process_start = time.time()
       tf.logging.info('Done fetching (%f seconds)' %
-                           (post_process_start - fetch_start))
+                      (post_process_start - fetch_start))
       decode_out = self._model_task.PostProcessDecodeOut(dec_out, dec_metrics)
       if decode_out:
         buffered_decode_out.extend(decode_out)
@@ -1410,7 +1409,7 @@ class RunnerManager(object):
         cfg = self.model_registry.GetParams(self._model_name,
                                             dataset_name_retry)
         tf.logging.warning('Succeeded after retrying as %s.' %
-                                dataset_name_retry)
+                           dataset_name_retry)
     cfg.cluster = cluster.params
 
     # Updates a few params based on flags.
@@ -1615,7 +1614,7 @@ class RunnerManager(object):
       threads.append(t)
       if runner.enqueue_ops:
         tf.logging.info('Total num runner.enqueue_ops: %d',
-                             len(runner.enqueue_ops))
+                        len(runner.enqueue_ops))
         for i, enqueue_op in enumerate(runner.enqueue_ops):
 
           def StartEnqueue(runner, op):
@@ -1761,14 +1760,13 @@ class RunnerManager(object):
     """Generates the inference graphs for a given model."""
     inference_graph_dir = os.path.join(FLAGS.logdir, 'inference_graphs')
     tf.io.gfile.makedirs(inference_graph_dir)
-    tf.logging.info('Writing inference graphs to dir: %s',
-                         inference_graph_dir)
+    tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
 
     cfg = self.model_registry.GetParams(self._model_name, 'Test')
     if (issubclass(cfg.cls, base_model.MultiTaskModel) and
         not FLAGS.model_task_name):
       tf.logging.info('Cannot write inference graphs for multi-task model '
-                           'when model_task_name is not specified.')
+                      'when model_task_name is not specified.')
       return
     try:
       filename_prefix = 'inference'
