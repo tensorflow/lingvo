@@ -1782,26 +1782,9 @@
 
 <div class="viewcode-block" id="RunnerManager.RunTrial"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.RunTrial">[docs]</a>  <span class="k">def</span> <span class="nf">RunTrial</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">job</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;A wrapper function for running a trial.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span><span class="p">:</span>
-      <span class="c1"># For async mode: Run controller, trainer, evaler jobs in one process,</span>
-      <span class="c1"># multiple threads.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer&#39;</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span>
-      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                                  <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
-      <span class="n">evaler</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="n">job</span> <span class="o">==</span> <span class="s1">&#39;all_sync&#39;</span><span class="p">:</span>
-      <span class="c1"># For sync mode: Run controller, trainer_client, evaler jobs in one</span>
-      <span class="c1"># process, multiple threads.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="s1">&#39;controller&#39;</span><span class="p">,</span> <span class="s1">&#39;trainer_client&#39;</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span>
-      <span class="n">evaler</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateRunner</span><span class="p">(</span><span class="s1">&#39;evaler_dev&#39;</span><span class="p">,</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                                  <span class="n">FLAGS</span><span class="o">.</span><span class="n">tf_master</span><span class="p">,</span> <span class="n">trial</span><span class="p">)</span>
-      <span class="n">evaler</span><span class="o">.</span><span class="n">EvalLatestCheckpoint</span><span class="p">()</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="c1"># Run each job in separate process/task</span>
-      <span class="c1"># TODO(rpang): add support for running evaler_test and decoder.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="n">job</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span></div>
+    <span class="c1"># Run each job in separate process/task</span>
+    <span class="c1"># TODO(rpang): add support for running evaler_test and decoder.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">StartRunners</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">CreateRunners</span><span class="p">([</span><span class="n">job</span><span class="p">],</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">trial</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="RunnerManager.MaybeConfigRunLocally"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.RunnerManager.MaybeConfigRunLocally">[docs]</a>  <span class="k">def</span> <span class="nf">MaybeConfigRunLocally</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update flags if configured to run locally.&quot;&quot;&quot;</span>

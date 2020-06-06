@@ -309,6 +309,22 @@
     <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softplus</span><span class="p">,</span>
 <span class="p">}</span>
 
+<span class="n">_ACTIVATIONS_FLOPS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;NONE&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s1">&#39;RELU6&#39;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="c1"># 1 / (1 + exp(-x))</span>
+    <span class="s1">&#39;SIGMOID&#39;</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>  <span class="c1"># neg, exp, add, div</span>
+    <span class="c1"># (exp(2*x) - 1) / (exp(2*x) - 1)</span>
+    <span class="s1">&#39;TANH&#39;</span><span class="p">:</span> <span class="mi">7</span><span class="p">,</span>  <span class="c1"># mul, exp, sub, mul, exp, add, div</span>
+    <span class="c1"># Gelu is tough, let&#39;s assume it is approximated as x * sigmoid(1.702 * x).</span>
+    <span class="s1">&#39;GELU&#39;</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span>  <span class="c1"># mul, sigmoid, mul</span>
+    <span class="c1"># x * sigmoid(x)</span>
+    <span class="s1">&#39;SWISH&#39;</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>  <span class="c1"># sigmoid, mul</span>
+    <span class="c1"># ln(1+exp(x))</span>
+    <span class="s1">&#39;SOFTPLUS&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>  <span class="c1"># exp, add, ln</span>
+<span class="p">}</span>
+
 <span class="c1"># A subset of activation functions are supported by TFLite as fused activation</span>
 <span class="c1"># functions with a preceding matmul or conv. If this is the case, then they</span>
 <span class="c1"># require special treatment for quantization.</span>
@@ -1306,7 +1322,31 @@
               <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
           <span class="p">],</span>
                     <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
-    <span class="k">return</span> <span class="n">out</span></div></div>
+    <span class="k">return</span> <span class="n">out</span></div>
+
+<div class="viewcode-block" id="ProjectionLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
+    <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
+    <span class="c1"># matmuls.</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="mi">2</span>
+    <span class="c1"># activations.</span>
+    <span class="n">flops</span> <span class="o">+=</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="n">_ACTIVATIONS_FLOPS</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
+      <span class="n">bn_meta</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">),</span> <span class="n">out_shape</span><span class="p">)</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="n">bn_meta</span><span class="o">.</span><span class="n">flops</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
+      <span class="c1"># l2 normalize + element-wise multiply.</span>
+      <span class="n">flops</span> <span class="o">+=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">+</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">+</span> <span class="mi">2</span>
+
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
 
 <div class="viewcode-block" id="FCLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.FCLayer">[docs]</a><span class="k">class</span> <span class="nc">FCLayer</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">):</span>
@@ -1449,13 +1489,14 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
     <span class="k">assert</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
     <span class="n">flops</span> <span class="o">=</span> <span class="mi">0</span>
-    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">inputs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-    <span class="n">other_dims</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">/</span> <span class="n">in_dim</span>
-    <span class="k">for</span> <span class="n">out_dim</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">:</span>
-      <span class="n">flops</span> <span class="o">+=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">in_dim</span> <span class="o">*</span> <span class="n">out_dim</span>
-      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span>
-                             <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>  <span class="c1"># throw-away graph.</span>
+      <span class="n">instance</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">fc</span> <span class="ow">in</span> <span class="n">instance</span><span class="o">.</span><span class="n">fc</span><span class="p">:</span>
+        <span class="n">proj_params</span> <span class="o">=</span> <span class="n">fc</span><span class="o">.</span><span class="n">params</span>
+        <span class="n">proj_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">proj_params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+        <span class="n">proj_meta</span> <span class="o">=</span> <span class="n">proj_params</span><span class="o">.</span><span class="n">cls</span><span class="o">.</span><span class="n">FPropMeta</span><span class="p">(</span><span class="n">proj_params</span><span class="p">,</span> <span class="n">proj_shape</span><span class="p">)</span>
+        <span class="n">flops</span> <span class="o">+=</span> <span class="n">proj_meta</span><span class="o">.</span><span class="n">flops</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
 
 
