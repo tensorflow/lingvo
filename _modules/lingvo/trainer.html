@@ -522,7 +522,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ENQUEUE_OPS</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Trainer number of enqueue ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
+                      <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
 
     <span class="k">try</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task_probs_summary_writers</span> <span class="o">=</span> <span class="p">[]</span>
@@ -668,7 +668,7 @@
     <span class="k">assert</span> <span class="n">data_parallelism</span>
     <span class="n">num_devices_per_split</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;data_parallelism: </span><span class="si">%d</span><span class="s1">, num_devices_per_split: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
+                    <span class="n">data_parallelism</span><span class="p">,</span> <span class="n">num_devices_per_split</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">tpu_steps_per_loop</span><span class="p">,</span>
                                <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
@@ -705,10 +705,9 @@
             <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
-            <span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-            <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">core_assignment</span><span class="p">))</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.topology.device_coordinates: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                        <span class="nb">str</span><span class="p">(</span><span class="n">device_assignment</span><span class="o">.</span><span class="n">topology</span><span class="o">.</span><span class="n">device_coordinates</span><span class="p">))</span>
       <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TPU initialization failed: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
         <span class="k">raise</span>
@@ -1216,8 +1215,8 @@
       <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">ans</span><span class="p">):</span>
         <span class="n">metrics_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span>
-                           <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">)</span>
+                      <span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">)</span>
 
     <span class="c1"># Replace average values with total values for certain metrics.</span>
     <span class="k">if</span> <span class="s1">&#39;num_predictions&#39;</span> <span class="ow">in</span> <span class="n">metrics_dict</span><span class="p">:</span>
@@ -1265,7 +1264,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Loaded checkpoint is at global step: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Checkpoint id according to checkpoint path: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                       <span class="n">ckpt_id_from_file</span><span class="p">)</span>
+                  <span class="n">ckpt_id_from_file</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">global_step</span> <span class="o">!=</span> <span class="n">ckpt_id_from_file</span><span class="p">:</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
         <span class="s1">&#39;Checkpoint id </span><span class="si">%d</span><span class="s1"> != global step </span><span class="si">%d</span><span class="s1">. &#39;</span>
@@ -1401,7 +1400,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_summary</span><span class="p">(</span><span class="n">summary</span><span class="p">,</span> <span class="n">global_step</span><span class="p">)</span>
       <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span>
-                           <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
+                      <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
       <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
         <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
@@ -1555,7 +1554,7 @@
         <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span>
                                             <span class="n">dataset_name_retry</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Succeeded after retrying as </span><span class="si">%s</span><span class="s1">.&#39;</span> <span class="o">%</span>
-                                <span class="n">dataset_name_retry</span><span class="p">)</span>
+                           <span class="n">dataset_name_retry</span><span class="p">)</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">cluster</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Updates a few params based on flags.</span>
@@ -1760,7 +1759,7 @@
       <span class="n">threads</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total num runner.enqueue_ops: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="nb">len</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
+                        <span class="nb">len</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">))</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">enqueue_op</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">runner</span><span class="o">.</span><span class="n">enqueue_ops</span><span class="p">):</span>
 
           <span class="k">def</span> <span class="nf">StartEnqueue</span><span class="p">(</span><span class="n">runner</span><span class="p">,</span> <span class="n">op</span><span class="p">):</span>
@@ -1906,14 +1905,13 @@
     <span class="sd">&quot;&quot;&quot;Generates the inference graphs for a given model.&quot;&quot;&quot;</span>
     <span class="n">inference_graph_dir</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">logdir</span><span class="p">,</span> <span class="s1">&#39;inference_graphs&#39;</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">inference_graph_dir</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing inference graphs to dir: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">inference_graph_dir</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Writing inference graphs to dir: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">inference_graph_dir</span><span class="p">)</span>
 
     <span class="n">cfg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_registry</span><span class="o">.</span><span class="n">GetParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_name</span><span class="p">,</span> <span class="s1">&#39;Test&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="nb">issubclass</span><span class="p">(</span><span class="n">cfg</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskModel</span><span class="p">)</span> <span class="ow">and</span>
         <span class="ow">not</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_task_name</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Cannot write inference graphs for multi-task model &#39;</span>
-                           <span class="s1">&#39;when model_task_name is not specified.&#39;</span><span class="p">)</span>
+                      <span class="s1">&#39;when model_task_name is not specified.&#39;</span><span class="p">)</span>
       <span class="k">return</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">filename_prefix</span> <span class="o">=</span> <span class="s1">&#39;inference&#39;</span>
