@@ -27,6 +27,7 @@ from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import symbolic
 from lingvo.core import test_utils
+from lingvo.core import tshape
 import numpy as np
 from six.moves import range
 from six.moves import zip
@@ -1552,7 +1553,7 @@ class BlurPoolLayerTest(test_utils.TestCase):
     self._testBlurPool('2D', 'B5', expected_output)
 
 
-class ProjectionLayerTest(test_utils.TestCase):
+class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testProjectionLayerConstruction(self):
     with self.session(use_gpu=True):
@@ -1797,7 +1798,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       loss = tf.reduce_sum(output1)
 
       all_vars = tf.trainable_variables()
-      self.assertEqual(3, len(all_vars))
+      self.assertLen(all_vars, 3)
 
       grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
@@ -1994,7 +1995,7 @@ class ProjectionLayerTest(test_utils.TestCase):
       loss = tf.reduce_sum(output)
 
       all_vars = tf.trainable_variables()
-      self.assertEqual(2, len(all_vars))
+      self.assertLen(all_vars, 2)
 
       grads = tf.gradients(loss, all_vars)
       self.evaluate(tf.global_variables_initializer())
@@ -2035,6 +2036,78 @@ class ProjectionLayerTest(test_utils.TestCase):
     output_with_einsum = self._evalProjectionLayer(use_einsum=True)
     output_without_einsum = self._evalProjectionLayer(use_einsum=False)
     self.assertAllClose(output_with_einsum, output_without_einsum)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': 'RELU',
+          'activation': 'RELU',
+          'input_dims': [2, 4, 3],
+          'expected_extra_flops': 0,
+          'expected_per_fn_flops': 1
+      },
+      {
+          'testcase_name': 'SIGMOID',
+          'activation': 'SIGMOID',
+          'input_dims': [2048, 10],
+          'expected_extra_flops': 0,
+          'expected_per_fn_flops': 4
+      },
+      {
+          'testcase_name': 'BatchNorm',
+          'activation': 'RELU',
+          'input_dims': [2048, 10],
+          'output_dim': 8,
+          'expected_extra_flops': 2048 * 8 * 10,  # 10 flops per element.
+          'expected_per_fn_flops': 1,
+          'batch_norm': True
+      },
+      {
+          'testcase_name': 'WeightNorm',
+          'activation': 'RELU',
+          'input_dims': [2048, 10],
+          'output_dim': 100,
+          'expected_extra_flops': 2 * 10 + 2 * 10 * 100 + 2,
+          'expected_per_fn_flops': 1,
+          'weight_norm': True
+      },
+      {
+          'testcase_name': 'Bias',
+          'activation': 'RELU',
+          'input_dims': [2048, 10],
+          'output_dim': 100,
+          'expected_extra_flops': 100,
+          'expected_per_fn_flops': 1,
+          'has_bias': True
+      })
+  # Extra flops are for bias, batch norm, weight norm, etc.
+  def testProjectionLayerMeta(self,
+                              input_dims,
+                              expected_per_fn_flops,
+                              expected_extra_flops,
+                              activation='RELU',
+                              batch_norm=False,
+                              weight_norm=False,
+                              has_bias=False,
+                              output_dim=2):
+    with self.session(use_gpu=True):
+      params = layers.ProjectionLayer.Params()
+      params.name = 'fc'
+      params.input_dim = input_dims[-1]
+      params.output_dim = output_dim
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.activation = activation
+      params.batch_norm = batch_norm
+      params.weight_norm = weight_norm
+      params.has_bias = has_bias
+
+      meta = params.cls.FPropMeta(params, tshape.Shape(input_dims))
+      self.assertEqual(
+          meta.flops,
+          expected_extra_flops + (np.prod(input_dims[:-1]) *
+                                  (2 * params.input_dim * params.output_dim +
+                                   params.output_dim * expected_per_fn_flops)))
+      self.assertEqual(meta.out_shapes[0].ToTensorShape().as_list(),
+                       input_dims[:-1] + [params.output_dim])
 
 
 class StackingOverTimeLayerTest(test_utils.TestCase):
@@ -3662,6 +3735,20 @@ class FeedForwardNetTest(test_utils.TestCase):
         deserialized = layers.FeedForwardNet.Params()
         deserialized.FromTextWithTypes(x)
         self.assertEqual(p, deserialized)
+
+  def testFeedForwardNetMeta(self):
+    p = layers.FeedForwardNet.Params().Set(
+        name='ffn',
+        input_dim=10,
+        hidden_layer_dims=[20, 30],
+        activation=['RELU', 'NONE'])
+    meta = p.cls.FPropMeta(p, tshape.Shape([5, 10]))
+    self.assertEqual(
+        meta.flops,
+        # Last layer has no activation fns but need to add bias.
+        5 * 2 * (10 * 20 + 20 * 30) + 5 * 20 + (20 + 30))
+    self.assertEqual(meta.out_shapes[0].ToTensorShape().as_list(),
+                     [5, p.hidden_layer_dims[-1]])
 
 
 class AddingAccumulatorTest(test_utils.TestCase):

@@ -164,6 +164,22 @@ _ACTIVATIONS = {
     'SOFTPLUS': tf.nn.softplus,
 }
 
+_ACTIVATIONS_FLOPS = {
+    'NONE': 0,
+    'RELU': 1,
+    'RELU6': 1,
+    # 1 / (1 + exp(-x))
+    'SIGMOID': 4,  # neg, exp, add, div
+    # (exp(2*x) - 1) / (exp(2*x) - 1)
+    'TANH': 7,  # mul, exp, sub, mul, exp, add, div
+    # Gelu is tough, let's assume it is approximated as x * sigmoid(1.702 * x).
+    'GELU': 6,  # mul, sigmoid, mul
+    # x * sigmoid(x)
+    'SWISH': 5,  # sigmoid, mul
+    # ln(1+exp(x))
+    'SOFTPLUS': 3,  # exp, add, ln
+}
+
 # A subset of activation functions are supported by TFLite as fused activation
 # functions with a preceding matmul or conv. If this is the case, then they
 # require special treatment for quantization.
@@ -1163,6 +1179,30 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
                     axis=0))
     return out
 
+  @classmethod
+  def FPropMeta(cls, p, inputs, paddings=None):
+    py_utils.CheckShapes((inputs,))
+    assert inputs[-1] == p.input_dim
+    flops = 0
+    in_dim = inputs[-1]
+    other_dims = inputs.num_elements() / in_dim
+    # matmuls.
+    flops += other_dims * p.input_dim * p.output_dim * 2
+    # activations.
+    flops += other_dims * p.output_dim * _ACTIVATIONS_FLOPS[p.activation]
+    if p.has_bias:
+      flops += p.output_dim
+    out_shape = tshape.Shape(inputs[:-1] + [p.output_dim])
+    if p.batch_norm:
+      bn_meta = p.bn_params.cls.FPropMeta(
+          p.bn_params.Copy().Set(dim=p.output_dim), out_shape)
+      flops += bn_meta.flops
+    if p.weight_norm:
+      # l2 normalize + element-wise multiply.
+      flops += 2 * p.input_dim + 2 * p.input_dim * p.output_dim + 2
+
+    return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
 
 class FCLayer(ProjectionLayer):
   """Fully-connected layer (matmul + bias + optional activation)."""
@@ -1304,13 +1344,14 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     py_utils.CheckShapes((inputs,))
     assert inputs[-1] == p.input_dim
     flops = 0
-    in_dim = inputs[-1]
-    other_dims = inputs.num_elements() / in_dim
-    for out_dim in p.hidden_layer_dims:
-      flops += 5 * other_dims * in_dim * out_dim
-      in_dim = out_dim
-    out_shape = tshape.Shape(inputs[:-1] +
-                             [symbolic.ToStatic(p.hidden_layer_dims[-1])])
+    with tf.Graph().as_default():  # throw-away graph.
+      instance = p.Instantiate()
+      for fc in instance.fc:
+        proj_params = fc.params
+        proj_shape = tshape.Shape(inputs[:-1] + [proj_params.input_dim])
+        proj_meta = proj_params.cls.FPropMeta(proj_params, proj_shape)
+        flops += proj_meta.flops
+    out_shape = tshape.Shape(inputs[:-1] + [p.hidden_layer_dims[-1]])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
 
 
