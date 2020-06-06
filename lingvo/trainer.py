@@ -1637,26 +1637,9 @@ class RunnerManager(object):
 
   def RunTrial(self, job, logdir, trial):
     """A wrapper function for running a trial."""
-    if job == 'all':
-      # For async mode: Run controller, trainer, evaler jobs in one process,
-      # multiple threads.
-      self.StartRunners(
-          self.CreateRunners(['controller', 'trainer'], logdir, trial))
-      evaler = self._CreateRunner('evaler_dev', FLAGS.model_task_name, logdir,
-                                  FLAGS.tf_master, trial)
-      evaler.EvalLatestCheckpoint()
-    elif job == 'all_sync':
-      # For sync mode: Run controller, trainer_client, evaler jobs in one
-      # process, multiple threads.
-      self.StartRunners(
-          self.CreateRunners(['controller', 'trainer_client'], logdir, trial))
-      evaler = self._CreateRunner('evaler_dev', FLAGS.model_task_name, logdir,
-                                  FLAGS.tf_master, trial)
-      evaler.EvalLatestCheckpoint()
-    else:
-      # Run each job in separate process/task
-      # TODO(rpang): add support for running evaler_test and decoder.
-      self.StartRunners(self.CreateRunners([job], logdir, trial))
+    # Run each job in separate process/task
+    # TODO(rpang): add support for running evaler_test and decoder.
+    self.StartRunners(self.CreateRunners([job], logdir, trial))
 
   def MaybeConfigRunLocally(self):
     """Update flags if configured to run locally."""
