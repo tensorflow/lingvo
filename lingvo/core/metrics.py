@@ -253,7 +253,8 @@ class TpuEvalMetrics(object):
     metrics = [tf.tpu.cross_replica_sum(x) for x in metrics]
     ret = []
     for (value, weight) in self._Zip(metrics):
-      value, weight = py_utils.WeightedAvg(value / weight, weight)
+      value, weight = py_utils.WeightedAvg(
+          tf.math.divide_no_nan(value, weight), weight)
       ret += [value, weight]
     return ret
 

@@ -2532,9 +2532,12 @@ def WeightedAvg(values, weights, sum_reduction_fn=tf.reduce_sum, name=''):
   values = with_dependencies(
       [assert_equal(tf.shape(values), tf.shape(weights), message=msg)], values)
   total_weight = sum_reduction_fn(weights)
-  avg = sum_reduction_fn(values * tf.cast(weights, values.dtype)) / tf.cast(
-      total_weight, values.dtype)
-  return avg, total_weight
+  # divide_no_nan only supports tf.{float,complex}*.
+  dtype = values.dtype if values.dtype is tf.float64 else tf.float32
+  avg = tf.math.divide_no_nan(
+      sum_reduction_fn(tf.cast(values, dtype) * tf.cast(weights, dtype)),
+      tf.cast(total_weight, dtype))
+  return tf.cast(avg, values.dtype), total_weight
 
 
 def WeightedAvgOfMetrics(metrics):
