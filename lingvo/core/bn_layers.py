@@ -540,3 +540,112 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     return py_utils.NestedMap(
         flops=inputs.num_elements() * _BN_FLOPS_PER_ELEMENT,
         out_shapes=(inputs,))
+
+
+class GroupNormLayer(base_layer.BaseLayer):
+  """Group normalization layer(https://arxiv.org/abs/1803.08494)."""
+
+  @classmethod
+  def Params(cls):
+    p = super(GroupNormLayer, cls).Params()
+    p.Define('dim', 0, 'Depth of the input/output.')
+    p.Define('num_groups', 32, 'Number of groups for GroupNorm.')
+    p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
+    return p
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(GroupNormLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+    assert p.num_groups > 0
+    assert p.min_group_size > 0
+    if p.dim >= p.num_groups:
+      assert p.dim % p.num_groups == 0, ('p.dim({0}) is not dividable by '
+                                         'p.num_groups({1})').format(
+                                             p.dim, p.num_groups)
+
+    collections = [
+        self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
+    ]
+
+    pc = py_utils.WeightParams(
+        shape=[1, 1, 1, p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=collections)
+
+    with tf.variable_scope(p.name):
+      self.CreateVariable('beta', pc)
+      # Note, The real gamma to use is 1 + gamma.
+      self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+
+    self._epsilon = 0.001
+
+  def FProp(self, theta, inputs, paddings=None):
+    """Apply group normalization.
+
+    Args:
+      theta: A NestedMap object containing weights' values of this layer and its
+        children layers.
+      inputs: The inputs tensor with shape [batch_size, height, width, channel].
+      paddings: The paddings tensor with shape [batch_size, height]. Intended to
+        be used for sequence processing where `height` is `time`.
+
+    Returns:
+      A single tensor as the output after applying group normalization, with
+      the same shape as 'inputs'. Or a output, output_paddings pair if input
+      paddings is not None.
+    """
+    p = self.params
+    n, h, w, c = tf.unstack(tf.shape(inputs), axis=0, num=4)
+    group_size = p.dim // p.num_groups
+    num_groups = p.num_groups
+    min_group_size = p.min_group_size if p.dim > p.min_group_size else p.dim
+    if group_size <= min_group_size:
+      group_size = min_group_size
+      num_groups = p.dim // group_size
+
+    with tf.name_scope(p.name):
+      x = tf.reshape(inputs, [n, h, w, num_groups, group_size])
+      if paddings is None:
+        counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+            x, axes=[1, 2, 4], keepdims=True)
+        norm_mean, norm_variance = tf.nn.normalize_moments(
+            counts, means_ss, variance_ss, None)
+      else:
+        expanded_paddings = tf.reshape(paddings, [n, h, 1, 1, 1])
+        norm_mean, norm_variance = ComputeMomentsWithPadding(
+            x, expanded_paddings, [1, 2, 4], keepdims=True)
+
+      norm_mean = py_utils.CheckNumerics(
+          norm_mean, 'mean of %s failed numeric check' % p.name)
+      norm_variance = py_utils.CheckNumerics(
+          norm_variance, 'variance of %s failed numeric check' % p.name)
+
+      beta = theta.beta
+      gamma = theta.gamma
+
+      with tf.control_dependencies([
+          py_utils.assert_greater_equal(norm_variance,
+                                        tf.cast(0., norm_variance.dtype)),
+          py_utils.assert_shape_match([n, 1, 1, num_groups, 1],
+                                      tf.shape(norm_mean)),
+          py_utils.assert_shape_match([n, 1, 1, num_groups, 1],
+                                      tf.shape(norm_variance)),
+      ]):
+        x = (x - norm_mean) / tf.sqrt(norm_variance + self._epsilon)
+        x = tf.reshape(x, [n, h, w, c])
+        gn_output = x * gamma + beta
+        gn_output = tf.reshape(gn_output, [n, h, w, c])
+        if paddings is None:
+          return gn_output
+        else:
+          return gn_output, paddings
+
+  @classmethod
+  def FPropMeta(cls, p, inputs):
+    py_utils.CheckShapes((inputs,))
+    flops_per_element = 10  # Approximately 10 flops per element.
+    return py_utils.NestedMap(
+        flops=inputs.num_elements() * flops_per_element, out_shapes=(inputs,))

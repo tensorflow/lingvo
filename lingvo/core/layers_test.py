@@ -257,6 +257,78 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
             np_in1 * 2. + 1., bn_out.eval(), atol=1e-5, rtol=1e-5)
 
 
+class GroupNormLayerTest(test_utils.TestCase):
+
+  def testGroupNormLayerConstruction(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 2
+      params.num_groups = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      bn_layers.GroupNormLayer(params)
+      gn_vars = tf.get_collection('GroupNormLayer_vars')
+      gn_var_names = [x.name for x in gn_vars]
+      expected_var_names = ['gn/beta/var:0', 'gn/gamma/var:0']
+      self.assertEqual(expected_var_names, gn_var_names)
+
+  def testGroupNormLayerFProp(self):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 4
+      params.num_groups = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      gn_in = tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4])
+
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out = gn_layer.FPropDefaultTheta(gn_in)
+
+      tf.global_variables_initializer().run()
+      base_block = np.array([[[-1.44440889, -1.22219217],
+                              [-0.55554187, -0.33332515]],
+                             [[0.33332515, 0.55554187],
+                              [1.22219217, 1.44440889]]])
+      expected_out = np.array([
+          np.concatenate((base_block, base_block), -1),
+          np.concatenate((base_block, base_block), -1)
+      ])
+      self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
+
+  def testGroupNormLayerFPropWithPaddings(self):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 4
+      params.num_groups = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      gn_in = tf.reshape(np.arange(32, dtype=np.float32), [2, 2, 2, 4])
+      paddings = tf.convert_to_tensor([[0, 0], [0, 1]], dtype=tf.float32)
+
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out, paddings_out = gn_layer.FPropDefaultTheta(gn_in, paddings)
+
+      tf.global_variables_initializer().run()
+      base_block1 = np.array([[[-1.44440889, -1.22219217],
+                               [-0.55554187, -0.33332515]],
+                              [[0.33332515, 0.55554187],
+                               [1.22219217, 1.44440889]]])
+
+      base_block2 = np.array([[[-1.2125355, -0.7275213], [0.7275213,
+                                                          1.2125355]],
+                              [[2.6675782, 3.1525922], [4.607635, 5.092649]]])
+
+      expected_out = np.array([
+          np.concatenate((base_block1, base_block1), -1),
+          np.concatenate((base_block2, base_block2), -1)
+      ])
+      print(gn_out.eval())
+      self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
+      self.assertAllEqual(paddings.eval(), paddings_out.eval())
+
+
 class ConvLayerTest(test_utils.TestCase):
   """Tests conv layers.
 
