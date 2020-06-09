@@ -733,6 +733,8 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     p = super(MultiHeadedAttentionXL, cls).Params()
     p.Define('rel_pos_emb_dim', None,
              'Dimension of relative positional embedding.')
+    p.Define('skip_term_b', False,
+             'If True, skip term_b in the paper section 3.3.')
     return p
 
   @base_layer.initializer
@@ -791,7 +793,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     sin_emb = tf.squeeze(sin_emb, 0)
 
     logits = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, sin_emb, theta.u, theta.v)
+        query, key, sin_emb, theta.u, theta.v, self.params.skip_term_b)
     return logits
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
@@ -827,7 +829,10 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     sin_emb = tf.squeeze(sin_emb, 0)
 
     # term b an d.
-    logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
+    if not p.skip_term_b:
+      logits += tf.einsum('BNH,SNH->SBN', query + theta.v, sin_emb)
+    else:
+      logits += tf.expand_dims(tf.einsum('NH,SNH->SN', theta.v, sin_emb), 1)
     return logits
 
   def ExtendStep(self,
@@ -1868,7 +1873,9 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
     raise ValueError('Unsupported attention params: %s' % attention_tpl.cls)
 
   new_attention_tpl = hyperparams.CopyParamsTo(
-      attention_tpl, new_attention_tpl, skip=['cls', 'rel_pos_emb_dim'])
+      attention_tpl,
+      new_attention_tpl,
+      skip=['cls', 'rel_pos_emb_dim', 'skip_term_b'])
   trans_params_copy.tr_self_atten_tpl.atten_tpl = new_attention_tpl
   return trans_params_copy
 

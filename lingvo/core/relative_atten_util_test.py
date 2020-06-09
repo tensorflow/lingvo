@@ -44,8 +44,12 @@ class RelPositionBiasTest(test_utils.TestCase, parameterized.TestCase):
                               content, abs_pos_emb).eval())
 
 
-def OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
-                          positional_bias):
+def OracleAttentionLogits(query,
+                          key,
+                          abs_pos_emb,
+                          content_bias,
+                          positional_bias,
+                          skip_term_b=False):
   """Computes expected attention logits using non-vectorized approach."""
   batch, seqlen, num_heads, _ = query.shape
   tgtlen, srclen = seqlen, seqlen
@@ -58,9 +62,9 @@ def OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
         for j in range(srclen):
           offset = seqlen - 1
           pos_emb = abs_pos_emb[i - j + offset]
-          logits[b][n][i][j] = (
-              np.dot(query[b][i][n], key[b][j][n]) +
-              np.dot(query[b][i][n], pos_emb[n]))
+          logits[b][n][i][j] = np.dot(query[b][i][n], key[b][j][n])
+          if not skip_term_b:
+            logits[b][n][i][j] += np.dot(query[b][i][n], pos_emb[n])
           if content_bias is not None:
             logits[b][n][i][j] += np.dot(content_bias[n], key[b][j][n])
           if positional_bias is not None:
@@ -92,13 +96,17 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
                                           self.input_dim).astype(np.float32)
     return query, key, abs_pos_emb, content_bias, positional_bias
 
-  def testTransformerXL(self):
+  @parameterized.named_parameters(
+      ('Base', False),
+      ('Lite', True),
+  )
+  def testTransformerXL(self, skip_term_b):
     (query, key, abs_pos_emb, content_bias,
      positional_bias) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
-                                     positional_bias)
+                                     positional_bias, skip_term_b)
     actual_t = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, abs_pos_emb, content_bias, positional_bias)
+        query, key, abs_pos_emb, content_bias, positional_bias, skip_term_b)
     with self.session() as sess:
       actual = sess.run(actual_t)
     self.assertAllClose(expected, actual)

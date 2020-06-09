@@ -187,7 +187,7 @@ def RelShift(x):
   return x
 
 
-def RelPositionBias(content, abs_pos_emb):
+def RelPositionBias(content, abs_pos_emb, skip_term_b=False):
   """Compute relative position bias.
 
   This is a subroutine used by variants of self-attentions with relative
@@ -204,32 +204,52 @@ def RelPositionBias(content, abs_pos_emb):
 
   Args:
     tensors of the following shapes:
-    content:         [B, T, N, H]
+    content:         [N, H] if skip_term_b else [B, T, N, H]
     abs_pos_emb:     [2T - 1, N, H], the absolute positional embedding.
       abs_pos_emb[i] is the emb of relative distance i - (T-1).
+    skip_term_b:     If to skip term_b in section 3.3 equation.
 
   Returns:
-    The attention logits tensor. [B, N, T, T]
+    The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].
   """
-  b, t, n, h = py_utils.GetShape(content)
-  l = 2 * t - 1
-  abs_pos_emb = py_utils.HasShape(abs_pos_emb, [l, n, h])
 
-  # [B, N, T, L=2T-1]
-  term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
-  term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
-  # [B, N, T * (L + 1)].
-  term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, t)))
-  # [B, N, T, L + 1].
-  term_bd = tf.reshape(term_bd, [b, n, t, l + 1], name='restore')
-  return term_bd[:, :, :, t - 1::-1]
+  if not skip_term_b:
+    b, t, n, h = py_utils.GetShape(content)
+    l = 2 * t - 1
+    abs_pos_emb = py_utils.HasShape(abs_pos_emb, [l, n, h])
+  else:
+    n, h = py_utils.GetShape(content)
+    l = py_utils.GetShape(abs_pos_emb)[0]
+    t = (l + 1) // 2
+
+  if not skip_term_b:
+    # [B, N, T, L=2T-1]
+    term_bd = tf.einsum('BTNH,LNH->BNTL', content, abs_pos_emb)
+    term_bd = tf.reshape(term_bd, [b, n, t * l], name='flatten')
+    # [B, N, T * (L + 1)].
+    term_bd = tf.pad(term_bd, ((0, 0), (0, 0), (0, t)))
+    # [B, N, T, L + 1].
+    term_bd = tf.reshape(term_bd, [b, n, t, l + 1], name='restore')
+    return term_bd[:, :, :, t - 1::-1]
+  else:
+    # [N, L=2T-1]
+    term_d = tf.einsum('NH,LNH->NL', content, abs_pos_emb)
+    # [N, T, L]
+    term_d = tf.tile(tf.expand_dims(term_d, axis=1), [1, t, 1], name='tile')
+    term_d = tf.reshape(term_d, [n, t * l])
+    # [N, T * (L + 1)].
+    term_d = tf.pad(term_d, ((0, 0), (0, t)))
+    # [N, T, L + 1].
+    term_d = tf.reshape(term_d, [n, t, l + 1], name='restore')
+    return term_d[:, :, t - 1::-1]
 
 
 def _AttenLogits(query,
                  key,
                  abs_pos_emb,
                  content_bias=None,
-                 positional_bias=None):
+                 positional_bias=None,
+                 skip_term_b=False):
   """Attention logits from ...
 
   Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
@@ -251,6 +271,7 @@ def _AttenLogits(query,
     distance i - (T-1).
     content_bias:    [N, H] or None
     positional_bias: [N, H] or None
+    skip_term_b:     If to skip term_b in section 3.3 equation.
 
   Returns:
     The attention logits tensor. [B, N, T, T]
@@ -271,12 +292,20 @@ def _AttenLogits(query,
   with tf.name_scope('term_ac'):
     term_ac = tf.einsum('BTNH,BSNH->BNTS', query + content_bias, key)
   with tf.name_scope('term_bd'):
-    term_bd = RelPositionBias(query + positional_bias, abs_pos_emb)
+    if skip_term_b:
+      content = positional_bias
+    else:
+      content = query + positional_bias
+    term_bd = RelPositionBias(content, abs_pos_emb, skip_term_b)
   return term_ac + term_bd
 
 
-def AttenLogitsTransformerXL(query, key, abs_pos_emb, content_bias,
-                             positional_bias):
+def AttenLogitsTransformerXL(query,
+                             key,
+                             abs_pos_emb,
+                             content_bias,
+                             positional_bias,
+                             skip_term_b=False):
   """Attention logits from ...
 
   Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of
@@ -298,11 +327,13 @@ def AttenLogitsTransformerXL(query, key, abs_pos_emb, content_bias,
     distance i - (T-1).
     content_bias:    [N, H]
     positional_bias: [N, H]
+    skip_term_b:     If to skip term_b in section 3.3 equation.
 
   Returns:
     The attention logits tensor. [B, N, T, T]
   """
-  return _AttenLogits(query, key, abs_pos_emb, content_bias, positional_bias)
+  return _AttenLogits(query, key, abs_pos_emb, content_bias, positional_bias,
+                      skip_term_b)
 
 
 def AttenLogitsRPE(query, key, abs_pos_emb):
