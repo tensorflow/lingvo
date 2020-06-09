@@ -172,16 +172,22 @@ class _Param(object):
 def CopyParamsTo(from_p, to_p, skip=None):
   """Copy from one Params to another, with optional skipped params.
 
+  Preserves `type(to_p.Instantiate())`. Use `from_p.Copy()` instead if requiring
+  a deep copy of `from_p`, without updating `to_p`.
+
   Args:
     from_p: Source params to copy from.
     to_p: Destination params to copy to.
-    skip: If not None, a list of strings of param names to skip.
+    skip: If not None, a list of strings of param names to skip. Automatically
+        skips InstantiableParams' 'cls' parameter.
 
   Returns:
     None
   """
+  skip = skip or []
+  skip.append('cls')
   for n, p in from_p.IterParams():
-    if skip and n in skip:
+    if n in skip:
       continue
     if isinstance(p, Params):
       to_p.Set(**{n: p.Copy()})
@@ -281,6 +287,7 @@ class Params(object):
     return name
 
   def Copy(self):
+    """Creates a deep copy of self."""
     return self._CopyTo(type(self)())
 
   def _CopyTo(self, res):
@@ -848,4 +855,5 @@ class InstantiableParams(Params):
     return self.cls(self)
 
   def Copy(self):
+    """See base class."""
     return self._CopyTo(type(self)(self.cls))

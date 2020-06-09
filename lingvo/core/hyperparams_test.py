@@ -109,6 +109,12 @@ class ParamsTest(test_utils.TestCase):
     self.assertNotIn('b', dest)
     self.assertNotIn('c', dest)
 
+  def testCopyParamsToDoesNotCopyClass(self):
+    source = _params.InstantiableParams(cls=_params.Params)
+    dest = _params.InstantiableParams(cls=_params.InstantiableParams)
+    _params.CopyParamsTo(source, dest)
+    self.assertEqual(dest.cls, _params.InstantiableParams)
+
   def testDefineExisting(self):
     p = _params.Params()
     p.Define('foo', 1, '')
