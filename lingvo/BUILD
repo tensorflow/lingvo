@@ -203,7 +203,7 @@ py_test(
     size = "large",
     srcs = ["trainer_test.py"],
     python_version = "PY3",
-    shard_count = 5,
+    shard_count = 6,
     tags = [
         "noasan",
         "nomsan",
@@ -215,6 +215,7 @@ py_test(
         ":compat",
         ":model_registry",
         ":trainer_lib",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo/core:base_input_generator",
         "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
@@ -222,8 +223,8 @@ py_test(
         "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",
-        "//lingvo/tasks/image/params:mnist",
-        "//lingvo/tasks/punctuator/params:codelab",
+        "//lingvo/tasks/image/params:mnist",  # build_cleaner: keep
+        "//lingvo/tasks/punctuator/params:codelab",  # build_cleaner: keep
         # Implicit numpy dependency.
         # Implicit six dependency.
     ],

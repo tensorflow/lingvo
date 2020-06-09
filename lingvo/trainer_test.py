@@ -19,8 +19,8 @@
 import os
 import random
 import re
-import shutil
 
+from absl.testing import flagsaver
 from lingvo import base_trial
 from lingvo import model_registry
 from lingvo import trainer
@@ -44,13 +44,7 @@ class BaseTrainerTest(test_utils.TestCase):
   def setUp(self):
     super(BaseTrainerTest, self).setUp()
     FLAGS.model_params_override = ''
-    # TODO(donglin): Use tf.distribute.Server.create_local_server().target after
-    # create_local_server() has been updated to use 'localhost' as job name
-    # in OSS TensorFlow.
-    FLAGS.tf_master = tf.distribute.Server({'localhost': ['localhost:0']},
-                                           protocol='grpc',
-                                           config=None,
-                                           start=True).target
+    FLAGS.tf_master = tf.distribute.Server.create_local_server().target
     FLAGS.vizier_reporting_job = 'decoder'
 
   def _CreateController(self, cfg):
@@ -90,11 +84,6 @@ class BaseTrainerTest(test_utils.TestCase):
 
 class TrainerTest(BaseTrainerTest):
 
-  def tearDown(self):
-    super(TrainerTest, self).tearDown()
-    if hasattr(self, '_tmpdir'):
-      shutil.rmtree(self._tmpdir)
-
   def _GetTestConfig(self):
     model_name = 'image.mnist.LeNet5'
     cfg = model_registry.GetParams(model_name, 'Dev')
@@ -109,12 +98,14 @@ class TrainerTest(BaseTrainerTest):
     cfg.cluster.ps.gpus_per_replica = 0
 
     # Generate 2 inputs.
-    self._tmpdir, cfg.input.ckpt = FakeMnistData(train_size=0, test_size=2)
+    cfg.input.ckpt = FakeMnistData(
+        self.get_temp_dir(), train_size=0, test_size=2)
     cfg.input.num_samples = 2
     cfg.train.max_steps = 2
     cfg.train.ema_decay = 0.9999
     return cfg
 
+  @flagsaver.flagsaver
   def testController(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'controller_test' + str(random.random()))
@@ -149,6 +140,7 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(
         self._HasLine(self._GetMatchedFileName(dev_files, 'score'), 'log_pplx'))
 
+  @flagsaver.flagsaver
   def testDecoder(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'decoder_test' + str(random.random()))
@@ -196,6 +188,7 @@ class TrainerTest(BaseTrainerTest):
         tf.io.gfile.exists(
             os.path.join(new_logdir, 'decoder_dev/score-00000002.txt')))
 
+  @flagsaver.flagsaver
   def testWriteInferenceGraph(self):
     random.seed()
     logdir = os.path.join(tf.test.get_temp_dir(),
@@ -207,9 +200,32 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(inference_files, 'inference.pbtxt'))
     self.assertTrue(self._HasFile(inference_files, 'inference_tpu.pbtxt'))
 
+  @flagsaver.flagsaver
+  def testRunLocally(self):
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'run_locally_test' + str(random.random()))
+    FLAGS.logdir = logdir
+    FLAGS.run_locally = 'cpu'
+    FLAGS.mode = 'sync'
+    FLAGS.model = 'image.mnist.LeNet5'
+    FLAGS.model_params_override = (
+        'train.max_steps: 2; input.num_samples: 2; input.ckpt: %s' %
+        FakeMnistData(self.get_temp_dir(), train_size=2, test_size=2))
+    trainer.main(None)
+
+    train_files = tf.io.gfile.glob(logdir + '/train/*')
+    self.assertTrue(self._HasFile(train_files, 'ckpt'))
+    self.assertTrue(self._HasFile(train_files, 'tfevents'))
+    control_files = tf.io.gfile.glob(logdir + '/control/*')
+    self.assertTrue(self._HasFile(control_files, 'params.txt'))
+    self.assertTrue(self._HasFile(control_files, 'model_analysis.txt'))
+    self.assertTrue(self._HasFile(control_files, 'train.pbtxt'))
+    self.assertTrue(self._HasFile(control_files, 'tfevents'))
+
 
 class TrainerWithTrialTest(TrainerTest):
 
+  @flagsaver.flagsaver
   def testControllerTrainerEvaler(self):
     trial = tf.test.mock.create_autospec(base_trial.Trial, instance=True)
     self._trial = trial
@@ -285,6 +301,7 @@ class TrainerWithTrialTest(TrainerTest):
 
 class ProcessFPropResultsTest(BaseTrainerTest):
 
+  @flagsaver.flagsaver
   def testIdentityRegressionModel(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'identity_regression_test' + str(random.random()))

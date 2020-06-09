@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 import os
-import tempfile
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 
@@ -76,9 +75,8 @@ class MnistTestInput(_MnistInputBase):
     return p
 
 
-def FakeMnistData(train_size=60000, test_size=10000):
+def FakeMnistData(tmpdir, train_size=60000, test_size=10000):
   """Fake Mnist data for unit tests."""
-  tmpdir = tempfile.mkdtemp()
   data_path = os.path.join(tmpdir, 'ckpt')
   with tf.Graph().as_default():
     with tf.Session() as sess:
@@ -89,4 +87,4 @@ def FakeMnistData(train_size=60000, test_size=10000):
       sess.run(
           io_ops.save_v2(data_path, ['x_train', 'y_train', 'x_test', 'y_test'],
                          [''] * 4, [x_train, y_train, x_test, y_test]))
-  return tmpdir, data_path
+  return data_path

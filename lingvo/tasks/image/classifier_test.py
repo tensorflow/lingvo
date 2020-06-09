@@ -15,8 +15,6 @@
 # ==============================================================================
 """Tests for classifier."""
 
-
-import shutil
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
@@ -50,10 +48,8 @@ class MnistV2(mnist.Base):
 class ClassifierTest(test_utils.TestCase):
 
   def setUp(self):
-    self._tmpdir, self.data_path = input_generator.FakeMnistData(train_size=0)
-
-  def tearDown(self):
-    shutil.rmtree(self._tmpdir)
+    self.data_path = input_generator.FakeMnistData(
+        self.get_temp_dir(), train_size=0)
 
   def _runOneStep(self, model):
     f_loss = self.evaluate(model.GetTask().loss)

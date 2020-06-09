@@ -14,8 +14,6 @@
 # ==============================================================================
 """Tests for input_generator."""
 
-
-import shutil
 import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.image import input_generator
@@ -26,10 +24,7 @@ from six.moves import range
 class InputGeneratorTest(test_utils.TestCase):
 
   def setUp(self):
-    self._tmpdir, self.data_path = input_generator.FakeMnistData()
-
-  def tearDown(self):
-    shutil.rmtree(self._tmpdir)
+    self.data_path = input_generator.FakeMnistData(self.get_temp_dir())
 
   def _trainInput(self):
     p = input_generator.MnistTrainInput.Params()
