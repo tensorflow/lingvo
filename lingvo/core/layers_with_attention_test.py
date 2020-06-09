@@ -512,6 +512,50 @@ class LayersWithAttentionTest(test_utils.TestCase):
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
       self.assertAllClose(expected_probs, actual_probs, rtol=1e-05, atol=1e-05)
 
+  def testTransformerAttentionLayerCase3MultiSourceMatchSingle(self):
+    with self.session(use_gpu=True) as sess:
+      # Prepare inputs.
+      depth = 4
+      (query_vec, _, aux_vecs, aux_paddings, _) = (
+          self._testTransformerAttentionLayerInputsMultiAuxSource(
+              ['source_0', 'source_1'], depth=depth))
+
+      # Create two source inputs but use single-source attention
+      p = layers_with_attention.TransformerMultiSourceAttentionLayer.Params()
+      p.random_seed = 123
+      p.name = 'transformer_atten_multisource_single'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      p.num_source = 1
+      msa = layers_with_attention.TransformerMultiSourceAttentionLayer(p)
+      msa_ctx, msa_probs = (
+          msa.FPropDefaultTheta(query_vec, aux_paddings, aux_vecs))
+
+      # Original single source attention layer.
+      p = layers_with_attention.TransformerAttentionLayer.Params()
+      p.random_seed = 123
+      p.name = 'transformer_atten'
+      p.source_dim = depth
+      p.is_masked = False
+      p.num_attention_heads = 2
+      ssa = layers_with_attention.TransformerAttentionLayer(p)
+      ssa_ctx, ssa_probs = ssa.FPropDefaultTheta(query_vec,
+                                                 aux_paddings['source_0'],
+                                                 aux_vecs['source_0'])
+
+      # Compare two context vectors and probabilities.
+      tf.global_variables_initializer().run()
+      actual_msa_ctx, actual_msa_probs, actual_ssa_ctx, actual_ssa_probs = (
+          sess.run([msa_ctx, msa_probs, ssa_ctx, ssa_probs]))
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      self.assertAllClose(actual_msa_ctx, actual_ssa_ctx,
+                          rtol=1e-05, atol=1e-05)
+      self.assertAllClose(actual_msa_probs, actual_ssa_probs,
+                          rtol=1e-05, atol=1e-05)
+
   def testTransformerAttentionLayerSourceContext(self):
     # Equivalent: Passing no context vecs and source vecs as context vecs.
     with self.session(use_gpu=True):
@@ -614,12 +658,6 @@ class LayersWithAttentionTest(test_utils.TestCase):
       (query_vec, _, aux_vecs, aux_paddings,
        context_vecs) = self._testTransformerAttentionLayerInputsMultiAuxSource(
            ['source_0', 'source_1'], depth=depth, context_depth=depth)
-      query_vec = py_utils.AddDebugTensor(
-          query_vec, summarize=300, name='query_vec')
-      aux_vecs['source_0'] = py_utils.AddDebugTensor(
-          aux_vecs['source_0'], summarize=300, name='aux_vec_source_0')
-      aux_vecs['source_1'] = py_utils.AddDebugTensor(
-          aux_vecs['source_1'], summarize=300, name='aux_vec_source_1')
 
       ctx, probs = transformer_atten.FPropDefaultTheta(
           query_vec=query_vec,
@@ -739,12 +777,6 @@ class LayersWithAttentionTest(test_utils.TestCase):
       (query_vec, _, aux_vecs, aux_paddings,
        context_vecs) = self._testTransformerAttentionLayerInputsMultiAuxSource(
            ['source_0', 'source_1'], depth=depth, context_depth=context_depth)
-      query_vec = py_utils.AddDebugTensor(
-          query_vec, summarize=300, name='query_vec')
-      aux_vecs['source_0'] = py_utils.AddDebugTensor(
-          aux_vecs['source_0'], summarize=300, name='aux_vec_source_0')
-      aux_vecs['source_1'] = py_utils.AddDebugTensor(
-          aux_vecs['source_1'], summarize=300, name='aux_vec_source_1')
 
       ctx, probs = transformer_atten.FPropDefaultTheta(
           query_vec=query_vec,
@@ -955,6 +987,125 @@ class LayersWithAttentionTest(test_utils.TestCase):
       # pylint: enable=bad-whitespace
       self.assertAllClose(expected_layer_output, actual_layer_output)
       self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testMultiAuxSourceTransformerLayerFProp(self):
+    with self.session(use_gpu=True):
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.tr_aux_atten_tpl = (
+          layers_with_attention.TransformerMultiSourceAttentionLayer.Params()
+          .Set(
+              source_dim=p.source_dim,
+              num_source=2,
+              primary_source_index=0,
+              num_attention_heads=4))
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.tr_atten_tpl.num_attention_heads = 2
+      transformer = layers_with_attention.TransformerLayer(p)
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputsMultiAuxSource(
+           ['source_0', 'source_1'], depth=depth)
+
+      h, probs = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      self.evaluate(tf.global_variables_initializer())
+      actual_layer_output, actual_prob_output = self.evaluate([h, probs])
+      tf.logging.info(np.array_repr(actual_layer_output))
+      tf.logging.info(np.array_repr(actual_prob_output))
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_layer_output = [
+          [[-0.06297368,  0.75025094, -0.18167767,  2.27935   ],
+           [-0.22771487, -1.9459789 ,  0.758848  ,  1.2273839 ]],
+          [[ 1.6866916 ,  2.9894042 , -1.2287276 ,  0.8018402 ],
+           [ 0.656631  , -1.2074132 , -0.41612232,  1.4099871 ]],
+          [[ 1.6463919 , -0.493517  , -1.3494966 ,  0.6977608 ],
+           [ 0.49527422, -1.5192728 , -0.1677584 ,  0.781141  ]],
+          [[-0.86701846, -1.2044021 ,  1.0710557 ,  1.4103888 ],
+           [ 3.0039275 , -0.98788637, -0.48796502, -0.90612394]],
+          [[ 0.6298464 , -0.33676302, -0.22484902,  1.8341833 ],
+           [-1.2259507 , -0.716857  , -0.1336647 ,  1.9020087 ]]]
+      expected_prob_output = [
+          [[0.23055646, 0., 0.270754  , 0., 0.20824522, 0., 0.2904443 ],
+           [0., 0.34072176, 0., 0.34083408, 0., 0.31844413, 0.]],
+          [[0.25588194, 0., 0.21465777, 0., 0.26527345, 0., 0.26418683],
+           [0., 0.31694067, 0., 0.35715103, 0., 0.32590824, 0.]],
+          [[0.24147315, 0., 0.22742277, 0., 0.2734162 , 0., 0.25768787],
+           [0., 0.33686832, 0., 0.34380934, 0., 0.31932235, 0.]],
+          [[0.22445586, 0., 0.29794338, 0., 0.20764738, 0., 0.26995337],
+           [0., 0.3731808 , 0., 0.29736063, 0., 0.32945853, 0.]],
+          [[0.2221506 , 0., 0.2830769 , 0., 0.21007922, 0., 0.2846933 ],
+           [0., 0.3024338 , 0., 0.36399618, 0., 0.33357003, 0.]]]
+      # # pyformat: enable
+      # # pylint: enable=bad-whitespace
+      self.assertAllClose(expected_layer_output, actual_layer_output)
+      self.assertAllClose(expected_prob_output, actual_prob_output)
+
+  def testMultiAuxSourceTransformerLayerFPropMatchSingle(self):
+    with self.session(use_gpu=True):
+      np.random.seed(6348575)
+      depth = 4
+      # Multi-source transformer layer
+      p = layers_with_attention.TransformerLayer.Params().Set(
+          name='multi_source_trans', random_seed=123)
+      p.tr_atten_tpl.num_attention_heads = 4
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.tr_aux_atten_tpl = (
+          layers_with_attention.TransformerMultiSourceAttentionLayer.Params()
+          .Set(
+              source_dim=p.source_dim,
+              num_source=1,
+              primary_source_index=0,
+              num_attention_heads=4))
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      msa_trans = layers_with_attention.TransformerLayer(p)
+
+      (source_vecs, source_padding, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputsMultiAuxSource(
+           ['source_0', 'source_1'], depth=depth)
+
+      msa_h, msa_probs = msa_trans.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      # Original single-source transformer decoder.
+      p = layers_with_attention.TransformerLayer.Params().Set(
+          name='single_source_trans', random_seed=123)
+      p.tr_atten_tpl.num_attention_heads = 4
+      p.tr_atten_tpl.random_seed = 123
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      ssa_trans = layers_with_attention.TransformerLayer(p)
+      ssa_h, ssa_probs = ssa_trans.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs['source_0'],
+          aux_paddings=aux_paddings['source_0'])
+
+      self.evaluate(tf.global_variables_initializer())
+      msa_layer_output, msa_prob_output, ssa_layer_output, ssa_prob_output = (
+          self.evaluate([msa_h, msa_probs, ssa_h, ssa_probs]))
+
+      self.assertAllClose(
+          msa_layer_output, ssa_layer_output, rtol=1e-05, atol=1e-05)
+      self.assertAllClose(
+          msa_prob_output, ssa_prob_output, rtol=1e-05, atol=1e-05)
 
   def testTransformerLayerOutputLayerNormFProp(self):
     """Test post-layernorm Fprop."""
@@ -1176,6 +1327,134 @@ class LayersWithAttentionTest(test_utils.TestCase):
       h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
       self.assertAllClose(h1_v, h2_v)
       self.assertAllClose(probs1_v, probs2_v)
+
+  def testMultiAuxSourceTransformerLayerExtendStep(self):
+    with self.session(use_gpu=True):
+      np.random.seed(6348575)
+      depth = 4
+      p = layers_with_attention.TransformerLayer.Params()
+      p.name = 'transformer'
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.tr_aux_atten_tpl = (
+          layers_with_attention.TransformerMultiSourceAttentionLayer.Params()
+          .Set(
+              source_dim=p.source_dim,
+              num_source=2,
+              primary_source_index=0,
+              num_attention_heads=4))
+      p.mask_self_atten = True
+      p.tr_atten_tpl.num_attention_heads = 2
+      transformer = layers_with_attention.TransformerLayer(p)
+
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputsMultiAuxSource(
+           ['source_0', 'source_1'], depth=depth)
+      source_padding = tf.zeros([5, 2])
+
+      h1, probs1 = transformer.FPropDefaultTheta(
+          source_vecs,
+          source_padding,
+          aux_vecs=aux_vecs,
+          aux_paddings=aux_paddings)
+
+      h2 = []
+      probs2 = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = transformer.ExtendStep(
+            transformer.theta, source_vecs[i, :, :], prefix_states, aux_vecs,
+            aux_paddings)
+        h2.append(h)
+        probs2.append(probs)
+
+      h2 = tf.stack(h2)
+      probs2 = tf.concat(probs2, 0)
+
+      self.evaluate(tf.global_variables_initializer())
+      h1_v, probs1_v, h2_v, probs2_v = self.evaluate([h1, probs1, h2, probs2])
+      self.assertAllClose(h1_v, h2_v)
+      self.assertAllClose(probs1_v, probs2_v)
+
+  def testMultiAuxSourceTransformerLayerExtendStepMatchSingle(self):
+    with self.session(use_gpu=True):
+      # Prepare inputs
+      np.random.seed(6348575)
+      depth = 4
+      (source_vecs, _, aux_vecs, aux_paddings,
+       _) = self._testTransformerAttentionLayerInputsMultiAuxSource(
+           ['source_0', 'source_1'], depth=depth)
+
+      # Multi-source transformer layer
+      p = layers_with_attention.TransformerLayer.Params().Set(
+          name='multi_source_trans', random_seed=123)
+      p.tr_atten_tpl.num_attention_heads = 4
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.tr_aux_atten_tpl = (
+          layers_with_attention.TransformerMultiSourceAttentionLayer.Params()
+          .Set(
+              source_dim=p.source_dim,
+              num_source=1,
+              primary_source_index=0,
+              num_attention_heads=4))
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      msa_trans = layers_with_attention.TransformerLayer(p)
+
+      h_msa = []
+      probs_msa = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = msa_trans.ExtendStep(msa_trans.theta,
+                                                       source_vecs[i, :, :],
+                                                       prefix_states, aux_vecs,
+                                                       aux_paddings)
+        h_msa.append(h)
+        probs_msa.append(probs)
+      h_msa = tf.stack(h_msa)
+      probs_msa = tf.concat(probs_msa, 0)
+
+      # Original single-source transformer decoder.
+      p = layers_with_attention.TransformerLayer.Params().Set(
+          name='single_source_trans', random_seed=123)
+      p.tr_atten_tpl.num_attention_heads = 4
+      p.source_dim = depth
+      p.has_aux_atten = True
+      p.mask_self_atten = True
+      p.tr_fflayer_tpl.hidden_dim = 7
+      ssa_trans = layers_with_attention.TransformerLayer(p)
+
+      h_ssa = []
+      probs_ssa = []
+      cached_source_vecs = tf.zeros([0, 2, 4])
+      cached_source_contexts = tf.zeros([0, 2, 4])
+      prefix_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_contexts)
+      for i in range(5):
+        h, probs, prefix_states = ssa_trans.ExtendStep(ssa_trans.theta,
+                                                       source_vecs[i, :, :],
+                                                       prefix_states,
+                                                       aux_vecs['source_0'],
+                                                       aux_paddings['source_0'])
+        h_ssa.append(h)
+        probs_ssa.append(probs)
+      h_ssa = tf.stack(h_ssa)
+      probs_ssa = tf.concat(probs_ssa, 0)
+
+      self.evaluate(tf.global_variables_initializer())
+      h_msa_v, h_ssa_v, probs_msa_v, probs_ssa_v = self.evaluate(
+          [h_msa, h_ssa, probs_msa, probs_ssa])
+      tf.logging.info(np.array_repr(h_msa_v))
+      tf.logging.info(np.array_repr(h_ssa_v))
+      self.assertAllClose(h_msa_v, h_ssa_v)
+      self.assertAllClose(probs_msa_v, probs_ssa_v)
 
   def testTransformerLayerWithNgramMaskExtendStep(self):
     with self.session(use_gpu=True):
