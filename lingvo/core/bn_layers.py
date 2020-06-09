@@ -48,6 +48,49 @@ class AddingAccumulator(base_layer.Accumulator):
     self.SetValue(self.GetValue() + tf.cast(value, self.dtype))
 
 
+def ComputeMomentsWithPadding(inputs,
+                              padding,
+                              reduce_over_dims,
+                              enable_cross_replica_sum_on_tpu=False,
+                              keepdims=False):
+  """Computes mean and variance over the valid data points in inputs."""
+  mask = 1.0 - padding
+  inputs = py_utils.with_dependencies([
+      py_utils.assert_equal(tf.rank(inputs), tf.rank(mask)),
+      py_utils.assert_greater_equal(mask, tf.zeros_like(mask)),
+  ], inputs)
+  sum_v = tf.reduce_sum(
+      inputs * tf.cast(mask, inputs.dtype), reduce_over_dims, keepdims=keepdims)
+  count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=keepdims)
+  # Input shape is guaranteed to be a multiple of mask shape because the
+  # inputs * mask op above was successfully broadcasted.
+  input_size_on_reduced_dims = tf.reduce_prod(
+      tf.gather(tf.shape(inputs), reduce_over_dims))
+  mask_size_on_reduced_dims = tf.reduce_prod(
+      tf.gather(tf.shape(mask), reduce_over_dims))
+  mask_multiplier = tf.math.truediv(input_size_on_reduced_dims,
+                                    mask_size_on_reduced_dims)
+  count_v *= tf.cast(mask_multiplier, count_v.dtype)
+  if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
+    sum_v = tf.tpu.cross_replica_sum(sum_v)
+    count_v = tf.tpu.cross_replica_sum(count_v)
+
+  count_v = tf.maximum(count_v, 1.0)
+  mean = sum_v / count_v
+  sum_vv = tf.reduce_sum(
+      (inputs - mean) * (inputs - mean) * mask,
+      reduce_over_dims,
+      keepdims=keepdims)
+
+  if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
+    sum_vv = tf.tpu.cross_replica_sum(sum_vv)
+
+  variance = py_utils.with_dependencies([
+      py_utils.assert_greater_equal(sum_vv, tf.zeros_like(sum_vv)),
+  ], sum_vv / count_v)
+  return mean, variance
+
+
 class BatchNormLayer(base_layer.BaseLayer):
   """Batch normalization layer."""
 
@@ -159,39 +202,6 @@ class BatchNormLayer(base_layer.BaseLayer):
   def epsilon(self):
     return self._epsilon
 
-  @staticmethod
-  def _Moments(inputs, mask, enable_cross_replica_sum_on_tpu=False):
-    """Computes mean and variance over the valid data points in inputs."""
-    inputs = py_utils.with_dependencies([
-        py_utils.assert_equal(tf.rank(inputs), tf.rank(mask)),
-        py_utils.assert_greater_equal(mask, tf.zeros_like(mask)),
-    ], inputs)
-    rank = tf.rank(mask)
-    reduce_over_dims = tf.range(0, rank - 1)
-    sum_v = tf.reduce_sum(inputs * tf.cast(mask, inputs.dtype),
-                          reduce_over_dims)
-    count_v = tf.reduce_sum(mask, reduce_over_dims)
-    # Input shape is guaranteed to be a multiple of mask shape because the
-    # inputs * mask op above was successfully broadcasted.
-    mask_multiplier = tf.shape(inputs)[:-1] // tf.shape(mask)[:-1]
-    count_v *= tf.cast(tf.reduce_prod(mask_multiplier), count_v.dtype)
-    if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
-      sum_v = tf.tpu.cross_replica_sum(sum_v)
-      count_v = tf.tpu.cross_replica_sum(count_v)
-
-    count_v = tf.maximum(count_v, 1.0)
-    mean = sum_v / count_v
-    sum_vv = tf.reduce_sum((inputs - mean) * (inputs - mean) * mask,
-                           reduce_over_dims)
-
-    if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
-      sum_vv = tf.tpu.cross_replica_sum(sum_vv)
-
-    variance = py_utils.with_dependencies([
-        py_utils.assert_greater_equal(sum_vv, tf.zeros_like(sum_vv)),
-    ], sum_vv / count_v)
-    return mean, variance
-
   def _GetDefaultPaddings(self, inputs):
     """Gets the default paddings for an input."""
     return tf.zeros(
@@ -238,8 +248,11 @@ class BatchNormLayer(base_layer.BaseLayer):
         norm_mean, norm_variance = (self.vars.moving_mean,
                                     self.vars.moving_variance)
       else:
-        mean, variance = self._Moments(inputs, 1.0 - paddings,
-                                       p.enable_cross_replica_sum_on_tpu)
+        rank = tf.rank(paddings)
+        reduce_over_dims = tf.range(0, rank - 1)
+        mean, variance = ComputeMomentsWithPadding(
+            inputs, paddings, reduce_over_dims,
+            p.enable_cross_replica_sum_on_tpu)
 
         py_utils.UpdateBatchNormVars(self.vars.moving_mean, mean, self._decay)
         py_utils.UpdateBatchNormVars(self.vars.moving_variance, variance,

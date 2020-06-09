@@ -20,6 +20,7 @@ import math
 
 from absl.testing import parameterized
 import lingvo.compat as tf
+from lingvo.core import bn_layers
 from lingvo.core import cluster_factory
 from lingvo.core import gpipe
 from lingvo.core import layers
@@ -100,7 +101,8 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       in_padding1 = tf.zeros([2, 2, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 2, 8, 2]), dtype=tf.float32)
-      mean1, var1 = layers.BatchNormLayer._Moments(bn_in1, 1.0 - in_padding1)
+      mean1, var1 = bn_layers.ComputeMomentsWithPadding(
+          bn_in1, in_padding1, reduce_over_dims=[0, 1, 2])
       mean2, var2 = tf.nn.moments(bn_in1, [0, 1, 2])
 
       in_padding2 = tf.ones([2, 2, 8, 1], dtype=tf.float32)
@@ -108,7 +110,8 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
           np.random.normal(-0.3, 1.0, [2, 2, 8, 2]), dtype=tf.float32)
       in_padding3 = tf.concat([in_padding1, in_padding2], 1)
       bn_in3 = tf.concat([bn_in1, bn_in2], 1)
-      mean3, var3 = layers.BatchNormLayer._Moments(bn_in3, 1.0 - in_padding3)
+      mean3, var3 = bn_layers.ComputeMomentsWithPadding(
+          bn_in3, in_padding3, reduce_over_dims=[0, 1, 2])
       mean4, var4 = tf.nn.moments(bn_in3, [0, 1, 2])
 
       mean_diff = tf.reduce_sum(tf.square(mean3 - mean4))
@@ -176,7 +179,8 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       in_padding1 = tf.zeros([2, 8, 1, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 8, 4, 3]), dtype=tf.float32)
-      mean1, var1 = layers.BatchNormLayer._Moments(bn_in1, 1.0 - in_padding1)
+      mean1, var1 = bn_layers.ComputeMomentsWithPadding(
+          bn_in1, in_padding1, reduce_over_dims=[0, 1, 2])
       mean2, var2 = tf.nn.moments(bn_in1, [0, 1, 2])
 
       in_padding2 = tf.ones([2, 8, 1, 1], dtype=tf.float32)
@@ -184,7 +188,8 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
           np.random.normal(-0.3, 1.0, [2, 8, 4, 3]), dtype=tf.float32)
       in_padding3 = tf.concat([in_padding1, in_padding2], 1)
       bn_in3 = tf.concat([bn_in1, bn_in2], 1)
-      mean3, var3 = layers.BatchNormLayer._Moments(bn_in3, 1.0 - in_padding3)
+      mean3, var3 = bn_layers.ComputeMomentsWithPadding(
+          bn_in3, in_padding3, reduce_over_dims=[0, 1, 2])
       mean4, var4 = tf.nn.moments(bn_in3, [0, 1, 2])
 
       mean_diff = tf.reduce_sum(tf.square(mean3 - mean4))
