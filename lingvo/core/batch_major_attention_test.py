@@ -824,6 +824,13 @@ class LocalCausalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           'left_context': 4,
           'right_context': 2,
           'pos_emb_dim': 8,
+      }, {
+          'testcase_name': 'lite_pos_emb_left_and_right_context',
+          'block_size': 3,
+          'left_context': 4,
+          'right_context': 2,
+          'pos_emb_dim': 8,
+          'skip_term_b': True,
       })
   def testFPropAgainstReference(self,
                                 block_size,
@@ -833,6 +840,7 @@ class LocalCausalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
                                 num_heads=2,
                                 input_dim=4,
                                 hidden_dim=4,
+                                skip_term_b=False,
                                 use_additional_per_step_padding=False):
     tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
