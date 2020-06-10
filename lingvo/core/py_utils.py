@@ -681,6 +681,15 @@ def Transform(fn, *v):
   return tf.nest.map_structure(fn, *v)
 
 
+# TODO(laigd): replace this with call to tf.gradients() with
+# unconnected_gradients option set to ZERO, after change 314634870 is ready.
+def GradientsNoneAsZeros(xs, ys, dys, **kwargs):
+  """Take gradients and return the result with Nones replaced by zeros."""
+  dxs = tf.gradients(ys=ys, xs=xs, grad_ys=dys, **kwargs)
+  fn = lambda x, dx: tf.zeros_like(x) if dx is None else dx
+  return Transform(fn, xs, dxs)
+
+
 def IsCompatible(lhs, rhs):
   """Returns true if lhs and rhs are compatible."""
   try:

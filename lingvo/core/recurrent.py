@@ -265,20 +265,6 @@ def _Add(nmap_x, nmap_y):
   return py_utils.Transform(tf.add, nmap_x, nmap_y)
 
 
-def _ConvertNoneGradientToZeros(xs, dxs):
-  """Sanitize dxs so that None becomes zeros appropriately.
-
-  Args:
-    xs: A list of tensors.
-    dxs: A list of tensors. dxs[i] corresponds to xs[i]'s gradient.
-
-  Returns:
-    A `.NestedMap` same as dxs with None replaced by a zero tensor.
-  """
-  return py_utils.Transform(
-      lambda x, dx: tf.zeros_like(x) if dx is None else dx, xs, dxs)
-
-
 def _TransformDType(nmap):
   return nmap.Transform(lambda x: tf.cast(x, tf.int64)
                         if x.dtype == tf.int32 else x)
@@ -590,9 +576,7 @@ class _Recurrent(object):
       _AssertSameTensors(py_utils.GetExtraInputs(),
                          self._implicit_captures.Flatten())
 
-      captured = py_utils.Pack(self._implicit_captures, py_utils.GetExtraArgs())
-      return _ConvertNoneGradientToZeros([theta, state0, inputs, captured],
-                                         [dtheta, dstate0, dinputs, dcaptures])
+      return [dtheta, dstate0, dinputs, dcaptures]
 
     # Wraps cell_grad gradient function in a TF Function as a
     # for-loop's body for the Backward pass.
@@ -879,10 +863,8 @@ def _GetCellGrad(cell_fn,
       ys = py_utils.Flatten(state1)
       xs = py_utils.Flatten([theta, state0, inputs, captured])
       grad_ys = py_utils.Flatten(dstate1)
-      grads = tf.gradients(ys=ys, xs=xs, grad_ys=grad_ys)
-      return _ConvertNoneGradientToZeros(
-          [theta, state0, inputs, captured],
-          py_utils.Pack([theta, state0, inputs, captured], grads))
+      grads = py_utils.GradientsNoneAsZeros(ys=ys, xs=xs, dys=grad_ys)
+      return py_utils.Pack([theta, state0, inputs, captured], grads)
 
     cell_grad = CellGrad
 
@@ -1019,8 +1001,8 @@ def _WrapCellGradFnWithSymbolValues(cell_grad, cell_fn, symbol_to_tensor_map):
       # theta.Flatten().
       if '_symbol_values' not in dtheta:
         state1, _ = cell_fn(theta, state0, inputs)
-        dtheta['_symbol_values'] = tf.gradients(
-            xs=symbol_values, ys=state1.Flatten(), grad_ys=dstate1.Flatten())
+        dtheta['_symbol_values'] = py_utils.GradientsNoneAsZeros(
+            xs=symbol_values, ys=state1.Flatten(), dys=dstate1.Flatten())
     return dtheta, dstate0, dinputs, dcaptures
 
   return WrappedCellGradFn

@@ -1123,6 +1123,13 @@ class PyUtilsTest(test_utils.TestCase):
       y = Op(x)
       _ = self.evaluate(y)
 
+  def testGradientsNoneAsZeros(self):
+    x = tf.constant(0, dtype=tf.int32)
+    y = x + 1
+    dy = tf.constant(1, dtype=tf.int32)
+    dxs = py_utils.GradientsNoneAsZeros([x], [y], [dy])
+    self.assertNotIn(None, dxs)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 
