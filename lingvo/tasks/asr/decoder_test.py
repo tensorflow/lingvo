@@ -680,15 +680,20 @@ class DecoderTest(test_utils.TestCase):
     p = self._DecoderParams(
         vn_config=py_utils.VariationalNoiseParams(
             None, True, False, seed=12345))
+    p.label_smoothing = lingvo_layers.LocalizedLabelSmoother.Params()
+    p.label_smoothing.num_classes = p.softmax.num_classes
+
     vocab_size = 1024
     self.assertNotEqual(p.emb.vocab_size, vocab_size)
     self.assertNotEqual(p.softmax.num_classes, vocab_size)
     self.assertNotEqual(p.fusion.lm.vocab_size, vocab_size)
+    self.assertNotEqual(p.label_smoothing.num_classes, vocab_size)
     p = p.cls.UpdateTargetVocabSize(p, vocab_size)
     dec = p.Instantiate()
     self.assertEqual(vocab_size, dec.params.emb.vocab_size)
     self.assertEqual(vocab_size, dec.params.softmax.num_classes)
     self.assertEqual(vocab_size, p.fusion.lm.vocab_size)
+    self.assertEqual(vocab_size, p.label_smoothing.num_classes)
 
 
 if __name__ == '__main__':
