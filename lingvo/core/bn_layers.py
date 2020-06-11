@@ -145,11 +145,7 @@ class BatchNormLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
 
-    pc = py_utils.WeightParams(
-        shape=[p.dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+    pc = self._CreateTrainableVarCfg(p)
 
     with tf.variable_scope(p.name):
       if not p.use_moving_avg_in_training:
@@ -197,6 +193,13 @@ class BatchNormLayer(base_layer.BaseLayer):
           aggregation=tf.VariableAggregation.MEAN)
     self._epsilon = 0.001
     self._decay = p.decay
+
+  def _CreateTrainableVarCfg(self, params):
+    return py_utils.WeightParams(
+        shape=[params.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
 
   @property
   def epsilon(self):
@@ -300,6 +303,32 @@ class BatchNormLayer(base_layer.BaseLayer):
         gamma = theta.gamma
       return norm_mean, norm_variance, beta, gamma
 
+  def _ComputeBN(self, inputs, paddings, gamma, beta, norm_mean, norm_variance):
+    p = self.params
+    with tf.control_dependencies([
+        py_utils.assert_greater_equal(norm_variance,
+                                      tf.zeros_like(norm_variance)),
+        py_utils.assert_shape_match([tf.shape(inputs)[-1]],
+                                    tf.shape(norm_mean)),
+        py_utils.assert_shape_match([tf.shape(inputs)[-1]],
+                                    tf.shape(norm_variance)),
+    ]):
+      if p.use_fused_batch_norm_for_eval and self.do_eval:
+        bn_output, _, _ = nn.fused_batch_norm(
+            inputs,
+            gamma,
+            beta,
+            norm_mean,
+            norm_variance,
+            self._epsilon,
+            is_training=False)
+      else:
+        bn_output = tf.nn.batch_normalization(inputs, norm_mean, norm_variance,
+                                              beta, gamma, self._epsilon)
+      if p.set_padded_output_to_zero:
+        bn_output *= 1.0 - paddings
+    return bn_output
+
   def FProp(self, theta, inputs, paddings=None):
     """Apply batch normalization.
 
@@ -320,32 +349,9 @@ class BatchNormLayer(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
           theta, inputs, paddings)
-      with tf.control_dependencies([
-          py_utils.assert_greater_equal(norm_variance,
-                                        tf.zeros_like(norm_variance)),
-          py_utils.assert_shape_match([tf.shape(inputs)[-1]],
-                                      tf.shape(norm_mean)),
-          py_utils.assert_shape_match([tf.shape(inputs)[-1]],
-                                      tf.shape(norm_variance)),
-      ]):
-        if p.use_fused_batch_norm_for_eval and self.do_eval:
-          bn_output, _, _ = nn.fused_batch_norm(
-              inputs,
-              gamma,
-              beta,
-              norm_mean,
-              norm_variance,
-              self._epsilon,
-              is_training=False)
-        else:
-          bn_output = tf.nn.batch_normalization(inputs, norm_mean,
-                                                norm_variance, beta, gamma,
-                                                self._epsilon)
 
-        if p.set_padded_output_to_zero:
-          bn_output *= 1.0 - paddings
-
-      return bn_output
+      return self._ComputeBN(inputs, paddings, gamma, beta, norm_mean,
+                             norm_variance)
 
   @classmethod
   def FPropMeta(cls, p, inputs, padding=None):
@@ -353,6 +359,88 @@ class BatchNormLayer(base_layer.BaseLayer):
     return py_utils.NestedMap(
         flops=inputs.num_elements() * _BN_FLOPS_PER_ELEMENT,
         out_shapes=(inputs,))
+
+
+class DomainAwareBatchNormLayer(BatchNormLayer):
+  """Implements a domain-aware batch norm akin to ...
+
+  https://arxiv.org/pdf/1809.11096.pdf
+
+  Specifically, the moving stats are domain-agnostic, while {beta, gamma} are
+  domain-aware.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(DomainAwareBatchNormLayer, cls).Params()
+    p.Define('num_domains', None, 'Num of domains.')
+    p.use_moving_avg_in_training = False
+    p.use_fused_batch_norm_for_eval = False
+    p.add_stats_to_moving_average_variables = True
+    return p
+
+  def _CreateTrainableVarCfg(self, params):
+    return py_utils.WeightParams(
+        shape=[params.num_domains, params.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+  @base_layer.initializer
+  def __init__(self, params):
+    assert params.name
+    assert not params.use_moving_avg_in_training
+    assert not params.use_fused_batch_norm_for_eval
+    assert params.add_stats_to_moving_average_variables
+    super(DomainAwareBatchNormLayer, self).__init__(params)
+
+  def ComputeAndUpdateMoments(self, theta, inputs, paddings, domain_ids):
+    (norm_mean, norm_variance, beta,
+     gamma) = super(DomainAwareBatchNormLayer,
+                    self).ComputeAndUpdateMoments(theta, inputs, paddings)
+    # [batch, dim]
+    beta = tf.gather(beta, domain_ids)
+    # [batch, dim]
+    gamma = tf.gather(gamma, domain_ids)
+
+    # Extend to [batch, 1, ... 1, dim]
+    batch = py_utils.GetShape(inputs)[0]
+    to_shape = tf.concat(
+        [[batch],
+         tf.ones([py_utils.GetRank(inputs) - 2], tf.int32), [self.params.dim]],
+        axis=0)
+    beta = tf.reshape(beta, to_shape)
+    gamma = tf.reshape(gamma, to_shape)
+    return norm_mean, norm_variance, beta, gamma
+
+  def FProp(self, theta, inputs, paddings, domain_ids):
+    """Apply batch normalization.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      inputs: The inputs tensor.  Shaped [batch, ..., dim].
+      paddings: The paddings tensor.  Shaped [batch, ..., 1], with the same rank
+        as the input tensor.
+      domain_ids: The domain id int32 tensor. Shaped [batch].
+
+    Returns:
+      Output after applying batch normalization, with the same shape as
+      'inputs'.
+    """
+    p = self.params
+    with tf.name_scope(p.name):
+      norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
+          theta, inputs, paddings, domain_ids)
+      return self._ComputeBN(inputs, paddings, gamma, beta, norm_mean,
+                             norm_variance)
+
+  def GetCurrentMoments(self, theta):
+    raise NotImplementedError
+
+  @classmethod
+  def FPropMeta(cls, p, inputs, padding=None):
+    raise NotImplementedError
 
 
 class BatchNormLayerNoPadding(base_layer.BaseLayer):

@@ -24,8 +24,8 @@ import math
 import numbers
 import lingvo.compat as tf
 from lingvo.core import base_layer
-from lingvo.core import builder_layers
 from lingvo.core import bn_layers
+from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import constants
 from lingvo.core import conv_layers_with_time_padding
@@ -42,9 +42,11 @@ from six.moves import range
 from six.moves import zip
 import sympy
 
+# pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
+# pylint:enable=g-direct-tensorflow-import
 
 
 class DeconvLayer(base_layer.BaseLayer):

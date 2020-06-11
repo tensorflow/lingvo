@@ -33,8 +33,6 @@ import numpy as np
 from six.moves import range
 from six.moves import zip
 
-from tensorflow.python.framework import ops
-
 
 class ActivationsTest(test_utils.TestCase):
 
@@ -255,6 +253,78 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
         ])
         self.assertAllClose(
             np_in1 * 2. + 1., bn_out.eval(), atol=1e-5, rtol=1e-5)
+
+
+class DomainAwareBatchNormLayerTest(test_utils.TestCase,
+                                    parameterized.TestCase):
+
+  def testConstruction(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params.name = 'bn'
+      params.dim = 2
+      params.num_domains = 4
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      bn_layers.DomainAwareBatchNormLayer(params)
+      bn_vars = tf.get_collection('DomainAwareBatchNormLayer_vars')
+      bn_var_names = [x.name for x in bn_vars]
+      expected_var_names = [
+          'bn/beta/var:0', 'bn/gamma/var:0', 'bn/moving_mean/var:0',
+          'bn/moving_variance/var:0'
+      ]
+      self.assertEqual(expected_var_names, bn_var_names)
+      self.assertEqual(['bn/moving_mean/var:0', 'bn/moving_variance/var:0'],
+                       [x.name for x in tf.moving_average_variables()])
+
+  def testFPropSameDomain(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params.name = 'bn'
+      params.dim = 3
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.num_domains = 4
+
+      bn_layer = bn_layers.DomainAwareBatchNormLayer(params)
+      in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
+      bn_in1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+      domain_in1 = tf.zeros([2], tf.int32)
+
+      bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1, domain_in1)
+      sig1 = tf.reduce_sum(bn_out)
+      sig2 = tf.reduce_sum(bn_out * bn_out)
+      self.evaluate(tf.global_variables_initializer())
+      self.assertAllClose(0.0, sig1.eval(), atol=1e-5)
+      self.assertAllClose(47.8371887, sig2.eval())
+
+  def testFPropDifferenDomains(self):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params.name = 'bn'
+      params.dim = 3
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      params.num_domains = 4
+
+      bn_layer = bn_layers.DomainAwareBatchNormLayer(params)
+      in_padding1 = tf.zeros([4, 8, 1], dtype=tf.float32)
+      bn_in1 = tf.constant(
+          np.random.normal(0.1, 0.5, [4, 8, 3]), dtype=tf.float32)
+      domain_in1 = tf.constant([0, 1, 1, 2], tf.int32)
+
+      bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1, domain_in1)
+      sig1 = tf.reduce_sum(bn_out)
+      sig2 = tf.reduce_sum(bn_out * bn_out)
+      self.evaluate(tf.global_variables_initializer())
+
+      sig1_v, sig2_v = sess.run([sig1, sig2])
+      self.assertAllClose(0.0, sig1_v, atol=1e-5)
+      self.assertAllClose(95.6266, sig2_v)
 
 
 class GroupNormLayerTest(test_utils.TestCase):
@@ -1392,7 +1462,7 @@ class ConvLayerTest(test_utils.TestCase):
                              quantized=False,
                              dump_graphdef=False):
     self._ClearCachedSession()
-    ops.reset_default_graph()
+    tf.reset_default_graph()
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(398847392)
       np.random.seed(12345)
