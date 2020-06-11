@@ -124,8 +124,8 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
       PostProcessDecodeOut.
     """
     del model_outputs
+    p = self.params
     input_labels = input_batch.labels
-    input_lasers = input_batch.lasers
     input_metadata = input_batch.metadata
     source_ids = tf.strings.join([
         input_metadata.run_segment,
@@ -149,9 +149,10 @@ class WaymoOpenDatasetDecoder(base_decoder.BaseDecoder):
         'run_start_offset': input_metadata.run_start_offset,
         'pose': input_metadata.pose,
     })
-    laser_sample = self._SampleLaserForVisualization(
-        input_lasers.points_xyz, input_lasers.points_padding)
-    ret.update(laser_sample)
+    if p.draw_visualizations:
+      laser_sample = self._SampleLaserForVisualization(
+          input_batch.lasers.points_xyz, input_batch.lasers.points_padding)
+      ret.update(laser_sample)
     return ret
 
   def PostProcessDecodeOut(self, dec_out_dict, dec_metrics_dict):
