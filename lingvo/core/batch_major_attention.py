@@ -1857,8 +1857,7 @@ def UseRelativeAttentionInTransformerLayer(transformer_params,
   elif atten_type == ATTEN_RPE:
     rel_atten_tpl = MultiHeadedAttentionRPE.Params()
 
-  rel_atten_tpl = hyperparams.CopyParamsTo(
-      atten_tpl, rel_atten_tpl, skip=['cls'])
+  rel_atten_tpl = hyperparams.CopyFieldsTo(atten_tpl, rel_atten_tpl)
   rel_atten_tpl.rel_pos_emb_dim = rel_pos_emb_dim
 
   trans_params_copy.tr_self_atten_tpl.atten_tpl = rel_atten_tpl
@@ -1888,10 +1887,8 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
   else:
     raise ValueError('Unsupported attention params: %s' % attention_tpl.cls)
 
-  new_attention_tpl = hyperparams.CopyParamsTo(
-      attention_tpl,
-      new_attention_tpl,
-      skip=['cls', 'rel_pos_emb_dim', 'skip_term_b'])
+  new_attention_tpl = hyperparams.CopyFieldsTo(
+      attention_tpl, new_attention_tpl, skip=['rel_pos_emb_dim', 'skip_term_b'])
   trans_params_copy.tr_self_atten_tpl.atten_tpl = new_attention_tpl
   return trans_params_copy
 
