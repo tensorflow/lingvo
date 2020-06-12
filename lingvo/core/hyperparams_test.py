@@ -396,6 +396,7 @@ tuple : (2, 3)
 
     rebuilt_outer = _params.InstantiableParams.FromProto(outer.ToProto())
 
+    self.assertNotIn('cls', rebuilt_outer)
     self.assertEqual(outer.integer_val, rebuilt_outer.integer_val)
     self.assertEqual(outer.cls_type, rebuilt_outer.cls_type)
     self.assertNear(outer.inner.float_val, rebuilt_outer.inner.float_val, 1e-6)

@@ -596,6 +596,7 @@ class Params(object):
 
     return _ToParam(self)
 
+  # TODO(tonybruguier): Move to module-level function (cls is never used).
   @classmethod
   def FromProto(cls, param_pb):
     """Reads from a Hyperparams proto."""
@@ -659,7 +660,7 @@ class Params(object):
     def _FromParam(param_pb):
       """Deserializes Hyperparam proto."""
 
-      params = InstantiableParams()
+      params = InstantiableParams() if 'cls' in param_pb.items else Params()
       for k in param_pb.items:
         val = _FromParamValue(param_pb.items[k])
         if k == 'cls':
