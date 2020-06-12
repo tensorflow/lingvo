@@ -1357,6 +1357,8 @@ class _CollectionGetter(object):
 
 def SanitizeScopeKey(key):
   """Removes invalid symbols from name_scope keys."""
+  if key.startswith('_'):
+    key = key[1:]
   return key.replace('[', '_').replace(']', '')
 
 
@@ -2692,10 +2694,13 @@ def VariationalNoiseParams(scale,
   return p
 
 
+def DefaultVN():
+  return VariationalNoiseParams(None, False, False)
+
+
 # To disable VN of a layer, we use 1.0 in the first input parameter
 # of the following function because otherwise it is the same to DefaultVN()
-# configuration of base_layer, which will be updated by parent configuration in
-# CopyBaseParams()
+# which will be updated by parent configuration in CopyBaseParams()
 def DisableVN():
   return VariationalNoiseParams(1.0, False, False)
 

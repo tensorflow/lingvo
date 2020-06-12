@@ -15,7 +15,7 @@
 # ==============================================================================
 """Tests for base_model."""
 
-
+from absl.testing import flagsaver
 import lingvo.compat as tf
 from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
@@ -38,11 +38,27 @@ FLAGS = tf.flags.FLAGS
 _NUMPY_RANDOM_SEED = 9885784
 
 
+class TestTask(base_model.BaseTask):
+
+  @base_layer.initializer
+  def __init__(self, params):
+    super(TestTask, self).__init__(params)
+    p = self.params
+    with tf.variable_scope(p.name):
+      self.CreateVariable(
+          'a',
+          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+      self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
+
+
 class BaseTaskTest(test_utils.TestCase):
 
   @classmethod
   def TestParams(cls):
-    p = base_model.BaseTask.Params()
+    p = TestTask.Params()
     p.name = 'base_mdl'
     p.encoder = base_layer.BaseLayer.Params()
     p.encoder.name = 'encoder'
@@ -51,17 +67,12 @@ class BaseTaskTest(test_utils.TestCase):
     return p
 
   def testInit(self):
-    p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
-    _ = p.Instantiate()
+    _ = self.TestParams().Instantiate()
 
+  @flagsaver.flagsaver
   def testScaleGradients(self):
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     var_grads = py_utils.NestedMap(
         a=py_utils.VarGrad(var_a, tf.ones_like(var_a)))
@@ -77,14 +88,11 @@ class BaseTaskTest(test_utils.TestCase):
       self.assertTrue(
           tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
+  @flagsaver.flagsaver
   def testScaleGradientsInf(self):
     FLAGS.enable_check_numerics = False
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Infinite gradient.
     var_grads = py_utils.NestedMap(a=py_utils.VarGrad(var_a, tf.math.log(0.)))
@@ -99,14 +107,11 @@ class BaseTaskTest(test_utils.TestCase):
       self.assertTrue(
           tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
+  @flagsaver.flagsaver
   def testScaleGradientsNaN(self):
     FLAGS.enable_check_numerics = False
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(
@@ -122,15 +127,12 @@ class BaseTaskTest(test_utils.TestCase):
       self.assertTrue(
           tf.math.is_finite(scaled_grads_map.final_var_grads.a[1]).eval())
 
+  @flagsaver.flagsaver
   def testScaleGradientsCheckNumerics(self):
     """ScaleGradients when enable_check_numerics=True."""
     FLAGS.enable_check_numerics = True
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     # Make a NaN gradient.
     var_grads = py_utils.NestedMap(
@@ -147,30 +149,20 @@ class BaseTaskTest(test_utils.TestCase):
 
   def testScaleGradientsError(self):
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.train.clip_gradient_single_norm_to_value = 1.0
     p.train.clip_gradient_norm_to_value = 1.0
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
     var_a = task.theta.a
     var_grads = py_utils.NestedMap(
         a=py_utils.VarGrad(var_a, tf.ones_like(var_a)))
     self.assertRaises(ValueError, task.learners[0].ScaleGradients, var_grads)
 
+  @flagsaver.flagsaver
   def testScaleGradientsSingleTensorNorm(self):
     p = self.TestParams()
-    p.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.train.clip_gradient_single_norm_to_value = 1.0
     p.train.clip_gradient_norm_to_value = None
     task = p.Instantiate()
-    task.CreateVariable(
-        'a',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
-    task.CreateVariable(
-        'b',
-        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
 
     var_a = task.theta.a
     var_b = task.theta.b
@@ -322,8 +314,8 @@ class SingleTaskModelTest(test_utils.TestCase):
   def testInit(self):
     p = base_model.SingleTaskModel.Params()
     p.task = BaseTaskTest.TestParams()
-    p.task.train.learner = (learner.Learner.Params().Set(name='loss'))
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
+    p.task.train.learner = (learner.Learner.Params().Set(name='loss'))
     model = p.Instantiate()
     self.assertEqual(model.params.name, model.GetTask().params.name)
     self.assertEqual(model.params.task, model.GetTask().params)
@@ -339,12 +331,11 @@ class SingleTaskModelTest(test_utils.TestCase):
     p.task.train.ema_decay_moving_vars = False
     model = p.Instantiate()
     task = model._task
-    task.CreateChild('a', layers.BatchNormLayer.Params().Set(name='a', dim=1))
     task._train_op = tf.no_op()
     task.ApplyExponentialMovingAverage(model.ema)
-    with tf.variable_scope('', reuse=True):
-      beta = tf.get_variable('a/beta/var')
-      mean = tf.get_variable('a/moving_mean/var')
+    with tf.variable_scope('base_mdl', reuse=True):
+      beta = tf.get_variable('x/beta/var')
+      mean = tf.get_variable('x/moving_mean/var')
       self.assertIsNotNone(model.ema.average(beta))
       self.assertIsNone(model.ema.average(mean))
 
@@ -354,14 +345,14 @@ class SingleTaskModelTest(test_utils.TestCase):
     p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     p.task.train.ema_decay = 0.9
     p.task.train.ema_decay_moving_vars = True
+    p.task.input = base_input_generator.BaseSequenceInputGenerator.Params()
     model = p.Instantiate()
     task = model._task
-    task.CreateChild('a', layers.BatchNormLayer.Params().Set(name='a', dim=1))
     task._train_op = tf.no_op()
     task.ApplyExponentialMovingAverage(model.ema)
-    with tf.variable_scope('', reuse=True):
-      beta = tf.get_variable('a/beta/var')
-      mean = tf.get_variable('a/moving_mean/var')
+    with tf.variable_scope('base_mdl', reuse=True):
+      beta = tf.get_variable('x/beta/var')
+      mean = tf.get_variable('x/moving_mean/var')
       self.assertIsNotNone(model.ema.average(beta))
       self.assertIsNotNone(model.ema.average(mean))
 

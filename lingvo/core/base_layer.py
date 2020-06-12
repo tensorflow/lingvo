@@ -136,10 +136,6 @@ def initializer(func):  # pylint: disable=invalid-name
   return wrapper
 
 
-def DefaultVN():
-  return py_utils.VariationalNoiseParams(None, False, False)
-
-
 def RecursiveFindLayerParams(params):
   """Returns all params that define a layer."""
   if not isinstance(params, hyperparams.Params):
@@ -195,7 +191,8 @@ class BaseLayer(tf.Module):
     p.Define(
         'random_seed', None, 'Random seed for deterministic unittests. This '
         'is inherited by child layers if they do not set a random_seed.')
-    p.Define('vn', DefaultVN(), 'How variational noise should be applied.')
+    p.Define('vn', py_utils.DefaultVN(),
+             'How variational noise should be applied.')
     p.Define(
         'params_init', py_utils.DefaultParamInit(),
         'How model weights should be initialized. Not to be confused with '
@@ -239,7 +236,7 @@ class BaseLayer(tf.Module):
       to_params.skip_lp_regularization = from_params.skip_lp_regularization
 
     # Only copy from base when vn config is using the default setting.
-    if to_params.vn == DefaultVN():
+    if to_params.vn == py_utils.DefaultVN():
       to_params.vn = from_params.vn.Copy()
 
     # TODO(rpang): derive to_params.params_init.seed from
@@ -280,10 +277,11 @@ class BaseLayer(tf.Module):
     # debugged more and understood better.
     self._setattr_tracking = False
 
-    self._parent = (
-        _LAYER_STACK.layer_stack[-2]
-        if len(_LAYER_STACK.layer_stack) > 1 else None)
-    assert self._parent is not self
+    self._parent = None
+    for parent in reversed(_LAYER_STACK.layer_stack):
+      if parent is not self:
+        self._parent = parent
+        break
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
                           self.__class__.__name__, str(params))
@@ -307,7 +305,7 @@ class BaseLayer(tf.Module):
     # Mapping from variable names to its symbolic shape.
     # self._var_symbolic_shape_map['var_name'] will be a tuple of integers or
     # symbolic expressions, one for each dimension of the variable.
-    self._var_symbolic_shape_map = dict()
+    self._var_symbolic_shape_map = {}
 
     self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
 
@@ -422,9 +420,9 @@ class BaseLayer(tf.Module):
   def __getattr__(self, name):
     """Returns the child layer of the given name."""
     if name == '_private_children':
-      raise AttributeError(
-          'pre-mature access to __getattr__ before _private_children '
-          'is created.')
+      # Raising AttributeError without custom message triggers normal python
+      # handling of __getattr__ AttributeError.
+      raise AttributeError()
     if name in self._private_children:
       return self._private_children[name]
     elif (hasattr(type(self), name) and
@@ -653,8 +651,8 @@ class BaseLayer(tf.Module):
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
     self._var_symbolic_shape_map[name] = var_params.shape
-    value, var = py_utils.CreateVariable(
-        name, var_params, default_seed=self.params.random_seed, **kwargs)
+    kwargs.setdefault('default_seed', self.params.random_seed)
+    value, var = py_utils.CreateVariable(name, var_params, **kwargs)
     self._private_vars[name] = var
     if theta_fn is not None:
       value = theta_fn(value)

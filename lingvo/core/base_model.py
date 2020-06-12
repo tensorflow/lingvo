@@ -21,6 +21,7 @@ from __future__ import print_function
 
 import collections
 import re
+
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
@@ -315,10 +316,11 @@ class BaseTask(base_layer.BaseLayer):
     if tp:
       self._SetLearnerFromLegacyParams(tp)
       if tp.learner is not None:
-        if isinstance(tp.learner, (list, tuple)):
-          self.CreateChildren('learners', tp.learner)
-        else:
-          self.CreateChildren('learners', [tp.learner])
+        with tf.variable_scope(p.name):
+          if isinstance(tp.learner, (list, tuple)):
+            self.CreateChildren('learners', tp.learner)
+          else:
+            self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
 
   def _SetLearnerFromLegacyParams(self, tp):
@@ -1095,10 +1097,10 @@ class BaseModel(base_layer.BaseLayer):
   def ConstructFPropBPropGraph(self):
     raise NotImplementedError('Abstract method')
 
-  def ConstructPostTrainingLoop(self):
+  def ConstructFPropGraph(self):
     raise NotImplementedError('Abstract method')
 
-  def ConstructFPropGraph(self):
+  def ConstructPostTrainingLoop(self):
     raise NotImplementedError('Abstract method')
 
   @property
@@ -1141,10 +1143,6 @@ class SingleTaskBase(BaseModel):
   Subclasses must create a Task in self._task by the end of __init__.
   """
 
-  @classmethod
-  def Params(cls):
-    return super(SingleTaskBase, cls).Params()
-
   @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, SingleTaskBase)
@@ -1168,11 +1166,11 @@ class SingleTaskBase(BaseModel):
     self._task.FPropDefaultTheta()
     self._task.BProp()
 
-  def ConstructPostTrainingLoop(self):
-    self._task.PostTrainingLoop()
-
   def ConstructFPropGraph(self):
     self._task.FPropDefaultTheta()
+
+  def ConstructPostTrainingLoop(self):
+    self._task.PostTrainingLoop()
 
 
 class SingleTaskModel(SingleTaskBase):
@@ -1198,7 +1196,8 @@ class SingleTaskModel(SingleTaskBase):
       tp.enqueue_max_steps = p.task.train.enqueue_max_steps
       tp.save_interval_seconds = p.task.train.save_interval_seconds
       tp.save_max_to_keep = p.task.train.save_max_to_keep
-      tp.save_keep_checkpoint_every_n_hours = p.task.train.save_keep_checkpoint_every_n_hours
+      tp.save_keep_checkpoint_every_n_hours = (
+          p.task.train.save_keep_checkpoint_every_n_hours)
       tp.summary_interval_steps = p.task.train.summary_interval_steps
 
     return p
@@ -1221,9 +1220,8 @@ class SingleTaskModel(SingleTaskBase):
 
     super(SingleTaskModel, self).__init__(p)
 
-    p = self.params
     with py_utils.GlobalStepContext(self.global_step):
-      self.CreateChild('_task', p.task)
+      self.CreateChild('_task', self.params.task)
 
 
 class MultiTaskSubModel(SingleTaskBase):
@@ -1249,7 +1247,7 @@ class MultiTaskSubModel(SingleTaskBase):
     p = self.params
     with py_utils.GlobalStepContext(self.global_step):
       self.CreateChild('_model', p.model_params)
-      self._task = self._model.children.Get(p.task_name)
+    self._task = self._model.children.Get(p.task_name)
 
 
 class MultiTaskModel(BaseModel):

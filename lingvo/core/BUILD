@@ -317,6 +317,7 @@ py_test(
         ":py_utils",
         ":task_scheduler",
         ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
         # Implicit six dependency.

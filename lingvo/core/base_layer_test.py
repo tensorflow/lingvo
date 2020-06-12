@@ -299,11 +299,6 @@ class BaseLayerTest(test_utils.TestCase):
         base_layer.IsLayerParams(
             hyperparams.InstantiableParams(base_layer.Accumulator)))
 
-  def testDefaultVnParams(self):
-    default_vn = base_layer.DefaultVN()
-    disable_vn = py_utils.DisableVN()
-    self.assertNotEqual(default_vn, disable_vn)
-
 
 if __name__ == '__main__':
   tf.test.main()

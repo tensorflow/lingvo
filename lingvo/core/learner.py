@@ -107,9 +107,7 @@ class Learner(base_layer.BaseLayer):
     self._var_grads = None
     self._eval_metrics = {}
     if p.grad_norm_tracker:
-      # Use parent's name for backwards compatibility.
-      with tf.variable_scope(self.parent.params.name):
-        self.CreateChild('grad_norm_tracker', p.grad_norm_tracker)
+      self.CreateChild('grad_norm_tracker', p.grad_norm_tracker)
     self.CreateChild('lr_schedule', p.lr_schedule)
     self.CreateChild('optimizer', p.optimizer)
 

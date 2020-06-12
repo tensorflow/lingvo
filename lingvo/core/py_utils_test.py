@@ -1130,6 +1130,11 @@ class PyUtilsTest(test_utils.TestCase):
     dxs = py_utils.GradientsNoneAsZeros([x], [y], [dy])
     self.assertNotIn(None, dxs)
 
+  def testDefaultVnParams(self):
+    default_vn = py_utils.DefaultVN()
+    disable_vn = py_utils.DisableVN()
+    self.assertNotEqual(default_vn, disable_vn)
+
 
 class DeterministicDropoutTest(test_utils.TestCase):
 

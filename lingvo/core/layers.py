@@ -1995,11 +1995,8 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     if p.max_sequence_length is not None and p.max_sequence_length > 0:
       assert p.combiner is None
 
-    cluster = self.cluster
-    num_hosts = p.num_tpu_hosts
-
-    self._ids_per_shard = int(math.ceil(float(p.vocab_size) / num_hosts))
-    self._padded_vocab_size = self._ids_per_shard * num_hosts
+    self._ids_per_shard = int(math.ceil(float(p.vocab_size) / p.num_tpu_hosts))
+    self._padded_vocab_size = self._ids_per_shard * p.num_tpu_hosts
     self._input_keys = p.input_keys
 
     self._max_sequence_length = 0
@@ -2026,12 +2023,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self._retrieve_op_list = []
 
     with tf.variable_scope(p.name):
-      for i in range(num_hosts):
+      for i in range(p.num_tpu_hosts):
         if self.do_eval:
           device_name = None
         else:
           device_name = '{}/replica:0/task:{}/device:CPU:0'.format(
-              cluster.params.worker.name, i)
+              self.cluster.params.worker.name, i)
 
         with tf.device(device_name), py_utils.outside_all_rewrites():
           _, vi_var = py_utils.CreateVariable('var_%d' % i, w_pc)
@@ -2051,7 +2048,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
                     parameters=vi_var,
                     accumulators=accumulator_var,
                     table_name=self._table_name,
-                    num_shards=num_hosts,
+                    num_shards=p.num_tpu_hosts,
                     shard_id=i))
             self._load_op_list.append(load_parameters_op)
 
@@ -2059,7 +2056,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
                 tpu_embedding_lib.tpu_ops
                 .retrieve_tpu_embedding_adagrad_parameters(
                     table_name=self._table_name,
-                    num_shards=num_hosts,
+                    num_shards=p.num_tpu_hosts,
                     shard_id=i))
             retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
                 tf.assign(vi_var, retrieved_table),
@@ -2185,8 +2182,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     num_tpu_hosts = p.tables[0].num_tpu_hosts
     assert np.all([t.num_tpu_hosts == num_tpu_hosts for t in p.tables])
 
-    cluster = self.cluster
-
     self.CreateChildren('tables', p.tables)
     load_op_list = []
     retrieve_op_list = []
@@ -2196,7 +2191,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     self._sequence_features = {}
 
     if py_utils.use_tpu():
-      num_cores = cluster.params.worker.tpus_per_replica
+      num_cores = self.cluster.params.worker.tpus_per_replica
       global_batch_size = (
           self.params.batch_size * self.cluster.num_splits_per_client)
       table_to_config_dict = {}
@@ -2216,7 +2211,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
       device_config = tpu_embedding_lib.DeviceConfig(
           num_cores=num_cores,
           num_hosts=num_tpu_hosts,
-          job_name=cluster.params.worker.name)
+          job_name=self.cluster.params.worker.name)
       self._tpu_embedding = tpu_embedding_lib.TPUEmbedding(
           table_to_config_dict,
           feature_to_config_dict,

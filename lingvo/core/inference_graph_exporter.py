@@ -408,6 +408,8 @@ class InferenceGraphExporter(object):
         with py_utils.GlobalStepContext(global_step):
           try:
             mdl = model_cfg.Instantiate()
+            model_task = mdl.GetTask(model_task_name)
+
             variables_to_restore = (
                 _MakeVariableDictionary(tf.global_variables()) if not mdl.ema
                 else mdl.ema.variables_to_restore(mdl.variables_for_ema))
@@ -425,8 +427,6 @@ class InferenceGraphExporter(object):
                 tf.global_variables(), name='init_all_variables')
             if IsTpu(device_options) and device_options.gen_init_op:
               tf.group(tf.tpu.initialize_system(), name='tpu_init_op')
-
-            model_task = mdl.GetTask(model_task_name)
 
             inference_graph_proto = inference_graph_pb2.InferenceGraph()
             subgraphs_proto = model_task.Inference()
