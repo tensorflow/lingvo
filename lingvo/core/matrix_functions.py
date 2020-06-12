@@ -139,7 +139,7 @@ def inlined_matrix_inverse_pth_root(mat_g,
   def _iter_condition(i, unused_mat_m, unused_mat_h, unused_old_mat_h, error,
                       run_step):
     return tf.math.logical_and(
-        tf.math.logical_and(i < iter_count, error > error_tolerance), run_step)
+        i < iter_count, tf.math.logical_or(error > error_tolerance, run_step))
 
   def _iter_body(i, mat_m, mat_h, unused_old_mat_h, error, unused_run_step):
     mat_m_i = (1 - alpha) * identity + alpha * mat_m
