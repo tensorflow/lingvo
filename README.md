@@ -53,7 +53,9 @@ Details for older releases are unavailable.
 
 #### HEAD
 
-No details are currently available.
+*   **General**
+    *   NestedMap Flatten/Pack/Transform/Filter etc now expand descendent dicts
+        as well.
 
 <details><summary>
 <b>Older releases</b>

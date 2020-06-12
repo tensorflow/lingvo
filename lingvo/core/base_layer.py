@@ -19,6 +19,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import itertools
 import re
 import threading
 import lingvo.compat as tf
@@ -691,8 +692,8 @@ class BaseLayer(tf.Module):
     child = p.Instantiate()
     self._private_children[name] = child
 
-  def CreateChildren(self, name, params_list, child_scopes=None):
-    """Create a list of sub layers.
+  def CreateChildren(self, name, params):
+    """Create a list or dict of sub layers.
 
     The created sub layer list can be accessed by `name`. E.g.::
 
@@ -705,46 +706,26 @@ class BaseLayer(tf.Module):
         self.children.foo[10].Fprop...
 
     Args:
-      name: The name for the sub layers, which is used as the key
-        into vars/theta.
-      params_list: `Hyperparams` objects to instantiate a list of layers.
-      child_scopes: If not none, a variable_scope to set for each child.
+      name: The name for the sub layers, which is used as the key into
+        vars/theta.
+      params: a list or dict of `Hyperparams` objects to create.
     """
     self._CheckName(name)
 
-    def CreateChildrenHelper(params_list, child_scopes):
-      """Helper to create children recursively."""
-      if child_scopes and len(child_scopes) != len(params_list):
-        raise ValueError('child_scopes must be same structure as params_list.')
-      children = []
-      for i, p in enumerate(params_list):
-        if isinstance(p, list):
-          children.append(
-              CreateChildrenHelper(p,
-                                   child_scopes[i] if child_scopes else None))
-        else:
-          p = self.CopyBaseParams(self.params, p.Copy())
-          if not p.name:
-            p.name = '%s_%d' % (name, i)
-          if child_scopes:
-            with tf.variable_scope(child_scopes[i]):
-              children.append(p.Instantiate())
-          else:
-            children.append(p.Instantiate())
-      return children
+    uid = itertools.count()
 
-    self._private_children[name] = CreateChildrenHelper(params_list,
-                                                        child_scopes)
+    def Instantiate(p):
+      p = self.CopyBaseParams(self.params, p.Copy())
+      if not p.name:
+        p.name = '%s_%d' % (name, next(uid))
+      return p.Instantiate()
 
-  def AddChild(self, name, child):
-    """Add an existing layer as a sublayer."""
-    assert isinstance(child, BaseLayer)
-    self._CheckName(name)
-    self._private_children[name] = child
+    self._private_children[name] = py_utils.NestedMap(
+        sub=params).Transform(Instantiate).sub
 
-  def AddChildren(self, name, children):
-    """Add existing layers as sublayers."""
-    for child in children:
+  def AddChild(self, name, children):
+    """Add existing layer or layers as sublayer."""
+    for child in py_utils.Flatten(children):
       assert isinstance(child, BaseLayer)
     self._CheckName(name)
     self._private_children[name] = children
@@ -766,18 +747,7 @@ class BaseLayer(tf.Module):
 
   def _VerifyChildren(self):
     """Verify all children created by this layer are via `CreateChild(ren)`."""
-
-    def FindCreatedChildren(parents):
-      created_children = []
-      for v in parents:
-        if isinstance(v, (tuple, list)):
-          created_children.extend(FindCreatedChildren(v))
-        else:
-          created_children.append(v)
-      return created_children
-
-    created_children = FindCreatedChildren(
-        list(self._private_children.values()))
+    created_children = self._private_children.Flatten()
     for v in self._children_list:
       assert v in created_children, (
           '%s is not created by BaseLayer.CreateChild(ren) in %r.' %

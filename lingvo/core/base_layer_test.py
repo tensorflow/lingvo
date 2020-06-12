@@ -92,13 +92,28 @@ class BaseLayerTest(test_utils.TestCase):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
     layer = layer_p.Instantiate()
-    layer.CreateChildren('a', [layer_p, [layer_p, layer_p], layer_p])
+    layer.CreateChildren('a', [
+        layer_p,
+        [layer_p, layer_p],
+        {
+            'b': layer_p,
+            'c': {
+                'd': [layer_p, layer_p]
+            }
+        },
+    ])
     self.assertEqual(len(layer.a), 3)
     self.assertEqual(len(layer.a[1]), 2)
+    self.assertEqual(len(layer.a[2]), 2)
+    self.assertEqual(len(layer.a[2]['c']['d']), 2)
     self.assertEqual(len(layer.vars.a), 3)
     self.assertEqual(len(layer.vars.a[1]), 2)
+    self.assertEqual(len(layer.vars.a[2]), 2)
+    self.assertEqual(len(layer.vars.a[2]['c']['d']), 2)
     self.assertEqual(len(layer.theta.a), 3)
     self.assertEqual(len(layer.theta.a[1]), 2)
+    self.assertEqual(len(layer.theta.a[2]), 2)
+    self.assertEqual(len(layer.theta.a[2]['c']['d']), 2)
 
   def testCreateVariable(self):
     layer_p = TestLayer.Params().Set(name='test')
