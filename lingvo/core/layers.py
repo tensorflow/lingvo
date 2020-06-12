@@ -1898,32 +1898,31 @@ class EmbeddingLayer(base_layer.BaseLayer):
 
     # EmbeddingLayer handles vars/theta differently from other layers
     # because when embedding shards are placed on ps, it's more
-    # efficiently to do embedding looups on ps and sends the result
+    # efficiently to do embedding lookups on ps and sends the result
     # back to the worker.
-    self._vars = []
-    self._emb_shards = []
+    emb_vars = []
+    emb_shards = []
     with tf.variable_scope(p.name):
       for i in range(actual_shards):
-        vi, vi_var = py_utils.CreateVariable('var_%d' % i, w_pc)
-        self._vars.append(vi_var)
-        if p.on_ps:
-          v = vi_var
-        else:
-          v = tf.identity(vi)
+        var_name = 'var_%d' % i
+        # TODO(b/158490758): remove default_seed=None setting.
+        self.CreateVariable(var_name, w_pc, default_seed=None)
+        emb_vars.append(self.vars[var_name])
+        # NOTE: self.theta[var_name] has transformations such as variational
+        # noise applied via theta_fn in self.CreateVariable. For embedding layer
+        # we apply variational noise explicitly in EmbLookup, so we do not use
+        # self.theta[var_name] here.
+        v = self.vars[var_name]
+        if not p.on_ps:
+          v = tf.identity(v)
         if p.fprop_dtype is not None and p.fprop_dtype != p.dtype:
           v = tf.cast(v, p.fprop_dtype)
-        self._emb_shards.append(v)
-
-    self._vars_map = py_utils.NestedMap(wm=self._vars)
-    self._theta_map = py_utils.NestedMap(wm=self._emb_shards)
-
-  @property
-  def vars(self):
-    return self._vars_map
-
-  @property
-  def theta(self):
-    return self._theta_map
+        emb_shards.append(v)
+        # Remove from _private_vars / _private_thetas to be added later as wm.
+        del self._private_vars[var_name]
+        del self._private_theta[var_name]
+    self._private_vars['wm'] = emb_vars
+    self._private_theta['wm'] = emb_shards
 
   def EmbLookupDefaultTheta(self, ids):
     return self.EmbLookup(self.theta, ids)
@@ -2018,7 +2017,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
 
-    self._embedding_table_var = []
+    embedding_table_vars = []
     self._load_op_list = []
     self._retrieve_op_list = []
 
@@ -2031,21 +2030,26 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
               self.cluster.params.worker.name, i)
 
         with tf.device(device_name), py_utils.outside_all_rewrites():
-          _, vi_var = py_utils.CreateVariable('var_%d' % i, w_pc)
-          self._embedding_table_var.append(vi_var)
+          var_name = 'var_%d' % i
+          self.CreateVariable(var_name, w_pc)
+          embedding_var = self.vars[var_name]
+          embedding_table_vars.append(embedding_var)
+          # Remove from _private_vars / _private_thetas to be added later as wm.
+          del self._private_vars[var_name]
+          del self._private_theta[var_name]
 
           # Only trainer and controller needs the slot variables.
           if self.do_eval:
             continue
-          _, accumulator_var = py_utils.CreateVariable(
-              'var_%d/Adagrad' % i, w_ada, trainable=False)
+          self.CreateVariable('%s/Adagrad' % var_name, w_ada, trainable=False)
+          accumulator_var = self.vars['%s/Adagrad' % var_name]
 
           # Only the Trainer needs these ops.
           if py_utils.use_tpu():
             tf.logging.info('creating load and retrieve ops.')
             load_parameters_op = (
                 tpu_embedding_lib.tpu_ops.load_tpu_embedding_adagrad_parameters(
-                    parameters=vi_var,
+                    parameters=embedding_var,
                     accumulators=accumulator_var,
                     table_name=self._table_name,
                     num_shards=p.num_tpu_hosts,
@@ -2059,14 +2063,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
                     num_shards=p.num_tpu_hosts,
                     shard_id=i))
             retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
-                tf.assign(vi_var, retrieved_table),
+                tf.assign(embedding_var, retrieved_table),
                 tf.assign(accumulator_var, retrieved_accumulator))
             self._retrieve_op_list.append(retrieve_parameters_op)
 
-    self._private_vars['wm'] = self._embedding_table_var
-    self._private_theta['wm'] = [
-        tf.identity(v) for v in self._embedding_table_var
-    ]
+    self._private_vars['wm'] = embedding_table_vars
+    self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
 
   @property
   def table_config(self):
@@ -4131,14 +4133,10 @@ class GradNormTracker(base_layer.BaseLayer):
           init=py_utils.WeightInit.Constant(0.0),
           dtype=tf.float32,
           collections=[self.__class__.__name__ + '_vars'])
-      _, self._log_mean = py_utils.CreateVariable(
-          'log_mean', pc, trainable=False)
-      _, self._log_mean_squared = py_utils.CreateVariable(
-          'log_mean_squared', pc, trainable=False)
-      _, self._total_weight = py_utils.CreateVariable(
-          'total_weight', pc, trainable=False)
-      _, self._total_rejections = py_utils.CreateVariable(
-          'total_rejections', pc, trainable=False)
+      self.CreateVariable('log_mean', pc, trainable=False)
+      self.CreateVariable('log_mean_squared', pc, trainable=False)
+      self.CreateVariable('total_weight', pc, trainable=False)
+      self.CreateVariable('total_rejections', pc, trainable=False)
       self._decay = p.decay
 
   def FProp(self, theta, grad_norm, has_nan=None):
@@ -4162,14 +4160,11 @@ class GradNormTracker(base_layer.BaseLayer):
     with tf.name_scope(p.name):
       grad_norm = tf.maximum(grad_norm, p.grad_norm_lower_cap)
 
-      total_weight = self._total_weight
-      log_mean = self._log_mean
-      log_mean_squared = self._log_mean_squared
-
       # Exponentially decayed moving avg of log(grad_norm) mean.
-      mean = log_mean / tf.maximum(total_weight, 1e-6)
+      mean = theta.log_mean / tf.maximum(theta.total_weight, 1e-6)
       # Exponentially decayed moving avg of log(grad_norm) variance.
-      var = (log_mean_squared / tf.maximum(total_weight, 1e-6)) - mean * mean
+      var = ((theta.log_mean_squared / tf.maximum(theta.total_weight, 1e-6)) -
+             mean * mean)
       std = tf.sqrt(tf.maximum(var, 1e-6))
 
       summary_utils.scalar('log_grad_norm_mean', mean)
@@ -4178,10 +4173,10 @@ class GradNormTracker(base_layer.BaseLayer):
                            tf.exp(std * p.clip_threshold))
       summary_utils.scalar('clip_threshold',
                            tf.exp(mean + std * p.clip_threshold) - 1.0)
-      summary_utils.scalar('total_rejections', self._total_rejections)
+      summary_utils.scalar('total_rejections', theta.total_rejections)
 
       log_grad_norm = tf.math.log(grad_norm + 1.0)
-      log_grad_norm_cap = mean + std * p.clip_threshold
+      log_grad_norm_cap = tf.cast(mean + std * p.clip_threshold, tf.float32)
       log_grad_norm_cap_min = tf.math.log(p.grad_norm_clip_cap_min + 1.0)
       log_grad_norm_cap = tf.maximum(log_grad_norm_cap, log_grad_norm_cap_min)
 
@@ -4196,19 +4191,20 @@ class GradNormTracker(base_layer.BaseLayer):
       # We trigger when total_weight is at least half of max weight or the
       # current batch contains NaNs.
       trigger = tf.math.logical_and(log_grad_norm > log_grad_norm_cap,
-                                    total_weight > 0.75)
+                                    theta.total_weight > 0.75)
       if has_nan is not None:
         trigger = tf.math.logical_or(trigger, has_nan)
 
       log_grad_norm_capped = tf.minimum(log_grad_norm, log_grad_norm_cap)
 
       update_moving_avg = tf.group(
-          UpdateExpMovingAvg(log_mean, log_grad_norm_capped, has_nan),
-          UpdateExpMovingAvg(log_mean_squared,
+          UpdateExpMovingAvg(self.vars.log_mean, log_grad_norm_capped, has_nan),
+          UpdateExpMovingAvg(self.vars.log_mean_squared,
                              log_grad_norm_capped * log_grad_norm_capped,
                              has_nan),
-          UpdateExpMovingAvg(total_weight, tf.constant(1.0), has_nan),
-          tf.assign_add(self._total_rejections, tf.cast(trigger, tf.float32)))
+          UpdateExpMovingAvg(self.vars.total_weight, tf.constant(1.0), has_nan),
+          tf.assign_add(self.vars.total_rejections,
+                        tf.cast(trigger, tf.float32)))
 
       return py_utils.with_dependencies([update_moving_avg],
                                         1.0 - tf.cast(trigger, tf.float32))

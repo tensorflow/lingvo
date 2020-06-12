@@ -788,12 +788,12 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     p = self.params
     assert p.name
     with tf.variable_scope(p.name):
-      _, self._step_counter = py_utils.CreateVariable(
+      self.CreateVariable(
           name='lstm_step_counter',
-          params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
-                                       tf.int64),
+          var_params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                           tf.int64),
           trainable=False)
-      vname = self._step_counter.name
+      vname = self.vars.lstm_step_counter.name
       self._prng_seed = tf.constant(
           py_utils.GenerateSeedFromName(vname), dtype=tf.int64)
       if p.random_seed:
@@ -810,7 +810,7 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
       zero_c = self.QTensor('zero_c', zero_c)
 
     # The first random seed changes for different layers and training steps.
-    random_seed1 = self._prng_seed + self._step_counter
+    random_seed1 = self._prng_seed + theta.lstm_step_counter
     # The second random seed changes for different unroll time steps.
     random_seed2 = tf.constant(0, dtype=tf.int64)
     random_seeds = tf.stack([random_seed1, random_seed2])
@@ -870,8 +870,8 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     """Update the global_step value."""
     p = self.params
     with tf.name_scope(p.name):
-      summary_utils.scalar('step_counter', self._step_counter)
-    return self._step_counter.assign(tf.cast(global_step, tf.int64))
+      summary_utils.scalar('step_counter', self.vars.lstm_step_counter)
+    return self.vars.lstm_step_counter.assign(tf.cast(global_step, tf.int64))
 
 
 class QuantizedLSTMCell(RNNCell):
