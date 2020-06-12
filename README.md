@@ -1,11 +1,67 @@
 # Lingvo
 
+[![PyPI](https://badge.fury.io/py/lingvo.svg)](https://badge.fury.io/py/lingvo)
+[![Python](https://img.shields.io/pypi/pyversions/lingvo)](https://badge.fury.io/py/tensorflow)
+
+[![Documentation](https://img.shields.io/badge/api-reference-blue.svg)](https://tensorflow.github.io/lingvo)
+
+[![License](https://img.shields.io/github/license/tensorflow/lingvo)](LICENSE)
+
 ## What is it?
 
 Lingvo is a framework for building neural networks in Tensorflow, particularly
 sequence models.
 
 A list of publications using Lingvo can be found [here](PUBLICATIONS.md).
+
+## Table of Contents
+
+*   [Releases](#releases)
+    *   [Major breaking changes](#major-breaking-changes)
+*   [Quick start](#quick-start)
+    *   [Installation](#installation)
+    *   [Running the MNIST image model](#running-the-mnist-image-model)
+    *   [Running the machine translation model](#running-the-machine-translation-model)
+    *   [Running the 3d object detection model](#running-the-3d-object-detection-model)
+*   [Models](#models)
+    *   [Automatic Speech Recognition](#automatic-speech-recognition)
+    *   [Car](#car)
+    *   [Image](#image)
+    *   [Language Modelling](#language-modelling)
+    *   [Machine Translation](#machine-translation)
+*   [References](#references)
+*   [License](#license)
+
+## Releases
+
+PyPI Version | Commit
+------------ | ----------------------------------------
+0.7.2        | b05642fe386ee79e0d88aa083565c9a93428519e
+
+<details><summary>
+<b>Older releases</b>
+</summary><p>
+
+PyPI Version | Commit
+------------ | ------
+
+Details for older releases are unavailable.
+
+</p></details>
+
+### Major breaking changes
+
+#### HEAD
+
+No details are currently available.
+
+<details><summary>
+<b>Older releases</b>
+</summary><p>
+
+Details for older releases are available.
+
+</p></details>
 
 ## Quick start
 
@@ -25,8 +81,8 @@ pull requests, you should avoid using pip and clone the repository instead.
 
 **pip:**
 
-The [Lingvo pip package](https://pypi.org/project/lingvo) (available for python
-3.6, 3.7, and 3.8) can be installed with just `pip3 install lingvo`.
+The [Lingvo pip package](https://pypi.org/project/lingvo) can be installed with
+`pip3 install lingvo`.
 
 See the
 [codelab](https://colab.research.google.com/github/tensorflow/lingvo/blob/master/codelabs/introduction.ipynb)
@@ -155,7 +211,12 @@ To run a more elaborate model, you'll need a cluster with GPUs. Please refer to
 [`third_party/py/lingvo/tasks/mt/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/mt/README.md)
 for more information.
 
-## Current models
+### Running the 3d object detection model
+
+To run the StarNet model using CloudTPUs on GCP, please refer to
+[`third_party/py/lingvo/tasks/car/README.md`](https://github.com/tensorflow/lingvo/blob/master/lingvo/tasks/car/README.md).
+
+## Models
 
 ### Automatic Speech Recogition
 
@@ -233,3 +294,7 @@ Lingvo.
     primaryClass={cs.LG}
 }
 ```
+
+## License
+
+[Apache License 2.0](LICENSE)
