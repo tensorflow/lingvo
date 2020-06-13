@@ -56,6 +56,10 @@ Details for older releases are unavailable.
 *   **General**
     *   NestedMap Flatten/Pack/Transform/Filter etc now expand descendent dicts
         as well.
+    *   Subclasses of BaseLayer extending from `abc.ABCMeta` should now extend
+        `base_layer.ABCLayerMeta` instead.
+    *   Trying to call self.CreateChild outside of `__init__` now raises an
+        error.
 
 <details><summary>
 <b>Older releases</b>

@@ -92,6 +92,7 @@ class BaseLayerTest(test_utils.TestCase):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
     layer = layer_p.Instantiate()
+    layer._disable_create_child = False  # pylint: disable=protected-access
     layer.CreateChildren('a', [
         layer_p,
         [layer_p, layer_p],
@@ -137,13 +138,19 @@ class BaseLayerTest(test_utils.TestCase):
   def testGetDescendant(self):
     q = base_layer.BaseLayer.Params()
     q.name = 'test'
+    # pylint: disable=protected-access
     l = q.Instantiate()
     p = base_layer.BaseLayer.Params()
+    l._disable_create_child = False
     l.CreateChild('a', p)
     l.CreateChild('b', p)
+    l.a._disable_create_child = False
     l.a.CreateChild('c', p)
+    l.a.c._disable_create_child = False
     l.a.c.CreateChild('d', p)
+    l.b._disable_create_child = False
     l.b.CreateChild('e', p)
+    # pylint: enable=protected-access
     self.assertEqual(l, l.GetDescendant(''))
     self.assertEqual(l.a, l.GetDescendant('a'))
     self.assertEqual(l.b, l.GetDescendant('b'))
@@ -155,6 +162,7 @@ class BaseLayerTest(test_utils.TestCase):
     layer_p = base_layer.BaseLayer.Params()
     layer_p.name = 'test'
     layer = layer_p.Instantiate()
+    layer._disable_create_child = False  # pylint: disable=protected-access
     layer.CreateChild('child', layer_p)
 
     # First accumulator should succeed.
@@ -223,8 +231,10 @@ class BaseLayerTest(test_utils.TestCase):
       layer_p = base_layer.BaseLayer.Params()
       layer_p.name = 'test'
       layer1 = layer_p.Instantiate()
+      layer1._disable_create_child = False  # pylint: disable=protected-access
       layer1.CreateChild('layer1a', layer_p)
       layer1.CreateChild('layer1b', layer_p)
+      layer1.layer1b._disable_create_child = False  # pylint: disable=protected-access
       layer1.layer1b.CreateChild('layer1b1', layer_p)
 
       # Create nested accumulators:
