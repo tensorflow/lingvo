@@ -489,6 +489,36 @@ input tensor.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_with_time_padding.</code><code class="sig-name descname">ConvCategoricalBN</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ConvCategoricalBN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.bn_layers.html#lingvo.core.bn_layers.CategoricalBN" title="lingvo.core.bn_layers.CategoricalBN"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.bn_layers.CategoricalBN</span></code></a></p>
+<p>A wrapper around regular CategoricalBN that pass around the …</p>
+<p>paddings layers.</p>
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">class_emb</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ConvCategoricalBN.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Apply batch normalization.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>inputs</strong> – The inputs tensor.  Shaped [batch, …, dim].</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor.  Shaped [batch, …, 1], with the same rank
+as the input tensor.</p></li>
+<li><p><strong>class_emb</strong> – The conditioning inputs, Shaped [batch, emb_dim].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output after applying batch normalization, with the same shape as
+‘inputs’.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.conv_layers_with_time_padding.ActivationLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_with_time_padding.</code><code class="sig-name descname">ActivationLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#ActivationLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.ActivationLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>

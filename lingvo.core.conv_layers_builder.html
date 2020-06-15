@@ -245,6 +245,11 @@ time].</p></li>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._BiasNoPadding">
+<code class="sig-name descname">_BiasNoPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._BiasNoPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._BiasNoPadding" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.conv_layers_builder.Builder._Bias">
 <code class="sig-name descname">_Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dims</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Bias" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bias layer. The bias is added to the last dimension of the input.</p>
@@ -311,6 +316,91 @@ time].</p></li>
 <dt id="lingvo.core.conv_layers_builder.Builder.NormalizedDepthwiseConv2D">
 <code class="sig-name descname">NormalizedDepthwiseConv2D</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em>, <em class="sig-param"><span class="n">num_heads</span></em>, <em class="sig-param"><span class="n">in_dim</span></em>, <em class="sig-param"><span class="n">dropconnect_prob</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">deterministic_dropout</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.NormalizedDepthwiseConv2D"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.NormalizedDepthwiseConv2D" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Add">
+<code class="sig-name descname">_Add</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">residual_weight</span><span class="o">=</span><span class="default_value">1.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Add"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Add" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._ExpandDims">
+<code class="sig-name descname">_ExpandDims</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._ExpandDims"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._ExpandDims" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Squeeze">
+<code class="sig-name descname">_Squeeze</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Squeeze"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Squeeze" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._Glu">
+<code class="sig-name descname">_Glu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">glu_with_tanh</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._Glu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._Glu" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder._LConvCommon">
+<code class="sig-name descname">_LConvCommon</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">glu_with_tanh</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">residual_dropout_prob</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder._LConvCommon"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder._LConvCommon" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.LConv">
+<code class="sig-name descname">LConv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">glu_with_tanh</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">residual_dropout_prob</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.LConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.LConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>A lightweight convolution block as described in …</p>
+<p><a class="reference external" href="https://arxiv.org/abs/1901.10430">https://arxiv.org/abs/1901.10430</a></p>
+<p>Reference PyTorch Implementation (L587):
+<a class="reference external" href="https://github.com/pytorch/fairseq/blob/v0.6.2/fairseq/models/lightconv.py">https://github.com/pytorch/fairseq/blob/v0.6.2/fairseq/models/lightconv.py</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the params</p></li>
+<li><p><strong>input_dim</strong> – Input dimension.</p></li>
+<li><p><strong>kernel_size</strong> – kernel size used in the conv layer.</p></li>
+<li><p><strong>activation</strong> – A string, activation function used by the inner conv block.</p></li>
+<li><p><strong>is_causal</strong> – is causal padding or not.</p></li>
+<li><p><strong>glu_with_tanh</strong> – if the Gated Linear Unit should apply tanh on the
+activation input.</p></li>
+<li><p><strong>residual_dropout_prob</strong> – Residual dropout prob.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A GraphLayer params with a FProp() function of signature</dt><dd><p>f(inputs, paddings) -&gt; outputs, out_paddings</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_builder.Builder.NormalizedLConv">
+<code class="sig-name descname">NormalizedLConv</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">kernel_size</span></em>, <em class="sig-param"><span class="n">num_heads</span></em>, <em class="sig-param"><span class="n">activation</span><span class="o">=</span><span class="default_value">'RELU'</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">glu_with_tanh</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">residual_dropout_prob</span><span class="o">=</span><span class="default_value">0</span></em>, <em class="sig-param"><span class="n">dropconnect_prob</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_builder.html#Builder.NormalizedLConv"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_builder.Builder.NormalizedLConv" title="Permalink to this definition">¶</a></dt>
+<dd><p>A lightweight convolution block as described in …</p>
+<p><a class="reference external" href="https://arxiv.org/abs/2004.11886">https://arxiv.org/abs/2004.11886</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of the params</p></li>
+<li><p><strong>input_dim</strong> – Input dimension.</p></li>
+<li><p><strong>kernel_size</strong> – kernel size used in the conv layer.</p></li>
+<li><p><strong>num_heads</strong> – Num of heads.</p></li>
+<li><p><strong>activation</strong> – A string, activation function used by the inner conv block.</p></li>
+<li><p><strong>is_causal</strong> – is causal padding or not.</p></li>
+<li><p><strong>glu_with_tanh</strong> – if the Gated Linear Unit should apply tanh on the
+activation input.</p></li>
+<li><p><strong>residual_dropout_prob</strong> – Residual dropout prob.</p></li>
+<li><p><strong>dropconnect_prob</strong> – attention dropout prob.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A GraphLayer params with a FProp() function of signature</dt><dd><p>f(inputs, paddings) -&gt; outputs, out_paddings</p>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
 
 </dd></dl>
 

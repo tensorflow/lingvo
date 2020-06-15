@@ -738,6 +738,19 @@
     <span class="k">return</span> <span class="n">bned</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
 
+<div class="viewcode-block" id="ConvCategoricalBN"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN">[docs]</a><span class="k">class</span> <span class="nc">ConvCategoricalBN</span><span class="p">(</span><span class="n">bn_layers</span><span class="o">.</span><span class="n">CategoricalBN</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A wrapper around regular CategoricalBN that pass around the ...</span>
+
+<span class="sd">  paddings layers.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ConvCategoricalBN.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.ConvCategoricalBN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">class_emb</span><span class="p">):</span>
+    <span class="n">paddings_expanded</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bned</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ConvCategoricalBN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
+                                                <span class="n">paddings_expanded</span><span class="p">,</span> <span class="n">class_emb</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">bned</span><span class="p">,</span> <span class="n">paddings</span></div></div>
+
+
 <span class="c1"># Supported activation functions.</span>
 <span class="n">_ACTIVATIONS</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s1">&#39;RELU&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">,</span>
