@@ -255,20 +255,19 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
             np_in1 * 2. + 1., bn_out.eval(), atol=1e-5, rtol=1e-5)
 
 
-class DomainAwareBatchNormLayerTest(test_utils.TestCase,
-                                    parameterized.TestCase):
+class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
 
   def testConstruction(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
-      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params = bn_layers.CategoricalBN.Params()
       params.name = 'bn'
       params.dim = 2
-      params.num_domains = 4
+      params.class_emb_dim = 4
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      bn_layers.DomainAwareBatchNormLayer(params)
-      bn_vars = tf.get_collection('DomainAwareBatchNormLayer_vars')
+      bn_layers.CategoricalBN(params)
+      bn_vars = tf.get_collection('CategoricalBN_vars')
       bn_var_names = [x.name for x in bn_vars]
       expected_var_names = [
           'bn/beta/var:0', 'bn/gamma/var:0', 'bn/moving_mean/var:0',
@@ -278,21 +277,23 @@ class DomainAwareBatchNormLayerTest(test_utils.TestCase,
       self.assertEqual(['bn/moving_mean/var:0', 'bn/moving_variance/var:0'],
                        [x.name for x in tf.moving_average_variables()])
 
-  def testFPropSameDomain(self):
+  def testFPropSameClass(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
-      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params = bn_layers.CategoricalBN.Params()
       params.name = 'bn'
       params.dim = 3
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.num_domains = 4
+      params.class_emb_dim = 4
 
-      bn_layer = bn_layers.DomainAwareBatchNormLayer(params)
+      bn_layer = bn_layers.CategoricalBN(params)
       in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
-      domain_in1 = tf.zeros([2], tf.int32)
+      domain_in1 = tf.one_hot([0, 0],
+                              depth=params.class_emb_dim,
+                              dtype=tf.float32)
 
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1, domain_in1)
       sig1 = tf.reduce_sum(bn_out)
@@ -301,21 +302,23 @@ class DomainAwareBatchNormLayerTest(test_utils.TestCase,
       self.assertAllClose(0.0, sig1.eval(), atol=1e-5)
       self.assertAllClose(47.8371887, sig2.eval())
 
-  def testFPropDifferenDomains(self):
+  def testFPropDifferenClasses(self):
     with self.session(use_gpu=True) as sess:
       tf.random.set_seed(398847392)
       np.random.seed(12345)
-      params = bn_layers.DomainAwareBatchNormLayer.Params()
+      params = bn_layers.CategoricalBN.Params()
       params.name = 'bn'
       params.dim = 3
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
-      params.num_domains = 4
+      params.class_emb_dim = 4
 
-      bn_layer = bn_layers.DomainAwareBatchNormLayer(params)
+      bn_layer = bn_layers.CategoricalBN(params)
       in_padding1 = tf.zeros([4, 8, 1], dtype=tf.float32)
       bn_in1 = tf.constant(
           np.random.normal(0.1, 0.5, [4, 8, 3]), dtype=tf.float32)
-      domain_in1 = tf.constant([0, 1, 1, 2], tf.int32)
+      domain_in1 = tf.one_hot([0, 1, 1, 2],
+                              depth=params.class_emb_dim,
+                              dtype=tf.float32)
 
       bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1, domain_in1)
       sig1 = tf.reduce_sum(bn_out)
@@ -3016,7 +3019,7 @@ class SoftmaxLayerTest(test_utils.TestCase):
         expected_var_names.append(u'softmax/bias_%d/var:0' % i)
 
       all_var_names = [v.name for v in all_vars]
-      self.assertEqual(sorted(expected_var_names), sorted(all_var_names))
+      self.assertCountEqual(expected_var_names, all_var_names)
 
       self.evaluate(tf.global_variables_initializer())
       if training_step >= 0:
@@ -3424,7 +3427,7 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
     np.random.seed(12345)
     class_ids = [[1], [5], [10]]
     class_weights = [[1.0], [0.4], [0.8]]
-    inputs=np.random.rand(3, 10)
+    inputs = np.random.rand(3, 10)
     xent_loss = self._RunSimpleFullSoftmax(
         inputs=inputs,
         class_weights=class_weights,
@@ -3460,10 +3463,10 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
     per_example_argmax = None
     for chunk_size in (0, 1, 3):
       xent_output = self._RunSimpleFullSoftmax(
-        inputs=inputs,
-        class_weights=class_weights,
-        class_ids=class_ids,
-        chunk_size=chunk_size)
+          inputs=inputs,
+          class_weights=class_weights,
+          class_ids=class_ids,
+          chunk_size=chunk_size)
       loss = xent_output.total_xent
       log_perplexity = xent_output.avg_xent
       print('xent_output ', xent_output)

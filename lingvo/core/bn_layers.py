@@ -139,23 +139,32 @@ class BatchNormLayer(base_layer.BaseLayer):
         'support padding.')
     return p
 
+  def _CreateTrainableVars(self):
+    p = self.params
+
+    pc = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+    if not p.use_moving_avg_in_training:
+      self.CreateVariable('beta', pc)
+      if p.gamma_zero_init:
+        # zero initialization to BN gamma
+        self.CreateVariable('gamma', pc)
+      else:
+        # Note, The real gamma to use is 1 + gamma.
+        self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+
   @base_layer.initializer
   def __init__(self, params):
     super(BatchNormLayer, self).__init__(params)
     p = self.params
     assert p.name
 
-    pc = self._CreateTrainableVarCfg(p)
-
     with tf.variable_scope(p.name):
-      if not p.use_moving_avg_in_training:
-        self.CreateVariable('beta', pc)
-        if p.gamma_zero_init:
-          # zero initialization to BN gamma
-          self.CreateVariable('gamma', pc)
-        else:
-          # Note, The real gamma to use is 1 + gamma.
-          self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+      self._CreateTrainableVars()
 
       # Two statistics.
       moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
@@ -194,13 +203,6 @@ class BatchNormLayer(base_layer.BaseLayer):
     self._epsilon = 0.001
     self._decay = p.decay
 
-  def _CreateTrainableVarCfg(self, params):
-    return py_utils.WeightParams(
-        shape=[params.dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=params.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
-
   @property
   def epsilon(self):
     return self._epsilon
@@ -209,6 +211,18 @@ class BatchNormLayer(base_layer.BaseLayer):
     """Gets the default paddings for an input."""
     return tf.zeros(
         tf.concat([tf.shape(inputs)[:-1], [1]], 0), dtype=inputs.dtype)
+
+  def _GetBetaGamma(self, theta, inputs, **kwargs):
+    del inputs
+    del kwargs
+    p = self.params
+    if p.use_moving_avg_in_training:
+      beta = 0.0
+      gamma = 1.0
+    else:
+      beta = theta.beta
+      gamma = theta.gamma
+    return beta, gamma
 
   def GetCurrentMoments(self, theta):
     """Gets the current computed moments, which should be applied at eval.
@@ -226,7 +240,7 @@ class BatchNormLayer(base_layer.BaseLayer):
       return (self.vars.moving_mean, self.vars.moving_variance, theta.beta,
               theta.gamma)
 
-  def ComputeAndUpdateMoments(self, theta, inputs, paddings=None):
+  def ComputeAndUpdateMoments(self, theta, inputs, paddings=None, **kwargs):
     """Computes moments and updates state.
 
     Args:
@@ -235,6 +249,7 @@ class BatchNormLayer(base_layer.BaseLayer):
       inputs: The inputs tensor.  Shaped [..., dim].
       paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the
         input tensor.
+      **kwargs: Additional inputs.
 
     Returns:
       Tuple of (mean, variance, beta, gamma).
@@ -295,12 +310,7 @@ class BatchNormLayer(base_layer.BaseLayer):
       norm_variance = py_utils.CheckNumerics(
           norm_variance, 'variance of %s failed numeric check' % p.name)
 
-      if p.use_moving_avg_in_training:
-        beta = 0.0
-        gamma = 1.0
-      else:
-        beta = theta.beta
-        gamma = theta.gamma
+      beta, gamma = self._GetBetaGamma(theta, inputs, **kwargs)
       return norm_mean, norm_variance, beta, gamma
 
   def _ComputeBN(self, inputs, paddings, gamma, beta, norm_mean, norm_variance):
@@ -361,30 +371,42 @@ class BatchNormLayer(base_layer.BaseLayer):
         out_shapes=(inputs,))
 
 
-class DomainAwareBatchNormLayer(BatchNormLayer):
-  """Implements a domain-aware batch norm akin to ...
+class CategoricalBN(BatchNormLayer):
+  """Implements a categorical BN which is akin to ...
 
   https://arxiv.org/pdf/1809.11096.pdf
 
-  Specifically, the moving stats are domain-agnostic, while {beta, gamma} are
-  domain-aware.
+  Specifically, the moving stats are category-agnostic, while {beta, gamma} are
+  category-aware.
   """
 
   @classmethod
   def Params(cls):
-    p = super(DomainAwareBatchNormLayer, cls).Params()
-    p.Define('num_domains', None, 'Num of domains.')
+    p = super(CategoricalBN, cls).Params()
+    p.Define('class_emb_dim', None, 'Dim of input class embedding.')
+
     p.use_moving_avg_in_training = False
     p.use_fused_batch_norm_for_eval = False
     p.add_stats_to_moving_average_variables = True
     return p
 
-  def _CreateTrainableVarCfg(self, params):
-    return py_utils.WeightParams(
-        shape=[params.num_domains, params.dim],
+  def _CreateTrainableVars(self):
+    p = self.params
+
+    pc = py_utils.WeightParams(
+        shape=[p.class_emb_dim, p.dim],
         init=py_utils.WeightInit.Constant(0.0),
-        dtype=params.dtype,
+        dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
+
+    if not p.use_moving_avg_in_training:
+      self.CreateVariable('beta', pc)
+      if p.gamma_zero_init:
+        # zero initialization to BN gamma
+        self.CreateVariable('gamma', pc)
+      else:
+        # Note, The real gamma to use is 1 + gamma.
+        self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
   @base_layer.initializer
   def __init__(self, params):
@@ -392,16 +414,19 @@ class DomainAwareBatchNormLayer(BatchNormLayer):
     assert not params.use_moving_avg_in_training
     assert not params.use_fused_batch_norm_for_eval
     assert params.add_stats_to_moving_average_variables
-    super(DomainAwareBatchNormLayer, self).__init__(params)
+    super(CategoricalBN, self).__init__(params)
 
-  def ComputeAndUpdateMoments(self, theta, inputs, paddings, domain_ids):
-    (norm_mean, norm_variance, beta,
-     gamma) = super(DomainAwareBatchNormLayer,
-                    self).ComputeAndUpdateMoments(theta, inputs, paddings)
+  def _GetBetaGamma(self, theta, inputs, **kwargs):
+    assert 'class_emb' in kwargs
+    class_emb = kwargs['class_emb']
+
+    # class_emb is a one-hot vector of shape [batch, class_emb_dim=num_classes].
+    class_ids = tf.math.argmax(class_emb, axis=-1, output_type=tf.int32)
     # [batch, dim]
-    beta = tf.gather(beta, domain_ids)
-    # [batch, dim]
-    gamma = tf.gather(gamma, domain_ids)
+    # Not using matmul/einsum to avoid potential precision problem on TPU with
+    # sparse inputs.
+    beta = tf.gather(theta.beta, class_ids)
+    gamma = tf.gather(theta.gamma, class_ids)
 
     # Extend to [batch, 1, ... 1, dim]
     batch = py_utils.GetShape(inputs)[0]
@@ -411,9 +436,9 @@ class DomainAwareBatchNormLayer(BatchNormLayer):
         axis=0)
     beta = tf.reshape(beta, to_shape)
     gamma = tf.reshape(gamma, to_shape)
-    return norm_mean, norm_variance, beta, gamma
+    return beta, gamma
 
-  def FProp(self, theta, inputs, paddings, domain_ids):
+  def FProp(self, theta, inputs, paddings, class_emb):
     """Apply batch normalization.
 
     Args:
@@ -422,25 +447,32 @@ class DomainAwareBatchNormLayer(BatchNormLayer):
       inputs: The inputs tensor.  Shaped [batch, ..., dim].
       paddings: The paddings tensor.  Shaped [batch, ..., 1], with the same rank
         as the input tensor.
-      domain_ids: The domain id int32 tensor. Shaped [batch].
+      class_emb: The conditioning inputs, Shaped [batch, emb_dim].
 
     Returns:
       Output after applying batch normalization, with the same shape as
       'inputs'.
     """
     p = self.params
+    batch = py_utils.GetShape(inputs)[0]
+    class_emb = py_utils.HasShape(class_emb, [batch, p.class_emb_dim])
+    if not py_utils.use_tpu():
+      class_emb = py_utils.with_dependencies([
+          py_utils.assert_less_equal(
+              tf.cast(class_emb, tf.int32), 1, name='one_hot_assert1'),
+          py_utils.assert_greater_equal(
+              tf.cast(class_emb, tf.int32), 0, name='one_hot_assert2'),
+          py_utils.assert_equal(
+              tf.ones([batch], tf.int32),
+              tf.cast(tf.reduce_sum(class_emb, -1), tf.int32),
+              name='one_hot_assert3'),
+      ], class_emb)
+
     with tf.name_scope(p.name):
       norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
-          theta, inputs, paddings, domain_ids)
+          theta, inputs, paddings=paddings, class_emb=class_emb)
       return self._ComputeBN(inputs, paddings, gamma, beta, norm_mean,
                              norm_variance)
-
-  def GetCurrentMoments(self, theta):
-    raise NotImplementedError
-
-  @classmethod
-  def FPropMeta(cls, p, inputs, padding=None):
-    raise NotImplementedError
 
 
 class BatchNormLayerNoPadding(base_layer.BaseLayer):
