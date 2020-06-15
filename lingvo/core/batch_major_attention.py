@@ -2431,7 +2431,9 @@ class Builder(builder.Base):
             kernel_size,
             is_causal=False,
             convolution_fn=None):
-    """A lightweight convolution block as described in.
+    """[DEPRECATED] A lightweight convolution block as described in.
+
+    Use conv_layer_builder.LConv() instead.
 
     https://arxiv.org/abs/1901.10430
     Corresponding PyTorch Implementation (L587):

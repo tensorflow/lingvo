@@ -23,6 +23,7 @@ from lingvo.core import builder
 from lingvo.core import builder_layers
 from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import py_utils
+from lingvo.core import tshape
 
 FLAGS = flags.FLAGS
 
@@ -31,6 +32,7 @@ CausalConv2DLayerWithPadding = conv_layers_with_time_padding.CausalConv2DLayerWi
 DepthwiseConv2DLayer = conv_layers_with_time_padding.DepthwiseConv2DLayer
 CausalDepthwiseConv2DLayer = conv_layers_with_time_padding.CausalDepthwiseConv2DLayer
 ConvBatchNormLayer = conv_layers_with_time_padding.ConvBatchNormLayer
+ConvCategoricalBN = conv_layers_with_time_padding.ConvCategoricalBN
 ActivationLayer = conv_layers_with_time_padding.ActivationLayer
 PaddingLayer = conv_layers_with_time_padding.PaddingLayer
 NormalizedDepthwiseConv2DLayer = conv_layers_with_time_padding.NormalizedDepthwiseConv2DLayer
@@ -131,6 +133,9 @@ class Builder(builder.Base):
     p.Define('use_bn', True, 'Add additional bn layers to conv layers or not.')
     p.Define('weight_norm', False, 'Add weight norm for kernel weights or not.')
     return p
+
+  def _BiasNoPadding(self, name, dims):
+    return super(Builder, self)._Bias(name, dims)
 
   def _Bias(self, name, dims):
     """Bias layer. The bias is added to the last dimension of the input."""
@@ -287,9 +292,14 @@ class Builder(builder.Base):
                                    filter_shape, stride, dilation, is_causal),
           # No need to add a padding layer here as subsequent conv layer always
           # properly zeros out padded nodes.
-          self._RawConv2D('conv_1x1', in_dim * depth_multiplier, out_dim,
-                          filter_shape=[1, 1], stride=[1, 1], dilation=[1, 1],
-                          is_causal=False),
+          self._RawConv2D(
+              'conv_1x1',
+              in_dim * depth_multiplier,
+              out_dim,
+              filter_shape=[1, 1],
+              stride=[1, 1],
+              dilation=[1, 1],
+              is_causal=False),
           self._Bias('bias', out_dim),
           self._Padding('pad')
       ]
@@ -299,9 +309,14 @@ class Builder(builder.Base):
                                    filter_shape, stride, dilation, is_causal),
           # No need to add a padding layer here as subsequent conv layer always
           # properly zeros out padded nodes.
-          self._RawConv2D('conv_1x1', in_dim * depth_multiplier, out_dim,
-                          filter_shape=[1, 1], stride=[1, 1], dilation=[1, 1],
-                          is_causal=False),
+          self._RawConv2D(
+              'conv_1x1',
+              in_dim * depth_multiplier,
+              out_dim,
+              filter_shape=[1, 1],
+              stride=[1, 1],
+              dilation=[1, 1],
+              is_causal=False),
           self._BiasOrBN('bn_or_bias', out_dim),
           self._Activation('act', activation),
           self._Padding('pad')
@@ -328,3 +343,179 @@ class Builder(builder.Base):
         params_init=py_utils.WeightInit.TruncatedGaussian(
             scale=math.sqrt(2.6 / kernel_size)),  # Fan-out initialization.
         dropconnect_prob=dropconnect_prob)
+
+  def _Add(self, name, residual_weight=1.0):
+    return self._Fn(
+        name, fn=lambda x, y: x + residual_weight * y, fn_out=lambda x, y: x)
+
+  def _ExpandDims(self, name):
+    return self._Fn(
+        name,
+        fn=lambda x: tf.expand_dims(x, 2),
+        fn_out=lambda x: tshape.Shape(x[0:2] + [1] + x[2:]),
+        fn_flops=lambda x: 1)
+
+  def _Squeeze(self, name):
+    return self._Fn(
+        name,
+        fn=lambda x: tf.squeeze(x, 2),
+        fn_out=lambda x: tshape.Shape(x[0:2] + x[3:]),
+        fn_flops=lambda x: 1)
+
+  def _Glu(self, name, glu_with_tanh):
+
+    def _GLUFn(inputs):
+      gated_inputs, act_inputs = tf.split(inputs, 2, axis=-1)
+      return act_inputs * tf.sigmoid(gated_inputs)
+
+    def _GatedTanhFn(inputs):
+      gated_inputs, act_inputs = tf.split(inputs, 2, axis=-1)
+      return tf.tanh(act_inputs) * tf.sigmoid(gated_inputs)
+
+    fn = _GatedTanhFn if glu_with_tanh else _GLUFn
+
+    return self._Fn(
+        name,
+        fn=fn,
+        fn_out=lambda x: tshape.Shape(x[:-1] + [x[-1] / 2]),
+        fn_flops=lambda x: 15 * x.size)
+
+  def _LConvCommon(self,
+                   name,
+                   input_dim,
+                   kernel_size,
+                   activation='RELU',
+                   is_causal=False,
+                   glu_with_tanh=False,
+                   residual_dropout_prob=0):
+    # pyformat: disable
+    return py_utils.NestedMap(
+        pre_conv=('i.vec->pre_conv',
+                  self._Seq(
+                      'pre_conv',
+                      self._LN('ln', input_dim),
+                      self._Linear('linear', input_dim, input_dim * 2),
+                      self._BiasNoPadding('bias', input_dim * 2),
+                      self._Glu('glu', glu_with_tanh),
+                      self._ExpandDims('expand'))),
+        post_conv=('post_conv->after_dropout',
+                   self._Seq(
+                       'post_conv',
+                       self._Squeeze('squeeze'),
+                       self._Linear('linear', input_dim, input_dim),
+                       self._BiasNoPadding('bias', input_dim),
+                       self._Dropout(
+                           'dropout', keep_prob=1 - residual_dropout_prob))),
+        residual_add=('i.vec,after_dropout->o.vec', self._Add('add'))
+        )
+    # pyformat: enable
+
+  def LConv(self,
+            name,
+            input_dim,
+            kernel_size,
+            activation='RELU',
+            is_causal=False,
+            glu_with_tanh=False,
+            residual_dropout_prob=0):
+    """A lightweight convolution block as described in ...
+
+    https://arxiv.org/abs/1901.10430
+
+    Reference PyTorch Implementation (L587):
+    https://github.com/pytorch/fairseq/blob/v0.6.2/fairseq/models/lightconv.py
+
+    Args:
+      name: name of the params
+      input_dim: Input dimension.
+      kernel_size: kernel size used in the conv layer.
+      activation: A string, activation function used by the inner conv block.
+      is_causal: is causal padding or not.
+      glu_with_tanh: if the Gated Linear Unit should apply tanh on the
+        activation input.
+      residual_dropout_prob: Residual dropout prob.
+
+    Returns:
+      A GraphLayer params with a FProp() function of signature
+        f(inputs, paddings) -> outputs, out_paddings
+    """
+    sub_nmap = self._LConvCommon(
+        name,
+        input_dim,
+        kernel_size,
+        activation=activation,
+        is_causal=is_causal,
+        residual_dropout_prob=residual_dropout_prob)
+    conv_graph = ('pre_conv,i.paddings->post_conv,o.paddings',
+                  self.DepthwiseConv2D(
+                      name,
+                      in_dim=input_dim,
+                      depth_multiplier=1,
+                      filter_shape=[kernel_size, 1],
+                      activation=activation,
+                      is_causal=is_causal))
+    sub_list = [
+        sub_nmap.pre_conv, conv_graph, sub_nmap.post_conv, sub_nmap.residual_add
+    ]
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings}
+        ['o'],  # output NestedMap with {vec, paddings}
+        *sub_list)
+
+  def NormalizedLConv(self,
+                      name,
+                      input_dim,
+                      kernel_size,
+                      num_heads,
+                      activation='RELU',
+                      is_causal=False,
+                      glu_with_tanh=False,
+                      residual_dropout_prob=0,
+                      dropconnect_prob=0):
+    """A lightweight convolution block as described in ...
+
+    https://arxiv.org/abs/2004.11886
+
+    Args:
+      name: name of the params
+      input_dim: Input dimension.
+      kernel_size: kernel size used in the conv layer.
+      num_heads: Num of heads.
+      activation: A string, activation function used by the inner conv block.
+      is_causal: is causal padding or not.
+      glu_with_tanh: if the Gated Linear Unit should apply tanh on the
+        activation input.
+      residual_dropout_prob: Residual dropout prob.
+      dropconnect_prob: attention dropout prob.
+
+    Returns:
+      A GraphLayer params with a FProp() function of signature
+        f(inputs, paddings) -> outputs, out_paddings
+    """
+    sub_nmap = self._LConvCommon(
+        name,
+        input_dim,
+        kernel_size,
+        activation=activation,
+        is_causal=is_causal,
+        residual_dropout_prob=residual_dropout_prob)
+    conv_graph = ('pre_conv,i.paddings->post_conv,o.paddings',
+                  self.NormalizedDepthwiseConv2D(
+                      name,
+                      kernel_size=kernel_size,
+                      num_heads=num_heads,
+                      in_dim=input_dim,
+                      dropconnect_prob=dropconnect_prob,
+                      deterministic_dropout=self.params.deterministic_dropout,
+                      is_causal=is_causal))
+    sub_list = [
+        sub_nmap.pre_conv, conv_graph, sub_nmap.post_conv, sub_nmap.residual_add
+    ]
+
+    return self._Graph(
+        name,
+        ['i'],  # input NestedMap with {vec, paddings}
+        ['o'],  # output NestedMap with {vec, paddings}
+        *sub_list)
