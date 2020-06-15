@@ -314,25 +314,123 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span></div></div>
 
 
-<div class="viewcode-block" id="CopyParamsTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CopyParamsTo">[docs]</a><span class="k">def</span> <span class="nf">CopyParamsTo</span><span class="p">(</span><span class="n">from_p</span><span class="p">,</span> <span class="n">to_p</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Copy from one Params to another, with optional skipped params.</span>
+<div class="viewcode-block" id="CopyFieldsTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CopyFieldsTo">[docs]</a><span class="k">def</span> <span class="nf">CopyFieldsTo</span><span class="p">(</span><span class="n">from_p</span><span class="p">,</span> <span class="n">to_p</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Copy fields from one Params to another, with optional skipped params.</span>
+
+<span class="sd">  Preserves `type(to_p.Instantiate())`. Use `from_p.Copy()` instead if requiring</span>
+<span class="sd">  a deep copy of `from_p`, without updating `to_p`.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    from_p: Source params to copy from.</span>
 <span class="sd">    to_p: Destination params to copy to.</span>
-<span class="sd">    skip: If not None, a list of strings of param names to skip.</span>
+<span class="sd">    skip: If not None, a list of strings of param names to skip. Automatically</span>
+<span class="sd">      skips InstantiableParams&#39; &#39;cls&#39; parameter.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    None</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+  <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">)</span>
   <span class="k">for</span> <span class="n">n</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">from_p</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">skip</span> <span class="ow">and</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
       <span class="k">continue</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
       <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()})</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">to_p</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">n</span><span class="p">:</span> <span class="n">p</span><span class="p">})</span>
   <span class="k">return</span> <span class="n">to_p</span></div>
+
+
+<div class="viewcode-block" id="DefineParamsFromArgs"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.DefineParamsFromArgs">[docs]</a><span class="k">def</span> <span class="nf">DefineParamsFromArgs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Defines params for each parameter of func.</span>
+
+<span class="sd">  This allows you to define the parameters necessary to call a function</span>
+<span class="sd">  or instantiate a class without having to type the Define statements yourself.</span>
+<span class="sd">  Default values for the function parameters will be copied into the params</span>
+<span class="sd">  object as well.</span>
+
+<span class="sd">  To use this with a class constructor, use MyClass.__init__ as the func</span>
+<span class="sd">  parameter.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    func: A function or method. Parameters for this function will be</span>
+<span class="sd">    params: A hyperparams object. New parameters will be defined here.</span>
+<span class="sd">    ignore: Don&#39;t define parameters in the params object for these function</span>
+<span class="sd">      parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Get the call signature of the function.</span>
+  <span class="n">init_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+  <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;self&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">]:</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="n">ignore</span> <span class="ow">and</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="c1"># Add each parameter of the constructor to the params object.</span>
+    <span class="c1"># If the parameter has a default, add that too.</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">parameter</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="s1">&#39;Function parameter.&#39;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_ExtractCallParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._ExtractCallParams">[docs]</a><span class="k">def</span> <span class="nf">_ExtractCallParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts parameters from params that should be used to call func.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    func: A function, constructor, or method.</span>
+<span class="sd">    params: A hyperparams object containing arguments for func.</span>
+<span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A dict containing function parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Read the list of parameters that func requires.</span>
+  <span class="n">init_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
+  <span class="n">func_params</span> <span class="o">=</span> <span class="p">{}</span>
+  <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span>
+    <span class="c1"># Anything in kwargs overrides parameters.</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
+      <span class="n">func_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+      <span class="k">continue</span>
+    <span class="c1"># If there&#39;s something in the function signature that&#39;s not in params,</span>
+    <span class="c1"># skip it.</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="c1"># These are special function parameters that we should skip.</span>
+    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;self&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">]:</span>
+      <span class="k">continue</span>
+    <span class="c1"># If the value in params is the same as the function default, we will</span>
+    <span class="c1"># let the function signature fill in this parameter for us.</span>
+    <span class="k">if</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default</span> <span class="o">==</span> <span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
+      <span class="k">continue</span>
+    <span class="n">func_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">func_params</span></div>
+
+
+<div class="viewcode-block" id="CallWithParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.CallWithParams">[docs]</a><span class="k">def</span> <span class="nf">CallWithParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Call a function or method with a hyperparams object.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    func: A function or method.</span>
+<span class="sd">    params: A hyperparams object with parameters to pass to func.</span>
+<span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The return values from func.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">_ExtractCallParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="ConstructWithParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.ConstructWithParams">[docs]</a><span class="k">def</span> <span class="nf">ConstructWithParams</span><span class="p">(</span><span class="n">class_type</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Construct and object with a hyperparams object.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    class_type: A class type.</span>
+<span class="sd">    params: A hyperparams object with parameters to pass to the constructor.</span>
+<span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The constructed object.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">class_type</span><span class="p">(</span><span class="o">**</span><span class="n">_ExtractCallParams</span><span class="p">(</span><span class="n">class_type</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
 
 <div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -426,6 +524,7 @@
     <span class="k">return</span> <span class="n">name</span></div>
 
 <div class="viewcode-block" id="Params.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Creates a deep copy of self.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)())</span></div>
 
 <div class="viewcode-block" id="Params._CopyTo"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._CopyTo">[docs]</a>  <span class="k">def</span> <span class="nf">_CopyTo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">res</span><span class="p">):</span>
@@ -642,6 +741,7 @@
 
     <span class="k">return</span> <span class="n">_ToParam</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
+  <span class="c1"># TODO(tonybruguier): Move to module-level function (cls is never used).</span>
 <div class="viewcode-block" id="Params.FromProto"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.FromProto">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FromProto</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">param_pb</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Reads from a Hyperparams proto.&quot;&quot;&quot;</span>
@@ -705,7 +805,7 @@
     <span class="k">def</span> <span class="nf">_FromParam</span><span class="p">(</span><span class="n">param_pb</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Deserializes Hyperparam proto.&quot;&quot;&quot;</span>
 
-      <span class="n">params</span> <span class="o">=</span> <span class="n">InstantiableParams</span><span class="p">()</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">InstantiableParams</span><span class="p">()</span> <span class="k">if</span> <span class="s1">&#39;cls&#39;</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span> <span class="k">else</span> <span class="n">Params</span><span class="p">()</span>
       <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">:</span>
         <span class="n">val</span> <span class="o">=</span> <span class="n">_FromParamValue</span><span class="p">(</span><span class="n">param_pb</span><span class="o">.</span><span class="n">items</span><span class="p">[</span><span class="n">k</span><span class="p">])</span>
         <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;cls&#39;</span><span class="p">:</span>
@@ -993,6 +1093,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="InstantiableParams.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;See base class.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CopyTo</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)(</span><span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span></div></div>
 </pre></div>
 

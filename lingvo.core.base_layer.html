@@ -251,19 +251,27 @@ __init__() for classes on the class hierarchy.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.base_layer.DefaultVN">
-<code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">DefaultVN</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#DefaultVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.DefaultVN" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py function">
 <dt id="lingvo.core.base_layer.RecursiveFindLayerParams">
 <code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">RecursiveFindLayerParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#RecursiveFindLayerParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.RecursiveFindLayerParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns all params that define a layer.</p>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.base_layer.BaseLayerMeta">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">BaseLayerMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">bases</span></em>, <em class="sig-param"><span class="n">dct</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayerMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayerMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#type" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">type</span></code></a></p>
+<p>Metaclass tracking child layers and variable initialization.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.base_layer.ABCLayerMeta">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">ABCLayerMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">bases</span></em>, <em class="sig-param"><span class="n">dct</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#ABCLayerMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.ABCLayerMeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_layer.BaseLayerMeta" title="lingvo.core.base_layer.BaseLayerMeta"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayerMeta</span></code></a>, <a class="reference external" href="https://docs.python.org/3.7/library/abc.html#abc.ABCMeta" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">abc.ABCMeta</span></code></a></p>
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.base_layer.BaseLayer">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">BaseLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">BaseLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">tensorflow.python.module.module.Module</span></code></p>
 <p>Base class for all the layer object.</p>
 <p>As this BaseLayer is a proper sub-class of tf.Module, it supports proper
@@ -638,8 +646,8 @@ new value to be used later for computation. Its signature must be
 
 <dl class="py method">
 <dt id="lingvo.core.base_layer.BaseLayer.CreateChildren">
-<code class="sig-name descname">CreateChildren</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">params_list</span></em>, <em class="sig-param"><span class="n">child_scopes</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateChildren"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateChildren" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create a list of sub layers.</p>
+<code class="sig-name descname">CreateChildren</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateChildren"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateChildren" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list or dict of sub layers.</p>
 <p>The created sub layer list can be accessed by <code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code>. E.g.:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;foo&#39;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
 <span class="bp">self</span><span class="o">.</span><span class="n">foo</span><span class="p">[</span><span class="mi">10</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="o">...</span>
@@ -653,10 +661,9 @@ new value to be used later for computation. Its signature must be
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>name</strong> – The name for the sub layers, which is used as the key
-into vars/theta.</p></li>
-<li><p><strong>params_list</strong> – <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hyperparams</span></code> objects to instantiate a list of layers.</p></li>
-<li><p><strong>child_scopes</strong> – If not none, a variable_scope to set for each child.</p></li>
+<li><p><strong>name</strong> – The name for the sub layers, which is used as the key into
+vars/theta.</p></li>
+<li><p><strong>params</strong> – a list or dict of <code class="xref py py-obj docutils literal notranslate"><span class="pre">Hyperparams</span></code> objects to create.</p></li>
 </ul>
 </dd>
 </dl>
@@ -664,22 +671,15 @@ into vars/theta.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.base_layer.BaseLayer.AddChild">
-<code class="sig-name descname">AddChild</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">child</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.AddChild"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.AddChild" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add an existing layer as a sublayer.</p>
-</dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.base_layer.BaseLayer.AddChildren">
-<code class="sig-name descname">AddChildren</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">children</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.AddChildren"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.AddChildren" title="Permalink to this definition">¶</a></dt>
-<dd><p>Add existing layers as sublayers.</p>
+<code class="sig-name descname">AddChild</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">children</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.AddChild"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.AddChild" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add existing layer or layers as sublayer.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.base_layer.BaseLayer._AutoAddChild">
 <code class="sig-name descname">_AutoAddChild</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">child</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._AutoAddChild"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._AutoAddChild" title="Permalink to this definition">¶</a></dt>
 <dd><p>Record that a layer <code class="xref py py-obj docutils literal notranslate"><span class="pre">child</span></code> is instantiated by this layer.</p>
-<p>This is a method only called by <code class="xref py py-obj docutils literal notranslate"><span class="pre">base_layer.initializer</span></code> decorator.
-Subclasses should not call this method.</p>
+<p>This method should only be called internally by BaseLayerMeta.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>child</strong> – A sub-layer of this layer.</p>

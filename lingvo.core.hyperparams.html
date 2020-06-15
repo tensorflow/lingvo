@@ -243,19 +243,98 @@ contains embedded newlines, they will be output verbatim.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.hyperparams.CopyParamsTo">
-<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">CopyParamsTo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">from_p</span></em>, <em class="sig-param"><span class="n">to_p</span></em>, <em class="sig-param"><span class="n">skip</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#CopyParamsTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.CopyParamsTo" title="Permalink to this definition">¶</a></dt>
-<dd><p>Copy from one Params to another, with optional skipped params.</p>
+<dt id="lingvo.core.hyperparams.CopyFieldsTo">
+<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">CopyFieldsTo</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">from_p</span></em>, <em class="sig-param"><span class="n">to_p</span></em>, <em class="sig-param"><span class="n">skip</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#CopyFieldsTo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.CopyFieldsTo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Copy fields from one Params to another, with optional skipped params.</p>
+<p>Preserves <code class="xref py py-obj docutils literal notranslate"><span class="pre">type(to_p.Instantiate())</span></code>. Use <code class="xref py py-obj docutils literal notranslate"><span class="pre">from_p.Copy()</span></code> instead if requiring
+a deep copy of <code class="xref py py-obj docutils literal notranslate"><span class="pre">from_p</span></code>, without updating <code class="xref py py-obj docutils literal notranslate"><span class="pre">to_p</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>from_p</strong> – Source params to copy from.</p></li>
 <li><p><strong>to_p</strong> – Destination params to copy to.</p></li>
-<li><p><strong>skip</strong> – If not None, a list of strings of param names to skip.</p></li>
+<li><p><strong>skip</strong> – If not None, a list of strings of param names to skip. Automatically
+skips InstantiableParams’ ‘cls’ parameter.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.hyperparams.DefineParamsFromArgs">
+<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">DefineParamsFromArgs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">ignore</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#DefineParamsFromArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.DefineParamsFromArgs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines params for each parameter of func.</p>
+<p>This allows you to define the parameters necessary to call a function
+or instantiate a class without having to type the Define statements yourself.
+Default values for the function parameters will be copied into the params
+object as well.</p>
+<p>To use this with a class constructor, use MyClass.__init__ as the func
+parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – A function or method. Parameters for this function will be</p></li>
+<li><p><strong>params</strong> – A hyperparams object. New parameters will be defined here.</p></li>
+<li><p><strong>ignore</strong> – Don’t define parameters in the params object for these function
+parameters.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.hyperparams._ExtractCallParams">
+<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">_ExtractCallParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#_ExtractCallParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams._ExtractCallParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts parameters from params that should be used to call func.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – A function, constructor, or method.</p></li>
+<li><p><strong>params</strong> – A hyperparams object containing arguments for func.</p></li>
+<li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A dict containing function parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.hyperparams.CallWithParams">
+<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">CallWithParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#CallWithParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.CallWithParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call a function or method with a hyperparams object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – A function or method.</p></li>
+<li><p><strong>params</strong> – A hyperparams object with parameters to pass to func.</p></li>
+<li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The return values from func.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.hyperparams.ConstructWithParams">
+<code class="sig-prename descclassname">lingvo.core.hyperparams.</code><code class="sig-name descname">ConstructWithParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">class_type</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#ConstructWithParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.ConstructWithParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Construct and object with a hyperparams object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>class_type</strong> – A class type.</p></li>
+<li><p><strong>params</strong> – A hyperparams object with parameters to pass to the constructor.</p></li>
+<li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The constructed object.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -286,7 +365,8 @@ Uses internal {‘name’: _Param} dict for storing parameter data.</p>
 <dl class="py method">
 <dt id="lingvo.core.hyperparams.Params.Copy">
 <code class="sig-name descname">Copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#Params.Copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.Params.Copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Creates a deep copy of self.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.hyperparams.Params._CopyTo">
@@ -506,7 +586,8 @@ class.</p>
 <dl class="py method">
 <dt id="lingvo.core.hyperparams.InstantiableParams.Copy">
 <code class="sig-name descname">Copy</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams.Copy"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams.Copy" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>See base class.</p>
+</dd></dl>
 
 </dd></dl>
 

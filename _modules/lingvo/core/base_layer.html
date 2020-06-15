@@ -164,6 +164,8 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -257,32 +259,30 @@
 <span class="sd">    __init__() for classes on the class hierarchy.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="nf">wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-    <span class="c1"># Push back self (the current layer) to the stack.</span>
+  <span class="k">def</span> <span class="nf">Wrapper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Decorator wrapper fn.&quot;&quot;&quot;</span>
     <span class="n">stack</span> <span class="o">=</span> <span class="n">_LAYER_STACK</span><span class="o">.</span><span class="n">layer_stack</span>
-    <span class="n">should_pop</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">stack</span> <span class="ow">or</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
-      <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-      <span class="n">should_pop</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">if</span> <span class="n">stack</span> <span class="ow">and</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span><span class="p">:</span>
+      <span class="c1"># Short circuit if called multiple times (eg. super() chain).</span>
+      <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="k">return</span>
+
+    <span class="c1"># Push back self (the current layer) to the stack.</span>
+    <span class="n">stack_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span>
+    <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="c1"># Calls the layer&#39;s real __init__ method.</span>
       <span class="n">func</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-      <span class="c1"># pylint: disable=protected-access</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_CheckInvariants</span><span class="p">()</span>
-      <span class="k">assert</span> <span class="nb">id</span><span class="p">(</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">==</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
-      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">id</span><span class="p">(</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span> <span class="o">!=</span> <span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="c1"># Records the fact stack[-1] just created a sub-layer self.</span>
-        <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">_AutoAddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+      <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="c1"># Records the fact stack[-2] just created a sub-layer self.</span>
+        <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">_AutoAddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>  <span class="c1"># pylint: disable=protected-access</span>
     <span class="k">finally</span><span class="p">:</span>
       <span class="c1"># Pop out self (the current layer).</span>
-      <span class="k">if</span> <span class="n">should_pop</span><span class="p">:</span>
-        <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+      <span class="k">assert</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span>
+      <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">stack</span><span class="p">)</span> <span class="o">==</span> <span class="n">stack_size</span>
 
-  <span class="k">return</span> <span class="n">wrapper</span></div>
-
-
-<div class="viewcode-block" id="DefaultVN"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.DefaultVN">[docs]</a><span class="k">def</span> <span class="nf">DefaultVN</span><span class="p">():</span>
-  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariationalNoiseParams</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">Wrapper</span></div>
 
 
 <div class="viewcode-block" id="RecursiveFindLayerParams"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.RecursiveFindLayerParams">[docs]</a><span class="k">def</span> <span class="nf">RecursiveFindLayerParams</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
@@ -304,10 +304,41 @@
   <span class="k">return</span> <span class="n">layer_params</span></div>
 
 
+<div class="viewcode-block" id="BaseLayerMeta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayerMeta">[docs]</a><span class="k">class</span> <span class="nc">BaseLayerMeta</span><span class="p">(</span><span class="nb">type</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Metaclass tracking child layers and variable initialization.&quot;&quot;&quot;</span>
+
+  <span class="c1"># pylint: disable=bad-mcs-classmethod-argument</span>
+  <span class="k">def</span> <span class="fm">__new__</span><span class="p">(</span><span class="n">mcs</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">):</span>
+    <span class="bp">cls</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="n">mcs</span><span class="p">)</span><span class="o">.</span><span class="fm">__new__</span><span class="p">(</span><span class="n">mcs</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">bases</span><span class="p">,</span> <span class="n">dct</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;__init__&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">dct</span><span class="p">:</span>
+
+      <span class="k">def</span> <span class="nf">TrivialInit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>  <span class="c1"># pylint: disable=bad-super-call</span>
+
+      <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">TrivialInit</span>
+
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">initializer</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">cls</span>
+
+  <span class="c1"># pylint: enable=bad-mcs-classmethod-argument</span>
+
+  <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="c1"># This happens after self.__init__()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckInvariants</span><span class="p">()</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="k">return</span> <span class="bp">self</span></div>
+
+
+<div class="viewcode-block" id="ABCLayerMeta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.ABCLayerMeta">[docs]</a><span class="k">class</span> <span class="nc">ABCLayerMeta</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
+  <span class="k">pass</span></div>
+
+
 <span class="n">LAYER_WT</span> <span class="o">=</span> <span class="s1">&#39;layer_weight_variable&#39;</span>
 
 
-<div class="viewcode-block" id="BaseLayer"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseLayer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer">[docs]</a><span class="nd">@six</span><span class="o">.</span><span class="n">add_metaclass</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">BaseLayer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all the layer object.</span>
 
 <span class="sd">  As this BaseLayer is a proper sub-class of tf.Module, it supports proper</span>
@@ -340,7 +371,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;random_seed&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Random seed for deterministic unittests. This &#39;</span>
         <span class="s1">&#39;is inherited by child layers if they do not set a random_seed.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">,</span> <span class="n">DefaultVN</span><span class="p">(),</span> <span class="s1">&#39;How variational noise should be applied.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vn&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultVN</span><span class="p">(),</span>
+             <span class="s1">&#39;How variational noise should be applied.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;params_init&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultParamInit</span><span class="p">(),</span>
         <span class="s1">&#39;How model weights should be initialized. Not to be confused with &#39;</span>
@@ -384,7 +416,7 @@
       <span class="n">to_params</span><span class="o">.</span><span class="n">skip_lp_regularization</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">skip_lp_regularization</span>
 
     <span class="c1"># Only copy from base when vn config is using the default setting.</span>
-    <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">vn</span> <span class="o">==</span> <span class="n">DefaultVN</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">to_params</span><span class="o">.</span><span class="n">vn</span> <span class="o">==</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">DefaultVN</span><span class="p">():</span>
       <span class="n">to_params</span><span class="o">.</span><span class="n">vn</span> <span class="o">=</span> <span class="n">from_params</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
     <span class="c1"># TODO(rpang): derive to_params.params_init.seed from</span>
@@ -397,9 +429,6 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Layer constructor.</span>
-
-<span class="sd">    Sub-classes of BaseLayer should decorator its __init__ with</span>
-<span class="sd">    @base_layer.initializer</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      params: A params used to construct this layer.</span>
@@ -425,10 +454,11 @@
     <span class="c1"># debugged more and understood better.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_setattr_tracking</span> <span class="o">=</span> <span class="kc">False</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">_LAYER_STACK</span><span class="o">.</span><span class="n">layer_stack</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">_LAYER_STACK</span><span class="o">.</span><span class="n">layer_stack</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">for</span> <span class="n">parent</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_LAYER_STACK</span><span class="o">.</span><span class="n">layer_stack</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">parent</span> <span class="ow">is</span> <span class="ow">not</span> <span class="bp">self</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_parent</span> <span class="o">=</span> <span class="n">parent</span>
+        <span class="k">break</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s1">&#39;Creating layer </span><span class="si">%s</span><span class="s1"> with params: </span><span class="se">\n</span><span class="s1"> </span><span class="si">%s</span><span class="s1"> </span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">,</span>
                           <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">params</span><span class="p">))</span>
@@ -452,7 +482,7 @@
     <span class="c1"># Mapping from variable names to its symbolic shape.</span>
     <span class="c1"># self._var_symbolic_shape_map[&#39;var_name&#39;] will be a tuple of integers or</span>
     <span class="c1"># symbolic expressions, one for each dimension of the variable.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
 
@@ -567,9 +597,9 @@
   <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the child layer of the given name.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_private_children&#39;</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
-          <span class="s1">&#39;pre-mature access to __getattr__ before _private_children &#39;</span>
-          <span class="s1">&#39;is created.&#39;</span><span class="p">)</span>
+      <span class="c1"># Raising AttributeError without custom message triggers normal python</span>
+      <span class="c1"># handling of __getattr__ AttributeError.</span>
+      <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
     <span class="k">elif</span> <span class="p">(</span><span class="nb">hasattr</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="n">name</span><span class="p">)</span> <span class="ow">and</span>
@@ -798,8 +828,8 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">(</span><span class="n">var_params</span><span class="o">.</span><span class="n">collections</span> <span class="o">+</span>
                        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">]))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="n">default_seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
     <span class="k">if</span> <span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
@@ -831,6 +861,8 @@
 <span class="sd">      name: Sub layer name which is used as the key into vars/theta.</span>
 <span class="sd">      params: `Hyperparams` object to instantiate a layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_disable_create_child&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Attempting to call CreateChild outside of __init__.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
       <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
@@ -838,8 +870,8 @@
     <span class="n">child</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span></div>
 
-<div class="viewcode-block" id="BaseLayer.CreateChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateChildren">[docs]</a>  <span class="k">def</span> <span class="nf">CreateChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">params_list</span><span class="p">,</span> <span class="n">child_scopes</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Create a list of sub layers.</span>
+<div class="viewcode-block" id="BaseLayer.CreateChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateChildren">[docs]</a>  <span class="k">def</span> <span class="nf">CreateChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create a list or dict of sub layers.</span>
 
 <span class="sd">    The created sub layer list can be accessed by `name`. E.g.::</span>
 
@@ -852,46 +884,28 @@
 <span class="sd">        self.children.foo[10].Fprop...</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      name: The name for the sub layers, which is used as the key</span>
-<span class="sd">        into vars/theta.</span>
-<span class="sd">      params_list: `Hyperparams` objects to instantiate a list of layers.</span>
-<span class="sd">      child_scopes: If not none, a variable_scope to set for each child.</span>
+<span class="sd">      name: The name for the sub layers, which is used as the key into</span>
+<span class="sd">        vars/theta.</span>
+<span class="sd">      params: a list or dict of `Hyperparams` objects to create.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;_disable_create_child&#39;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Attempting to call CreateChildren outside of __init__.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
 
-    <span class="k">def</span> <span class="nf">CreateChildrenHelper</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span> <span class="n">child_scopes</span><span class="p">):</span>
-      <span class="sd">&quot;&quot;&quot;Helper to create children recursively.&quot;&quot;&quot;</span>
-      <span class="k">if</span> <span class="n">child_scopes</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">child_scopes</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_list</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;child_scopes must be same structure as params_list.&#39;</span><span class="p">)</span>
-      <span class="n">children</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">params_list</span><span class="p">):</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-          <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-              <span class="n">CreateChildrenHelper</span><span class="p">(</span><span class="n">p</span><span class="p">,</span>
-                                   <span class="n">child_scopes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">if</span> <span class="n">child_scopes</span> <span class="k">else</span> <span class="kc">None</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CopyBaseParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
-          <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-            <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-          <span class="k">if</span> <span class="n">child_scopes</span><span class="p">:</span>
-            <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">child_scopes</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-              <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">())</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="n">children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">())</span>
-      <span class="k">return</span> <span class="n">children</span>
+    <span class="n">uid</span> <span class="o">=</span> <span class="n">itertools</span><span class="o">.</span><span class="n">count</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">CreateChildrenHelper</span><span class="p">(</span><span class="n">params_list</span><span class="p">,</span>
-                                                        <span class="n">child_scopes</span><span class="p">)</span></div>
+    <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CopyBaseParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="n">uid</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
 
-<div class="viewcode-block" id="BaseLayer.AddChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddChild">[docs]</a>  <span class="k">def</span> <span class="nf">AddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">child</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add an existing layer as a sublayer.&quot;&quot;&quot;</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">BaseLayer</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">child</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+        <span class="n">sub</span><span class="o">=</span><span class="n">params</span><span class="p">)</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">Instantiate</span><span class="p">)</span><span class="o">.</span><span class="n">sub</span></div>
 
-<div class="viewcode-block" id="BaseLayer.AddChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddChildren">[docs]</a>  <span class="k">def</span> <span class="nf">AddChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">children</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add existing layers as sublayers.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">children</span><span class="p">:</span>
+<div class="viewcode-block" id="BaseLayer.AddChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddChild">[docs]</a>  <span class="k">def</span> <span class="nf">AddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">children</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Add existing layer or layers as sublayer.&quot;&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(</span><span class="n">children</span><span class="p">):</span>
       <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">BaseLayer</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">children</span></div>
@@ -899,8 +913,7 @@
 <div class="viewcode-block" id="BaseLayer._AutoAddChild"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._AutoAddChild">[docs]</a>  <span class="k">def</span> <span class="nf">_AutoAddChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">child</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Record that a layer `child` is instantiated by this layer.</span>
 
-<span class="sd">    This is a method only called by `base_layer.initializer` decorator.</span>
-<span class="sd">    Subclasses should not call this method.</span>
+<span class="sd">    This method should only be called internally by BaseLayerMeta.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      child: A sub-layer of this layer.</span>
@@ -913,22 +926,15 @@
 
 <div class="viewcode-block" id="BaseLayer._VerifyChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VerifyChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via `CreateChild(ren)`.&quot;&quot;&quot;</span>
-
-    <span class="k">def</span> <span class="nf">FindCreatedChildren</span><span class="p">(</span><span class="n">parents</span><span class="p">):</span>
-      <span class="n">created_children</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">parents</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
-          <span class="n">created_children</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">FindCreatedChildren</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">created_children</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">created_children</span>
-
-    <span class="n">created_children</span> <span class="o">=</span> <span class="n">FindCreatedChildren</span><span class="p">(</span>
-        <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
+    <span class="n">created_children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">created_children</span><span class="p">,</span> <span class="p">(</span>
-          <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not created by BaseLayer.CreateChild(ren) in </span><span class="si">%r</span><span class="s1">.&#39;</span> <span class="o">%</span>
-          <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span></div>
+      <span class="k">if</span> <span class="n">v</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">created_children</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">([</span>
+            <span class="p">(</span><span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="nb">type</span><span class="p">(</span><span class="n">child</span><span class="p">))</span> <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="n">created_children</span>
+        <span class="p">])</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is not created by BaseLayer.CreateChild(ren) in </span><span class="si">%r</span><span class="s1">.&#39;</span> <span class="o">%</span>
+            <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BaseLayer._VerifyVarsAndTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VerifyVarsAndTheta">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyVarsAndTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Verify that vars and theta have the same nested structure.&quot;&quot;&quot;</span>

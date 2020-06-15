@@ -332,7 +332,7 @@
   <span class="k">return</span> <span class="n">x</span></div>
 
 
-<div class="viewcode-block" id="RelPositionBias"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util.RelPositionBias">[docs]</a><span class="k">def</span> <span class="nf">RelPositionBias</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">):</span>
+<div class="viewcode-block" id="RelPositionBias"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util.RelPositionBias">[docs]</a><span class="k">def</span> <span class="nf">RelPositionBias</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Compute relative position bias.</span>
 
 <span class="sd">  This is a subroutine used by variants of self-attentions with relative</span>
@@ -349,32 +349,52 @@
 
 <span class="sd">  Args:</span>
 <span class="sd">    tensors of the following shapes:</span>
-<span class="sd">    content:         [B, T, N, H]</span>
+<span class="sd">    content:         [N, H] if skip_term_b else [B, T, N, H]</span>
 <span class="sd">    abs_pos_emb:     [2T - 1, N, H], the absolute positional embedding.</span>
 <span class="sd">      abs_pos_emb[i] is the emb of relative distance i - (T-1).</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    The attention logits tensor. [B, N, T, T]</span>
+<span class="sd">    The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
-  <span class="n">l</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span>
-  <span class="n">abs_pos_emb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">abs_pos_emb</span><span class="p">,</span> <span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
 
-  <span class="c1"># [B, N, T, L=2T-1]</span>
-  <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,LNH-&gt;BNTL&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
-  <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">l</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;flatten&#39;</span><span class="p">)</span>
-  <span class="c1"># [B, N, T * (L + 1)].</span>
-  <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">)))</span>
-  <span class="c1"># [B, N, T, L + 1].</span>
-  <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;restore&#39;</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">term_bd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_term_b</span><span class="p">:</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">abs_pos_emb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">abs_pos_emb</span><span class="p">,</span> <span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">abs_pos_emb</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_term_b</span><span class="p">:</span>
+    <span class="c1"># [B, N, T, L=2T-1]</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,LNH-&gt;BNTL&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">l</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;flatten&#39;</span><span class="p">)</span>
+    <span class="c1"># [B, N, T * (L + 1)].</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">)))</span>
+    <span class="c1"># [B, N, T, L + 1].</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;restore&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_bd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># [N, L=2T-1]</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;NH,LNH-&gt;NL&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
+    <span class="c1"># [N, T, L]</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tile&#39;</span><span class="p">)</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">l</span><span class="p">])</span>
+    <span class="c1"># [N, T * (L + 1)].</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">)))</span>
+    <span class="c1"># [N, T, L + 1].</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;restore&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_d</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
 
 
 <div class="viewcode-block" id="_AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util._AttenLogits">[docs]</a><span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
                  <span class="n">key</span><span class="p">,</span>
                  <span class="n">abs_pos_emb</span><span class="p">,</span>
                  <span class="n">content_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                 <span class="n">positional_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+                 <span class="n">positional_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
 
 <span class="sd">  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of</span>
@@ -396,6 +416,7 @@
 <span class="sd">    distance i - (T-1).</span>
 <span class="sd">    content_bias:    [N, H] or None</span>
 <span class="sd">    positional_bias: [N, H] or None</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The attention logits tensor. [B, N, T, T]</span>
@@ -416,12 +437,20 @@
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_ac&#39;</span><span class="p">):</span>
     <span class="n">term_ac</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,BSNH-&gt;BNTS&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
   <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_bd&#39;</span><span class="p">):</span>
-    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">RelPositionBias</span><span class="p">(</span><span class="n">query</span> <span class="o">+</span> <span class="n">positional_bias</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">skip_term_b</span><span class="p">:</span>
+      <span class="n">content</span> <span class="o">=</span> <span class="n">positional_bias</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">content</span> <span class="o">=</span> <span class="n">query</span> <span class="o">+</span> <span class="n">positional_bias</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">RelPositionBias</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">skip_term_b</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div>
 
 
-<div class="viewcode-block" id="AttenLogitsTransformerXL"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util.AttenLogitsTransformerXL">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsTransformerXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span>
-                             <span class="n">positional_bias</span><span class="p">):</span>
+<div class="viewcode-block" id="AttenLogitsTransformerXL"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util.AttenLogitsTransformerXL">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsTransformerXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+                             <span class="n">key</span><span class="p">,</span>
+                             <span class="n">abs_pos_emb</span><span class="p">,</span>
+                             <span class="n">content_bias</span><span class="p">,</span>
+                             <span class="n">positional_bias</span><span class="p">,</span>
+                             <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
 
 <span class="sd">  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of</span>
@@ -443,11 +472,13 @@
 <span class="sd">    distance i - (T-1).</span>
 <span class="sd">    content_bias:    [N, H]</span>
 <span class="sd">    positional_bias: [N, H]</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The attention logits tensor. [B, N, T, T]</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">positional_bias</span><span class="p">)</span></div>
+  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">positional_bias</span><span class="p">,</span>
+                      <span class="n">skip_term_b</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="AttenLogitsRPE"><a class="viewcode-back" href="../../../lingvo.core.relative_atten_util.html#lingvo.core.relative_atten_util.AttenLogitsRPE">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsRPE</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">):</span>

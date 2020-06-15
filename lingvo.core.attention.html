@@ -679,7 +679,31 @@ attention prob.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.attention.MultiHeadedAttention.PackSource">
 <code class="sig-name descname">PackSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention.PackSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Packs source vectors.</p>
+<p>Does not change attention state.</p>
+<p>Note: <code class="xref py py-obj docutils literal notranslate"><span class="pre">source_segment_id</span></code>, if present, should always have the same shape as
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">source_padding</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>source_vecs</strong> – A single tensor of shape [time, batch_size, source_dim].</p></li>
+<li><p><strong>source_contexts</strong> – A single tensor of shape [time, batch_size, some_dim].</p></li>
+<li><p><strong>source_padding</strong> – A tensor of shape [time, batch_size].</p></li>
+<li><p><strong>source_segment_id</strong> – A tensor of shape [time, batch_size]. source_segment_id
+is not None for packed inputs where one training example may pack
+multiple sequences.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object to be passed to ComputeContextVectorWithSource.
+The internal structure of the return value should be considered an
+implementation detail of the attention mechanism and should not be
+inspected or modified by its callers.</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.attention.MultiHeadedAttention.ExtendSourcePacked">
@@ -699,7 +723,33 @@ attention prob.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithSource">
 <code class="sig-name descname">ComputeContextVectorWithSource</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithSource" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Computes the context vector given the current query output.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>packed_src</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object returned by PackSource or
+InitForSourcePacked.</p></li>
+<li><p><strong>query_vec</strong> – a tensor of shape [batch_size, query_dim].</p></li>
+<li><p><strong>attention_state</strong> – previous attention state.</p></li>
+<li><p><strong>per_step_source_padding</strong> – Source sequence padding to apply at this step. If
+not None, it should have shape [target_batch_size, source_length].</p></li>
+<li><p><strong>query_segment_id</strong> – a tensor of shape [batch_size].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><p>A tuple of 3 elements.</p>
+<ul class="simple">
+<li><p>The attention context vector: [batch_size, context_dim]</p></li>
+<li><p>The attention probability vector: [batch_size, time]</p></li>
+<li><p>The new attention mechanism state: possibly nested tuple of tensors
+with dimensions [target_batch, …]</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.attention.MultiHeadedAttention.ComputeContextVectorWithAttenProbs">

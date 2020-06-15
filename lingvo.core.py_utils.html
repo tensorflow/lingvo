@@ -553,6 +553,12 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.GradientsNoneAsZeros">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GradientsNoneAsZeros</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xs</span></em>, <em class="sig-param"><span class="n">ys</span></em>, <em class="sig-param"><span class="n">dys</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GradientsNoneAsZeros"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GradientsNoneAsZeros" title="Permalink to this definition">¶</a></dt>
+<dd><p>Take gradients and return the result with Nones replaced by zeros.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.IsCompatible">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">IsCompatible</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">lhs</span></em>, <em class="sig-param"><span class="n">rhs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#IsCompatible"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.IsCompatible" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns true if lhs and rhs are compatible.</p>
@@ -678,7 +684,7 @@ considered as one key.</p>
 <dl class="py method">
 <dt id="lingvo.core.py_utils.NestedMap._RecursiveMap">
 <code class="sig-name descname">_RecursiveMap</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fn</span></em>, <em class="sig-param"><span class="n">flatten</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap._RecursiveMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap._RecursiveMap" title="Permalink to this definition">¶</a></dt>
-<dd><p>Traverse recursively into lists and NestedMaps applying <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code>.</p>
+<dd><p>Traverse recursively into lists, dicts, and NestedMaps applying <code class="xref py py-obj docutils literal notranslate"><span class="pre">fn</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -697,8 +703,8 @@ result will have the same structure as this NestedMap.</p></li>
 <dt id="lingvo.core.py_utils.NestedMap.Flatten">
 <code class="sig-name descname">Flatten</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#NestedMap.Flatten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.NestedMap.Flatten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list containing the flattened values in the <a class="reference internal" href="#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a>.</p>
-<p>Unlike py_utils.Flatten(), this will only descend into lists and NestedMaps
-and not dicts, tuples, or namedtuples.</p>
+<p>Unlike py_utils.Flatten(), this will only descend into lists, dicts, and
+NestedMaps and not tuples, or namedtuples.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1636,6 +1642,11 @@ weight is a float and each metrics is a dict with str keys and
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">VariationalNoiseParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span></em>, <em class="sig-param"><span class="n">global_vn</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">per_step_vn</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#VariationalNoiseParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.VariationalNoiseParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a hyperparams for variational noise.</p>
 </dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.DefaultVN">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">DefaultVN</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#DefaultVN"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.DefaultVN" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.DisableVN">

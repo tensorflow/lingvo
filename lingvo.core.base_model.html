@@ -168,7 +168,7 @@
 <p>Base model.</p>
 <dl class="py class">
 <dt id="lingvo.core.base_model.DecodeFinalizeArgs">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">DecodeFinalizeArgs</code><a class="reference internal" href="_modules/lingvo/core/base_model.html#DecodeFinalizeArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="Permalink to this definition">¶</a></dt>
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">DecodeFinalizeArgs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">decode_out_path</span></em>, <em class="sig-param"><span class="n">decode_out</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#DecodeFinalizeArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.base_model.DecodeFinalizeArgs" title="lingvo.core.base_model.DecodeFinalizeArgs"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_model.DecodeFinalizeArgs</span></code></a></p>
 <p>Arguments to BaseTask.DecodeFinalize().</p>
 <dl class="py attribute">
@@ -812,13 +812,13 @@ object as created by <a class="reference internal" href="#lingvo.core.base_model
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">
-<code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_model.BaseModel.ConstructFPropGraph">
+<code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_model.BaseModel.ConstructFPropGraph">
-<code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop">
+<code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseModel.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseModel.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -870,12 +870,6 @@ per-example tensors in this method.</p>
 <p>Represents a single task from a model.</p>
 <p>Subclasses must create a Task in self._task by the end of __init__.</p>
 <dl class="py method">
-<dt id="lingvo.core.base_model.SingleTaskBase.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the layer params.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt id="lingvo.core.base_model.SingleTaskBase.tasks">
 <em class="property">property </em><code class="sig-name descname">tasks</code><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.tasks" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a list of all tasks.</p>
@@ -906,13 +900,13 @@ per-example tensors in this method.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">
-<code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">
+<code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph">
-<code class="sig-name descname">ConstructFPropGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.ConstructFPropGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.ConstructFPropGraph" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop">
+<code class="sig-name descname">ConstructPostTrainingLoop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskBase.ConstructPostTrainingLoop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskBase.ConstructPostTrainingLoop" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
