@@ -418,13 +418,13 @@ class SequentialLayer(base_layer.BaseLayer):
           th = theta[name]
           args = _ToTuple(args)
           tf.logging.vlog(1, 'SequentialLayer: call %s %s %d %s',
-                               ch.params.name, ch, len(args), str(args))
+                          ch.params.name, ch, len(args), str(args))
           args = ch.FProp(th, *args)
       else:
         for (ch, th) in zip(self.rep, theta.rep):
           args = _ToTuple(args)
           tf.logging.vlog(1, '  call %s %s %d %s', ch.params.name, ch,
-                               len(args), str(args))
+                          len(args), str(args))
           args = ch.FProp(th, *args)
       args = _ToTuple(args)
       return args[0] if len(args) == 1 else args
