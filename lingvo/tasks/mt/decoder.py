@@ -23,7 +23,6 @@ import math
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_decoder
-from lingvo.core import base_layer
 from lingvo.core import batch_major_attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
@@ -72,7 +71,6 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTBaseDecoder, self).__init__(params)
     p = self.params
@@ -445,7 +443,6 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p.emb.vocab_size = vocab_size
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTDecoderV1, self).__init__(params)
     p = self.params
@@ -973,7 +970,6 @@ class TransformerDecoder(MTBaseDecoder):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerDecoder, self).__init__(params)
     p = self.params
@@ -1844,7 +1840,6 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
     p.softmax.num_classes = vocab_size
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(InsertionDecoder, self).__init__(params)
     p = self.params
@@ -2051,7 +2046,6 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerBatchMajorDecoder, self).__init__(params)
     p = self.params

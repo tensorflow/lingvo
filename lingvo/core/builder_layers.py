@@ -40,7 +40,6 @@ class FirstNLayer(base_layer.BaseLayer):
     p.Define('n', 0, 'The number of args to return.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FirstNLayer, self).__init__(params)
     p = self.params
@@ -72,7 +71,6 @@ class ArgIndexLayer(base_layer.BaseLayer):
     p.Define('idx', [], 'The indices of args to return.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ArgIndexLayer, self).__init__(params)
     p = self.params
@@ -115,7 +113,6 @@ class RepeatLayer(base_layer.BaseLayer):
              'Repeat layers specified in \'body\' this many times.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RepeatLayer, self).__init__(params)
     p = self.params
@@ -222,7 +219,6 @@ class SoftCondLayer(base_layer.BaseLayer):
              'calculating the mean.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SoftCondLayer, self).__init__(params)
     p = self.params
@@ -389,7 +385,6 @@ class SequentialLayer(base_layer.BaseLayer):
              'this many times.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SequentialLayer, self).__init__(params)
     p = self.params
@@ -458,7 +453,6 @@ class UnarySequentialLayer(base_layer.BaseLayer):
     p.Define('sub', [], 'A list of layers\' params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(UnarySequentialLayer, self).__init__(params)
     p = self.params
@@ -811,7 +805,6 @@ class GraphLayer(base_layer.BaseLayer):
     p.Define('sub', [], 'A list of (signature, layer params) pairs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GraphLayer, self).__init__(params)
     p = self.params
@@ -916,7 +909,6 @@ class ParallelLayer(base_layer.BaseLayer):
         'flops and out_shapes, etc.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ParallelLayer, self).__init__(params)
     p = self.params
@@ -1008,7 +1000,6 @@ class LinearLayer(base_layer.BaseLayer):
     p.Define('output_dims', 0, 'Depth of the output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LinearLayer, self).__init__(params)
     p = self.params
@@ -1061,7 +1052,6 @@ class BiasLayer(base_layer.BaseLayer):
     p.Define('dims', 0, 'Depth of the input.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BiasLayer, self).__init__(params)
     p = self.params
@@ -1107,7 +1097,6 @@ class BranchLayer(base_layer.BaseLayer):
         'layers\' activation is appended to the output of body.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BranchLayer, self).__init__(params)
     p = self.params
@@ -1133,7 +1122,6 @@ class BatchParallelLayer(base_layer.BaseLayer):
     p.Define('sub', None, 'A layer param.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BatchParallelLayer, self).__init__(params)
     p = self.params
@@ -1223,7 +1211,6 @@ class RematerializationLayer(base_layer.BaseLayer):
              'The main layer whose FProp will be wrapped by RematerializeFn.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RematerializationLayer, self).__init__(params)
     self.CreateChild('body', self.params.body)

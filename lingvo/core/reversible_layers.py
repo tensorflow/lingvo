@@ -45,7 +45,6 @@ class RevNetLayer(base_layer.BaseLayer):
     p.Define('g_params', None, 'Layer params for the g block.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RevNetLayer, self).__init__(params)
     p = params
@@ -177,7 +176,6 @@ class StackedRevNetLayer(base_layer.BaseLayer):
         'the standard TF gradient. Useful for unit test and benchmarks')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackedRevNetLayer, self).__init__(params)
     p = params

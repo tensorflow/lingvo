@@ -143,7 +143,6 @@ class StatelessLayerStep(Step):
     p.Define('layer', None, 'Params for the layer that this step wraps.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StatelessLayerStep, self).__init__(params)
     p = params
@@ -211,7 +210,6 @@ class StackStep(Step):
         'n is added to layer n + 2')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackStep, self).__init__(params)
     p = params
@@ -321,7 +319,6 @@ class ParallelStep(Step):
         'PrepareExternalInputs method of each sub-step. ')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ParallelStep, self).__init__(params)
     p = params
@@ -421,7 +418,6 @@ class GraphStep(Step):
   _seq = collections.namedtuple(
       '_Seq', ['name', 'signature', 'external_signature', 'step'])
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GraphStep, self).__init__(params)
     p = self.params
@@ -559,7 +555,6 @@ class IteratorStep(Step):
     p.Define('axis', 1, 'The time dimension of the tensors.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(IteratorStep, self).__init__(params)
 
@@ -643,7 +638,6 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
     p.Define('step', None, 'The step params that this class wraps.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RecurrentStepWrapper, self).__init__(params)
     self.CreateChild('step', self.params.step)

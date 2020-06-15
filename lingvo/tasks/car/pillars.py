@@ -74,7 +74,6 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
              'Point cloud feature extractor.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PointsToGridFeaturizer, self).__init__(params)
     p = self.params
@@ -355,7 +354,6 @@ class ModelV1(point_detector.PointDetectorBase):
     tp.optimizer = optimizer.Momentum.Params().Set(alpha=0.9)
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelV1, self).__init__(params)
     p = self.params

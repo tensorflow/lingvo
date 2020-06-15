@@ -157,7 +157,6 @@ class BatchNormLayer(base_layer.BaseLayer):
         # Note, The real gamma to use is 1 + gamma.
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BatchNormLayer, self).__init__(params)
     p = self.params
@@ -495,7 +494,6 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         ' batchnorm is used. Only used for TPU.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BatchNormLayerNoPadding, self).__init__(params)
     p = self.params

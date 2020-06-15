@@ -19,7 +19,6 @@ import os
 import lingvo.compat as tf
 from lingvo.core import base_decoder
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import checkpointer
 from lingvo.core import layers
@@ -36,7 +35,6 @@ class TestTask(base_model.BaseTask):
     p = super(TestTask, cls).Params()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TestTask, self).__init__(params)
     p = self.params

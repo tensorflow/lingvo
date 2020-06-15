@@ -130,7 +130,6 @@ class FeatureExtractionLayer(base_layer.BaseLayer):
              'Names of fetch layers that cached extra activations')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FeatureExtractionLayer, self).__init__(params)
     p = self.params
@@ -266,7 +265,6 @@ class SeqLayer(base_layer.BaseLayer):
     p.Define('cell_tpl', [], 'A list of FeatureExtractionLayer layers.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SeqLayer, self).__init__(params)
     p = self.params

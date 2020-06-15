@@ -16,8 +16,6 @@
 
 
 from lingvo import compat as tf
-
-from lingvo.core import base_layer
 from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import step
@@ -38,7 +36,6 @@ class TextStep(step.Step):
   def Params(cls):
     return super(TextStep, cls).Params()
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TextStep, self).__init__(params)
 

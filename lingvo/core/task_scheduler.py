@@ -41,7 +41,6 @@ class TaskScheduler(base_layer.BaseLayer):
     p.name = 'task_scheduler'
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TaskScheduler, self).__init__(params)
     self.cur_probs = None
@@ -68,7 +67,6 @@ class AdaptiveScheduler(TaskScheduler):
     p.Define('alpha', 1.0, 'Normalized task scores are raised to this power.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(AdaptiveScheduler, self).__init__(params)
     if len(self.params.tasks) != 2 or len(self.params.expected) != 2:
@@ -193,7 +191,6 @@ class ShiftedExponentialScheduler(TaskScheduler):
         'schedulers, prob is a tuple of the form (init_prob, final_prob).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ShiftedExponentialScheduler, self).__init__(params)
     assert isinstance(self.params.task_probs, list)
@@ -226,7 +223,6 @@ class ConstantScheduler(ShiftedExponentialScheduler):
   """Constant schedule. Tasks are sampled from a fixed probability distribution.
   """
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ConstantScheduler, self).__init__(params)
 
@@ -243,7 +239,6 @@ class ExponentialScheduler(ShiftedExponentialScheduler):
   `p_1 + (p_0 - p_1) * exp(-alpha * current_step)`.
   """
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ExponentialScheduler, self).__init__(params)
 
@@ -260,7 +255,6 @@ class SigmoidScheduler(ShiftedExponentialScheduler):
   `p_1 + (2 * p_0 - p_1) * exp(-alpha * current_step)`.
   """
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SigmoidScheduler, self).__init__(params)
 
@@ -278,7 +272,6 @@ class RoundRobinScheduler(TaskScheduler):
     p.Define('tasks', [], 'List of task names. No repetitions allowed.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RoundRobinScheduler, self).__init__(params)
     assert isinstance(self.params.tasks, list)
@@ -308,7 +301,6 @@ class SequentialScheduler(TaskScheduler):
         'p.task_global_step is False.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SequentialScheduler, self).__init__(params)
     assert isinstance(self.params.task_steps, list)

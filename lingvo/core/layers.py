@@ -71,7 +71,6 @@ class DeconvLayer(base_layer.BaseLayer):
         ' specifies the stride on the width dimension.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DeconvLayer, self).__init__(params)
     p = self.params
@@ -196,7 +195,6 @@ LOG_SCALE_CLAMP_BOUND = 20.0
 class IdentityLayer(base_layer.BaseLayer):
   """Identity layer, adds name and propagates its input."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(IdentityLayer, self).__init__(params)
 
@@ -300,7 +298,6 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
         'layer which needs to have a merged set of statistics.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseConv2DLayer, self).__init__(params)
     p = self.params
@@ -823,7 +820,6 @@ class SeparableConv2DLayer(Conv2DLayer):
              'Template for the depthwise conv sub-layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     # Rewrite the filter.
     params = params.Copy()
@@ -911,7 +907,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'device inference b/146421936.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ProjectionLayer, self).__init__(params)
     p = self.params
@@ -1260,7 +1255,6 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
         'weights in the projection layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FeedForwardNet, self).__init__(params)
     p = self.params
@@ -1384,7 +1378,6 @@ class StackingOverTime(base_layer.BaseLayer):
     p.Define('stride', 1, 'The stride for emitting the stacked output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackingOverTime, self).__init__(params)
     p = self.params
@@ -1605,7 +1598,6 @@ class PoolingLayer(quant_utils.QuantizableLayer):
         'Roughly, VALID = NO_PADDING and SAME (default) = PAD INPUT')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PoolingLayer, self).__init__(params)
     p = self.params
@@ -1704,7 +1696,6 @@ class BlurPoolLayer(base_layer.BaseLayer):
     p.Define('input_channels', None, 'Number of input channels.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BlurPoolLayer, self).__init__(params)
     p = self.params
@@ -1809,7 +1800,6 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
         ' with sqrt(embedding_dim) in EmbLookup.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SingleShardEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -1875,7 +1865,6 @@ class EmbeddingLayer(base_layer.BaseLayer):
   # Min number of params per shard.
   MIN_PARAMS_PER_SHARD = 1024 * 256
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EmbeddingLayer, self).__init__(params)
     p = self.params
@@ -1979,7 +1968,6 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     p.Define('num_tpu_hosts', 0, 'Total number of TPU hosts.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TPUEmbeddingTable, self).__init__(params)
     p = self.params
@@ -2167,7 +2155,6 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     p.Define('learning_rate', None, 'Learning rate.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TPUEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -2332,7 +2319,6 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         ' with sqrt(embedding_dim) in EmbLookup.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SimpleEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -2584,7 +2570,6 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
     p.Define('uncertainty', 0.0, 'Uncertainty of the correct ID.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(OneHotEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -2656,7 +2641,6 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
              'Initial value of the scaling parameter.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PositionalEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -2780,7 +2764,6 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
     p.Define('dim', None, 'Dimension of embedding.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RelativePositionalEmbeddingLayer, self).__init__(params)
     params = self.params
@@ -2961,7 +2944,6 @@ class SimpleFullSoftmax(SoftmaxLayer):
         'better XLA fusions and optimizations.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a SimpleFullSoftmax layer."""
     super(SimpleFullSoftmax, self).__init__(params)
@@ -3279,7 +3261,6 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
 class SingleShardFullSoftmax(SoftmaxLayer):
   """Full softmax layer."""
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a SingleShardFullSoftmax layer."""
     super(SingleShardFullSoftmax, self).__init__(params)
@@ -3497,7 +3478,6 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
     p.Define('num_classes', 0, 'Total number of target classes.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a SimpleFullSoftmax layer."""
     super(ConvSoftmax, self).__init__(params)
@@ -3639,7 +3619,6 @@ class LayerNorm(base_layer.BaseLayer):
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LayerNorm, self).__init__(params)
     p = self.params
@@ -3725,7 +3704,6 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
         ' (time), width (frequency), in_channel, out_channel')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ConvSetLayer, self).__init__(params)
     p = self.params
@@ -3829,7 +3807,6 @@ class LocalizedLabelSmoother(base_layer.BaseLayer):
     p.Define('weights', [], 'Weight of the smoothing at corresponding offset')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LocalizedLabelSmoother, self).__init__(params)
     p = self.params
@@ -3908,7 +3885,6 @@ class UniformLabelSmoother(base_layer.BaseLayer):
              'to apply uncertainty_larger to.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(UniformLabelSmoother, self).__init__(params)
     p = self.params
@@ -3989,7 +3965,6 @@ class HighwaySkipLayer(base_layer.BaseLayer):
              'Boolean on whether to couple the transform and carry gates.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(HighwaySkipLayer, self).__init__(params)
     p = self.params
@@ -4061,7 +4036,6 @@ class GatingLayer(base_layer.BaseLayer):
     p.Define('carry_bias_init', 0.0, 'carry gates bias initialization')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GatingLayer, self).__init__(params)
     p = self.params
@@ -4229,7 +4203,6 @@ class WeightedSumLayer(base_layer.BaseLayer):
              'sum weights.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(WeightedSumLayer, self).__init__(params)
     p = self.params
@@ -4310,7 +4283,6 @@ class GatedAverageLayer(base_layer.BaseLayer):
     p.Define('num_inputs', 0, 'Number of input vectors to combine.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes GatedAverageLayer."""
     super(GatedAverageLayer, self).__init__(params)
@@ -4379,7 +4351,6 @@ class LHUCLayer(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Dimension of the input and output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LHUCLayer, self).__init__(params)
     p = self.params
@@ -4420,7 +4391,6 @@ class ResidualAdapterLayer(base_layer.BaseLayer):
     p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ResidualAdapterLayer, self).__init__(params)
     p = self.params
@@ -4516,7 +4486,6 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(Conv2DLayerNoPadding, self).__init__(params)
     p = self.params
@@ -4589,7 +4558,6 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
 class FetchLayer(base_layer.BaseLayer):
   """A layer facilitating fetching activations and their gradients."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FetchLayer, self).__init__(params)
     assert self.params.name
@@ -4658,7 +4626,6 @@ class GluLayer(base_layer.BaseLayer):
     p.Define('apply_residual', True, 'Whether or not to add inputs to outputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GluLayer, self).__init__(params)
     p = self.params
@@ -4743,7 +4710,6 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
         'typically Xavier with scale of 1.0.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MultitaskAdapterLayer, self).__init__(params)
     p = self.params
@@ -4871,7 +4837,6 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
     p.Define('noise_warmup_steps', 1.0, 'Steps to full noise.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CCTGatingNetwork, self).__init__(params)
     p = self.params

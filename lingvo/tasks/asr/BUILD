@@ -40,7 +40,6 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         # Implicit six dependency.
@@ -151,7 +150,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:attention",
         "//lingvo/core:base_decoder",
-        "//lingvo/core:base_layer",
         "//lingvo/core:cluster_factory",
         "//lingvo/core:layers",
         "//lingvo/core:plot",
@@ -207,7 +205,6 @@ py_library(
         ":encoder",
         ":frontend",
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",

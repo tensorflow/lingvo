@@ -923,7 +923,6 @@ py_library(
     srcs = ["multitask_model.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":base_layer",
         ":base_model",
         ":py_utils",
     ],
@@ -1152,7 +1151,6 @@ py_test(
     srcs = ["quant_utils_test.py"],
     python_version = "PY3",
     deps = [
-        ":base_layer",
         ":py_utils",
         ":quant_utils",
         ":test_utils",
@@ -1529,7 +1527,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         ":base_input_generator",
-        ":base_layer",
         ":base_model",
         ":py_utils",
         ":summary_utils",
@@ -1901,7 +1898,6 @@ py_test(
     srcs = ["step_test.py"],
     python_version = "PY3",
     deps = [
-        ":base_layer",
         ":builder_layers",
         ":py_utils",
         ":step",
@@ -1944,7 +1940,6 @@ py_test(
     deps = [
         ":base_decoder",
         ":base_input_generator",
-        ":base_layer",
         ":base_model",
         ":checkpointer_lib",
         ":layers",

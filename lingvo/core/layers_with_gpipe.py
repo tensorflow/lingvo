@@ -176,7 +176,6 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
     p = super(GPipeTransformerLayer, cls).Params()
     return _common_gpipe_transformer_params(p)
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GPipeTransformerLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
@@ -236,7 +235,6 @@ class GPipeEvolvedTransformerEncoderLayer(
     p = super(GPipeEvolvedTransformerEncoderLayer, cls).Params()
     return _common_gpipe_transformer_params(p)
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GPipeEvolvedTransformerEncoderLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
@@ -302,7 +300,6 @@ class GPipeEvolvedTransformerDecoderLayer(
     p = super(GPipeEvolvedTransformerDecoderLayer, cls).Params()
     return _common_gpipe_transformer_params(p)
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GPipeEvolvedTransformerDecoderLayer, self).__init__(params)
     _common_gpipe_transformer_init(self)
@@ -441,7 +438,6 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
              'Includes src_task_id and tgt_id in the fprop returns')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GPipeTransformerEmbeddingLayer, self).__init__(params)
     p = self.params
@@ -637,7 +633,6 @@ class GPipeTransformerStack(PipeliningLayer):
     p.batch_dim = 1
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     p = params.Copy()
     num_layers = p.num_encoder_layers + p.num_decoder_layers
@@ -934,7 +929,6 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
              'Dropout layer')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DeterministicWeightsLayer, self).__init__(params)
     p = self.params

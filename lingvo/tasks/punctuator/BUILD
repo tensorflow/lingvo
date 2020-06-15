@@ -12,7 +12,6 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_layer",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
         "//lingvo/core:tokenizers",

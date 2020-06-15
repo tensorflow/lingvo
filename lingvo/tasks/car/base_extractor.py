@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import datasource
 from lingvo.core import generic_input
 from lingvo.core import hyperparams
@@ -105,7 +104,6 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(_BaseExtractor, self).__init__(params)
     p = self.params

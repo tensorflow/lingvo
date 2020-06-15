@@ -154,7 +154,6 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
         'models.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SymbolInsertionLayer, self).__init__(params)
 

@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 from lingvo import compat as tf
-from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import step
@@ -36,7 +35,6 @@ class RnnStep(step.Step):
              'Params for the RNN cell.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RnnStep, self).__init__(params)
     p = params
@@ -162,7 +160,6 @@ class RnnStackStep(step.Step):
              'Number of lstm layers to skip per residual connection.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RnnStackStep, self).__init__(params)
     p = params

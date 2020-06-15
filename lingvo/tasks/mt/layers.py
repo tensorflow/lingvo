@@ -68,7 +68,6 @@ class TransformerStack(base_layer.BaseLayer):
     p.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerStack, self).__init__(params)
     p = self.params

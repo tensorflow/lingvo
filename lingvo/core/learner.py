@@ -99,7 +99,6 @@ class Learner(base_layer.BaseLayer):
              'Whether to apply gradients adjustment and scaling.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(Learner, self).__init__(params)
     p = self.params

@@ -96,7 +96,6 @@ class BaseInputGenerator(base_layer.BaseLayer):
         'concurrent inflight remote input fetches per remote target.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseInputGenerator, self).__init__(params)
     # parameter to tell the bprop one hot for all the files.
@@ -517,7 +516,6 @@ class BaseInputGeneratorFromFiles(BaseInputGenerator):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseInputGeneratorFromFiles, self).__init__(params)
     p = self.params
@@ -729,7 +727,6 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
         'this dict via a key.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseSequenceInputGenerator, self).__init__(params)
 

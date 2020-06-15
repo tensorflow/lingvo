@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import insertion
 from lingvo.core import metrics
@@ -48,7 +47,6 @@ class MTBaseModel(base_model.BaseTask):
     else:
       return tf.device('')
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTBaseModel, self).__init__(params)
     p = self.params
@@ -192,7 +190,6 @@ class TransformerModel(MTBaseModel):
     p.decoder = decoder.TransformerDecoder.Params()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerModel, self).__init__(params)
     p = self.params
@@ -230,7 +227,6 @@ class InsertionModel(MTBaseModel):
              'Insertion specifications (i.e., rollin and oracle policy).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(InsertionModel, self).__init__(params)
     p = self.params

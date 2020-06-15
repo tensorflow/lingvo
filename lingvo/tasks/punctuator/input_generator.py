@@ -22,7 +22,6 @@ from __future__ import print_function
 import string
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
@@ -104,7 +103,6 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
         **self.CommonInputOpArgs())
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PunctuatorInput, self).__init__(params)
 

@@ -246,7 +246,6 @@ class BaseTask(base_layer.BaseLayer):
     p.decoder = dp.cls.UpdateTargetVocabSize(dp, vocab_size, wpm_model)
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, BaseTask)
     # Ensure global_step exists before calling super.
@@ -894,7 +893,6 @@ class DistillationTask(BaseTask):
         'instance when the teacher is trained in parallel to the student.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, DistillationTask)
     super(DistillationTask, self).__init__(params)
@@ -1057,7 +1055,6 @@ class BaseModel(base_layer.BaseLayer):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
@@ -1143,7 +1140,6 @@ class SingleTaskBase(BaseModel):
   Subclasses must create a Task in self._task by the end of __init__.
   """
 
-  @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, SingleTaskBase)
     super(SingleTaskBase, self).__init__(params)
@@ -1202,7 +1198,6 @@ class SingleTaskModel(SingleTaskBase):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, SingleTaskModel)
     assert params.task
@@ -1241,7 +1236,6 @@ class MultiTaskSubModel(SingleTaskBase):
              'enclosing model.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MultiTaskSubModel, self).__init__(params)
     p = self.params
@@ -1276,7 +1270,6 @@ class MultiTaskModel(BaseModel):
         'redundant since the individual tasks scope by their `name`.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     assert issubclass(params.cls, MultiTaskModel)
     super(MultiTaskModel, self).__init__(params)

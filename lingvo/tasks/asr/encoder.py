@@ -146,7 +146,6 @@ class AsrEncoder(base_layer.BaseLayer):
     p.proj_tpl.activation = 'RELU'
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(AsrEncoder, self).__init__(params)
     p = self.params

@@ -77,7 +77,6 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p.Define('dim', 0, 'Number of individual dims .')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a PerDimScaleLayer object."""
     super(PerDimScaleLayer, self).__init__(params)
@@ -137,7 +136,6 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MultiHeadedProjectionLayer, self).__init__(params)
     p = self.params
@@ -248,7 +246,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a _MultiHeadedAttention object."""
     super(MultiHeadedAttention, self).__init__(params)
@@ -737,7 +734,6 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
              'If True, skip term_b in the paper section 3.3.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a MultiHeadedAttentionXL object."""
     super(MultiHeadedAttentionXL, self).__init__(params)
@@ -876,7 +872,6 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
         '`rel_pos_emb_tpl` is not None.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a MultiHeadedAttentionRPE object."""
     super(MultiHeadedAttentionRPE, self).__init__(params)
@@ -1115,7 +1110,6 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
     p.Define('right_context', 0, 'Number of right positions to attend.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a LocalCausalSelfAttention object."""
     super(LocalCausalSelfAttention, self).__init__(params)
@@ -1290,7 +1284,6 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
              'If True, skip term_b in the paper section 3.3.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a LocalCausalSelfAttentionXL object."""
     super(LocalCausalSelfAttentionXL, self).__init__(params)
@@ -1438,7 +1431,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
              'If True, add input (or normalized input) to the output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerAttentionLayer, self).__init__(params)
     p = self.params
@@ -1632,7 +1624,6 @@ class TransformerLayer(base_layer.BaseLayer):
   def NumOutputNodes(cls, p):
     return p.output_dim
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerLayer, self).__init__(params)
     p = self.params
@@ -1931,7 +1922,6 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackedTransformerLayers, self).__init__(params)
     p = self.params

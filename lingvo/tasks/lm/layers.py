@@ -55,7 +55,6 @@ class BaseLanguageModel(base_layer.BaseLayer):
     p.vocab_size = vocab_size
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseLanguageModel, self).__init__(params)
 
@@ -296,7 +295,6 @@ class RnnLmNoEmbedding(BaseLanguageModel):
         'input.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RnnLmNoEmbedding, self).__init__(params)
     p = self.params
@@ -560,7 +558,6 @@ class RnnLm(RnnLmNoEmbedding):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params, verify_sizes=True):
     super(RnnLm, self).__init__(params)
     p = self.params
@@ -639,7 +636,6 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
     p.emb.max_num_shards = 1
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ConditionalRnnLm, self).__init__(params)
     p = self.params
@@ -729,7 +725,6 @@ class MoeLm(BaseLanguageModel):
              'The LM to use for the merged LM')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MoeLm, self).__init__(params)
     p = self.params
@@ -896,7 +891,6 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerLmNoEmbedding, self).__init__(params)
     p = self.params
@@ -1148,7 +1142,6 @@ class TransformerLm(TransformerLmNoEmbedding):
       p.softmax.chunk_size = max(1, int(softmax_max_alloc / vocab_size))
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerLm, self).__init__(params)
     p = self.params
@@ -1297,7 +1290,6 @@ class GPipeTransformerLm(BaseLanguageModel):
                                            int(softmax_max_alloc / vocab_size))
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GPipeTransformerLm, self).__init__(params)
     p = self.params

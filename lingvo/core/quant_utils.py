@@ -126,7 +126,6 @@ class QuantizableLayer(base_layer.BaseLayer):
     p.qdomain.Define('default', None, 'Default quantization domain.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(QuantizableLayer, self).__init__(params)
     p = self.params
@@ -372,7 +371,6 @@ class QuantizableLayer(base_layer.BaseLayer):
 class BaseClippingCapSchedule(base_layer.BaseLayer):
   """Base class for clipping cap schedules."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseClippingCapSchedule, self).__init__(params)
 
@@ -578,7 +576,6 @@ class FakeQuantizationSchedule(BaseClippingCapSchedule):
     p.Define('bits', 8, 'Default quantized bit depth.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FakeQuantizationSchedule, self).__init__(params)
     p = self.params
@@ -881,7 +878,6 @@ class SymmetricScheduledClipQDomain(QDomain):
              'Quantization clipping schedule.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SymmetricScheduledClipQDomain, self).__init__(params)
     p = self.params
@@ -972,7 +968,6 @@ class PassiveAsymQDomain(QDomain):
         'training (not eval/inference).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PassiveAsymQDomain, self).__init__(params)
     p = self.params

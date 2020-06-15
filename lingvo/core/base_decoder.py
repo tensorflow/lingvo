@@ -128,7 +128,6 @@ class BaseBeamSearchDecoder(BaseDecoder):
     """
     raise NotImplementedError('Abstract method')
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseBeamSearchDecoder, self).__init__(params)
     p = self.params

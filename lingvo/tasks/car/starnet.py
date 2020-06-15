@@ -40,7 +40,6 @@ from __future__ import print_function
 import enum
 import functools
 from lingvo import compat as tf
-from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.tasks.car import builder_lib
 from lingvo.tasks.car import detection_3d_lib
@@ -251,7 +250,6 @@ class ModelBase(point_detector.PointDetectorBase):
         'weight of 0.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelBase, self).__init__(params)
     p = self.params
@@ -570,7 +568,6 @@ class ModelV1(ModelBase):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelV1, self).__init__(params)
     p = self.params
@@ -762,7 +759,6 @@ class ModelV2(ModelBase):
         'If true, the model predicts the ground truth for classification.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelV2, self).__init__(params)
     p = self.params

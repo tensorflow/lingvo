@@ -214,7 +214,6 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a BaseAttentionLayer object."""
     if not params.name:
@@ -470,7 +469,6 @@ class AdditiveAttention(BaseAttentionLayer):
         'True iff the source and target sequence has the same batch size.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs an `AdditiveAttention` object."""
     super(AdditiveAttention, self).__init__(params)
@@ -835,7 +833,6 @@ class DotProductAttention(BaseAttentionLayer):
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a DotProductAttention object."""
     super(DotProductAttention, self).__init__(params)
@@ -1198,7 +1195,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a MultiHeadedAttention object."""
     super(MultiHeadedAttention, self).__init__(params)
@@ -1821,7 +1817,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs an LocationSensitiveAttention object."""
     super(LocationSensitiveAttention, self).__init__(params)
@@ -2316,7 +2311,6 @@ class MonotonicAttention(BaseAttentionLayer):
     p.params_init = py_utils.WeightInit.GaussianSqrtDim()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs an MonotonicAttention object."""
     super(MonotonicAttention, self).__init__(params)
@@ -2612,7 +2606,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
     p.params_init = py_utils.WeightInit.Xavier(0.1)
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a GMM-based monotonic attention module."""
     super(GmmMonotonicAttention, self).__init__(params)
@@ -2935,7 +2928,6 @@ class MergerLayer(base_layer.BaseLayer):
   # Merging operation keys supported by this layer.
   MERGER_OPS = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MergerLayer, self).__init__(params)
     p = self.params
@@ -3122,7 +3114,6 @@ class MultiSourceAttention(BaseAttentionLayer):
         'Params to specify how to merge source attention vectors.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs an MultiSourceAttention object."""
     super(MultiSourceAttention, self).__init__(params)

@@ -20,7 +20,6 @@ from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo.core import attention
-from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import step
 from lingvo.core.steps import rnn_steps
@@ -49,7 +48,6 @@ class AttentionStep(step.Step):
              'Params of a subclass of BaseAttentionLayer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(AttentionStep, self).__init__(params)
     p = self.params
@@ -192,7 +190,6 @@ class AttentionBlockStep(step.Step):
         'or a list of them.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(AttentionBlockStep, self).__init__(params)
     p = self.params

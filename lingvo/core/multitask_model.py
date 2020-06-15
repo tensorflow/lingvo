@@ -17,8 +17,6 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 
@@ -33,7 +31,6 @@ class SharedEncoderModel(base_model.MultiTaskModel):
              'The task name whose encoder should be shared.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SharedEncoderModel, self).__init__(params)
     p = self.params
@@ -65,7 +62,6 @@ class SharedEncoderDecoderModel(base_model.MultiTaskModel):
              'The task name whose decoder should be shared.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SharedEncoderDecoderModel, self).__init__(params)
     p = self.params
@@ -106,7 +102,6 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
         ' expression while the second element is a python format string.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     # Enable variable sharing.
     p = params

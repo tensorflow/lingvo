@@ -294,7 +294,6 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_layer",
         "//lingvo/core:datasource",
         "//lingvo/core:generic_input",
         "//lingvo/core:hyperparams",
@@ -400,7 +399,6 @@ py_library(
         ":detection_decoder",
         ":kitti_decoder",
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
@@ -432,7 +430,6 @@ py_library(
         ":point_detector",
         # Implicit enum dependency.
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
     ],

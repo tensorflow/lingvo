@@ -38,7 +38,6 @@ class FusionBase(base_layer.BaseLayer):
         'logits.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes Fusion class."""
     try:

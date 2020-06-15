@@ -47,7 +47,6 @@ class _SimpyLayer(base_layer.BaseLayer):
     p = super(_SimpyLayer, cls).Params()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(_SimpyLayer, self).__init__(params)
     p = self.params

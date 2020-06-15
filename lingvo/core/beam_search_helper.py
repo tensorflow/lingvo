@@ -257,7 +257,6 @@ class BeamSearchHelper(base_layer.BaseLayer):
     p.name = 'beam_search'
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BeamSearchHelper, self).__init__(params)
     p = self.params

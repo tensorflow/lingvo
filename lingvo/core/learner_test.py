@@ -26,7 +26,6 @@ from lingvo.core import test_utils
 
 class TestLayer(base_layer.BaseLayer):
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TestLayer, self).__init__(params)
     p = self.params

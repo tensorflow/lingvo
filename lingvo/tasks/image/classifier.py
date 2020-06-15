@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import layers
 from lingvo.core import metrics
@@ -112,7 +111,6 @@ class ModelV1(BaseClassifier):
         .Set(warmup=100, decay_start=100000, decay_end=1000000, min=0.1))
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelV1, self).__init__(params)
     p = self.params
@@ -221,7 +219,6 @@ class ModelV2(BaseClassifier):
              'Whether to compute accuracy for training.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ModelV2, self).__init__(params)
     p = self.params

@@ -19,7 +19,6 @@ from __future__ import division
 from __future__ import print_function
 
 from lingvo import compat as tf
-from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import step
@@ -39,7 +38,6 @@ class EmbeddingStep(step.Step):
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EmbeddingStep, self).__init__(params)
     p = params

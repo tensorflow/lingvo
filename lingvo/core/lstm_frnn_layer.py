@@ -166,7 +166,6 @@ class LstmFRNN(base_layer.BaseLayer):
              'Whether or not to unroll the sequence in reversed order.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LstmFRNN, self).__init__(params)
     p = self.params

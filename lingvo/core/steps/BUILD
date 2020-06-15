@@ -12,7 +12,6 @@ py_library(
         ":rnn_steps",
         "//lingvo:compat",
         "//lingvo/core:attention",
-        "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
         "//lingvo/core:step",
     ],
@@ -37,7 +36,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         "//lingvo/core:step",
@@ -63,7 +61,6 @@ py_library(
     srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:step",

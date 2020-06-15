@@ -24,7 +24,6 @@ from lingvo.core import base_layer
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import wpm_encoder
-import numpy as np
 
 
 class BaseTokenizer(base_layer.BaseLayer):
@@ -49,7 +48,6 @@ class BaseTokenizer(base_layer.BaseLayer):
     p.Define('target_wb_id', -1, 'Target word boundary id.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseTokenizer, self).__init__(params)
     p = self.params
@@ -244,7 +242,6 @@ class WpmTokenizer(BaseTokenizer):
         'result in longer ID sequences. At 0, it will be graphemes.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(WpmTokenizer, self).__init__(params)
     p = self.params

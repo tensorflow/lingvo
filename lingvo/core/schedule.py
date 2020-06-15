@@ -37,7 +37,6 @@ class BaseSchedule(base_layer.BaseLayer):
     p.name = 'LRSched'
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseSchedule, self).__init__(params)
 
@@ -87,7 +86,6 @@ class PiecewiseConstantSchedule(BaseSchedule):
     p.Define('values', None, 'Values in each interval.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PiecewiseConstantSchedule, self).__init__(params)
 
@@ -111,7 +109,6 @@ class ContinuousSchedule(BaseSchedule):
     p.Define('min', 0.01, 'Minimum relative learning rate.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ContinuousSchedule, self).__init__(params)
     p = self.params
@@ -142,7 +139,6 @@ class PolynomialSchedule(BaseSchedule):
     p.Define('limit', (1, 1.), '(x1, y1)')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PolynomialSchedule, self).__init__(params)
 
@@ -198,7 +194,6 @@ class ExponentialSchedule(BaseSchedule):
     p.Define('limit', (1, 0.5), '(x1, y1)')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(ExponentialSchedule, self).__init__(params)
     p = self.params
@@ -233,7 +228,6 @@ class StepwiseExponentialSchedule(BaseSchedule):
     p.Define('num_steps_per_decay', 1000, 'Number of steps between decays.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StepwiseExponentialSchedule, self).__init__(params)
 
@@ -254,7 +248,6 @@ class CombinedMinimumSchedule(BaseSchedule):
              'A list of learning rate schedule params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CombinedMinimumSchedule, self).__init__(params)
     p = self.params
@@ -288,7 +281,6 @@ class TransformerSchedule(BaseSchedule):
              'decay_end-th step.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerSchedule, self).__init__(params)
 
@@ -318,7 +310,6 @@ class TransformerMLPerfSchedule(BaseSchedule):
         'layers and all Transformer layers.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerMLPerfSchedule, self).__init__(params)
 
@@ -353,7 +344,6 @@ class TransformerScheduleNoWarmUp(BaseSchedule):
     p.Define('worker_replicas', 1, 'Number of worker replicas.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerScheduleNoWarmUp, self).__init__(params)
     tf.logging.info('Peak lr: %f', (self.params.decay_start *
@@ -406,7 +396,6 @@ class LinearRampupExponentialDecayScaledByNumSplitSchedule(BaseSchedule):
         'LR. Overrides num_splits_per_client if non-zero.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LinearRampupExponentialDecayScaledByNumSplitSchedule,
           self).__init__(params)
@@ -468,7 +457,6 @@ class LinearRampupExponentialDecay(
     p.warmup_init = 0.0
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     assert params.num_splits == 1
     super(LinearRampupExponentialDecay, self).__init__(params)
@@ -501,7 +489,6 @@ class LinearRampupSqrtDecayByBatchSizeAndReplicas(BaseSchedule):
         'determined automatically (and error if this fails).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LinearRampupSqrtDecayByBatchSizeAndReplicas, self).__init__(params)
     p = self.params
@@ -550,7 +537,6 @@ class LinearRampupPiecewiseConstantSchedule(BaseSchedule):
         'LR. Overrides num_splits if non-zero.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LinearRampupPiecewiseConstantSchedule, self).__init__(params)
 
@@ -603,7 +589,6 @@ class LinearRampupCosineSchedule(BaseSchedule):
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LinearRampupCosineSchedule, self).__init__(params)
     p = self.params
@@ -656,7 +641,6 @@ class DevBasedSchedule(BaseSchedule):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DevBasedSchedule, self).__init__(params)
 
@@ -752,7 +736,6 @@ class PiecewiseSchedule(BaseSchedule):
         'sub-schedule for FProp.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PiecewiseSchedule, self).__init__(params)
     p = self.params
@@ -812,7 +795,6 @@ class CycleSchedule(BaseSchedule):
     p.Define('steps', None, 'The number of steps to run each sub-schedule.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CycleSchedule, self).__init__(params)
     p = self.params

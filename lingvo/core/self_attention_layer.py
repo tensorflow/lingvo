@@ -92,7 +92,6 @@ class StackedTransformerEncoderLayers(base_layer.BaseLayer):
     params.cls = cls
     return params
 
-  @base_layer.initializer
   def __init__(self, params):
     # Make this class a sub-class of params.base_cls
     self.__class__ = type(self.__class__.__name__, (params.base_cls, object),

@@ -200,7 +200,6 @@ class MelAsrFrontend(BaseAsrFrontend):
         output_dim=subsample_factor,
         input_frame_ratio=frame_step * subsample_factor)
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MelAsrFrontend, self).__init__(params)
     p = self.params

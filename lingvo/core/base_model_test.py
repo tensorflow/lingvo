@@ -40,7 +40,6 @@ _NUMPY_RANDOM_SEED = 9885784
 
 class TestTask(base_model.BaseTask):
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TestTask, self).__init__(params)
     p = self.params
@@ -184,7 +183,6 @@ class BaseTaskTest(test_utils.TestCase):
 
 class TeacherTask(base_model.BaseTask):
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TeacherTask, self).__init__(params)
     p = self.params
@@ -199,7 +197,6 @@ class TeacherTask(base_model.BaseTask):
 
 class StudentTask(base_model.BaseTask):
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StudentTask, self).__init__(params)
     p = self.params
@@ -238,7 +235,6 @@ class DistillationTestTask(base_model.DistillationTask):
     p.student.eval = None
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DistillationTestTask, self).__init__(params)
 

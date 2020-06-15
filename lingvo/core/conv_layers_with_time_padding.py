@@ -136,7 +136,6 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BaseConv2DLayerWithPadding, self).__init__(params)
     p = self.params
@@ -270,7 +269,6 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(Conv2DLayerWithPadding, self).__init__(params)
     p = self.params
@@ -338,7 +336,6 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
 class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
   """2D conv layer with causal dependency on the time axis."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CausalConv2DLayerWithPadding, self).__init__(params)
     p = self.params
@@ -388,7 +385,6 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DepthwiseConv2DLayer, self).__init__(params)
     p = self.params
@@ -459,7 +455,6 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
 class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   """Depthwise conv layer with causal dependency on the time axis."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CausalDepthwiseConv2DLayer, self).__init__(params)
     p = self.params
@@ -506,7 +501,6 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
              'Number of times weights are tiled over the input channels.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(NormalizedDepthwiseConv2DLayer, self).__init__(params)
     p = self.params

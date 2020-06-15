@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import generic_input
 from lingvo.core import py_utils
 import six
@@ -95,7 +94,6 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
         src_paddings.dtype)
     return src_inputs, src_paddings
 
-  @base_layer.initializer
   def __init__(self, params):
     super(AsrInput, self).__init__(params)
     p = self.params

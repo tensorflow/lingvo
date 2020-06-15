@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import generic_input
 from lingvo.core import ops
 from lingvo.core import py_utils
@@ -78,7 +77,6 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
         dynamic_padding_constants=[0, 1, 0, 1, 0, 0],
         **self.CommonInputOpArgs())
 
-  @base_layer.initializer
   def __init__(self, params):
     super(NmtInput, self).__init__(params)
     p = self.params
@@ -174,7 +172,6 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     )
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MlPerfInput, self).__init__(params)
     p = self.params
@@ -528,7 +525,6 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
              'MASS masking.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TextPackedInput, self).__init__(params)
     p = self.params

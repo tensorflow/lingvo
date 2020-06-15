@@ -21,7 +21,6 @@ from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
@@ -70,7 +69,6 @@ class CountingInputGenerator(base_input_generator.BaseInputGenerator):
 class IdentityRegressionTask(base_model.BaseTask):
   """A simple regression task for testing."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(IdentityRegressionTask, self).__init__(params)
     with tf.variable_scope('IdentityRegressionTask'):
@@ -120,7 +118,6 @@ class IdentityRegressionTask(base_model.BaseTask):
 class IdentityRegressionModel(base_model.SingleTaskModel):
   """Simple regression model for testing."""
 
-  @base_layer.initializer
   def __init__(self, params):
     super(IdentityRegressionModel, self).__init__(params)
     self.global_steps = []

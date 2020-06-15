@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import collections
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import metrics
 from lingvo.core import py_utils
@@ -76,7 +75,6 @@ class AsrModel(base_model.BaseTask):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     if not params.name:
       raise ValueError('params.name not set.')

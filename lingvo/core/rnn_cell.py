@@ -88,7 +88,6 @@ class RNNCell(quant_utils.QuantizableLayer):
         'py_utils.RNNCellStateInit.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes RnnCell."""
     super(RNNCell, self).__init__(params)
@@ -287,7 +286,6 @@ class LSTMCellSimple(RNNCell):
                      'Quantization for fully connected node.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LSTMCellSimple."""
     super(LSTMCellSimple, self).__init__(params)
@@ -647,7 +645,6 @@ class LSTMCellGrouped(RNNCell):
              'If > 1, number of shards for cross-group shuffling.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LSTMCellGrouped."""
     super(LSTMCellGrouped, self).__init__(params)
@@ -905,7 +902,6 @@ class QuantizedLSTMCell(RNNCell):
              'Clipping cap schedule.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes QuantizedLSTMCell."""
     super(QuantizedLSTMCell, self).__init__(params)
@@ -1025,7 +1021,6 @@ class LayerNormalizedLSTMCell(RNNCell):
   @tf_deprecation.deprecated(
       date=None,
       instructions='New models should use LayerNormalizedLSTMCellSimple.')
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCell."""
     super(LayerNormalizedLSTMCell, self).__init__(params)
@@ -1207,7 +1202,6 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCellSimple."""
     super(LayerNormalizedLSTMCellSimple, self).__init__(params)
@@ -1321,7 +1315,6 @@ class LayerNormalizedLSTMCellLean(RNNCell):
              'If > 0, applies ZoneOut regularization with the given prob.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCellLean."""
     super(LayerNormalizedLSTMCellLean, self).__init__(params)
@@ -1511,7 +1504,6 @@ class DoubleProjectionLSTMCell(RNNCell):
     p.params_init = py_utils.WeightInit.GeoMeanXavier()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(DoubleProjectionLSTMCell, self).__init__(params)
     assert isinstance(params, hyperparams.Params)
@@ -1689,7 +1681,6 @@ class ConvLSTMCell(RNNCell):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes ConvLSTMCell."""
     assert isinstance(params, hyperparams.Params)
@@ -1857,7 +1848,6 @@ class SRUCell(RNNCell):
         'gates, 2) projection weight matrices, and 3) cell recursion vectors.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes SRUCell."""
     super(SRUCell, self).__init__(params)
@@ -2206,7 +2196,6 @@ class QRNNPoolingCell(RNNCell):
              'Options: quasi_ifo, sru. Which pooling math to use')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes quasi-RNN Cell."""
     super(QRNNPoolingCell, self).__init__(params)
@@ -2344,7 +2333,6 @@ class GRUCell(RNNCell):
         'value is necessary only if apply_layer_norm is True')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes GRUCell."""
     super(GRUCell, self).__init__(params)

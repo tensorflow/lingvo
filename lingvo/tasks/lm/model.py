@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.core import schedule
@@ -56,7 +55,6 @@ class LanguageModel(base_model.BaseTask):
     tp.grad_norm_to_clip_to_zero = 100.0
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(LanguageModel, self).__init__(params)
     p = self.params

@@ -23,7 +23,6 @@ import math
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_decoder
-from lingvo.core import base_layer
 from lingvo.core import cluster_factory
 from lingvo.core import layers
 from lingvo.core import plot
@@ -308,7 +307,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       p.label_smoothing.num_classes = vocab_size
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     params = params.Copy()
     if params.min_ground_truth_prob < 1:

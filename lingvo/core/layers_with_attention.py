@@ -120,7 +120,6 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'residual_function.FProp(x, f(x)).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerAttentionLayer, self).__init__(params)
     p = self.params
@@ -425,7 +424,6 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     p.is_masked = False
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerMultiSourceAttentionLayer, self).__init__(params)
 
@@ -496,7 +494,6 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
              'If True, add skip_connection from input to output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerFeedForwardLayer, self).__init__(params)
     p = self.params
@@ -614,7 +611,6 @@ class TransformerLayer(base_layer.BaseLayer):
         'each task uses one dedicated projection layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerLayer, self).__init__(params)
     p = self.params
@@ -831,7 +827,6 @@ class EvolvedTransformerEncoderBranchedConvsLayer(base_layer.BaseLayer):
              'Separable convolution layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EvolvedTransformerEncoderBranchedConvsLayer, self).__init__(params)
     p = self.params
@@ -942,7 +937,6 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
              'Separable convolution layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EvolvedTransformerDecoderBranchedConvsLayer, self).__init__(params)
     p = self.params
@@ -1060,7 +1054,6 @@ class EvolvedTransformerEncoderLayer(EvolvedTransformerBaseLayer):
     p.Define('transformer_tpl', TransformerLayer.Params(), 'Transformer layer.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EvolvedTransformerEncoderLayer, self).__init__(params)
     p = self.params
@@ -1148,7 +1141,6 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
     p.has_aux_atten = True
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(EvolvedTransformerDecoderLayer, self).__init__(params)
     p = self.params
@@ -1342,7 +1334,6 @@ class StyleLayer(base_layer.BaseLayer):
         ' ctx_post_proj_dim.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StyleLayer, self).__init__(params)
     p = self.params
@@ -1444,7 +1435,6 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
              'Template to use for multitask adapters.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerLayerWithMultitaskAdapters, self).__init__(params)
     p = self.params
@@ -1609,7 +1599,6 @@ class CCTAttentionLayer(base_layer.BaseLayer):
     p.Define('gating_tpl', layers.CCTGatingNetwork.Params(), '')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CCTAttentionLayer, self).__init__(params)
     p = self.params
@@ -1927,7 +1916,6 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
     p.Define('gating_tpl', layers.CCTGatingNetwork.Params(), 'gating template.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CCTFeedForwardLayer, self).__init__(params)
     p = self.params
@@ -2055,7 +2043,6 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
     # removed: p.num_aux_atten_post_proj, p.tr_post_ln_tpl
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerWithContextLayer, self).__init__(params)
     p = self.params

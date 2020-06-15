@@ -78,7 +78,6 @@ py_library(
     deps = [
         ":layers",
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",

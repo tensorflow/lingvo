@@ -20,7 +20,6 @@
 
 
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import test_utils
@@ -37,7 +36,6 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('output_dim', 3, 'Depth of the output.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SampleQuantizedProjectionLayer, self).__init__(params)
     p = self.params

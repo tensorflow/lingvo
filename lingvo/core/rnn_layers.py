@@ -67,7 +67,6 @@ class IdentitySeqLayer(base_layer.BaseLayer):
     p = super(IdentitySeqLayer, cls).Params()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(IdentitySeqLayer, self).__init__(params)
 
@@ -96,7 +95,6 @@ class RNN(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RNN, self).__init__(params)
     p = self.params
@@ -186,7 +184,6 @@ class StackedRNNBase(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackedRNNBase, self).__init__(params)
     p = self.params
@@ -217,7 +214,6 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     p.Define('rnn_tpl', FRNN.Params(), 'Rnn cell default params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackedFRNNLayerByLayer, self).__init__(params)
     p = self.params
@@ -301,7 +297,6 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
     p.Define('frnn_tpl', BidirectionalFRNN.Params(), 'Rnn cell default params.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(StackedBiFRNNLayerByLayer, self).__init__(params)
     p = self.params
@@ -369,7 +364,6 @@ class FRNN(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FRNN, self).__init__(params)
     p = self.params
@@ -467,7 +461,6 @@ class BidirectionalFRNN(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BidirectionalFRNN, self).__init__(params)
     p = params
@@ -573,7 +566,6 @@ class BidirectionalRNN(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BidirectionalRNN, self).__init__(params)
     p = self.params
@@ -634,7 +626,6 @@ class BidirectionalRNNV2(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BidirectionalRNNV2, self).__init__(params)
     assert not self.params.packed_input, ('Packed input is currently not '
@@ -742,7 +733,6 @@ class FRNNWithAttention(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FRNNWithAttention, self).__init__(params)
     p = self.params
@@ -1107,7 +1097,6 @@ class MultiSourceFRNNWithAttention(base_layer.BaseLayer):
     """Reference to the attention layer(s) of this layer."""
     return self.attentions
 
-  @base_layer.initializer
   def __init__(self, params):
     """Constructs a MultiSourceFRNNWithAttention layer with params."""
     super(MultiSourceFRNNWithAttention, self).__init__(params)
@@ -1321,7 +1310,6 @@ class BidirectionalFRNNQuasi(base_layer.BaseLayer):
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(BidirectionalFRNNQuasi, self).__init__(params)
     p = params

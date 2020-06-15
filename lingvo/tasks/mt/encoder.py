@@ -76,7 +76,6 @@ class MTEncoderV1(base_layer.BaseLayer):
         tpl.params_init = default_params_init
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTEncoderV1, self).__init__(params)
     p = self.params
@@ -245,7 +244,6 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
     p.lstm_tpl.params_init = default_params_init
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTEncoderUniRNN, self).__init__(params)
     p = self.params
@@ -394,7 +392,6 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     p.lstm_tpl.params_init = default_params_init
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(MTEncoderBiRNN, self).__init__(params)
     p = self.params
@@ -572,7 +569,6 @@ class TransformerEncoder(base_layer.BaseLayer):
     p.transformer_stack.transformer_tpl.tr_fflayer_tpl.hidden_dim = 8192
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerEncoder, self).__init__(params)
     p = self.params
@@ -798,7 +794,6 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
         'BTC for [batch, time, feature_dim].')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TransformerBatchMajorEncoder, self).__init__(params)
     p = self.params

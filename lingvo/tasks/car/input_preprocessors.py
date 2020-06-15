@@ -263,7 +263,6 @@ class CreateDecoderCopy(Preprocessor):
     p.name = 'create_decoder_copy'
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(CreateDecoderCopy, self).__init__(params)
     p = self.params
@@ -1033,7 +1032,6 @@ class SparseCenterSelector(Preprocessor):
         'center xyz coordinates.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SparseCenterSelector, self).__init__(params)
     p = self.params
@@ -1800,7 +1798,6 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
         '(e.g., as a branch in tf.cond).')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RandomWorldRotationAboutZAxis, self).__init__(params)
     p = self.params
@@ -2096,7 +2093,6 @@ class WorldScaling(Preprocessor):
     p.Define('scaling', None, 'The scaling range.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(WorldScaling, self).__init__(params)
     p = self.params
@@ -2337,7 +2333,6 @@ class RandomBBoxTransform(Preprocessor):
         'have some points droppped.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RandomBBoxTransform, self).__init__(params)
     p = self.params
@@ -3036,7 +3031,6 @@ class FrustumDropout(Preprocessor):
         'phi width and theta width.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(FrustumDropout, self).__init__(params)
     p = self.params
@@ -3168,7 +3162,6 @@ class RepeatPreprocessor(Preprocessor):
 
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RepeatPreprocessor, self).__init__(params)
     p = self.params
@@ -3218,7 +3211,6 @@ class RandomApplyPreprocessor(Preprocessor):
     p.Define('subprocessor', None, 'Params for an input preprocessor.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(RandomApplyPreprocessor, self).__init__(params)
     p = self.params
@@ -3331,7 +3323,6 @@ class SparseSampler(Preprocessor):
         'neighborhood.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SparseSampler, self).__init__(params)
     p = self.params

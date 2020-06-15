@@ -37,7 +37,6 @@ def EvalAndFlatten(nmap):
 
 class TestLayer(base_layer.BaseLayer):
 
-  @base_layer.initializer
   def __init__(self, params):
     super(TestLayer, self).__init__(params)
     p = self.params
@@ -297,7 +296,6 @@ class BaseLayerTest(test_utils.TestCase):
       def Params(cls):
         return super(BadLayer, cls).Params()
 
-      @base_layer.initializer
       def __init__(self, params):
         super(BadLayer, self).__init__(params)
 

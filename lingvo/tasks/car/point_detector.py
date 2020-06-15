@@ -19,7 +19,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 from lingvo import compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.tasks.car import detection_3d_lib
@@ -80,7 +79,6 @@ class PointDetectorBase(base_model.BaseTask):
         'analysis.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(PointDetectorBase, self).__init__(params)
     p = self.params

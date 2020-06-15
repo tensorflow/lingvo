@@ -41,7 +41,6 @@ class MultiTaskModelTest(test_utils.TestCase):
       p.decoder.name = 'dec'
       return p
 
-    @base_layer.initializer
     def __init__(self, params):
       super(MultiTaskModelTest._TestTask, self).__init__(params)
       p = self.params
@@ -105,7 +104,6 @@ class MultiTaskModelTest(test_utils.TestCase):
       p.name = 'test_task'
       return p
 
-    @base_layer.initializer
     def __init__(self, params):
       super(MultiTaskModelTest._TestTaskWithVars, self).__init__(params)
       pc = py_utils.WeightParams(shape=[10, 10], dtype=tf.float32)

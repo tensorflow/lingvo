@@ -145,7 +145,6 @@ class SpectrumAugmenter(base_layer.BaseLayer):
         'applications including federated learning.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(SpectrumAugmenter, self).__init__(params)
     p = self.params
