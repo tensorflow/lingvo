@@ -166,97 +166,163 @@
 
 <span class="kn">import</span> <span class="nn">inspect</span>
 
+<span class="c1"># Groups of parameter kinds.</span>
+<span class="n">DEFINABLE_PARAMETER_KINDS</span> <span class="o">=</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">POSITIONAL_OR_KEYWORD</span><span class="p">,</span>
+                             <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">KEYWORD_ONLY</span><span class="p">)</span>
+<span class="n">IGNORABLE_PARAMETER_KINDS</span> <span class="o">=</span> <span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_POSITIONAL</span><span class="p">,</span>
+                             <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">VAR_KEYWORD</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DefineParamsFromArgs"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils.DefineParamsFromArgs">[docs]</a><span class="k">def</span> <span class="nf">DefineParamsFromArgs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Defines params for each parameter of func.</span>
 
-<span class="sd">  This allows you to define the parameters necessary to call a function</span>
-<span class="sd">  or instantiate a class without having to type the Define statements yourself.</span>
+<div class="viewcode-block" id="_IsDefinableParameter"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils._IsDefinableParameter">[docs]</a><span class="k">def</span> <span class="nf">_IsDefinableParameter</span><span class="p">(</span><span class="n">parameter</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Checks if the parameter can be defined in `Params`.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    parameter: inspect.Parameter to be checked.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    True if the `parameter`&#39;s kind is either `POSITIONAL_OR_KEYWORD` or</span>
+<span class="sd">    `KEYWORD_ONLY` which are definable in `Params`, False if it is either</span>
+<span class="sd">    `VAR_POSITIONAL` or `VAR_KEYWORD` which are ignorable.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: The `parameter` has another kind which are possibly not</span>
+<span class="sd">      supported, e.g., `POSITIONAL_ONLY` parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="n">DEFINABLE_PARAMETER_KINDS</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">True</span>
+  <span class="k">elif</span> <span class="n">parameter</span><span class="o">.</span><span class="n">kind</span> <span class="ow">in</span> <span class="n">IGNORABLE_PARAMETER_KINDS</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">False</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported parameter signature `</span><span class="si">%s</span><span class="s1">` with kind `</span><span class="si">%s</span><span class="s1">`.&#39;</span> <span class="o">%</span>
+                     <span class="p">(</span><span class="n">parameter</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">kind</span><span class="p">))</span></div>
+
+
+<div class="viewcode-block" id="_ExtractParameters"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils._ExtractParameters">[docs]</a><span class="k">def</span> <span class="nf">_ExtractParameters</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">ignore</span><span class="p">,</span> <span class="n">bound</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts parameters of func which can be defined in Params.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    func: A callable to be analysed.</span>
+<span class="sd">    ignore: A collection of parameter names in `func` to be ignored.</span>
+<span class="sd">    bound: Whether the `func` is used as a bound function (an object method or a</span>
+<span class="sd">      class method) or not. If True, the first parameter of the `func` will be</span>
+<span class="sd">      ignored.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A generator of `inspect.Parameter` representing definable parameters.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ignore</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ignore</span> <span class="k">if</span> <span class="n">ignore</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">())</span>
+
+  <span class="c1"># Obtains parameter signatures.</span>
+  <span class="n">parameters</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;param </span><span class="si">%d</span><span class="s1">: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span><span class="p">))</span>
+  <span class="c1"># Ignores the bound parameter: typically `self` or `cls`.</span>
+  <span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">bound</span> <span class="k">else</span> <span class="mi">0</span><span class="p">):]</span>
+  <span class="c1"># Filters unnecessary parameters.</span>
+  <span class="n">parameters</span> <span class="o">=</span> <span class="nb">filter</span><span class="p">(</span><span class="n">_IsDefinableParameter</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+  <span class="n">parameters</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span> <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">parameters</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">parameters</span></div>
+
+
+<div class="viewcode-block" id="DefineParams"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils.DefineParams">[docs]</a><span class="k">def</span> <span class="nf">DefineParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Defines params for each parameter of given callable.</span>
+
+<span class="sd">  This allows you to define the parameters necessary to call a callable without</span>
+<span class="sd">  having to type the Define statements yourself.</span>
 <span class="sd">  Default values for the function parameters will be copied into the params</span>
 <span class="sd">  object as well.</span>
 
-<span class="sd">  To use this with a class constructor, use MyClass.__init__ as the func</span>
-<span class="sd">  parameter.</span>
+<span class="sd">  To use this function for analysing a class instantiation, users usually can</span>
+<span class="sd">  pass the class type as the `func`. If it does not work correctly, pass the</span>
+<span class="sd">  `__init__` method of the class with `bound=True` instead.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    func: A callable. Parameters for this function will be defined in `params`.</span>
-<span class="sd">    params: A Params object to be updated. New parameters will be defined here.</span>
+<span class="sd">    func: A callable to be analysed. Parameters of this function will be defined</span>
+<span class="sd">      in `params`. This function expects that `func` maintains the explicit</span>
+<span class="sd">      signature of its parameters. Implicit parameters that are stored in</span>
+<span class="sd">      `*args` or `**kwargs` could not be analysed correctly.</span>
+<span class="sd">    params: A `Params` object to be updated. New parameters will be defined</span>
+<span class="sd">      here.</span>
 <span class="sd">    ignore: A collection of parameter names in `func` to be ignored from</span>
-<span class="sd">      defining resulting entries in `params`.</span>
+<span class="sd">      defining corresponding entries in `params`.</span>
+<span class="sd">    bound: Whether `func` will be used as a bound function (an object method or</span>
+<span class="sd">      a class method) or not. If True, the first parameter of `func` (typically</span>
+<span class="sd">      `self` or `cls`) will be ignored.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># Get the call signature of the function.</span>
-  <span class="n">init_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-  <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;self&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">]:</span>
-      <span class="k">continue</span>
-    <span class="k">if</span> <span class="n">ignore</span> <span class="ow">and</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">ignore</span><span class="p">:</span>
-      <span class="k">continue</span>
-    <span class="c1"># Add each parameter of the constructor to the params object.</span>
-    <span class="c1"># If the parameter has a default, add that too.</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">parameter</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">parameter</span><span class="o">.</span><span class="n">default</span><span class="p">,</span> <span class="s1">&#39;Function parameter.&#39;</span><span class="p">)</span></div>
+  <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_ExtractParameters</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">ignore</span><span class="p">,</span> <span class="n">bound</span><span class="p">):</span>
+    <span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">default</span>
+    <span class="k">if</span> <span class="n">default</span> <span class="ow">is</span> <span class="n">inspect</span><span class="o">.</span><span class="n">Parameter</span><span class="o">.</span><span class="n">empty</span><span class="p">:</span>
+      <span class="c1"># TODO(oday): If Params supported required fields, change this behavior to</span>
+      <span class="c1"># set the &quot;required&quot; flag.</span>
+      <span class="n">default</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="n">params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">default</span><span class="p">,</span> <span class="s1">&#39;Function parameter.&#39;</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_ExtractCallParams"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils._ExtractCallParams">[docs]</a><span class="k">def</span> <span class="nf">_ExtractCallParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Extracts parameters from params that should be used to call func.</span>
+<div class="viewcode-block" id="_MakeArgs"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils._MakeArgs">[docs]</a><span class="k">def</span> <span class="nf">_MakeArgs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generates an argument list to call func.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    func: A function, constructor, or method.</span>
-<span class="sd">    params: A hyperparams object containing arguments for func.</span>
+<span class="sd">    func: A callable to be called.</span>
+<span class="sd">    params: A Params object containing arguments for `func`.</span>
 <span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A dict containing function parameters.</span>
+<span class="sd">    A dict containing function parameters to be used as `**kwargs` of `func`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="c1"># Read the list of parameters that func requires.</span>
-  <span class="n">init_signature</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-  <span class="n">func_params</span> <span class="o">=</span> <span class="p">{}</span>
-  <span class="k">for</span> <span class="n">parameter</span> <span class="ow">in</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-    <span class="n">key</span> <span class="o">=</span> <span class="n">parameter</span><span class="o">.</span><span class="n">name</span>
-    <span class="c1"># Anything in kwargs overrides parameters.</span>
+  <span class="n">out_kwargs</span> <span class="o">=</span> <span class="p">{}</span>
+
+  <span class="c1"># Here we set bound=False so the `func` is expected to be already a bound</span>
+  <span class="c1"># function.</span>
+  <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">_ExtractParameters</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="c1"># We will collect only args defined in at least either `kwargs` or `params`.</span>
+    <span class="c1"># Args in `func`&#39;s signature but in neither both will be skipped.</span>
+
     <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>
-      <span class="n">func_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
-      <span class="k">continue</span>
-    <span class="c1"># If there&#39;s something in the function signature that&#39;s not in params,</span>
-    <span class="c1"># skip it.</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-      <span class="k">continue</span>
-    <span class="c1"># These are special function parameters that we should skip.</span>
-    <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;self&#39;</span><span class="p">,</span> <span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">]:</span>
-      <span class="k">continue</span>
-    <span class="c1"># If the value in params is the same as the function default, we will</span>
-    <span class="c1"># let the function signature fill in this parameter for us.</span>
-    <span class="k">if</span> <span class="n">init_signature</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">key</span><span class="p">]</span><span class="o">.</span><span class="n">default</span> <span class="o">==</span> <span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
-      <span class="k">continue</span>
-    <span class="n">func_params</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">func_params</span></div>
+      <span class="c1"># Anything in kwargs overrides parameters.</span>
+      <span class="n">out_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">elif</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+      <span class="c1"># If the value in params is the same as the function default, we do not</span>
+      <span class="c1"># set the arg so that we will let the function signature fill in this</span>
+      <span class="c1"># parameter by itself.</span>
+      <span class="k">if</span> <span class="n">value</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">default</span><span class="p">:</span>
+        <span class="n">out_kwargs</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+  <span class="k">return</span> <span class="n">out_kwargs</span></div>
 
 
 <div class="viewcode-block" id="CallWithParams"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils.CallWithParams">[docs]</a><span class="k">def</span> <span class="nf">CallWithParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Call a function or method with a hyperparams object.</span>
+  <span class="sd">&quot;&quot;&quot;Call a function or method with a Params object.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    func: A function or method.</span>
-<span class="sd">    params: A hyperparams object with parameters to pass to func.</span>
-<span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
+<span class="sd">    func: A callable to be called.</span>
+<span class="sd">    params: A Params object containing parameters of `func`.</span>
+<span class="sd">    **kwargs: Argument/value pairs that should override `params`.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The return values from func.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">_ExtractCallParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+  <span class="k">return</span> <span class="n">func</span><span class="p">(</span><span class="o">**</span><span class="n">_MakeArgs</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="ConstructWithParams"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils.ConstructWithParams">[docs]</a><span class="k">def</span> <span class="nf">ConstructWithParams</span><span class="p">(</span><span class="n">class_type</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Construct and object with a hyperparams object.</span>
+<span class="c1"># TODO(oday): Remove this function and replace it with CallWithParams when the</span>
+<span class="c1"># bug on the initializer of Keras layers has been resolved.</span>
+<div class="viewcode-block" id="ConstructWithParams"><a class="viewcode-back" href="../../../lingvo.core.inspect_utils.html#lingvo.core.inspect_utils.ConstructWithParams">[docs]</a><span class="k">def</span> <span class="nf">ConstructWithParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Constructs a class object with a Params object.</span>
 
 <span class="sd">  Args:</span>
-<span class="sd">    class_type: A class type.</span>
-<span class="sd">    params: A hyperparams object with parameters to pass to the constructor.</span>
-<span class="sd">    **kwargs: Argument/value pairs that should override params.</span>
+<span class="sd">    cls: A class type to be constructed.</span>
+<span class="sd">    params: A Params object containing parameters of `cls.__init__`.</span>
+<span class="sd">    **kwargs: Argument/value pairs that should override `params`.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    The constructed object.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">return</span> <span class="n">class_type</span><span class="p">(</span><span class="o">**</span><span class="n">_ExtractCallParams</span><span class="p">(</span><span class="n">class_type</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+  <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="o">**</span><span class="n">_MakeArgs</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
 </pre></div>
 
            </div>

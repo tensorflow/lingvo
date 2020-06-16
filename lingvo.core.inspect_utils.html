@@ -167,41 +167,89 @@
 <span id="lingvo-core-inspect-utils-module"></span><h1>lingvo.core.inspect_utils module<a class="headerlink" href="#module-lingvo.core.inspect_utils" title="Permalink to this headline">¶</a></h1>
 <p>Utilities to bind function signatures to params.</p>
 <dl class="py function">
-<dt id="lingvo.core.inspect_utils.DefineParamsFromArgs">
-<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">DefineParamsFromArgs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">ignore</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#DefineParamsFromArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils.DefineParamsFromArgs" title="Permalink to this definition">¶</a></dt>
-<dd><p>Defines params for each parameter of func.</p>
-<p>This allows you to define the parameters necessary to call a function
-or instantiate a class without having to type the Define statements yourself.
-Default values for the function parameters will be copied into the params
-object as well.</p>
-<p>To use this with a class constructor, use MyClass.__init__ as the func
-parameter.</p>
+<dt id="lingvo.core.inspect_utils._IsDefinableParameter">
+<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">_IsDefinableParameter</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">parameter</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#_IsDefinableParameter"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils._IsDefinableParameter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the parameter can be defined in <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>parameter</strong> – inspect.Parameter to be checked.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>True if the <code class="xref py py-obj docutils literal notranslate"><span class="pre">parameter</span></code>’s kind is either <code class="xref py py-obj docutils literal notranslate"><span class="pre">POSITIONAL_OR_KEYWORD</span></code> or
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">KEYWORD_ONLY</span></code> which are definable in <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>, False if it is either
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">VAR_POSITIONAL</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">VAR_KEYWORD</span></code> which are ignorable.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – The <code class="xref py py-obj docutils literal notranslate"><span class="pre">parameter</span></code> has another kind which are possibly not
+    supported, e.g., <code class="xref py py-obj docutils literal notranslate"><span class="pre">POSITIONAL_ONLY</span></code> parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.inspect_utils._ExtractParameters">
+<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">_ExtractParameters</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">ignore</span></em>, <em class="sig-param"><span class="n">bound</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#_ExtractParameters"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils._ExtractParameters" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts parameters of func which can be defined in Params.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>func</strong> – A callable. Parameters for this function will be defined in <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p></li>
-<li><p><strong>params</strong> – A Params object to be updated. New parameters will be defined here.</p></li>
+<li><p><strong>func</strong> – A callable to be analysed.</p></li>
+<li><p><strong>ignore</strong> – A collection of parameter names in <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> to be ignored.</p></li>
+<li><p><strong>bound</strong> – Whether the <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> is used as a bound function (an object method or a
+class method) or not. If True, the first parameter of the <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> will be
+ignored.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A generator of <a class="reference external" href="https://docs.python.org/3.7/library/inspect.html#inspect.Parameter" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">inspect.Parameter</span></code></a> representing definable parameters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.inspect_utils.DefineParams">
+<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">DefineParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="n">ignore</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bound</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#DefineParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils.DefineParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines params for each parameter of given callable.</p>
+<p>This allows you to define the parameters necessary to call a callable without
+having to type the Define statements yourself.
+Default values for the function parameters will be copied into the params
+object as well.</p>
+<p>To use this function for analysing a class instantiation, users usually can
+pass the class type as the <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>. If it does not work correctly, pass the
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">__init__</span></code> method of the class with <code class="xref py py-obj docutils literal notranslate"><span class="pre">bound=True</span></code> instead.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>func</strong> – A callable to be analysed. Parameters of this function will be defined
+in <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>. This function expects that <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> maintains the explicit
+signature of its parameters. Implicit parameters that are stored in
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">*args</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">**kwargs</span></code> could not be analysed correctly.</p></li>
+<li><p><strong>params</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> object to be updated. New parameters will be defined
+here.</p></li>
 <li><p><strong>ignore</strong> – A collection of parameter names in <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> to be ignored from
-defining resulting entries in <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p></li>
+defining corresponding entries in <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p></li>
+<li><p><strong>bound</strong> – Whether <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> will be used as a bound function (an object method or
+a class method) or not. If True, the first parameter of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> (typically
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">self</span></code> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls</span></code>) will be ignored.</p></li>
 </ul>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.inspect_utils._ExtractCallParams">
-<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">_ExtractCallParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#_ExtractCallParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils._ExtractCallParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Extracts parameters from params that should be used to call func.</p>
+<dt id="lingvo.core.inspect_utils._MakeArgs">
+<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">_MakeArgs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#_MakeArgs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils._MakeArgs" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates an argument list to call func.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>func</strong> – A function, constructor, or method.</p></li>
-<li><p><strong>params</strong> – A hyperparams object containing arguments for func.</p></li>
+<li><p><strong>func</strong> – A callable to be called.</p></li>
+<li><p><strong>params</strong> – A Params object containing arguments for <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>.</p></li>
 <li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>A dict containing function parameters.</p>
+<dd class="field-even"><p>A dict containing function parameters to be used as <code class="xref py py-obj docutils literal notranslate"><span class="pre">**kwargs</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -209,13 +257,13 @@ defining resulting entries in <code class="xref py py-obj docutils literal notra
 <dl class="py function">
 <dt id="lingvo.core.inspect_utils.CallWithParams">
 <code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">CallWithParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#CallWithParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils.CallWithParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Call a function or method with a hyperparams object.</p>
+<dd><p>Call a function or method with a Params object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>func</strong> – A function or method.</p></li>
-<li><p><strong>params</strong> – A hyperparams object with parameters to pass to func.</p></li>
-<li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
+<li><p><strong>func</strong> – A callable to be called.</p></li>
+<li><p><strong>params</strong> – A Params object containing parameters of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Argument/value pairs that should override <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -226,14 +274,14 @@ defining resulting entries in <code class="xref py py-obj docutils literal notra
 
 <dl class="py function">
 <dt id="lingvo.core.inspect_utils.ConstructWithParams">
-<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">ConstructWithParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">class_type</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#ConstructWithParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils.ConstructWithParams" title="Permalink to this definition">¶</a></dt>
-<dd><p>Construct and object with a hyperparams object.</p>
+<code class="sig-prename descclassname">lingvo.core.inspect_utils.</code><code class="sig-name descname">ConstructWithParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cls</span></em>, <em class="sig-param"><span class="n">params</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/inspect_utils.html#ConstructWithParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.inspect_utils.ConstructWithParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Constructs a class object with a Params object.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>class_type</strong> – A class type.</p></li>
-<li><p><strong>params</strong> – A hyperparams object with parameters to pass to the constructor.</p></li>
-<li><p><strong>**kwargs</strong> – Argument/value pairs that should override params.</p></li>
+<li><p><strong>cls</strong> – A class type to be constructed.</p></li>
+<li><p><strong>params</strong> – A Params object containing parameters of <code class="xref py py-obj docutils literal notranslate"><span class="pre">cls.__init__</span></code>.</p></li>
+<li><p><strong>**kwargs</strong> – Argument/value pairs that should override <code class="xref py py-obj docutils literal notranslate"><span class="pre">params</span></code>.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
