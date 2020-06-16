@@ -601,13 +601,13 @@
 
         <span class="c1"># If a task is explicitly specified, only train that task.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">:</span>
-          <span class="n">model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+          <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="c1"># Note: This is a slightly stale global_step value from the previous</span>
           <span class="c1"># sess.run() call.</span>
           <span class="c1"># For multi-task models, `self._model.task_schedule.cur_probs` will</span>
           <span class="c1"># be updated.</span>
-          <span class="n">model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">SampleTask</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
+          <span class="n">task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">SampleTask</span><span class="p">(</span><span class="n">global_step</span><span class="p">)</span>
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_probs_summary_writers</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">prob</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">cur_probs</span><span class="p">):</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;task_probability&#39;</span><span class="p">,</span> <span class="n">prob</span><span class="p">,</span>
@@ -621,15 +621,15 @@
               <span class="k">pass</span>
 
         <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">per_example_tensors</span><span class="p">)</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">([</span>
-            <span class="n">model_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">,</span>
-            <span class="n">model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span>
-            <span class="n">model_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">train_op</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span>
         <span class="p">])</span>
         <span class="c1"># Explicitly fetch global_step after running train_op.</span>
         <span class="c1"># TODO(b/151181934): Investigate this behavior further.</span>
         <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-        <span class="n">model_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
-                                       <span class="n">per_example_tensors</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+                                 <span class="n">per_example_tensors</span><span class="p">)</span>
 
         <span class="n">step_rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
             <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
@@ -1106,7 +1106,7 @@
         <span class="c1"># Always create the same graph to make sure node names are always</span>
         <span class="c1"># exactly the same.</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_tables</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialize_local_vars</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">local_variables_initializer</span><span class="p">()</span>
       <span class="c1"># No queues are allowed for eval models.</span>
@@ -1199,24 +1199,24 @@
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
     <span class="c1"># Check after how many steps checkpoint got saved.</span>
     <span class="c1"># And decide whether to run an evaluation.</span>
-    <span class="k">if</span> <span class="n">global_step</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_eval_after</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">global_step</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_eval_after</span><span class="p">:</span>
       <span class="k">return</span> <span class="kc">False</span>
     <span class="n">metrics_dict</span> <span class="o">=</span> <span class="p">{</span>
-        <span class="n">name</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span>
+        <span class="n">name</span><span class="p">:</span> <span class="n">metrics</span><span class="o">.</span><span class="n">AverageMetric</span><span class="p">()</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span>
     <span class="p">}</span>
     <span class="n">num_samples_metric</span> <span class="o">=</span> <span class="n">metrics_dict</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="k">while</span> <span class="p">(</span><span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">&lt;</span>
-           <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">):</span>
       <span class="c1"># NOTE: We intentionally do not let FProp generate summaries by default,</span>
       <span class="c1"># because evaler calls FProp multiple times for each checkpoint. Multiple</span>
       <span class="c1"># summaries at the same step is often confusing. Instead, models should</span>
       <span class="c1"># update eval_metrics and generate aggregate summaries.</span>
-      <span class="n">ans</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">)</span>
+      <span class="n">ans</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">ans</span><span class="p">):</span>
         <span class="n">metrics_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Total examples done: </span><span class="si">%d</span><span class="s1">/</span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
                       <span class="n">num_samples_metric</span><span class="o">.</span><span class="n">total_value</span><span class="p">,</span>
-                      <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">)</span>
+                      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span><span class="p">)</span>
 
     <span class="c1"># Replace average values with total values for certain metrics.</span>
     <span class="k">if</span> <span class="s1">&#39;num_predictions&#39;</span> <span class="ow">in</span> <span class="n">metrics_dict</span><span class="p">:</span>
@@ -1299,17 +1299,16 @@
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">GetPlacer</span><span class="p">()):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">params</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model_task_name</span><span class="p">)</span>
         <span class="c1"># Note, different graphs are being constructed for different model</span>
         <span class="c1"># tasks, which may result in different node names being chosen.</span>
         <span class="c1"># Obviously, variable names has to be stay the same between train and</span>
         <span class="c1"># decode.</span>
         <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">input_device</span><span class="p">):</span>
-          <span class="n">input_batch</span> <span class="o">=</span> <span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">())</span>
+          <span class="n">input_batch</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">())</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_dec_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateCheckpointer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span>
                                                      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span>
@@ -1370,7 +1369,7 @@
 
 <div class="viewcode-block" id="Decoder.DecodeCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Decoder.DecodeCheckpoint">[docs]</a>  <span class="k">def</span> <span class="nf">DecodeCheckpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Decodes `samples_per_summary` examples using `checkpoint_path`.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">params</span>
     <span class="n">ckpt_id_from_file</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetCkptIdFromFile</span><span class="p">(</span><span class="n">checkpoint_path</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">ckpt_id_from_file</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">start_decoder_after</span><span class="p">:</span>
       <span class="k">return</span> <span class="kc">False</span>
@@ -1380,7 +1379,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreFromPath</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">checkpoint_path</span><span class="p">)</span>
 
     <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-    <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
+    <span class="n">dec_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">CreateDecoderMetrics</span><span class="p">()</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">dec_metrics</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Empty decoder metrics&#39;</span><span class="p">)</span>
       <span class="k">return</span>
@@ -1401,7 +1400,7 @@
       <span class="n">post_process_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Done fetching (</span><span class="si">%f</span><span class="s1"> seconds)&#39;</span> <span class="o">%</span>
                       <span class="p">(</span><span class="n">post_process_start</span> <span class="o">-</span> <span class="n">fetch_start</span><span class="p">))</span>
-      <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
+      <span class="n">decode_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">dec_out</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">decode_out</span><span class="p">:</span>
         <span class="n">buffered_decode_out</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">decode_out</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
@@ -1435,7 +1434,7 @@
 
     <span class="n">decode_finalize_args</span> <span class="o">=</span> <span class="n">base_model</span><span class="o">.</span><span class="n">DecodeFinalizeArgs</span><span class="p">(</span>
         <span class="n">decode_out_path</span><span class="o">=</span><span class="n">decode_out_path</span><span class="p">,</span> <span class="n">decode_out</span><span class="o">=</span><span class="n">buffered_decode_out</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">DecodeFinalize</span><span class="p">(</span><span class="n">decode_finalize_args</span><span class="p">)</span>
 
     <span class="n">should_stop</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_should_report_metrics</span><span class="p">:</span>

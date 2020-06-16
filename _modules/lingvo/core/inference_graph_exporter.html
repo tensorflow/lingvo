@@ -553,7 +553,7 @@
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
           <span class="k">try</span><span class="p">:</span>
             <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-            <span class="n">model_task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
+            <span class="n">task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
 
             <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
                 <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span>
@@ -574,7 +574,7 @@
               <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
 
             <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
-            <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">model_task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
+            <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
               <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
             <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
