@@ -666,6 +666,23 @@ py_test(
 )
 
 py_library(
+    name = "inspect_utils",
+    srcs = ["inspect_utils.py"],
+    srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "inspect_utils_test",
+    srcs = ["inspect_utils_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":hyperparams",
+        ":inspect_utils",
+        ":test_utils",
+    ],
+)
+
+py_library(
     name = "layers",
     srcs = ["layers.py"],
     srcs_version = "PY2AND3",

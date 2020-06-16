@@ -54,6 +54,7 @@ class TestNamedTuple(collections.namedtuple('TestNamedTuple', ['a', 'b'])):
 class ParamsTest(test_utils.TestCase):
 
   def testEquals(self):
+    # pylint: disable=g-generic-assert
     params1 = _params.Params()
     params2 = _params.Params()
     self.assertTrue(params1 == params2)
@@ -79,6 +80,7 @@ class ParamsTest(test_utils.TestCase):
     # Comparing params to non-param instances.
     self.assertFalse(params1 == 3)
     self.assertFalse(3 == params1)
+    # pylint: enable=g-generic-assert
 
   def testDeepCopy(self):
     inner = _params.Params()
@@ -564,101 +566,6 @@ escaping_single : 'In "quotes"'
         '? d:\n'
         '>   hey: hi\n'
         '<   hey: hello\n')
-
-
-class FuncParamsTest(test_utils.TestCase):
-
-  def testBareFunction(self):
-
-    def my_function(a, b):
-      return a + 1, b + 2
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(my_function, params)
-
-    params.a = 5
-    params.b = 6
-    a1, b1 = _params.CallWithParams(my_function, params)
-    self.assertEqual(a1, 5 + 1)
-    self.assertEqual(b1, 6 + 2)
-
-  def testFunctionWithDefaults(self):
-
-    def my_function(a, b=3):
-      return a + 1, b + 2
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(my_function, params)
-
-    params.a = 6
-    a1, b1 = _params.CallWithParams(my_function, params)
-    self.assertEqual(a1, 6 + 1)
-    self.assertEqual(b1, 3 + 2)
-
-  def testFunctionWithIgnore(self):
-
-    def my_function(a, b=3, c=4):
-      return a + 1, b + 2, c + 3
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(my_function, params, ignore=['c'])
-
-    self.assertIn('a', params)
-    self.assertIn('b', params)
-    self.assertNotIn('c', params)
-
-    params.a = 6
-    a1, b1, c1 = _params.CallWithParams(my_function, params, c=9)
-    self.assertEqual(a1, 6 + 1)
-    self.assertEqual(b1, 3 + 2)
-    self.assertEqual(c1, 9 + 3)
-
-  def testFunctionWithOverrides(self):
-
-    def my_function(a, b=3):
-      return a + 1, b + 2
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(my_function, params)
-
-    params.a = 6
-    a1, b1 = _params.CallWithParams(my_function, params, a=7)
-    self.assertEqual(a1, 7 + 1)
-    self.assertEqual(b1, 3 + 2)
-
-  def testClassInit(self):
-
-    class MyClass(object):
-
-      def __init__(self, a, b=3):
-        self.a = a
-        self.b = b
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(MyClass.__init__, params)
-
-    params.a = 9
-    params.b = 5
-    obj = _params.ConstructWithParams(MyClass, params)
-    self.assertEqual(obj.a, 9)
-    self.assertEqual(obj.b, 5)
-
-  def testMethod(self):
-
-    class MyClass(object):
-
-      def __init__(self):
-        self._s = 'a/b'
-
-      def split(self, sep):
-        return self._s.split(sep)
-
-    params = _params.Params()
-    _params.DefineParamsFromArgs(MyClass.split, params)
-
-    params.sep = '/'
-    parts = _params.CallWithParams(MyClass().split, params)
-    self.assertEqual(['a', 'b'], parts)
 
 
 if __name__ == '__main__':
