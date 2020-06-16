@@ -21,94 +21,160 @@ from __future__ import print_function
 
 import inspect
 
+# Groups of parameter kinds.
+DEFINABLE_PARAMETER_KINDS = (inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                             inspect.Parameter.KEYWORD_ONLY)
+IGNORABLE_PARAMETER_KINDS = (inspect.Parameter.VAR_POSITIONAL,
+                             inspect.Parameter.VAR_KEYWORD)
 
-def DefineParamsFromArgs(func, params, ignore=None):
-  """Defines params for each parameter of func.
 
-  This allows you to define the parameters necessary to call a function
-  or instantiate a class without having to type the Define statements yourself.
+def _IsDefinableParameter(parameter):
+  """Checks if the parameter can be defined in `Params`.
+
+  Args:
+    parameter: inspect.Parameter to be checked.
+
+  Returns:
+    True if the `parameter`'s kind is either `POSITIONAL_OR_KEYWORD` or
+    `KEYWORD_ONLY` which are definable in `Params`, False if it is either
+    `VAR_POSITIONAL` or `VAR_KEYWORD` which are ignorable.
+
+  Raises:
+    ValueError: The `parameter` has another kind which are possibly not
+      supported, e.g., `POSITIONAL_ONLY` parameters.
+  """
+  if parameter.kind in DEFINABLE_PARAMETER_KINDS:
+    return True
+  elif parameter.kind in IGNORABLE_PARAMETER_KINDS:
+    return False
+  else:
+    raise ValueError('Unsupported parameter signature `%s` with kind `%s`.' %
+                     (parameter.name, parameter.kind))
+
+
+def _ExtractParameters(func, ignore, bound):
+  """Extracts parameters of func which can be defined in Params.
+
+  Args:
+    func: A callable to be analysed.
+    ignore: A collection of parameter names in `func` to be ignored.
+    bound: Whether the `func` is used as a bound function (an object method or a
+      class method) or not. If True, the first parameter of the `func` will be
+      ignored.
+
+  Returns:
+    A generator of `inspect.Parameter` representing definable parameters.
+  """
+  ignore = set(ignore if ignore is not None else ())
+
+  # Obtains parameter signatures.
+  parameters = tuple(inspect.signature(func).parameters.values())
+  for i, p in enumerate(parameters):
+    print('param %d: %s, %s' % (i, p.name, p.kind))
+  # Ignores the bound parameter: typically `self` or `cls`.
+  parameters = parameters[(1 if bound else 0):]
+  # Filters unnecessary parameters.
+  parameters = filter(_IsDefinableParameter, parameters)
+  parameters = (p for p in parameters if p.name not in ignore)
+
+  return parameters
+
+
+def DefineParams(func, params, ignore=None, bound=False):
+  """Defines params for each parameter of given callable.
+
+  This allows you to define the parameters necessary to call a callable without
+  having to type the Define statements yourself.
   Default values for the function parameters will be copied into the params
   object as well.
 
-  To use this with a class constructor, use MyClass.__init__ as the func
-  parameter.
+  To use this function for analysing a class instantiation, users usually can
+  pass the class type as the `func`. If it does not work correctly, pass the
+  `__init__` method of the class with `bound=True` instead.
 
   Args:
-    func: A callable. Parameters for this function will be defined in `params`.
-    params: A Params object to be updated. New parameters will be defined here.
+    func: A callable to be analysed. Parameters of this function will be defined
+      in `params`. This function expects that `func` maintains the explicit
+      signature of its parameters. Implicit parameters that are stored in
+      `*args` or `**kwargs` could not be analysed correctly.
+    params: A `Params` object to be updated. New parameters will be defined
+      here.
     ignore: A collection of parameter names in `func` to be ignored from
-      defining resulting entries in `params`.
+      defining corresponding entries in `params`.
+    bound: Whether `func` will be used as a bound function (an object method or
+      a class method) or not. If True, the first parameter of `func` (typically
+      `self` or `cls`) will be ignored.
   """
-  # Get the call signature of the function.
-  init_signature = inspect.signature(func)
-  for parameter in init_signature.parameters.values():
-    if parameter.name in ['self', 'args', 'kwargs']:
-      continue
-    if ignore and parameter.name in ignore:
-      continue
-    # Add each parameter of the constructor to the params object.
-    # If the parameter has a default, add that too.
-    params.Define(parameter.name, parameter.default, 'Function parameter.')
+  for p in _ExtractParameters(func, ignore, bound):
+    default = p.default
+    if default is inspect.Parameter.empty:
+      # TODO(oday): If Params supported required fields, change this behavior to
+      # set the "required" flag.
+      default = None
+
+    params.Define(p.name, default, 'Function parameter.')
 
 
-def _ExtractCallParams(func, params, **kwargs):
-  """Extracts parameters from params that should be used to call func.
+def _MakeArgs(func, params, **kwargs):
+  """Generates an argument list to call func.
 
   Args:
-    func: A function, constructor, or method.
-    params: A hyperparams object containing arguments for func.
+    func: A callable to be called.
+    params: A Params object containing arguments for `func`.
     **kwargs: Argument/value pairs that should override params.
 
   Returns:
-    A dict containing function parameters.
+    A dict containing function parameters to be used as `**kwargs` of `func`.
   """
-  # Read the list of parameters that func requires.
-  init_signature = inspect.signature(func)
-  func_params = {}
-  for parameter in init_signature.parameters.values():
-    key = parameter.name
-    # Anything in kwargs overrides parameters.
+  out_kwargs = {}
+
+  # Here we set bound=False so the `func` is expected to be already a bound
+  # function.
+  for p in _ExtractParameters(func, ignore=None, bound=False):
+    key = p.name
+
+    # We will collect only args defined in at least either `kwargs` or `params`.
+    # Args in `func`'s signature but in neither both will be skipped.
+
     if key in kwargs:
-      func_params[key] = kwargs[key]
-      continue
-    # If there's something in the function signature that's not in params,
-    # skip it.
-    if key not in params:
-      continue
-    # These are special function parameters that we should skip.
-    if key in ['self', 'args', 'kwargs']:
-      continue
-    # If the value in params is the same as the function default, we will
-    # let the function signature fill in this parameter for us.
-    if init_signature.parameters[key].default == params.Get(key):
-      continue
-    func_params[key] = params.Get(key)
-  return func_params
+      # Anything in kwargs overrides parameters.
+      out_kwargs[key] = kwargs[key]
+    elif key in params:
+      value = params.Get(key)
+      # If the value in params is the same as the function default, we do not
+      # set the arg so that we will let the function signature fill in this
+      # parameter by itself.
+      if value != p.default:
+        out_kwargs[key] = value
+
+  return out_kwargs
 
 
 def CallWithParams(func, params, **kwargs):
-  """Call a function or method with a hyperparams object.
+  """Call a function or method with a Params object.
 
   Args:
-    func: A function or method.
-    params: A hyperparams object with parameters to pass to func.
-    **kwargs: Argument/value pairs that should override params.
+    func: A callable to be called.
+    params: A Params object containing parameters of `func`.
+    **kwargs: Argument/value pairs that should override `params`.
 
   Returns:
     The return values from func.
   """
-  return func(**_ExtractCallParams(func, params, **kwargs))
+  return func(**_MakeArgs(func, params, **kwargs))
 
 
-def ConstructWithParams(class_type, params, **kwargs):
-  """Construct and object with a hyperparams object.
+# TODO(oday): Remove this function and replace it with CallWithParams when the
+# bug on the initializer of Keras layers has been resolved.
+def ConstructWithParams(cls, params, **kwargs):
+  """Constructs a class object with a Params object.
 
   Args:
-    class_type: A class type.
-    params: A hyperparams object with parameters to pass to the constructor.
-    **kwargs: Argument/value pairs that should override params.
+    cls: A class type to be constructed.
+    params: A Params object containing parameters of `cls.__init__`.
+    **kwargs: Argument/value pairs that should override `params`.
 
   Returns:
     The constructed object.
   """
-  return class_type(**_ExtractCallParams(class_type.__init__, params, **kwargs))
+  return cls(**_MakeArgs(cls.__init__, params, **kwargs))

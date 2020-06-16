@@ -29,7 +29,11 @@ class InspectUtilsTest(test_utils.TestCase):
       return a + 1, b + 2
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(my_function, params)
+    inspect_utils.DefineParams(my_function, params)
+    self.assertIn('a', params)
+    self.assertIn('b', params)
+    self.assertIsNone(params.a)
+    self.assertIsNone(params.b)
 
     params.a = 5
     params.b = 6
@@ -43,7 +47,11 @@ class InspectUtilsTest(test_utils.TestCase):
       return a + 1, b + 2
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(my_function, params)
+    inspect_utils.DefineParams(my_function, params)
+    self.assertIn('a', params)
+    self.assertIn('b', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
 
     params.a = 6
     a1, b1 = inspect_utils.CallWithParams(my_function, params)
@@ -56,11 +64,12 @@ class InspectUtilsTest(test_utils.TestCase):
       return a + 1, b + 2, c + 3
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(my_function, params, ignore=['c'])
-
+    inspect_utils.DefineParams(my_function, params, ignore=['c'])
     self.assertIn('a', params)
     self.assertIn('b', params)
     self.assertNotIn('c', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
 
     params.a = 6
     a1, b1, c1 = inspect_utils.CallWithParams(my_function, params, c=9)
@@ -74,11 +83,36 @@ class InspectUtilsTest(test_utils.TestCase):
       return a + 1, b + 2
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(my_function, params)
+    inspect_utils.DefineParams(my_function, params)
+    self.assertIn('a', params)
+    self.assertIn('b', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
 
     params.a = 6
     a1, b1 = inspect_utils.CallWithParams(my_function, params, a=7)
     self.assertEqual(a1, 7 + 1)
+    self.assertEqual(b1, 3 + 2)
+
+  def testFunctionWithVarArgs(self):
+
+    def my_function(a, *args, b=3, **kwargs):
+      del args
+      del kwargs
+      return a + 1, b + 2
+
+    params = hyperparams.Params()
+    inspect_utils.DefineParams(my_function, params)
+    self.assertIn('a', params)
+    self.assertNotIn('args', params)
+    self.assertIn('b', params)
+    self.assertNotIn('kwargs', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
+
+    params.a = 6
+    a1, b1 = inspect_utils.CallWithParams(my_function, params)
+    self.assertEqual(a1, 6 + 1)
     self.assertEqual(b1, 3 + 2)
 
   def testClassInit(self):
@@ -90,7 +124,34 @@ class InspectUtilsTest(test_utils.TestCase):
         self.b = b
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(MyClass.__init__, params)
+    inspect_utils.DefineParams(MyClass, params)
+    self.assertIn('a', params)
+    self.assertIn('b', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
+
+    params.a = 9
+    params.b = 5
+    obj = inspect_utils.CallWithParams(MyClass, params)
+    self.assertEqual(obj.a, 9)
+    self.assertEqual(obj.b, 5)
+
+  # TODO(oday): Remove this test when the bug on Keras has been resolved.
+  def testClassInit2(self):
+
+    class MyClass(object):
+
+      def __init__(self, a, b=3):
+        self.a = a
+        self.b = b
+
+    params = hyperparams.Params()
+    inspect_utils.DefineParams(MyClass.__init__, params, bound=True)
+    self.assertNotIn('self', params)
+    self.assertIn('a', params)
+    self.assertIn('b', params)
+    self.assertIsNone(params.a)
+    self.assertEqual(params.b, 3)
 
     params.a = 9
     params.b = 5
@@ -109,7 +170,10 @@ class InspectUtilsTest(test_utils.TestCase):
         return self._s.split(sep)
 
     params = hyperparams.Params()
-    inspect_utils.DefineParamsFromArgs(MyClass.split, params)
+    inspect_utils.DefineParams(MyClass.split, params, bound=True)
+    self.assertNotIn('self', params)
+    self.assertIn('sep', params)
+    self.assertIsNone(params.sep)
 
     params.sep = '/'
     parts = inspect_utils.CallWithParams(MyClass().split, params)
