@@ -139,7 +139,7 @@ class BaseProgram(object):
     try:
       for i in range(self._steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
-        sess.run(self._model.GetTask().input_generator.tpu_infeed_op)
+        sess.run(self._task.input.tpu_infeed_op)
       tf.logging.info('_InfeedLoop done')
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
@@ -329,7 +329,7 @@ class TrainProgram(BaseProgram):
         with tf.control_dependencies([outfeed_op]):
           for x, y in zip(per_step_eval_metrics, args):
             summed_metrics.append(x + y)
-        return summed_metrics + [self._model.GetTask().train_op]
+        return summed_metrics + [self._task.train_op]
 
       @tpu_function.on_device_training_loop
       def TpuTrain():
@@ -346,7 +346,7 @@ class TrainProgram(BaseProgram):
           num_shards=data_parallelism,
           device_assignment=py_utils.GetTpuDeviceAssignment())
       outfeed_dequeue_op = self._OutfeedDequeueLoop(
-          self._model.GetTask().per_example_tensors, self._steps_per_loop,
+          self._task.per_example_tensors, self._steps_per_loop,
           self.num_splits_per_client)
       # Get metric result from a single replica; they are all same here.
       self.tpu_ops = [[t[0] for t in batch_parallel_res], outfeed_dequeue_op]
@@ -380,8 +380,8 @@ class TrainProgram(BaseProgram):
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):
       self._SummarizeValue(global_step, key, val)
 
-    summaries = self._model.GetTask().ProcessFPropResults(
-        sess, global_step, eval_metrics, outfeeds)
+    summaries = self._task.ProcessFPropResults(sess, global_step, eval_metrics,
+                                               outfeeds)
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
     return False
@@ -426,7 +426,7 @@ class EvalProgram(BaseProgram):
 
           self._model.ConstructFPropGraph()
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
-              self._model.GetTask().eval_metrics, args)
+              self._task.eval_metrics, args)
           summed_metrics = []
           for x, y in zip(per_step_eval_metrics, args):
             summed_metrics.append(x + y)
@@ -494,10 +494,10 @@ class DecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         with cluster_factory.SetEval(True):
           self._model = self._task_params.Instantiate()
-          self._model_task = self._model.GetTask()
-          self._model_task.AddChild('input', self._input)
-          input_batch = self._model_task.input_generator.TpuDequeueBatch()
-          metrics_dict = self._model_task.Decode(input_batch)
+          self._task = self._model.GetTask()
+          self._task.AddChild('input', self._input)
+          input_batch = self._task.input.TpuDequeueBatch()
+          metrics_dict = self._task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()
 
@@ -516,13 +516,12 @@ class DecodeProgram(BaseProgram):
     self.SetStatusMessage('Executing decode program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
-    dec_metrics = self._model_task.CreateDecoderMetrics()
+    dec_metrics = self._task.CreateDecoderMetrics()
     start_time = time.time()
     buffered_decode_out = []
     for i in range(self._steps_per_loop):
       metrics_values = sess.run(self.metrics)
-      decode_out = self._model_task.PostProcessDecodeOut(
-          metrics_values, dec_metrics)
+      decode_out = self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
       tf.logging.info('step: %d %f' %
                            (i, dec_metrics['num_samples_in_batch'].total_value))
       if decode_out:
@@ -541,7 +540,7 @@ class DecodeProgram(BaseProgram):
                                    'decoder_out_%09d' % global_step)
     decode_finalize_args = base_model.DecodeFinalizeArgs(
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
-    self._model_task.DecodeFinalize(decode_finalize_args)
+    self._task.DecodeFinalize(decode_finalize_args)
     return False
 
 
@@ -566,13 +565,13 @@ class ExperimentalDecodeProgram(DecodeProgram):
     with py_utils.OpportunisticVariableReuseScope(True):
       with cluster_factory.SetEval(True):
         self._model = self._task_params.Instantiate()
-        self._model_task = self._model.GetTask()
-        self._model_task.input.CreateTpuEnqueueOps()
+        self._task = self._model.GetTask()
+        self._task.input.CreateTpuEnqueueOps()
 
         def _DecodeStep():
           """Decode call to be compiled for TPU."""
-          input_batch = self._model_task.input_generator.TpuDequeueBatch()
-          metrics_dict = self._model_task.Decode(input_batch)
+          input_batch = self._task.input.TpuDequeueBatch()
+          metrics_dict = self._task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           device = tpu.core(0) if self.spmd else ''
           with tf.device(device):
@@ -626,11 +625,11 @@ class ExperimentalDecodeProgram(DecodeProgram):
     decode_future = self._infeed_pool.apply_async(
         self._DecodeLoop, args=(sess,))
 
-    dec_metrics = self._model_task.CreateDecoderMetrics()
+    dec_metrics = self._task.CreateDecoderMetrics()
     start_time = time.time()
     for _ in range(self._steps_per_loop):
       metrics_values = sess.run(self.metrics)
-      self._model_task.PostProcessDecodeOut(metrics_values, dec_metrics)
+      self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
     decode_future.wait()
     infeed_future.wait()
     summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
@@ -709,11 +708,11 @@ class MLPerfTrainDecodeProgram(BaseProgram):
          [train_op].
         """
         self._train_model = self._train_task_params.Instantiate()
-        self._task = self._train_model.GetTask()
-        self._task.AddChild('input', self._train_input)
+        self._train_task = self._train_model.GetTask()
+        self._train_task.AddChild('input', self._train_input)
         self._model = self._train_model
         self._train_model.ConstructFPropBPropGraph()
-        return [self._train_model.GetTask().train_op]
+        return [self._train_task.train_op]
 
       def TpuTrain():
         loop_result = tpu_training_loop.repeat(
@@ -734,11 +733,10 @@ class MLPerfTrainDecodeProgram(BaseProgram):
       with py_utils.OpportunisticVariableReuseScope(True):
         with cluster_factory.SetEval(True):
           self._decode_model = self._decode_task_params.Instantiate()
-          self._decode_model_task = self._decode_model.GetTask()
-          self._decode_model_task.AddChild('input', self._decode_input)
-          input_batch = self._decode_model_task.input_generator.TpuDequeueBatch(
-          )
-          metrics_dict = self._decode_model_task.Decode(input_batch)
+          self._decode_task = self._decode_model.GetTask()
+          self._decode_task.AddChild('input', self._decode_input)
+          input_batch = self._decode_task.input.TpuDequeueBatch()
+          metrics_dict = self._decode_task.Decode(input_batch)
           self.metrics_nm = py_utils.NestedMap(metrics_dict)
           return self.metrics_nm.Flatten()
 
@@ -761,7 +759,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     try:
       for i in range(self._train_steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
-        sess.run(self._train_model.GetTask().input_generator.tpu_infeed_op)
+        sess.run(self._train_task.input.tpu_infeed_op)
       if self._ml_perf_log:
         mlp_log.mlperf_print(
             'eval_start',
@@ -772,7 +770,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
             })
       for i in range(self._decode_steps_per_loop):
         tf.logging.vlog(1, '_InfeedLoop %d', i)
-        sess.run(self._decode_model.GetTask().input_generator.tpu_infeed_op)
+        sess.run(self._decode_task.input.tpu_infeed_op)
       tf.logging.info('_InfeedLoop done')
     except Exception as e:
       tf.logging.info('_InfeedLoop exception %r %s', e, e)
@@ -780,13 +778,12 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
   def _TrainAndDecode(self, sess):
     metrics_values = sess.run(self.metrics)
-    self._decode_model_task.PostProcessDecodeOut(metrics_values,
-                                                 self.dec_metrics)
+    self._decode_task.PostProcessDecodeOut(metrics_values, self.dec_metrics)
 
   def Run(self, sess):
     gsteps = py_utils.GetGlobalStep()
     global_step = sess.run(gsteps)
-    self.dec_metrics = self._decode_model_task.CreateDecoderMetrics()
+    self.dec_metrics = self._decode_task.CreateDecoderMetrics()
     # Start TPU program thread.
     train_future = self._train_pool.apply_async(
         self._TrainAndDecode, args=(sess,))

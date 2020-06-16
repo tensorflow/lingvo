@@ -408,7 +408,7 @@ class InferenceGraphExporter(object):
         with py_utils.GlobalStepContext(global_step):
           try:
             mdl = model_cfg.Instantiate()
-            model_task = mdl.GetTask(model_task_name)
+            task = mdl.GetTask(model_task_name)
 
             variables_to_restore = (
                 _MakeVariableDictionary(tf.global_variables()) if not mdl.ema
@@ -429,7 +429,7 @@ class InferenceGraphExporter(object):
               tf.group(tf.tpu.initialize_system(), name='tpu_init_op')
 
             inference_graph_proto = inference_graph_pb2.InferenceGraph()
-            subgraphs_proto = model_task.Inference()
+            subgraphs_proto = task.Inference()
             if isinstance(subgraphs_proto, dict):
               subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
             for name, subgraph in subgraphs_proto.subgraphs.items():

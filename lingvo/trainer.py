@@ -456,13 +456,13 @@ class Trainer(base_runner.BaseRunner):
 
         # If a task is explicitly specified, only train that task.
         if self._model_task_name:
-          model_task = self._model.GetTask(self._model_task_name)
+          task = self._model.GetTask(self._model_task_name)
         else:
           # Note: This is a slightly stale global_step value from the previous
           # sess.run() call.
           # For multi-task models, `self._model.task_schedule.cur_probs` will
           # be updated.
-          model_task = self._model.SampleTask(global_step)
+          task = self._model.SampleTask(global_step)
           if self._task_probs_summary_writers:
             for index, prob in enumerate(self._model.task_schedule.cur_probs):
               self._SummarizeValue(global_step, 'task_probability', prob,
@@ -476,15 +476,15 @@ class Trainer(base_runner.BaseRunner):
               pass
 
         (_, eval_metrics, per_example_tensors) = sess.run([
-            model_task.train_op,
-            model_task.eval_metrics,
-            model_task.per_example_tensors,
+            task.train_op,
+            task.eval_metrics,
+            task.per_example_tensors,
         ])
         # Explicitly fetch global_step after running train_op.
         # TODO(b/151181934): Investigate this behavior further.
         global_step = sess.run(py_utils.GetGlobalStep())
-        model_task.ProcessFPropResults(sess, global_step, eval_metrics,
-                                       per_example_tensors)
+        task.ProcessFPropResults(sess, global_step, eval_metrics,
+                                 per_example_tensors)
 
         step_rate, example_rate, total_examples = self._step_rate_tracker.ComputeStepRate(
             global_step, eval_metrics['num_samples_in_batch'][0])
@@ -961,7 +961,7 @@ class Evaler(base_runner.BaseRunner):
         # Always create the same graph to make sure node names are always
         # exactly the same.
         self._model.ConstructFPropGraph()
-        self._model_task = self._model.GetTask(self._model_task_name)
+        self._task = self._model.GetTask(self._model_task_name)
       self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
       # No queues are allowed for eval models.
@@ -1054,24 +1054,24 @@ class Evaler(base_runner.BaseRunner):
     global_step = sess.run(py_utils.GetGlobalStep())
     # Check after how many steps checkpoint got saved.
     # And decide whether to run an evaluation.
-    if global_step < self._model_task.params.eval.start_eval_after:
+    if global_step < self._task.params.eval.start_eval_after:
       return False
     metrics_dict = {
-        name: metrics.AverageMetric() for name in self._model_task.eval_metrics
+        name: metrics.AverageMetric() for name in self._task.eval_metrics
     }
     num_samples_metric = metrics_dict['num_samples_in_batch']
     while (num_samples_metric.total_value <
-           self._model_task.params.eval.samples_per_summary):
+           self._task.params.eval.samples_per_summary):
       # NOTE: We intentionally do not let FProp generate summaries by default,
       # because evaler calls FProp multiple times for each checkpoint. Multiple
       # summaries at the same step is often confusing. Instead, models should
       # update eval_metrics and generate aggregate summaries.
-      ans = sess.run(self._model_task.eval_metrics)
+      ans = sess.run(self._task.eval_metrics)
       for name, (value, weight) in six.iteritems(ans):
         metrics_dict[name].Update(value, weight)
       tf.logging.info('Total examples done: %d/%d',
                       num_samples_metric.total_value,
-                      self._model_task.params.eval.samples_per_summary)
+                      self._task.params.eval.samples_per_summary)
 
     # Replace average values with total values for certain metrics.
     if 'num_predictions' in metrics_dict:
@@ -1154,17 +1154,16 @@ class Decoder(base_runner.BaseRunner):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         self._model = self.params.Instantiate()
         self._params = self._model.params
-        self._model_task = self._model.GetTask(self._model_task_name)
+        self._task = self._model.GetTask(self._model_task_name)
         # Note, different graphs are being constructed for different model
         # tasks, which may result in different node names being chosen.
         # Obviously, variable names has to be stay the same between train and
         # decode.
         cluster = self._cluster
         with tf.device(cluster.input_device):
-          input_batch = (
-              self._model_task.input_generator.GetPreprocessedInputBatch())
+          input_batch = (self._task.input_generator.GetPreprocessedInputBatch())
 
-        self._dec_output = self._model_task.Decode(input_batch)
+        self._dec_output = self._task.Decode(input_batch)
         self._summary_op = tf.summary.merge_all()
         self.checkpointer = self._CreateCheckpointer(self._train_dir,
                                                      self._model)
@@ -1225,7 +1224,7 @@ class Decoder(base_runner.BaseRunner):
 
   def DecodeCheckpoint(self, sess, checkpoint_path):
     """Decodes `samples_per_summary` examples using `checkpoint_path`."""
-    p = self._model_task.params
+    p = self._task.params
     ckpt_id_from_file = self.GetCkptIdFromFile(checkpoint_path)
     if ckpt_id_from_file < p.eval.start_decoder_after:
       return False
@@ -1235,7 +1234,7 @@ class Decoder(base_runner.BaseRunner):
     self.checkpointer.RestoreFromPath(sess, checkpoint_path)
 
     global_step = sess.run(py_utils.GetGlobalStep())
-    dec_metrics = self._model_task.CreateDecoderMetrics()
+    dec_metrics = self._task.CreateDecoderMetrics()
     if not dec_metrics:
       tf.logging.info('Empty decoder metrics')
       return
@@ -1256,7 +1255,7 @@ class Decoder(base_runner.BaseRunner):
       post_process_start = time.time()
       tf.logging.info('Done fetching (%f seconds)' %
                       (post_process_start - fetch_start))
-      decode_out = self._model_task.PostProcessDecodeOut(dec_out, dec_metrics)
+      decode_out = self._task.PostProcessDecodeOut(dec_out, dec_metrics)
       if decode_out:
         buffered_decode_out.extend(decode_out)
       tf.logging.info(
@@ -1290,7 +1289,7 @@ class Decoder(base_runner.BaseRunner):
 
     decode_finalize_args = base_model.DecodeFinalizeArgs(
         decode_out_path=decode_out_path, decode_out=buffered_decode_out)
-    self._model_task.DecodeFinalize(decode_finalize_args)
+    self._task.DecodeFinalize(decode_finalize_args)
 
     should_stop = global_step >= self.params.train.max_steps
     if self._should_report_metrics:
