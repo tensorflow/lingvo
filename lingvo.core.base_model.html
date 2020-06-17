@@ -189,12 +189,6 @@ PostProcessDecodeOut().</p>
 
 </dd></dl>
 
-<dl class="py function">
-<dt id="lingvo.core.base_model.CreateTaskGlobalStep">
-<code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">CreateTaskGlobalStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">task_name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#CreateTaskGlobalStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.CreateTaskGlobalStep" title="Permalink to this definition">¶</a></dt>
-<dd><p>Create if needed and return the global_step.</p>
-</dd></dl>
-
 <dl class="py class">
 <dt id="lingvo.core.base_model.BaseTask">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_model.</code><code class="sig-name descname">BaseTask</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#BaseTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.BaseTask" title="Permalink to this definition">¶</a></dt>
@@ -313,7 +307,7 @@ per-example tensors in this method.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – a session.</p></li>
-<li><p><strong>global_step</strong> – model global step. Since ProcessFPropResults is called after
+<li><p><strong>global_step</strong> – task global step. Since ProcessFPropResults is called after
 sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li>
 <li><p><strong>metrics</strong> – the metrics dict returned by FPropTower.</p></li>
 <li><p><strong>per_example</strong> – the per_example dict returned by FPropTower.</p></li>

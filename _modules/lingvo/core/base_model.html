@@ -201,21 +201,6 @@
 <span class="sd">  &quot;&quot;&quot;</span></div>
 
 
-<div class="viewcode-block" id="CreateTaskGlobalStep"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.CreateTaskGlobalStep">[docs]</a><span class="k">def</span> <span class="nf">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Create if needed and return the global_step.&quot;&quot;&quot;</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">()):</span>
-    <span class="n">graph_collections</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">,</span> <span class="s1">&#39;TASK_GLOBAL_STEP&#39;</span><span class="p">]</span>
-    <span class="n">_</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-        <span class="n">name</span><span class="o">=</span><span class="n">task_name</span> <span class="o">+</span> <span class="s1">&#39;_global_step&#39;</span><span class="p">,</span>
-        <span class="n">params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
-                                     <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
-        <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="n">graph_collections</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">v</span></div>
-
-
 <div class="viewcode-block" id="BaseTask"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask">[docs]</a><span class="k">class</span> <span class="nc">BaseTask</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A single encoder/decoder task.</span>
 
@@ -230,6 +215,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Encoder Params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;online_encoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Online Encoder Params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Decoder Params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;task_global_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to use task-specific global steps, which causes each &#39;</span>
+        <span class="s1">&#39;task to use its own global_step instead of the true global_step. &#39;</span>
+        <span class="s1">&#39;NOTE: this may be severely broken. Verify carefully!&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params to control how this task should be trained.&#39;</span><span class="p">)</span>
 
@@ -447,17 +437,26 @@
 
     <span class="c1"># Create the gradient mask,</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="n">task_global_step_list</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="s1">&#39;TASK_GLOBAL_STEP&#39;</span><span class="p">,</span>
-                                              <span class="s1">&#39;^</span><span class="si">%s</span><span class="s1">_global_step&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task_global_step_list</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Found multiple task_global_step for task </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="n">task_global_step_list</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">task_global_step_list</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">())</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;global_step_tensor&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="kc">None</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">()):</span>
+        <span class="n">var_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_global_step&#39;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="n">name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+            <span class="n">var_params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
+                                             <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span>
+                                             <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">),</span>
+            <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">GLOBAL_VARIABLES</span><span class="p">])</span>
+        <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">])</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
 
     <span class="n">tp</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span>
+
     <span class="c1"># p.train can be None if this task is the teacher/student task in a</span>
     <span class="c1"># DistillationTask.</span>
     <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
@@ -542,7 +541,7 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: a session.</span>
-<span class="sd">      global_step: model global step. Since ProcessFPropResults is called after</span>
+<span class="sd">      global_step: task global step. Since ProcessFPropResults is called after</span>
 <span class="sd">        sess.run(train_op), this value will be 1 higher than the value in FProp.</span>
 <span class="sd">      metrics: the metrics dict returned by FPropTower.</span>
 <span class="sd">      per_example: the per_example dict returned by FPropTower.</span>
@@ -905,7 +904,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">input_generator</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1225,7 +1224,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">ema</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1368,7 +1367,7 @@
 
     <span class="nb">super</span><span class="p">(</span><span class="n">SingleTaskModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_task&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="p">)</span></div>
 
 
@@ -1392,7 +1391,7 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">MultiTaskSubModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_model&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span></div>
 
@@ -1415,7 +1414,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;task_global_step&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to use task-specific global steps, which causes each &#39;</span>
-        <span class="s1">&#39;task to use its own global_step instead of the true global_step.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;task to use its own global_step instead of the true global_step. &#39;</span>
+        <span class="s1">&#39;NOTE: this may be severely broken. Verify carefully!&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;task_name_var_scope&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to use the task name as a variable scope. Note that &#39;</span>
@@ -1429,20 +1429,28 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span>
 
+    <span class="n">sorted_task_params</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
+
     <span class="c1"># Pass input params to tasks.</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
-      <span class="k">assert</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">input</span>
+    <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">task_params</span><span class="o">.</span><span class="n">input</span>
       <span class="k">try</span><span class="p">:</span>
-        <span class="n">v</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+        <span class="n">task_params</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
       <span class="k">except</span> <span class="ne">AttributeError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">error</span><span class="p">(</span>
             <span class="s1">&#39;Missing input params for task </span><span class="si">%s</span><span class="s1"> !&#39;</span>
             <span class="s1">&#39;Check that you have the correct datasets &#39;</span>
-            <span class="s1">&#39;passed to DefineMultitaskDatasets.&#39;</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+            <span class="s1">&#39;passed to DefineMultitaskDatasets.&#39;</span><span class="p">,</span> <span class="n">task_name</span><span class="p">)</span>
         <span class="k">raise</span> <span class="n">e</span>
+
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">task_name</span> <span class="o">==</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">task_params</span><span class="o">.</span><span class="n">task_global_step</span> <span class="o">=</span> <span class="kc">True</span>
 
     <span class="k">assert</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input</span><span class="p">))</span> <span class="o">==</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="p">))</span>
 
@@ -1452,24 +1460,19 @@
       <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">task_probs</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_probs</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()))</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay</span><span class="p">,</span> <span class="n">k</span>
-        <span class="k">assert</span> <span class="n">v</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span><span class="p">,</span> <span class="n">k</span>
+      <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;ema_decay&#39;</span><span class="p">,</span> <span class="s1">&#39;ema_decay_moving_vars&#39;</span><span class="p">]:</span>
+          <span class="k">if</span> <span class="n">task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">field</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Params did not match for field </span><span class="si">%s</span><span class="s1"> in task </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                             <span class="p">(</span><span class="n">field</span><span class="p">,</span> <span class="n">task_name</span><span class="p">))</span>
 
     <span class="c1"># CreateChild copies over global configs in p to individual task params,</span>
     <span class="c1"># which then gets propagated down to all sub-layers during</span>
     <span class="c1"># BaseTask._PropagateDownGlobalConfigs(), or through sub-sequent CreateChild</span>
     <span class="c1"># or CreateChildren calls.</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">sorted_task_params</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-            <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
         <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
-          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_global_step</span><span class="p">:</span>
-            <span class="k">assert</span> <span class="n">task_name</span> <span class="o">==</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-            <span class="n">CreateTaskGlobalStep</span><span class="p">(</span><span class="n">task_name</span><span class="p">)</span>
-
           <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name_var_scope</span><span class="p">:</span>
             <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
               <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>

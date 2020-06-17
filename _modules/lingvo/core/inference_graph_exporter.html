@@ -550,48 +550,45 @@
           <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="s1">&#39;tpu&#39;</span>
 
         <span class="c1"># Ensure the global_step variable is created.</span>
-        <span class="n">global_step_var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">global_step_var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;global_step_tensor&#39;</span><span class="p">)</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+        <span class="k">try</span><span class="p">:</span>
+          <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+          <span class="n">task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
 
-        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span><span class="n">global_step</span><span class="p">):</span>
-          <span class="k">try</span><span class="p">:</span>
-            <span class="n">mdl</span> <span class="o">=</span> <span class="n">model_cfg</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-            <span class="n">task</span> <span class="o">=</span> <span class="n">mdl</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">model_task_name</span><span class="p">)</span>
+          <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span> <span class="k">else</span>
+              <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">variables_for_ema</span><span class="p">))</span>
 
-            <span class="n">variables_to_restore</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">_MakeVariableDictionary</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">())</span> <span class="k">if</span> <span class="ow">not</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span>
-                <span class="k">else</span> <span class="n">mdl</span><span class="o">.</span><span class="n">ema</span><span class="o">.</span><span class="n">variables_to_restore</span><span class="p">(</span><span class="n">mdl</span><span class="o">.</span><span class="n">variables_for_ema</span><span class="p">))</span>
+          <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
+            <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">bfloat16_variables</span>
+                <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
+                    <span class="n">variables_to_restore</span><span class="p">))</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
 
-            <span class="k">if</span> <span class="n">bfloat16_override</span><span class="p">:</span>
-              <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="p">(</span>
-                  <span class="n">bfloat16_variables</span>
-                  <span class="o">.</span><span class="n">get_saver_spec_for_variables_with_bf16_overrides</span><span class="p">(</span>
-                      <span class="n">variables_to_restore</span><span class="p">))</span>
-            <span class="k">else</span><span class="p">:</span>
-              <span class="n">saver_var_spec</span> <span class="o">=</span> <span class="n">variables_to_restore</span>
+          <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
 
-            <span class="n">saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_var_spec</span><span class="p">)</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">variables_initializer</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_variables&#39;</span><span class="p">)</span>
-            <span class="k">if</span> <span class="n">IsTpu</span><span class="p">(</span><span class="n">device_options</span><span class="p">)</span> <span class="ow">and</span> <span class="n">device_options</span><span class="o">.</span><span class="n">gen_init_op</span><span class="p">:</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">initialize_system</span><span class="p">(),</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tpu_init_op&#39;</span><span class="p">)</span>
+          <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
+          <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
+              <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
 
-            <span class="n">inference_graph_proto</span> <span class="o">=</span> <span class="n">inference_graph_pb2</span><span class="o">.</span><span class="n">InferenceGraph</span><span class="p">()</span>
-            <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">Inference</span><span class="p">()</span>
-            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-              <span class="n">subgraphs_proto</span> <span class="o">=</span> <span class="n">ConvertSubgraphDictToProto</span><span class="p">(</span><span class="n">subgraphs_proto</span><span class="p">)</span>
-            <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">subgraph</span> <span class="ow">in</span> <span class="n">subgraphs_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-              <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
-                <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
-
-            <span class="c1"># Add a table init op and global variable init op to the graph.</span>
-            <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
-            <span class="c1"># added last.</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
-          <span class="k">finally</span><span class="p">:</span>
-            <span class="c1"># Reset TPU-related flags after model instantiation.</span>
-            <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
-            <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="n">old_xla_device</span>
+          <span class="c1"># Add a table init op and global variable init op to the graph.</span>
+          <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
+          <span class="c1"># added last.</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">tables_initializer</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;init_all_tables&#39;</span><span class="p">)</span>
+        <span class="k">finally</span><span class="p">:</span>
+          <span class="c1"># Reset TPU-related flags after model instantiation.</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">enable_asserts</span> <span class="o">=</span> <span class="n">old_enable_asserts</span>
+          <span class="n">FLAGS</span><span class="o">.</span><span class="n">xla_device</span> <span class="o">=</span> <span class="n">old_xla_device</span>
 
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Graph contains ops: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span>
                          <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">name</span> <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">graph</span><span class="o">.</span><span class="n">get_operations</span><span class="p">()])</span>

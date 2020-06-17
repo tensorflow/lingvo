@@ -512,7 +512,7 @@
                          <span class="s1">&#39;found </span><span class="si">%d</span><span class="s1"> &gt; </span><span class="si">%d</span><span class="s1"> at position </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span>
                          <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">boundaries</span><span class="p">[</span><span class="n">idx</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">idx</span><span class="p">))</span>
 
-    <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
+    <span class="n">global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
     <span class="n">datasources</span> <span class="o">=</span> <span class="p">[</span><span class="n">ds_p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span> <span class="k">for</span> <span class="n">ds_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">datasource_params</span><span class="p">]</span>
 
     <span class="k">def</span> <span class="nf">GetDatasourceFn</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>

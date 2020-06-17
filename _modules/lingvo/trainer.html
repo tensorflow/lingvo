@@ -445,8 +445,6 @@
 <div class="viewcode-block" id="Controller._Loop"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer.Controller._Loop">[docs]</a>  <span class="k">def</span> <span class="nf">_Loop</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">add_graph</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSession</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
-      <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">interactive</span><span class="p">:</span>
         <span class="c1"># Into interactive debugging mode.</span>
         <span class="n">_StartShell</span><span class="p">(</span><span class="nb">locals</span><span class="p">())</span>
@@ -475,7 +473,7 @@
           <span class="c1"># Init/restore variable if needed.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
 
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trial</span><span class="o">.</span><span class="n">ShouldStop</span><span class="p">()</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShouldStop</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Training finished.&#39;</span><span class="p">)</span>
           <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_in_controller</span><span class="p">:</span>
@@ -486,7 +484,7 @@
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint_in_controller</span><span class="p">:</span>
           <span class="c1"># Checkpoint if it&#39;s time.</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
         <span class="c1"># Summary.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_summary_op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="n">next_summary_step</span><span class="p">:</span>
@@ -630,12 +628,14 @@
         <span class="p">])</span>
         <span class="c1"># Explicitly fetch global_step after running train_op.</span>
         <span class="c1"># TODO(b/151181934): Investigate this behavior further.</span>
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
-        <span class="n">task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+        <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">task_global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
                                  <span class="n">per_example_tensors</span><span class="p">)</span>
 
-        <span class="n">step_rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
-            <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">step_rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span><span class="o">.</span><span class="n">ComputeStepRate</span><span class="p">(</span>
+                <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]))</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;global_step/sec&#39;</span><span class="p">,</span> <span class="n">step_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span>
@@ -968,8 +968,7 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainerTpu: Force restore or initialize.&#39;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">Restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
-      <span class="n">gsteps</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
-      <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
+      <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_initialized</span><span class="o">.</span><span class="n">set</span><span class="p">()</span>
       <span class="n">eval_metrics</span> <span class="o">=</span> <span class="kc">None</span>
 
@@ -1011,11 +1010,12 @@
 
         <span class="c1"># Note: global_step is incremented by self._steps_per_loop by the</span>
         <span class="c1"># previous sess.run call.</span>
-        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gsteps</span><span class="p">)</span>
+        <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+        <span class="n">global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">:</span>
           <span class="n">outfeeds</span> <span class="o">=</span> <span class="p">{}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">task_global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
                                        <span class="n">outfeeds</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ProcessFPropResults</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">eval_metrics</span><span class="p">,</span>
                                         <span class="n">outfeeds</span><span class="p">)</span>
@@ -1037,7 +1037,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span></div></div>
+          <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_GetSpecificCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._GetSpecificCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">_GetSpecificCheckpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
