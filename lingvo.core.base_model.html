@@ -307,11 +307,14 @@ some of them pass through.</p>
 <dd><p>Called once for each train loop.</p>
 <p>BaseModel.ProcessFPropResults is also called on each loop, so you
 can put your implementation wherever it is most convenient for you.</p>
+<p>Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any
+per-example tensors in this method.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – a session.</p></li>
-<li><p><strong>global_step</strong> – approximate number of model training steps.</p></li>
+<li><p><strong>global_step</strong> – model global step. Since ProcessFPropResults is called after
+sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li>
 <li><p><strong>metrics</strong> – the metrics dict returned by FPropTower.</p></li>
 <li><p><strong>per_example</strong> – the per_example dict returned by FPropTower.</p></li>
 </ul>
@@ -856,7 +859,8 @@ per-example tensors in this method.</p>
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sess</strong> – a session.</p></li>
-<li><p><strong>global_step</strong> – approximate number of model training steps.</p></li>
+<li><p><strong>global_step</strong> – model global step. Since ProcessFPropResults is called after
+sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li>
 <li><p><strong>metrics</strong> – the metrics dict returned by FPropTower.</p></li>
 <li><p><strong>per_example</strong> – the per_example dict returned by FPropTower.</p></li>
 </ul>

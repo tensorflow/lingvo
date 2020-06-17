@@ -537,9 +537,13 @@
 <span class="sd">    BaseModel.ProcessFPropResults is also called on each loop, so you</span>
 <span class="sd">    can put your implementation wherever it is most convenient for you.</span>
 
+<span class="sd">    Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any</span>
+<span class="sd">    per-example tensors in this method.</span>
+
 <span class="sd">    Args:</span>
 <span class="sd">      sess: a session.</span>
-<span class="sd">      global_step: approximate number of model training steps.</span>
+<span class="sd">      global_step: model global step. Since ProcessFPropResults is called after</span>
+<span class="sd">        sess.run(train_op), this value will be 1 higher than the value in FProp.</span>
 <span class="sd">      metrics: the metrics dict returned by FPropTower.</span>
 <span class="sd">      per_example: the per_example dict returned by FPropTower.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
@@ -1275,7 +1279,8 @@
 
 <span class="sd">    Args:</span>
 <span class="sd">      sess: a session.</span>
-<span class="sd">      global_step: approximate number of model training steps.</span>
+<span class="sd">      global_step: model global step. Since ProcessFPropResults is called after</span>
+<span class="sd">        sess.run(train_op), this value will be 1 higher than the value in FProp.</span>
 <span class="sd">      metrics: the metrics dict returned by FPropTower.</span>
 <span class="sd">      per_example: the per_example dict returned by FPropTower.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
