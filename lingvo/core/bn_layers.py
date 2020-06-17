@@ -407,7 +407,6 @@ class CategoricalBN(BatchNormLayer):
         # Note, The real gamma to use is 1 + gamma.
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
-  @base_layer.initializer
   def __init__(self, params):
     assert params.name
     assert not params.use_moving_avg_in_training
@@ -671,7 +670,6 @@ class GroupNormLayer(base_layer.BaseLayer):
     p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GroupNormLayer, self).__init__(params)
     p = self.params

@@ -4095,7 +4095,6 @@ class GradNormTracker(base_layer.BaseLayer):
         ' value.')
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     super(GradNormTracker, self).__init__(params)
     p = self.params

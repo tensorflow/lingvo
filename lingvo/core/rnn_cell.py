@@ -20,7 +20,6 @@ from __future__ import print_function
 
 import math
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
@@ -778,7 +777,6 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     p = super(LSTMCellSimpleDeterministic, cls).Params()
     return p
 
-  @base_layer.initializer
   def __init__(self, params):
     """Initializes LSTMCell."""
     super(LSTMCellSimpleDeterministic, self).__init__(params)

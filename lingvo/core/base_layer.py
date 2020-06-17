@@ -102,7 +102,7 @@ class Accumulator(object):
     raise NotImplementedError('DefaultValue must be implemented')
 
 
-def initializer(func):  # pylint: disable=invalid-name
+def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
   """A decorator for layer's __init__.
 
   Args:
@@ -172,7 +172,7 @@ class BaseLayerMeta(type):
 
       cls.__init__ = TrivialInit
 
-    cls.__init__ = initializer(cls.__init__)
+    cls.__init__ = _BaseLayerInitWrapper(cls.__init__)
     return cls
 
   # pylint: enable=bad-mcs-classmethod-argument

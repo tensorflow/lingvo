@@ -1623,7 +1623,6 @@ py_library(
     srcs = ["rnn_cell.py"],
     srcs_version = "PY2AND3",
     deps = [
-        ":base_layer",
         ":hyperparams",
         ":py_utils",
         ":quant_utils",
