@@ -250,7 +250,7 @@
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;DefaultValue must be implemented&#39;</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="initializer"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.initializer">[docs]</a><span class="k">def</span> <span class="nf">initializer</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
+<div class="viewcode-block" id="_BaseLayerInitWrapper"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._BaseLayerInitWrapper">[docs]</a><span class="k">def</span> <span class="nf">_BaseLayerInitWrapper</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
   <span class="sd">&quot;&quot;&quot;A decorator for layer&#39;s __init__.</span>
 
 <span class="sd">  Args:</span>
@@ -320,7 +320,7 @@
 
       <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">TrivialInit</span>
 
-    <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">initializer</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span> <span class="o">=</span> <span class="n">_BaseLayerInitWrapper</span><span class="p">(</span><span class="bp">cls</span><span class="o">.</span><span class="fm">__init__</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">cls</span>
 
   <span class="c1"># pylint: enable=bad-mcs-classmethod-argument</span>
