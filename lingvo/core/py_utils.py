@@ -681,11 +681,16 @@ def Transform(fn, *v):
   return tf.nest.map_structure(fn, *v)
 
 
-# TODO(laigd): replace this with call to tf.gradients() with
-# unconnected_gradients option set to ZERO, after change 314634870 is ready.
-def GradientsNoneAsZeros(xs, ys, dys, **kwargs):
-  """Take gradients and return the result with Nones replaced by zeros."""
-  dxs = tf.gradients(ys=ys, xs=xs, grad_ys=dys, **kwargs)
+def ConvertNoneGradientToZeros(xs, dxs):
+  """Sanitize dxs so that None becomes zeros appropriately.
+
+  Args:
+    xs: A list of tensors.
+    dxs: A list of tensors. dxs[i] corresponds to xs[i]'s gradient.
+
+  Returns:
+    A `.NestedMap` same as dxs with None replaced by a zero tensor.
+  """
   fn = lambda x, dx: tf.zeros_like(x) if dx is None else dx
   return Transform(fn, xs, dxs)
 
@@ -4040,54 +4045,115 @@ def RemoveAssertContext(remove=True):
     yield
 
 
-def _DefineDefun(fwd, bak, args):
+def _AssertInputsMatch(op, args, implicit_captures):
+  """Assert that op's inputs match with args and implicit_captures.
+
+  Args:
+    op: The operation to check.
+    args: A nested structure representing the explicit arguments of 'op'.
+    implicit_captures: A nested structure representing the implicitly captured
+      inputs of 'op'.
+
+  Raises:
+    ValueError: if the number of inputs mismatch.
+  """
+  expected_inputs = Flatten([args, implicit_captures])
+  expected_num_inputs = len(expected_inputs)
+  if len(op.inputs) > expected_num_inputs:
+    raise ValueError(('Too many inputs. The most likely cause is that fwd '
+                      'captures additional tensors: extra inputs %r vs %r '
+                      'captures=%r') % (list(op.inputs), list(expected_inputs),
+                                        list(implicit_captures.Flatten())))
+  if len(op.inputs) < expected_num_inputs:
+    raise ValueError(('Mismatched inputs to fwd: Found %d vs expected %d: %r'
+                      '. Implicit captures(%d) = %r') %
+                     (len(op.inputs), expected_num_inputs, list(op.inputs),
+                      len(implicit_captures.Flatten()), implicit_captures))
+
+
+def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
   """Wraps fwd in a defun with custom gradient bak.
 
   Args:
     fwd: A callable xs: Nested Structure -> ys: Nested Structure.
+    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of
+      fwd.
     bak: A callable xs, ys, dys: Nested Structure -> dxs: Nested Structure. The
-      custom backprop function for fwd.
-    args: A Nested Structure of tf.Tensor.
+      custom backprop function for fwd. If implicit_captures is not None, bak
+      must return its gradients in a Nested Structure as the last part of dxs.
+    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd
+      that are not listed in fwd_sig.
 
   Returns:
-    A NestedMap w/ fields:
-      defun: A tf.Defun wraps fwd
-      args:  A Nested Structure of tf.DType
-      rets:  A Nested Structure of tf.DType
+    A function that wraps fwd.
   """
   assert fwd is not None
 
   # fwd signature (tf.Tensor dtypes).
   get_dtype = lambda x: x.dtype
-  sigs = NestedMap(args=Transform(get_dtype, args))
+  arg_dtypes = Transform(get_dtype, fwd_sig)
 
   get_shape = lambda x: x.shape
-  arg_shapes = Transform(get_shape, args)
+  arg_shapes = Flatten(Transform(get_shape, fwd_sig))
 
   compiled = use_xla()
   noinline = not compiled
 
-  def Backward(op, *args):
-    assert bak is not None
-    xs = Pack(sigs.args, op.inputs)
-    # Note: sigs.rets will be set during the Forward call.
-    ys = Pack(sigs.rets, op.outputs)
-    dys = Pack(sigs.rets, args)
-    with RemoveAssertContext(remove=noinline):
-      dxs = bak(xs, ys, dys)
-    return Flatten(dxs)
+  # Only used to hold the output dtypes of fwd in sigs.rets, which will be set
+  # in Forward.
+  sigs = NestedMap()
 
-  @tf.Defun(*Flatten(sigs.args), python_grad_func=Backward, noinline=noinline)
+  python_grad_func = None
+  if bak:
+    if implicit_captures is None:
+      implicit_captures = NestedMap()
+
+    def Backward(op, *args):
+      """Gradient function for the forward function.
+
+      Args:
+        op: The forward operation.
+        *args: Args to the backward operation (not including implicit captures).
+
+      Returns:
+        Tuple of derivatives.
+      """
+      _AssertInputsMatch(op, fwd_sig, implicit_captures)
+      xs, _ = Pack([arg_dtypes, implicit_captures], op.inputs)
+      # Note: sigs.rets will be set during the Forward call.
+      ys = Pack(sigs.rets, op.outputs)
+      dys = Pack(sigs.rets, args)
+
+      # Ensure dys contains no None.
+      dys = ConvertNoneGradientToZeros(ys, dys)
+
+      with RemoveAssertContext(remove=noinline):
+        dxs = bak(xs, ys, dys)
+      return Flatten(dxs)
+
+    python_grad_func = Backward
+
+  @tf.Defun(
+      *Flatten(arg_dtypes),
+      python_grad_func=python_grad_func,
+      noinline=noinline)
   def Forward(*args):
-    for arg, shape in zip(args, Flatten(arg_shapes)):
+    """The forward function."""
+    for arg, shape in zip(args, arg_shapes):
       arg.set_shape(shape)
     with RemoveAssertContext(remove=noinline):
-      rets = fwd(Pack(sigs.args, args))
+      rets = fwd(Pack(arg_dtypes, args))
     sigs.rets = Transform(get_dtype, rets)
     return Flatten(rets)
 
-  sigs.defun = Forward
-  return sigs
+  def Call(args):
+    """Wrapper of fwd."""
+    flat_rets = Forward(*Flatten(args))
+    if not isinstance(flat_rets, (tuple, list)):
+      flat_rets = [flat_rets]
+    return Pack(sigs.rets, flat_rets)
+
+  return Call
 
 
 def CallDefun(fwd, bak, args):
@@ -4102,11 +4168,8 @@ def CallDefun(fwd, bak, args):
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  sigs = _DefineDefun(fwd, bak, args)
-  flat_rets = sigs.defun(*Flatten(args))
-  if not isinstance(flat_rets, (tuple, list)):
-    flat_rets = [flat_rets]
-  return Pack(sigs.rets, flat_rets)
+  call = _DefineDefun(fwd, args, bak)
+  return call(args)
 
 
 def If(cond, inputs, then_branch, else_branch):
