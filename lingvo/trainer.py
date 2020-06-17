@@ -297,8 +297,6 @@ class Controller(base_runner.BaseRunner):
   def _Loop(self):
     self._summary_writer.add_graph(self._graph)
     with tf.container(self._container_id), self._GetSession() as sess:
-      gsteps = py_utils.GetGlobalStep()
-
       if FLAGS.interactive:
         # Into interactive debugging mode.
         _StartShell(locals())
@@ -327,7 +325,7 @@ class Controller(base_runner.BaseRunner):
           # Init/restore variable if needed.
           self.checkpointer.RestoreIfNeeded(sess)
 
-        global_step = sess.run(gsteps)
+        global_step = sess.run(self._model.global_step)
         if self._trial.ShouldStop() or self._ShouldStop(sess, global_step):
           tf.logging.info('Training finished.')
           if self._checkpoint_in_controller:
@@ -338,7 +336,7 @@ class Controller(base_runner.BaseRunner):
 
         if self._checkpoint_in_controller:
           # Checkpoint if it's time.
-          self.checkpointer.MaybeSave(sess, gsteps)
+          self.checkpointer.MaybeSave(sess, self._model.global_step)
 
         # Summary.
         if self._summary_op is not None and global_step >= next_summary_step:
@@ -482,12 +480,14 @@ class Trainer(base_runner.BaseRunner):
         ])
         # Explicitly fetch global_step after running train_op.
         # TODO(b/151181934): Investigate this behavior further.
-        global_step = sess.run(py_utils.GetGlobalStep())
-        task.ProcessFPropResults(sess, global_step, eval_metrics,
+        task_global_step = sess.run(task.global_step)
+        task.ProcessFPropResults(sess, task_global_step, eval_metrics,
                                  per_example_tensors)
 
-        step_rate, example_rate, total_examples = self._step_rate_tracker.ComputeStepRate(
-            global_step, eval_metrics['num_samples_in_batch'][0])
+        global_step = sess.run(self._model.global_step)
+        step_rate, example_rate, total_examples = (
+            self._step_rate_tracker.ComputeStepRate(
+                global_step, eval_metrics['num_samples_in_batch'][0]))
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
         self._SummarizeValue(global_step, 'total_samples', total_examples)
@@ -820,8 +820,7 @@ class TrainerTpu(base_runner.BaseRunner):
         tf.logging.info('TrainerTpu: Force restore or initialize.')
         self.checkpointer.Restore(sess, force_reinitialize=True)
 
-      gsteps = py_utils.GetGlobalStep()
-      global_step = sess.run(gsteps)
+      global_step = sess.run(self._model.global_step)
       self._initialized.set()
       eval_metrics = None
 
@@ -863,11 +862,12 @@ class TrainerTpu(base_runner.BaseRunner):
 
         # Note: global_step is incremented by self._steps_per_loop by the
         # previous sess.run call.
-        global_step = sess.run(gsteps)
+        task_global_step = sess.run(self._task.global_step)
+        global_step = sess.run(self._model.global_step)
 
         if not self._task.per_example_tensors:
           outfeeds = {}
-        self._task.ProcessFPropResults(sess, global_step, eval_metrics,
+        self._task.ProcessFPropResults(sess, task_global_step, eval_metrics,
                                        outfeeds)
         self._model.ProcessFPropResults(sess, global_step, eval_metrics,
                                         outfeeds)
@@ -889,7 +889,7 @@ class TrainerTpu(base_runner.BaseRunner):
         self._SetStatusMessage(msg)
 
         if FLAGS.checkpoint_in_trainer_tpu:
-          self.checkpointer.MaybeSave(sess, gsteps)
+          self.checkpointer.MaybeSave(sess, self._model.global_step)
 
 
 def _GetSpecificCheckpoint(load_checkpoint_from):

@@ -402,48 +402,45 @@ class InferenceGraphExporter(object):
           FLAGS.xla_device = 'tpu'
 
         # Ensure the global_step variable is created.
-        global_step_var = py_utils.GetOrCreateGlobalStepVar()
-        global_step = tf.identity(global_step_var, name='global_step_tensor')
+        _ = py_utils.GetOrCreateGlobalStepVar()
+        try:
+          mdl = model_cfg.Instantiate()
+          task = mdl.GetTask(model_task_name)
 
-        with py_utils.GlobalStepContext(global_step):
-          try:
-            mdl = model_cfg.Instantiate()
-            task = mdl.GetTask(model_task_name)
+          variables_to_restore = (
+              _MakeVariableDictionary(tf.global_variables()) if not mdl.ema else
+              mdl.ema.variables_to_restore(mdl.variables_for_ema))
 
-            variables_to_restore = (
-                _MakeVariableDictionary(tf.global_variables()) if not mdl.ema
-                else mdl.ema.variables_to_restore(mdl.variables_for_ema))
+          if bfloat16_override:
+            saver_var_spec = (
+                bfloat16_variables
+                .get_saver_spec_for_variables_with_bf16_overrides(
+                    variables_to_restore))
+          else:
+            saver_var_spec = variables_to_restore
 
-            if bfloat16_override:
-              saver_var_spec = (
-                  bfloat16_variables
-                  .get_saver_spec_for_variables_with_bf16_overrides(
-                      variables_to_restore))
-            else:
-              saver_var_spec = variables_to_restore
+          saver = tf.train.Saver(saver_var_spec)
+          tf.variables_initializer(
+              tf.global_variables(), name='init_all_variables')
+          if IsTpu(device_options) and device_options.gen_init_op:
+            tf.group(tf.tpu.initialize_system(), name='tpu_init_op')
 
-            saver = tf.train.Saver(saver_var_spec)
-            tf.variables_initializer(
-                tf.global_variables(), name='init_all_variables')
-            if IsTpu(device_options) and device_options.gen_init_op:
-              tf.group(tf.tpu.initialize_system(), name='tpu_init_op')
+          inference_graph_proto = inference_graph_pb2.InferenceGraph()
+          subgraphs_proto = task.Inference()
+          if isinstance(subgraphs_proto, dict):
+            subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
+          for name, subgraph in subgraphs_proto.subgraphs.items():
+            if not subgraph_filter or name in subgraph_filter:
+              inference_graph_proto.subgraphs[name].CopyFrom(subgraph)
 
-            inference_graph_proto = inference_graph_pb2.InferenceGraph()
-            subgraphs_proto = task.Inference()
-            if isinstance(subgraphs_proto, dict):
-              subgraphs_proto = ConvertSubgraphDictToProto(subgraphs_proto)
-            for name, subgraph in subgraphs_proto.subgraphs.items():
-              if not subgraph_filter or name in subgraph_filter:
-                inference_graph_proto.subgraphs[name].CopyFrom(subgraph)
-
-            # Add a table init op and global variable init op to the graph.
-            # Tables can be declared anywhere in the graph, so this op has to be
-            # added last.
-            tf.tables_initializer(name='init_all_tables')
-          finally:
-            # Reset TPU-related flags after model instantiation.
-            FLAGS.enable_asserts = old_enable_asserts
-            FLAGS.xla_device = old_xla_device
+          # Add a table init op and global variable init op to the graph.
+          # Tables can be declared anywhere in the graph, so this op has to be
+          # added last.
+          tf.tables_initializer(name='init_all_tables')
+        finally:
+          # Reset TPU-related flags after model instantiation.
+          FLAGS.enable_asserts = old_enable_asserts
+          FLAGS.xla_device = old_xla_device
 
     tf.logging.info('Graph contains ops: %r',
                          [op.name for op in graph.get_operations()])

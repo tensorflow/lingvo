@@ -354,8 +354,7 @@ class TrainProgram(BaseProgram):
     return self.tpu_ops
 
   def Run(self, sess):
-    gsteps = py_utils.GetGlobalStep()
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     self.SetStatusMessage('Executing train program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
@@ -368,7 +367,7 @@ class TrainProgram(BaseProgram):
     self._eval_metrics.PackMetricsValues(values)
     eval_metrics = self._eval_metrics.metrics
 
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     step_rate, example_rate, total_examples = (
         self._step_rate_tracker.ComputeStepRate(
             global_step,
@@ -380,8 +379,9 @@ class TrainProgram(BaseProgram):
     for key, (val, _) in sorted(six.iteritems(eval_metrics)):
       self._SummarizeValue(global_step, key, val)
 
-    summaries = self._task.ProcessFPropResults(sess, global_step, eval_metrics,
-                                               outfeeds)
+    task_global_step = sess.run(self._task.global_step)
+    summaries = self._task.ProcessFPropResults(sess, task_global_step,
+                                               eval_metrics, outfeeds)
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
     return False
@@ -452,8 +452,7 @@ class EvalProgram(BaseProgram):
       return self.tpu_ops
 
   def Run(self, sess):
-    gsteps = py_utils.GetGlobalStep()
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     self.SetStatusMessage('Executing eval program at step %d' % global_step)
 
     infeed_future = self._infeed_pool.apply_async(
@@ -511,8 +510,7 @@ class DecodeProgram(BaseProgram):
     return None
 
   def Run(self, sess):
-    gsteps = py_utils.GetGlobalStep()
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     self.SetStatusMessage('Executing decode program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
@@ -617,8 +615,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
     sess.run(self.decode_loop)
 
   def Run(self, sess):
-    gsteps = py_utils.GetGlobalStep()
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     self.SetStatusMessage('Executing decode program at step %d' % global_step)
     infeed_future = self._infeed_pool.apply_async(
         self._InfeedLoop, args=(sess,))
@@ -781,8 +778,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     self._decode_task.PostProcessDecodeOut(metrics_values, self.dec_metrics)
 
   def Run(self, sess):
-    gsteps = py_utils.GetGlobalStep()
-    global_step = sess.run(gsteps)
+    global_step = sess.run(self._model.global_step)
     self.dec_metrics = self._decode_task.CreateDecoderMetrics()
     # Start TPU program thread.
     train_future = self._train_pool.apply_async(

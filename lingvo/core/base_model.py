@@ -53,21 +53,6 @@ class DecodeFinalizeArgs(
   """
 
 
-def CreateTaskGlobalStep(task_name):
-  """Create if needed and return the global_step."""
-  with tf.name_scope(None), tf.variable_scope(
-      py_utils.GetGlobalVariableScope()):
-    graph_collections = [tf.GraphKeys.GLOBAL_VARIABLES, 'TASK_GLOBAL_STEP']
-    _, v = py_utils.CreateVariable(
-        name=task_name + '_global_step',
-        params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
-                                     tf.int64),
-        trainable=False,
-        collections=graph_collections)
-    summary_utils.scalar(v.name, v)
-    return v
-
-
 class BaseTask(base_layer.BaseLayer):
   """A single encoder/decoder task.
 
@@ -82,6 +67,11 @@ class BaseTask(base_layer.BaseLayer):
     p.Define('encoder', None, 'Encoder Params.')
     p.Define('online_encoder', None, 'Online Encoder Params.')
     p.Define('decoder', None, 'Decoder Params.')
+    p.Define(
+        'task_global_step', False,
+        'Whether or not to use task-specific global steps, which causes each '
+        'task to use its own global_step instead of the true global_step. '
+        'NOTE: this may be severely broken. Verify carefully!')
     p.Define('train', hyperparams.Params(),
              'Params to control how this task should be trained.')
 
@@ -299,17 +289,26 @@ class BaseTask(base_layer.BaseLayer):
 
     # Create the gradient mask,
     self._per_input_gradient_mask = None
-    task_global_step_list = tf.get_collection('TASK_GLOBAL_STEP',
-                                              '^%s_global_step' % p.name)
-    if len(task_global_step_list) > 1:
-      raise ValueError('Found multiple task_global_step for task %s' % p.name)
-    self._global_step_var = (
-        task_global_step_list[0] if len(task_global_step_list) == 1 else
-        py_utils.GetOrCreateGlobalStepVar())
-    self._global_step = tf.identity(
-        self._global_step_var, name='global_step_tensor')
+
+    if p.task_global_step:
+      with tf.name_scope(None), tf.variable_scope(
+          py_utils.GetGlobalVariableScope()):
+        var_name = p.name + '_global_step'
+        self.CreateVariable(
+            name=var_name,
+            var_params=py_utils.WeightParams([],
+                                             py_utils.WeightInit.Constant(0),
+                                             tf.int64),
+            trainable=False,
+            collections=[tf.GraphKeys.GLOBAL_VARIABLES])
+        summary_utils.scalar(var_name, self.vars[var_name])
+
+      self._global_step_var = self.vars[var_name]
+    else:
+      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
 
     tp = p.train
+
     # p.train can be None if this task is the teacher/student task in a
     # DistillationTask.
     if tp:
@@ -394,7 +393,7 @@ class BaseTask(base_layer.BaseLayer):
 
     Args:
       sess: a session.
-      global_step: model global step. Since ProcessFPropResults is called after
+      global_step: task global step. Since ProcessFPropResults is called after
         sess.run(train_op), this value will be 1 higher than the value in FProp.
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
@@ -757,7 +756,7 @@ class BaseTask(base_layer.BaseLayer):
 
   @property
   def global_step(self):
-    return self._global_step
+    return self._global_step_var
 
   @property
   def input_generator(self):
@@ -1077,7 +1076,7 @@ class BaseModel(base_layer.BaseLayer):
 
   @property
   def global_step(self):
-    return self._global_step
+    return self._global_step_var
 
   @property
   def ema(self):
@@ -1220,7 +1219,7 @@ class SingleTaskModel(SingleTaskBase):
 
     super(SingleTaskModel, self).__init__(p)
 
-    with py_utils.GlobalStepContext(self.global_step):
+    with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_task', self.params.task)
 
 
@@ -1244,7 +1243,7 @@ class MultiTaskSubModel(SingleTaskBase):
   def __init__(self, params):
     super(MultiTaskSubModel, self).__init__(params)
     p = self.params
-    with py_utils.GlobalStepContext(self.global_step):
+    with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_model', p.model_params)
     self._task = self._model.children.Get(p.task_name)
 
@@ -1267,7 +1266,8 @@ class MultiTaskModel(BaseModel):
     p.Define(
         'task_global_step', False,
         'Whether or not to use task-specific global steps, which causes each '
-        'task to use its own global_step instead of the true global_step.')
+        'task to use its own global_step instead of the true global_step. '
+        'NOTE: this may be severely broken. Verify carefully!')
     p.Define(
         'task_name_var_scope', True,
         'Whether or not to use the task name as a variable scope. Note that '
@@ -1281,20 +1281,28 @@ class MultiTaskModel(BaseModel):
     p = self.params
     assert len(p.task_params) > 1
 
+    sorted_task_params = sorted(
+        (task_name, task_params)
+        for task_name, task_params in p.task_params.IterParams())
+
     # Pass input params to tasks.
     assert isinstance(p.input, hyperparams.Params)
 
-    for k, v in p.task_params.IterParams():
-      assert isinstance(v, hyperparams.Params)
-      assert not v.input
+    for task_name, task_params in sorted_task_params:
+      assert isinstance(task_params, hyperparams.Params)
+      assert not task_params.input
       try:
-        v.input = p.input.Get(k)
+        task_params.input = p.input.Get(task_name)
       except AttributeError as e:
         tf.logging.error(
             'Missing input params for task %s !'
             'Check that you have the correct datasets '
-            'passed to DefineMultitaskDatasets.', k)
+            'passed to DefineMultitaskDatasets.', task_name)
         raise e
+
+      if p.task_global_step:
+        assert task_name == task_params.name, (task_name, task_params.name)
+        task_params.task_global_step = True
 
     assert set(dir(p.input)) == set(dir(p.task_params))
 
@@ -1304,24 +1312,19 @@ class MultiTaskModel(BaseModel):
       p.task_schedule.task_probs = sorted(list(p.task_probs.IterParams()))
 
     if p.train.ema_decay > 0:
-      for k, v in p.task_params.IterParams():
-        assert v.train.ema_decay == p.train.ema_decay, k
-        assert v.train.ema_decay_moving_vars == p.train.ema_decay_moving_vars, k
+      for task_name, task_params in sorted_task_params:
+        for field in ['ema_decay', 'ema_decay_moving_vars']:
+          if task_params.train.Get(field) != p.train.Get(field):
+            raise ValueError('Params did not match for field %s in task %s' %
+                             (field, task_name))
 
     # CreateChild copies over global configs in p to individual task params,
     # which then gets propagated down to all sub-layers during
     # BaseTask._PropagateDownGlobalConfigs(), or through sub-sequent CreateChild
     # or CreateChildren calls.
-    with py_utils.GlobalStepContext(self.global_step):
+    with py_utils.GlobalStepContext(self._global_step):
       with tf.name_scope(p.name):
-        sorted_task_params = sorted(
-            (task_name, task_params)
-            for task_name, task_params in p.task_params.IterParams())
         for task_name, task_params in sorted_task_params:
-          if p.task_global_step:
-            assert task_name == task_params.name, (task_name, task_params.name)
-            CreateTaskGlobalStep(task_name)
-
           if p.task_name_var_scope:
             with tf.variable_scope(task_name):
               self.CreateChild(task_name, task_params)

@@ -364,7 +364,7 @@ class CurriculumDataSource(DataSource):
                          'found %d > %d at position %d' %
                          (p.boundaries[idx], p.boundaries[idx + 1], idx))
 
-    global_step = py_utils.GetOrCreateGlobalStepVar()
+    global_step = py_utils.GetGlobalStep()
     datasources = [ds_p.Instantiate() for ds_p in p.datasource_params]
 
     def GetDatasourceFn(idx):
