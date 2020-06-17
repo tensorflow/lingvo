@@ -571,6 +571,71 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.base_input_generator.DefineTFDataInput">
+<code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">DefineTFDataInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">ignore</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#DefineTFDataInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.DefineTFDataInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Defines a new InputGenerator class from given tf.data pipeline.</p>
+<p>This function allows users to utilize existing tf.data pipelines which are
+defined externally, without making binding boilerplates.
+The generated InputGenerator behaves like a one-shot iterator of the given
+pipeline. If the iterator is designed to be repeated, the returned
+InputGenerator will work similarly.
+This function generates <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code> automatically by analysing the given
+pipeline’s signature so that the behavior of the pipeline can be saved into
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.
+This function defines the InputGenerator class on the caller’s module. To
+avoid any confusion, the returned class have to be stored in the module-level
+symbol with the same identifier with given <code class="xref py py-obj docutils literal notranslate"><span class="pre">name</span></code>.</p>
+<p class="rubric">Example</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># A tf.data pipeline function defined externally.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">my_dataset</span><span class="p">(</span><span class="n">begin</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">10</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">begin</span><span class="p">,</span> <span class="n">end</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Defines the InputGenerator class for my_dataset.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">MyInput</span> <span class="o">=</span> <span class="n">DefineTFDataInput</span><span class="p">(</span><span class="s1">&#39;MyInput&#39;</span><span class="p">,</span> <span class="n">my_dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Obtains Params of MyInput.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">p</span> <span class="o">=</span> <span class="n">MyInput</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">begin</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="o">.</span><span class="n">end</span> <span class="o">==</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Instantiates the InputGenerator from Params.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ig</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ig</span><span class="p">,</span> <span class="n">MyInput</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Obtains the data tensors.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span> <span class="o">=</span> <span class="n">ig</span><span class="o">.</span><span class="n">GetPreprocessedInputBatch</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">Session</span><span class="p">()</span> <span class="k">as</span> <span class="n">sess</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="k">assert</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
+<span class="gp">... </span>  <span class="k">assert</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="gp">... </span>  <span class="k">assert</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – A string, representing the name of the new InputGenerator class.</p></li>
+<li><p><strong>func</strong> – A callable to be analysed to generate the new InputGenerator. The
+return value of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> must be a single <code class="xref py py-obj docutils literal notranslate"><span class="pre">tf.data.Dataset</span></code> representing the
+pipeline. The signature (parameter list) of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> must have all explicit
+parameters needed to configure the pipeline. <code class="xref py py-obj docutils literal notranslate"><span class="pre">*args</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">**kwargs</span></code>
+parameters would be ignored from defining <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p></li>
+<li><p><strong>ignore</strong> – A collection of strings, representing the set of parameter names to
+be ignored from defining <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A new InputGenerator class that invokes <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> internally. The <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>
+method of the returned class makes a new Params containing the <code class="xref py py-obj docutils literal notranslate"><span class="pre">args</span></code> field
+representing the parameters of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 

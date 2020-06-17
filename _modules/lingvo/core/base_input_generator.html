@@ -180,11 +180,14 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
+<span class="kn">import</span> <span class="nn">inspect</span>
+
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">inspect_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tokenizers</span>
@@ -292,8 +295,8 @@
     <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
     <span class="c1"># for generating a subset of the whole batch.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="n">batch_per_input</span><span class="p">,</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_size </span><span class="si">%d</span><span class="s1"> cluster.num_tpu_hosts </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">,</span>
+                      <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">)</span>
       <span class="n">batch_per_input</span> <span class="o">//=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
@@ -927,9 +930,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">buckets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">infeed_bucket_batch_limit</span>
     <span class="k">if</span> <span class="nb">any</span><span class="p">(</span><span class="n">x</span> <span class="o">!=</span> <span class="n">buckets</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">buckets</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-          <span class="s1">&#39;Using max bucket batch limit but not all limits are &#39;</span>
-          <span class="s1">&#39;the same </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">buckets</span><span class="p">))</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;Using max bucket batch limit but not all limits are &#39;</span>
+                         <span class="s1">&#39;the same </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">buckets</span><span class="p">))</span>
     <span class="n">infeed_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">buckets</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;InfeedBatchSize: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">infeed_size</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">infeed_size</span></div>
@@ -1154,6 +1156,112 @@
     <span class="n">iterator</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">()</span>
     <span class="n">input_batch</span> <span class="o">=</span> <span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">input_batch</span></div></div>
+
+
+<div class="viewcode-block" id="DefineTFDataInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.DefineTFDataInput">[docs]</a><span class="k">def</span> <span class="nf">DefineTFDataInput</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Defines a new InputGenerator class from given tf.data pipeline.</span>
+
+<span class="sd">  This function allows users to utilize existing tf.data pipelines which are</span>
+<span class="sd">  defined externally, without making binding boilerplates.</span>
+<span class="sd">  The generated InputGenerator behaves like a one-shot iterator of the given</span>
+<span class="sd">  pipeline. If the iterator is designed to be repeated, the returned</span>
+<span class="sd">  InputGenerator will work similarly.</span>
+<span class="sd">  This function generates `Params` automatically by analysing the given</span>
+<span class="sd">  pipeline&#39;s signature so that the behavior of the pipeline can be saved into</span>
+<span class="sd">  `Params`.</span>
+<span class="sd">  This function defines the InputGenerator class on the caller&#39;s module. To</span>
+<span class="sd">  avoid any confusion, the returned class have to be stored in the module-level</span>
+<span class="sd">  symbol with the same identifier with given `name`.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">    &gt;&gt;&gt; # A tf.data pipeline function defined externally.</span>
+<span class="sd">    &gt;&gt;&gt; def my_dataset(begin=0, end=10):</span>
+<span class="sd">    ...   return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))</span>
+
+<span class="sd">    &gt;&gt;&gt; # Defines the InputGenerator class for my_dataset.</span>
+<span class="sd">    &gt;&gt;&gt; MyInput = DefineTFDataInput(&#39;MyInput&#39;, my_dataset)</span>
+
+<span class="sd">    &gt;&gt;&gt; # Obtains Params of MyInput.</span>
+<span class="sd">    &gt;&gt;&gt; p = MyInput.Params()</span>
+<span class="sd">    &gt;&gt;&gt; assert p.args.begin == 0</span>
+<span class="sd">    &gt;&gt;&gt; assert p.args.end == 10</span>
+
+<span class="sd">    &gt;&gt;&gt; # Instantiates the InputGenerator from Params.</span>
+<span class="sd">    &gt;&gt;&gt; ig = p.Instantiate()</span>
+<span class="sd">    &gt;&gt;&gt; assert isinstance(ig, MyInput)</span>
+
+<span class="sd">    &gt;&gt;&gt; # Obtains the data tensors.</span>
+<span class="sd">    &gt;&gt;&gt; data = ig.GetPreprocessedInputBatch()</span>
+<span class="sd">    &gt;&gt;&gt; with tf.Session() as sess:</span>
+<span class="sd">    ...   assert sess.run(data) == 0</span>
+<span class="sd">    ...   assert sess.run(data) == 1</span>
+<span class="sd">    ...   assert sess.run(data) == 2</span>
+
+
+<span class="sd">  Args:</span>
+<span class="sd">    name: A string, representing the name of the new InputGenerator class.</span>
+<span class="sd">    func: A callable to be analysed to generate the new InputGenerator. The</span>
+<span class="sd">      return value of `func` must be a single `tf.data.Dataset` representing the</span>
+<span class="sd">      pipeline. The signature (parameter list) of `func` must have all explicit</span>
+<span class="sd">      parameters needed to configure the pipeline. `*args` and `**kwargs`</span>
+<span class="sd">      parameters would be ignored from defining `Params`.</span>
+<span class="sd">    ignore: A collection of strings, representing the set of parameter names to</span>
+<span class="sd">      be ignored from defining `Params`.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A new InputGenerator class that invokes `func` internally. The `Params`</span>
+<span class="sd">    method of the returned class makes a new Params containing the `args` field</span>
+<span class="sd">    representing the parameters of `func`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># Defines the class first as it will be required to call `super()`.</span>
+  <span class="n">generated_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">,),</span> <span class="p">{})</span>
+
+  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates Params to configure the InputGenerator.</span>
+
+<span class="sd">    This function analyses the signature of the given callable `func` and</span>
+<span class="sd">    defines corresponding fields into `Params` to the obtained function</span>
+<span class="sd">    parameters.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      An `InstantiableParams` object representing the InputGenerator. It has the</span>
+<span class="sd">      `args` field which contains the set of parameters of `func`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">generated_cls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="c1"># Introduces a new group `args` to avoid confusion between `func`&#39;s</span>
+    <span class="c1"># parameters and existing params defined by super classes.</span>
+    <span class="c1"># TODO(oday): For better UX, consider removing this nested field and add</span>
+    <span class="c1"># `func`s parameters to `p` directly. We need to make sure that there are no</span>
+    <span class="c1"># side effects by integrating `func`&#39;s parameters and follows:</span>
+    <span class="c1"># - BaseInputGenerator.Params()</span>
+    <span class="c1"># - BaseLayer.Params()</span>
+    <span class="c1"># - InstantiableParams.cls</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Parameter list of the pipeline.&#39;</span><span class="p">)</span>
+    <span class="n">inspect_utils</span><span class="o">.</span><span class="n">DefineParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">ignore</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+  <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates data tensors by invoking the pipeline.&quot;&quot;&quot;</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">inspect_utils</span><span class="o">.</span><span class="n">CallWithParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s1">&#39;DefineTFDataInput must take a callable which returns a &#39;</span>
+        <span class="s1">&#39;`tf.data.Dataset`. The given callable `</span><span class="si">%s</span><span class="s1">` returned `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span>
+        <span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">dataset</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">tf1</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">make_one_shot_iterator</span><span class="p">(</span><span class="n">dataset</span><span class="p">)</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+
+  <span class="c1"># Overrides member methods.</span>
+  <span class="n">generated_cls</span><span class="o">.</span><span class="n">Params</span> <span class="o">=</span> <span class="n">Params</span>
+  <span class="n">generated_cls</span><span class="o">.</span><span class="n">_InputBatch</span> <span class="o">=</span> <span class="n">_InputBatch</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+  <span class="c1"># Sets __module__ to the caller&#39;s module name for pickling and restoring from</span>
+  <span class="c1"># Params to work.</span>
+  <span class="c1"># See also the namedtuple&#39;s implementation for details.</span>
+  <span class="n">module</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">frame</span><span class="o">.</span><span class="n">f_globals</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;__name__&#39;</span><span class="p">,</span> <span class="s1">&#39;__main__&#39;</span><span class="p">)</span>
+  <span class="n">generated_cls</span><span class="o">.</span><span class="vm">__module__</span> <span class="o">=</span> <span class="n">module</span>
+
+  <span class="k">return</span> <span class="n">generated_cls</span></div>
 </pre></div>
 
            </div>
