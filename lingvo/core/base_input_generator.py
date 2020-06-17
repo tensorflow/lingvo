@@ -1013,7 +1013,7 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     return input_batch
 
 
-def DefineTFDataInput(name, func, ignore=None):
+def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
   """Defines a new InputGenerator class from given tf.data pipeline.
 
   This function allows users to utilize existing tf.data pipelines which are
@@ -1060,14 +1060,25 @@ def DefineTFDataInput(name, func, ignore=None):
       pipeline. The signature (parameter list) of `func` must have all explicit
       parameters needed to configure the pipeline. `*args` and `**kwargs`
       parameters would be ignored from defining `Params`.
-    ignore: A collection of strings, representing the set of parameter names to
-      be ignored from defining `Params`.
+    ignore_args: A collection of strings, representing the set of parameter
+      names to be ignored from defining `Params`.
+    map_args: A {str: str} dict, representing mappings from existing fields in
+      `Params()` to `func`'s parameter. These mappings can be used to propagate
+      some particular Lingvo-specific options defined by others (typically by
+      super classes: `BaseInputGenerator` or `BaseLayer`) to the given function.
+      Each entry in the dict represents a `{func_param: layer_param}` pair such
+      that the `Params().layer_param` field will be mapped to the parameter
+      `func_param` of `func`. `func_param` won't be added into `Params().args`
+      to avoid duplicated definitions about the same parameters.
 
   Returns:
     A new InputGenerator class that invokes `func` internally. The `Params`
     method of the returned class makes a new Params containing the `args` field
     representing the parameters of `func`.
   """
+  ignore_args = set(ignore_args if ignore_args is not None else ())
+  map_args = dict(map_args if map_args is not None else {})
+
   # Defines the class first as it will be required to call `super()`.
   generated_cls = type(name, (BaseInputGenerator,), {})
 
@@ -1083,6 +1094,9 @@ def DefineTFDataInput(name, func, ignore=None):
       An `InstantiableParams` object representing the InputGenerator. It has the
       `args` field which contains the set of parameters of `func`.
     """
+    # Keys in `map_args` will also be ignored.
+    actual_ignore_args = ignore_args | set(map_args.keys())
+
     p = super(generated_cls, cls).Params()
 
     # Introduces a new group `args` to avoid confusion between `func`'s
@@ -1094,12 +1108,14 @@ def DefineTFDataInput(name, func, ignore=None):
     # - BaseLayer.Params()
     # - InstantiableParams.cls
     p.Define('args', hyperparams.Params(), 'Parameter list of the pipeline.')
-    inspect_utils.DefineParams(func, p.args, ignore)
+    inspect_utils.DefineParams(func, p.args, actual_ignore_args)
     return p
 
   def _InputBatch(self):
     """Generates data tensors by invoking the pipeline."""
-    dataset = inspect_utils.CallWithParams(func, self.params.args)
+    p = self.params
+    overrides = {k: p.Get(v) for k, v in map_args.items()}
+    dataset = inspect_utils.CallWithParams(func, p.args, **overrides)
     assert isinstance(dataset, tf.data.Dataset), (
         'DefineTFDataInput must take a callable which returns a '
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %

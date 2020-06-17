@@ -160,8 +160,12 @@ _TestDatasetObject = _TestDatasetClass(begin=0)
 # InputGenerators for TFDataInputTest.
 _TestTFDataInput = base_input_generator.DefineTFDataInput(
     '_TestTFDataInput', _TestDatasetFn)
-_TestTFDataInputWithIgnore = base_input_generator.DefineTFDataInput(
-    '_TestTFDataInputWithIgnore', _TestDatasetFn, ignore=('begin',))
+_TestTFDataInputWithIgnoreArgs = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithIgnoreArgs', _TestDatasetFn, ignore_args=('begin',))
+_TestTFDataInputWithMapArgs = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithMapArgs',
+    _TestDatasetFn,
+    map_args={'end': 'num_samples'})
 _TestTFDataInputWithoutDefault = base_input_generator.DefineTFDataInput(
     '_TestTFDataInputWithoutDefault', _TestDatasetFnWithoutDefault)
 _TestTFDataInputWithRepeat = base_input_generator.DefineTFDataInput(
@@ -174,7 +178,8 @@ class TFDataInputTest(test_utils.TestCase):
 
   def testModule(self):
     self.assertEqual(_TestTFDataInput.__module__, '__main__')
-    self.assertEqual(_TestTFDataInputWithIgnore.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithIgnoreArgs.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithMapArgs.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithoutDefault.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithRepeat.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithBoundMethod.__module__, '__main__')
@@ -230,16 +235,16 @@ class TFDataInputTest(test_utils.TestCase):
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
 
-  def testWithIgnore(self):
-    """Tests the `ignore` parameter."""
-    p = _TestTFDataInputWithIgnore.Params()
+  def testWithIgnoreArgs(self):
+    """Tests the `ignore_args` parameter."""
+    p = _TestTFDataInputWithIgnoreArgs.Params()
     self.assertIn('args', p)
     self.assertNotIn('begin', p.args)
     self.assertIn('end', p.args)
     self.assertEqual(p.args.end, 10)
 
     ig = p.Instantiate()
-    self.assertIsInstance(ig, _TestTFDataInputWithIgnore)
+    self.assertIsInstance(ig, _TestTFDataInputWithIgnoreArgs)
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
@@ -249,6 +254,33 @@ class TFDataInputTest(test_utils.TestCase):
 
       # Consumes all data.
       for i in range(p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testWithMapArgs(self):
+    """Tests the `map_args` parameter."""
+    p = _TestTFDataInputWithMapArgs.Params()
+    self.assertIn('args', p)
+    self.assertIn('num_samples', p)  # Defined by BaseInputGenerator.
+    self.assertIn('begin', p.args)
+    self.assertNotIn('end', p.args)
+    self.assertEqual(p.num_samples, 0)
+    self.assertEqual(p.args.begin, 0)
+
+    p.num_samples = 20
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputWithMapArgs)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.num_samples):
         self.assertEqual(sess.run(data), i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
