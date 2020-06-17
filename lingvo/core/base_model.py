@@ -389,9 +389,13 @@ class BaseTask(base_layer.BaseLayer):
     BaseModel.ProcessFPropResults is also called on each loop, so you
     can put your implementation wherever it is most convenient for you.
 
+    Be sure to implement BaseTask.FilterPerExampleTensors if you plan to use any
+    per-example tensors in this method.
+
     Args:
       sess: a session.
-      global_step: approximate number of model training steps.
+      global_step: model global step. Since ProcessFPropResults is called after
+        sess.run(train_op), this value will be 1 higher than the value in FProp.
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
     """
@@ -1127,7 +1131,8 @@ class BaseModel(base_layer.BaseLayer):
 
     Args:
       sess: a session.
-      global_step: approximate number of model training steps.
+      global_step: model global step. Since ProcessFPropResults is called after
+        sess.run(train_op), this value will be 1 higher than the value in FProp.
       metrics: the metrics dict returned by FPropTower.
       per_example: the per_example dict returned by FPropTower.
     """
