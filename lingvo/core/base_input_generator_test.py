@@ -15,12 +15,12 @@
 # ==============================================================================
 """Tests for base_input_generator."""
 
-
 import os
 import shutil
 import tempfile
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
+from lingvo.core import hyperparams
 from lingvo.core import test_utils
 import mock
 import numpy as np
@@ -125,6 +125,207 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
       batch = ig.GetPreprocessedInputBatch()
       self.assertEqual(batch.audio.shape[0], 42)
     mock_method.assert_called()
+
+
+# Dataset pipelines for TFDataInputTest.
+def _TestDatasetFn(begin=0, end=10):
+  """Test tf.data pipeline."""
+  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+
+
+def _TestDatasetFnWithoutDefault(begin, end=10):
+  """Test tf.data pipeline with non-defaulted parameters."""
+  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+
+
+def _TestDatasetFnWithRepeat(begin=0, end=10):
+  """Test tf.data pipeline with repeat."""
+  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end)).repeat()
+
+
+class _TestDatasetClass:
+  """A class that generates tf.data by its member function."""
+
+  def __init__(self, begin):
+    self._begin = begin
+
+  def DatasetFn(self, end=10):
+    return tf.data.Dataset.from_tensor_slices(tf.range(self._begin, end))
+
+
+# A class object which will be instantiated at importing the module.
+# It can be used in DefineTFDataInput().
+_TestDatasetObject = _TestDatasetClass(begin=0)
+
+# InputGenerators for TFDataInputTest.
+_TestTFDataInput = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInput', _TestDatasetFn)
+_TestTFDataInputWithIgnore = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithIgnore', _TestDatasetFn, ignore=('begin',))
+_TestTFDataInputWithoutDefault = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithoutDefault', _TestDatasetFnWithoutDefault)
+_TestTFDataInputWithRepeat = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithRepeat', _TestDatasetFnWithRepeat)
+_TestTFDataInputWithBoundMethod = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputWithBoundMethod', _TestDatasetObject.DatasetFn)
+
+
+class TFDataInputTest(test_utils.TestCase):
+
+  def testModule(self):
+    self.assertEqual(_TestTFDataInput.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithIgnore.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithoutDefault.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithRepeat.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputWithBoundMethod.__module__, '__main__')
+
+  def testExample(self):
+    """Tests the example code in the function docstring."""
+    p = _TestTFDataInput.Params()
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.begin, 0)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInput)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testToFromProto(self):
+    """Similar to `testExample` but params will be restored from a proto."""
+    serialized_proto = _TestTFDataInput.Params().ToProto()
+    p = hyperparams.Params.FromProto(serialized_proto)
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.begin, 0)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInput)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testWithIgnore(self):
+    """Tests the `ignore` parameter."""
+    p = _TestTFDataInputWithIgnore.Params()
+    self.assertIn('args', p)
+    self.assertNotIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputWithIgnore)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testWithoutDefault(self):
+    """Tests parameters without defaults."""
+    p = _TestTFDataInputWithoutDefault.Params()
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertIsNone(p.args.begin)
+    self.assertEqual(p.args.end, 10)
+
+    p.args.begin = 0
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputWithoutDefault)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testWithRepeat(self):
+    """Tests if the repeated dataset runs forever."""
+    p = _TestTFDataInputWithRepeat.Params()
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.begin, 0)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputWithRepeat)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Runs the dataset several times: it should not raise OutOfRangeError.
+      for _ in range(3):
+        for i in range(p.args.begin, p.args.end):
+          self.assertEqual(sess.run(data), i)
+
+  def testWithBoundMethod(self):
+    """Tests pipeline defined by a bound method: member function with self."""
+    p = _TestTFDataInputWithBoundMethod.Params()
+    self.assertIn('args', p)
+    self.assertNotIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputWithBoundMethod)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
 
 
 if __name__ == '__main__':

@@ -35,11 +35,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import inspect
+
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
+from lingvo.core import inspect_utils
 from lingvo.core import ops
 from lingvo.core import py_utils
 from lingvo.core import tokenizers
@@ -147,8 +150,8 @@ class BaseInputGenerator(base_layer.BaseLayer):
     # If use_per_host_infeed, each input op is only responsible
     # for generating a subset of the whole batch.
     if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d',
-                           batch_per_input, cluster.num_tpu_hosts)
+      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
+                      cluster.num_tpu_hosts)
       batch_per_input //= cluster.num_tpu_hosts
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
@@ -782,9 +785,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     """
     buckets = self.infeed_bucket_batch_limit
     if any(x != buckets[0] for x in buckets):
-      tf.logging.warning(
-          'Using max bucket batch limit but not all limits are '
-          'the same {}'.format(buckets))
+      tf.logging.warning('Using max bucket batch limit but not all limits are '
+                         'the same {}'.format(buckets))
     infeed_size = max(buckets)
     tf.logging.info('InfeedBatchSize: %d', infeed_size)
     return infeed_size
@@ -1009,3 +1011,109 @@ class BaseDataExampleInputGenerator(BaseInputGenerator):
     iterator = dataset.make_one_shot_iterator()
     input_batch = iterator.get_next()
     return input_batch
+
+
+def DefineTFDataInput(name, func, ignore=None):
+  """Defines a new InputGenerator class from given tf.data pipeline.
+
+  This function allows users to utilize existing tf.data pipelines which are
+  defined externally, without making binding boilerplates.
+  The generated InputGenerator behaves like a one-shot iterator of the given
+  pipeline. If the iterator is designed to be repeated, the returned
+  InputGenerator will work similarly.
+  This function generates `Params` automatically by analysing the given
+  pipeline's signature so that the behavior of the pipeline can be saved into
+  `Params`.
+  This function defines the InputGenerator class on the caller's module. To
+  avoid any confusion, the returned class have to be stored in the module-level
+  symbol with the same identifier with given `name`.
+
+  Example:
+    >>> # A tf.data pipeline function defined externally.
+    >>> def my_dataset(begin=0, end=10):
+    ...   return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+
+    >>> # Defines the InputGenerator class for my_dataset.
+    >>> MyInput = DefineTFDataInput('MyInput', my_dataset)
+
+    >>> # Obtains Params of MyInput.
+    >>> p = MyInput.Params()
+    >>> assert p.args.begin == 0
+    >>> assert p.args.end == 10
+
+    >>> # Instantiates the InputGenerator from Params.
+    >>> ig = p.Instantiate()
+    >>> assert isinstance(ig, MyInput)
+
+    >>> # Obtains the data tensors.
+    >>> data = ig.GetPreprocessedInputBatch()
+    >>> with tf.Session() as sess:
+    ...   assert sess.run(data) == 0
+    ...   assert sess.run(data) == 1
+    ...   assert sess.run(data) == 2
+
+
+  Args:
+    name: A string, representing the name of the new InputGenerator class.
+    func: A callable to be analysed to generate the new InputGenerator. The
+      return value of `func` must be a single `tf.data.Dataset` representing the
+      pipeline. The signature (parameter list) of `func` must have all explicit
+      parameters needed to configure the pipeline. `*args` and `**kwargs`
+      parameters would be ignored from defining `Params`.
+    ignore: A collection of strings, representing the set of parameter names to
+      be ignored from defining `Params`.
+
+  Returns:
+    A new InputGenerator class that invokes `func` internally. The `Params`
+    method of the returned class makes a new Params containing the `args` field
+    representing the parameters of `func`.
+  """
+  # Defines the class first as it will be required to call `super()`.
+  generated_cls = type(name, (BaseInputGenerator,), {})
+
+  @classmethod
+  def Params(cls):
+    """Generates Params to configure the InputGenerator.
+
+    This function analyses the signature of the given callable `func` and
+    defines corresponding fields into `Params` to the obtained function
+    parameters.
+
+    Returns:
+      An `InstantiableParams` object representing the InputGenerator. It has the
+      `args` field which contains the set of parameters of `func`.
+    """
+    p = super(generated_cls, cls).Params()
+
+    # Introduces a new group `args` to avoid confusion between `func`'s
+    # parameters and existing params defined by super classes.
+    # TODO(oday): For better UX, consider removing this nested field and add
+    # `func`s parameters to `p` directly. We need to make sure that there are no
+    # side effects by integrating `func`'s parameters and follows:
+    # - BaseInputGenerator.Params()
+    # - BaseLayer.Params()
+    # - InstantiableParams.cls
+    p.Define('args', hyperparams.Params(), 'Parameter list of the pipeline.')
+    inspect_utils.DefineParams(func, p.args, ignore)
+    return p
+
+  def _InputBatch(self):
+    """Generates data tensors by invoking the pipeline."""
+    dataset = inspect_utils.CallWithParams(func, self.params.args)
+    assert isinstance(dataset, tf.data.Dataset), (
+        'DefineTFDataInput must take a callable which returns a '
+        '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
+        (func, dataset))
+    return tf.tf1.data.make_one_shot_iterator(dataset).get_next()
+
+  # Overrides member methods.
+  generated_cls.Params = Params
+  generated_cls._InputBatch = _InputBatch  # pylint: disable=protected-access
+
+  # Sets __module__ to the caller's module name for pickling and restoring from
+  # Params to work.
+  # See also the namedtuple's implementation for details.
+  module = inspect.stack()[1].frame.f_globals.get('__name__', '__main__')
+  generated_cls.__module__ = module
+
+  return generated_cls

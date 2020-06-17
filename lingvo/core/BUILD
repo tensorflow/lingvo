@@ -167,6 +167,7 @@ py_library(
         ":datasource",
         ":hyperparams",
         ":input_generator_helper",
+        ":inspect_utils",
         ":py_utils",
         ":tokenizers",
         "//lingvo:compat",
@@ -181,6 +182,7 @@ py_test(
     python_version = "PY3",
     deps = [
         ":base_input_generator",
+        ":hyperparams",
         ":test_utils",
         "//lingvo:compat",
         # Implicit mock dependency.
