@@ -1161,7 +1161,7 @@
     <span class="k">return</span> <span class="n">input_batch</span></div></div>
 
 
-<div class="viewcode-block" id="DefineTFDataInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.DefineTFDataInput">[docs]</a><span class="k">def</span> <span class="nf">DefineTFDataInput</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">ignore</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="DefineTFDataInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.DefineTFDataInput">[docs]</a><span class="k">def</span> <span class="nf">DefineTFDataInput</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">ignore_args</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">map_args</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Defines a new InputGenerator class from given tf.data pipeline.</span>
 
 <span class="sd">  This function allows users to utilize existing tf.data pipelines which are</span>
@@ -1208,14 +1208,25 @@
 <span class="sd">      pipeline. The signature (parameter list) of `func` must have all explicit</span>
 <span class="sd">      parameters needed to configure the pipeline. `*args` and `**kwargs`</span>
 <span class="sd">      parameters would be ignored from defining `Params`.</span>
-<span class="sd">    ignore: A collection of strings, representing the set of parameter names to</span>
-<span class="sd">      be ignored from defining `Params`.</span>
+<span class="sd">    ignore_args: A collection of strings, representing the set of parameter</span>
+<span class="sd">      names to be ignored from defining `Params`.</span>
+<span class="sd">    map_args: A {str: str} dict, representing mappings from existing fields in</span>
+<span class="sd">      `Params()` to `func`&#39;s parameter. These mappings can be used to propagate</span>
+<span class="sd">      some particular Lingvo-specific options defined by others (typically by</span>
+<span class="sd">      super classes: `BaseInputGenerator` or `BaseLayer`) to the given function.</span>
+<span class="sd">      Each entry in the dict represents a `{func_param: layer_param}` pair such</span>
+<span class="sd">      that the `Params().layer_param` field will be mapped to the parameter</span>
+<span class="sd">      `func_param` of `func`. `func_param` won&#39;t be added into `Params().args`</span>
+<span class="sd">      to avoid duplicated definitions about the same parameters.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A new InputGenerator class that invokes `func` internally. The `Params`</span>
 <span class="sd">    method of the returned class makes a new Params containing the `args` field</span>
 <span class="sd">    representing the parameters of `func`.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">ignore_args</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ignore_args</span> <span class="k">if</span> <span class="n">ignore_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">())</span>
+  <span class="n">map_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">map_args</span> <span class="k">if</span> <span class="n">map_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{})</span>
+
   <span class="c1"># Defines the class first as it will be required to call `super()`.</span>
   <span class="n">generated_cls</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">BaseInputGenerator</span><span class="p">,),</span> <span class="p">{})</span>
 
@@ -1231,6 +1242,9 @@
 <span class="sd">      An `InstantiableParams` object representing the InputGenerator. It has the</span>
 <span class="sd">      `args` field which contains the set of parameters of `func`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Keys in `map_args` will also be ignored.</span>
+    <span class="n">actual_ignore_args</span> <span class="o">=</span> <span class="n">ignore_args</span> <span class="o">|</span> <span class="nb">set</span><span class="p">(</span><span class="n">map_args</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">generated_cls</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
     <span class="c1"># Introduces a new group `args` to avoid confusion between `func`&#39;s</span>
@@ -1242,12 +1256,14 @@
     <span class="c1"># - BaseLayer.Params()</span>
     <span class="c1"># - InstantiableParams.cls</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;args&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Parameter list of the pipeline.&#39;</span><span class="p">)</span>
-    <span class="n">inspect_utils</span><span class="o">.</span><span class="n">DefineParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">ignore</span><span class="p">)</span>
+    <span class="n">inspect_utils</span><span class="o">.</span><span class="n">DefineParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="n">actual_ignore_args</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span>
 
   <span class="k">def</span> <span class="nf">_InputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Generates data tensors by invoking the pipeline.&quot;&quot;&quot;</span>
-    <span class="n">dataset</span> <span class="o">=</span> <span class="n">inspect_utils</span><span class="o">.</span><span class="n">CallWithParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">args</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">overrides</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">p</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">map_args</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">inspect_utils</span><span class="o">.</span><span class="n">CallWithParams</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">overrides</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="p">),</span> <span class="p">(</span>
         <span class="s1">&#39;DefineTFDataInput must take a callable which returns a &#39;</span>
         <span class="s1">&#39;`tf.data.Dataset`. The given callable `</span><span class="si">%s</span><span class="s1">` returned `</span><span class="si">%s</span><span class="s1">`&#39;</span> <span class="o">%</span>

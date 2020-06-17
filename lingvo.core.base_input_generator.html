@@ -576,7 +576,7 @@ override _InputBatch and maybe _PreprocessInputBatch.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.base_input_generator.DefineTFDataInput">
-<code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">DefineTFDataInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">ignore</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#DefineTFDataInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.DefineTFDataInput" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.base_input_generator.</code><code class="sig-name descname">DefineTFDataInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">func</span></em>, <em class="sig-param"><span class="n">ignore_args</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">map_args</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_input_generator.html#DefineTFDataInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_input_generator.DefineTFDataInput" title="Permalink to this definition">¶</a></dt>
 <dd><p>Defines a new InputGenerator class from given tf.data pipeline.</p>
 <p>This function allows users to utilize existing tf.data pipelines which are
 defined externally, without making binding boilerplates.
@@ -627,8 +627,16 @@ return value of <code class="xref py py-obj docutils literal notranslate"><span 
 pipeline. The signature (parameter list) of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code> must have all explicit
 parameters needed to configure the pipeline. <code class="xref py py-obj docutils literal notranslate"><span class="pre">*args</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">**kwargs</span></code>
 parameters would be ignored from defining <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p></li>
-<li><p><strong>ignore</strong> – A collection of strings, representing the set of parameter names to
-be ignored from defining <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p></li>
+<li><p><strong>ignore_args</strong> – A collection of strings, representing the set of parameter
+names to be ignored from defining <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params</span></code>.</p></li>
+<li><p><strong>map_args</strong> – A {str: str} dict, representing mappings from existing fields in
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">Params()</span></code> to <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>’s parameter. These mappings can be used to propagate
+some particular Lingvo-specific options defined by others (typically by
+super classes: <a class="reference internal" href="#lingvo.core.base_input_generator.BaseInputGenerator" title="lingvo.core.base_input_generator.BaseInputGenerator"><code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseInputGenerator</span></code></a> or <code class="xref py py-obj docutils literal notranslate"><span class="pre">BaseLayer</span></code>) to the given function.
+Each entry in the dict represents a <code class="xref py py-obj docutils literal notranslate"><span class="pre">{func_param:</span> <span class="pre">layer_param}</span></code> pair such
+that the <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params().layer_param</span></code> field will be mapped to the parameter
+<code class="xref py py-obj docutils literal notranslate"><span class="pre">func_param</span></code> of <code class="xref py py-obj docutils literal notranslate"><span class="pre">func</span></code>. <code class="xref py py-obj docutils literal notranslate"><span class="pre">func_param</span></code> won’t be added into <code class="xref py py-obj docutils literal notranslate"><span class="pre">Params().args</span></code>
+to avoid duplicated definitions about the same parameters.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
