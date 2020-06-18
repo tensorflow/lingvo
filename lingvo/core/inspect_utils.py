@@ -69,8 +69,6 @@ def _ExtractParameters(func, ignore, bound):
 
   # Obtains parameter signatures.
   parameters = tuple(inspect.signature(func).parameters.values())
-  for i, p in enumerate(parameters):
-    print('param %d: %s, %s' % (i, p.name, p.kind))
   # Ignores the bound parameter: typically `self` or `cls`.
   parameters = parameters[(1 if bound else 0):]
   # Filters unnecessary parameters.
