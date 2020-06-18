@@ -4707,12 +4707,18 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
         'Weight initialization for up and down projections. Only used for '
         'weights, not biases.  If None, uses default weight init, which is '
         'typically Xavier with scale of 1.0.')
+    p.Define(
+        'data_format', 'TBC', 'String(enum) specifying the input and output '
+        'data format for this layer. Supported formats: '
+        '"TBC": [time, batch, input_dim] and "BTC": [batch, time, input_dim].')
     return p
 
   def __init__(self, params):
     super(MultitaskAdapterLayer, self).__init__(params)
     p = self.params
     assert p.name
+    # Data format is either 'TBC' (time-major) or 'BTC' (batch-major).
+    assert p.data_format in ('TBC', 'BTC')
     with tf.variable_scope(p.name):
       base_emb_params = EmbeddingLayer.Params().Set(
           vocab_size=p.num_tasks, max_num_shards=1)
@@ -4746,35 +4752,40 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
     Args:
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
-      inputs: A tensor containing the activations from the previous layer of
-        shape [time, batch, input_dim].
+      inputs: A tensor containing the activations from the previous layer. For
+        'TBC', the shape is [time, batch, input_dim] and for 'BTC', it's
+        [batch, time, input_dim].
       tasks: An int32 tensor containing the task ID for each input.  If 'tasks'
-        is of rank 2, we assume it to be of shape [time, batch], indicating a
-        different task for each timestep.  In this case we look up adapter
-        params for each timestep.  If 'tasks' is of rank 1, we assume it to be
-        of shape [batch], indicating a single task for all timesteps of a
-        sequence.  This latter setup uses substantially less memory and is
-        generally preferred.
+        is of rank 2, we assume it to be of shape [time, batch] if 'BTC' and
+        [batch, time] if 'TBC', indicating a different task for each timestep.
+        In this case we look up adapter params for each timestep.  If 'tasks'
+        is of rank 1, we assume it to be of shape [batch], indicating a single
+        task for all timesteps of a sequence. This latter setup uses
+        substantially less memory and is generally preferred.
 
     Returns:
       A tensor containing the adapted activations with shape
-      [time, batch, input_dim].
+      [time, batch, input_dim] for 'TBC' and [batch, time, input_dim] for 'BTC'.
     """
     p = self.params
     inputs_shape = tf.shape(inputs)
+    per_timestep_task = (tasks.shape.ndims == 2)
+    batch_index = 1 if p.data_format == 'TBC' else 0
+    time_index = 1 - batch_index
     inputs = py_utils.with_dependencies(
         [
             # Checks that inputs has 3 dimensions, last is hidden dim.
             py_utils.assert_shape_match(inputs_shape, [-1, -1, p.input_dim]),
             # Checks that inputs and tasks have same batch dimension.
-            py_utils.assert_shape_match([inputs_shape[1]],
-                                        [tf.shape(tasks)[-1]])
+            py_utils.assert_shape_match([inputs_shape[batch_index]], [
+                tf.shape(tasks)[batch_index]
+                if per_timestep_task else tf.shape(tasks)[0]
+            ])
         ],
         inputs)
 
     # To support different task for each timetstep, flatten inputs and
     # tasks.  Below, 'batch' now refers to flattened batch size, time * batch.
-    per_timestep_task = (tasks.shape.ndims == 2)
     if per_timestep_task:
       tasks = py_utils.with_dependencies(
           [
@@ -4784,39 +4795,49 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
           ],
           tasks)
       tasks = tf.reshape(tasks, [-1])
-      inputs = tf.reshape(inputs, [1, -1, p.input_dim])
+      if p.data_format == 'TBC':
+        inputs = tf.reshape(inputs, [1, -1, p.input_dim])
+      else:
+        inputs = tf.reshape(inputs, [-1, 1, p.input_dim])
 
     # Lookup all weights and biases
     # [batch] -> [batch, hidden * k] -> [batch, hidden, k]
     down_weights = tf.reshape(
         self.down_proj_w.EmbLookup(theta.down_proj_w, tasks),
         [-1, p.input_dim, p.bottleneck_dim])
-    # [batch] -> [batch, k] -> [1, batch, k]
+    # [batch] -> [batch, k] -> [1, batch, k] if 'TBC' else [batch, 1, k]
     down_biases = tf.expand_dims(
-        self.down_proj_b.EmbLookup(theta.down_proj_b, tasks), 0)
+        self.down_proj_b.EmbLookup(theta.down_proj_b, tasks), time_index)
     # [batch] -> [batch, k * hidden] -> [batch, k, hidden]
     up_weights = tf.reshape(
         self.up_proj_w.EmbLookup(theta.up_proj_w, tasks),
         [-1, p.bottleneck_dim, p.input_dim])
-    # [batch] -> [batch, h] -> [1, batch, h]
+    # [batch] -> [batch, h] -> [1, batch, h] if 'TBC' else [batch, 1, h]
     up_biases = tf.expand_dims(
-        self.up_proj_b.EmbLookup(theta.up_proj_b, tasks), 0)
+        self.up_proj_b.EmbLookup(theta.up_proj_b, tasks), time_index)
 
     # Layer norm -> down-projection -> non-linearity -> up-projection
     norm_inputs = self.layer_norm.FProp(theta.layer_norm, inputs)
     # If per_timestep_task, t = 1, b = time * batch.
     # Otherwise, t = time, b = batch.
-    down_projected = tf.einsum('tbh,bhk->tbk', norm_inputs, down_weights)
+    if p.data_format == 'TBC':
+      down_projected = tf.einsum('tbh,bhk->tbk', norm_inputs, down_weights)
+    else:
+      down_projected = tf.einsum('bth,bhk->btk', norm_inputs, down_weights)
     down_projected += down_biases
     down_projected = tf.nn.relu(down_projected)
-    up_projected = tf.einsum('tbk,bkh->tbh', down_projected, up_weights)
+    if p.data_format == 'TBC':
+      up_projected = tf.einsum('tbk,bkh->tbh', down_projected, up_weights)
+    else:
+      up_projected = tf.einsum('btk,bkh->bth', down_projected, up_weights)
     up_projected += up_biases
     output = inputs + up_projected
 
-    # Unflatten output: [1, time * batch, hidden] -> [time, batch, hidden]
+    # Unflatten output:
+    #   for 'TBC': [1, time * batch, hidden] -> [time, batch, hidden]
+    #   for 'BTC': [1, batch * time, hidden] -> [batch, time, hidden]
     if per_timestep_task:
       output = tf.reshape(output, inputs_shape)
-
     return output
 
 
