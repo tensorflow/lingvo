@@ -60,6 +60,8 @@ Details for older releases are unavailable.
         `base_layer.ABCLayerMeta` instead.
     *   Trying to call self.CreateChild outside of `__init__` now raises an
         error.
+    *   `base_layer.initializer` has been removed. Subclasses no longer need to
+        decorate their `__init__` function.
 
 <details><summary>
 <b>Older releases</b>
