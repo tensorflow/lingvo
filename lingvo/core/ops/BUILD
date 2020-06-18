@@ -496,6 +496,12 @@ lingvo_proto_cc(
 )
 
 lingvo_proto_py(
+    name = "versioned_file_set_py_pb2",
+    src = "versioned_file_set.proto",
+    deps = [":versioned_file_set_proto"],
+)
+
+lingvo_proto_py(
     name = "record_py_pb2",
     src = "record.proto",
     deps = [":record_proto"],
