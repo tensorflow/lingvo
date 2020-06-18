@@ -217,8 +217,6 @@
 
   <span class="c1"># Obtains parameter signatures.</span>
   <span class="n">parameters</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">inspect</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">func</span><span class="p">)</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
-  <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">p</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;param </span><span class="si">%d</span><span class="s1">: </span><span class="si">%s</span><span class="s1">, </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">kind</span><span class="p">))</span>
   <span class="c1"># Ignores the bound parameter: typically `self` or `cls`.</span>
   <span class="n">parameters</span> <span class="o">=</span> <span class="n">parameters</span><span class="p">[(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">bound</span> <span class="k">else</span> <span class="mi">0</span><span class="p">):]</span>
   <span class="c1"># Filters unnecessary parameters.</span>
