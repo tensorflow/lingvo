@@ -2575,20 +2575,21 @@ trained for all tasks at the same time, or in one-off per-task training jobs.</p
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
 children layers.</p></li>
-<li><p><strong>inputs</strong> – A tensor containing the activations from the previous layer of
-shape [time, batch, input_dim].</p></li>
+<li><p><strong>inputs</strong> – A tensor containing the activations from the previous layer. For
+‘TBC’, the shape is [time, batch, input_dim] and for ‘BTC’, it’s
+[batch, time, input_dim].</p></li>
 <li><p><strong>tasks</strong> – An int32 tensor containing the task ID for each input.  If ‘tasks’
-is of rank 2, we assume it to be of shape [time, batch], indicating a
-different task for each timestep.  In this case we look up adapter
-params for each timestep.  If ‘tasks’ is of rank 1, we assume it to be
-of shape [batch], indicating a single task for all timesteps of a
-sequence.  This latter setup uses substantially less memory and is
-generally preferred.</p></li>
+is of rank 2, we assume it to be of shape [time, batch] if ‘BTC’ and
+[batch, time] if ‘TBC’, indicating a different task for each timestep.
+In this case we look up adapter params for each timestep.  If ‘tasks’
+is of rank 1, we assume it to be of shape [batch], indicating a single
+task for all timesteps of a sequence. This latter setup uses
+substantially less memory and is generally preferred.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>A tensor containing the adapted activations with shape
-[time, batch, input_dim].</p>
+[time, batch, input_dim] for ‘TBC’ and [batch, time, input_dim] for ‘BTC’.</p>
 </dd>
 </dl>
 </dd></dl>

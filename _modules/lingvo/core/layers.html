@@ -4855,12 +4855,18 @@
         <span class="s1">&#39;Weight initialization for up and down projections. Only used for &#39;</span>
         <span class="s1">&#39;weights, not biases.  If None, uses default weight init, which is &#39;</span>
         <span class="s1">&#39;typically Xavier with scale of 1.0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;data_format&#39;</span><span class="p">,</span> <span class="s1">&#39;TBC&#39;</span><span class="p">,</span> <span class="s1">&#39;String(enum) specifying the input and output &#39;</span>
+        <span class="s1">&#39;data format for this layer. Supported formats: &#39;</span>
+        <span class="s1">&#39;&quot;TBC&quot;: [time, batch, input_dim] and &quot;BTC&quot;: [batch, time, input_dim].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">MultitaskAdapterLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="c1"># Data format is either &#39;TBC&#39; (time-major) or &#39;BTC&#39; (batch-major).</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;TBC&#39;</span><span class="p">,</span> <span class="s1">&#39;BTC&#39;</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">base_emb_params</span> <span class="o">=</span> <span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">vocab_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
@@ -4894,35 +4900,40 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
 <span class="sd">        children layers.</span>
-<span class="sd">      inputs: A tensor containing the activations from the previous layer of</span>
-<span class="sd">        shape [time, batch, input_dim].</span>
+<span class="sd">      inputs: A tensor containing the activations from the previous layer. For</span>
+<span class="sd">        &#39;TBC&#39;, the shape is [time, batch, input_dim] and for &#39;BTC&#39;, it&#39;s</span>
+<span class="sd">        [batch, time, input_dim].</span>
 <span class="sd">      tasks: An int32 tensor containing the task ID for each input.  If &#39;tasks&#39;</span>
-<span class="sd">        is of rank 2, we assume it to be of shape [time, batch], indicating a</span>
-<span class="sd">        different task for each timestep.  In this case we look up adapter</span>
-<span class="sd">        params for each timestep.  If &#39;tasks&#39; is of rank 1, we assume it to be</span>
-<span class="sd">        of shape [batch], indicating a single task for all timesteps of a</span>
-<span class="sd">        sequence.  This latter setup uses substantially less memory and is</span>
-<span class="sd">        generally preferred.</span>
+<span class="sd">        is of rank 2, we assume it to be of shape [time, batch] if &#39;BTC&#39; and</span>
+<span class="sd">        [batch, time] if &#39;TBC&#39;, indicating a different task for each timestep.</span>
+<span class="sd">        In this case we look up adapter params for each timestep.  If &#39;tasks&#39;</span>
+<span class="sd">        is of rank 1, we assume it to be of shape [batch], indicating a single</span>
+<span class="sd">        task for all timesteps of a sequence. This latter setup uses</span>
+<span class="sd">        substantially less memory and is generally preferred.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tensor containing the adapted activations with shape</span>
-<span class="sd">      [time, batch, input_dim].</span>
+<span class="sd">      [time, batch, input_dim] for &#39;TBC&#39; and [batch, time, input_dim] for &#39;BTC&#39;.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+    <span class="n">per_timestep_task</span> <span class="o">=</span> <span class="p">(</span><span class="n">tasks</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
+    <span class="n">batch_index</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="o">==</span> <span class="s1">&#39;TBC&#39;</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="n">time_index</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">batch_index</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span>
             <span class="c1"># Checks that inputs has 3 dimensions, last is hidden dim.</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">inputs_shape</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]),</span>
             <span class="c1"># Checks that inputs and tasks have same batch dimension.</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">inputs_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]],</span>
-                                        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tasks</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+            <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">inputs_shape</span><span class="p">[</span><span class="n">batch_index</span><span class="p">]],</span> <span class="p">[</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tasks</span><span class="p">)[</span><span class="n">batch_index</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">per_timestep_task</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tasks</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="p">])</span>
         <span class="p">],</span>
         <span class="n">inputs</span><span class="p">)</span>
 
     <span class="c1"># To support different task for each timetstep, flatten inputs and</span>
     <span class="c1"># tasks.  Below, &#39;batch&#39; now refers to flattened batch size, time * batch.</span>
-    <span class="n">per_timestep_task</span> <span class="o">=</span> <span class="p">(</span><span class="n">tasks</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span> <span class="o">==</span> <span class="mi">2</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">per_timestep_task</span><span class="p">:</span>
       <span class="n">tasks</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
           <span class="p">[</span>
@@ -4932,39 +4943,49 @@
           <span class="p">],</span>
           <span class="n">tasks</span><span class="p">)</span>
       <span class="n">tasks</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-      <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="o">==</span> <span class="s1">&#39;TBC&#39;</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
 
     <span class="c1"># Lookup all weights and biases</span>
     <span class="c1"># [batch] -&gt; [batch, hidden * k] -&gt; [batch, hidden, k]</span>
     <span class="n">down_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">down_proj_w</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">down_proj_w</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span>
         <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">])</span>
-    <span class="c1"># [batch] -&gt; [batch, k] -&gt; [1, batch, k]</span>
+    <span class="c1"># [batch] -&gt; [batch, k] -&gt; [1, batch, k] if &#39;TBC&#39; else [batch, 1, k]</span>
     <span class="n">down_biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">down_proj_b</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">down_proj_b</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">down_proj_b</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">down_proj_b</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span> <span class="n">time_index</span><span class="p">)</span>
     <span class="c1"># [batch] -&gt; [batch, k * hidden] -&gt; [batch, k, hidden]</span>
     <span class="n">up_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">up_proj_w</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">up_proj_w</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span>
         <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
-    <span class="c1"># [batch] -&gt; [batch, h] -&gt; [1, batch, h]</span>
+    <span class="c1"># [batch] -&gt; [batch, h] -&gt; [1, batch, h] if &#39;TBC&#39; else [batch, 1, h]</span>
     <span class="n">up_biases</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">up_proj_b</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">up_proj_b</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">up_proj_b</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">up_proj_b</span><span class="p">,</span> <span class="n">tasks</span><span class="p">),</span> <span class="n">time_index</span><span class="p">)</span>
 
     <span class="c1"># Layer norm -&gt; down-projection -&gt; non-linearity -&gt; up-projection</span>
     <span class="n">norm_inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="c1"># If per_timestep_task, t = 1, b = time * batch.</span>
     <span class="c1"># Otherwise, t = time, b = batch.</span>
-    <span class="n">down_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tbh,bhk-&gt;tbk&#39;</span><span class="p">,</span> <span class="n">norm_inputs</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="o">==</span> <span class="s1">&#39;TBC&#39;</span><span class="p">:</span>
+      <span class="n">down_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tbh,bhk-&gt;tbk&#39;</span><span class="p">,</span> <span class="n">norm_inputs</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">down_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bth,bhk-&gt;btk&#39;</span><span class="p">,</span> <span class="n">norm_inputs</span><span class="p">,</span> <span class="n">down_weights</span><span class="p">)</span>
     <span class="n">down_projected</span> <span class="o">+=</span> <span class="n">down_biases</span>
     <span class="n">down_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">down_projected</span><span class="p">)</span>
-    <span class="n">up_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tbk,bkh-&gt;tbh&#39;</span><span class="p">,</span> <span class="n">down_projected</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="o">==</span> <span class="s1">&#39;TBC&#39;</span><span class="p">:</span>
+      <span class="n">up_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;tbk,bkh-&gt;tbh&#39;</span><span class="p">,</span> <span class="n">down_projected</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">up_projected</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;btk,bkh-&gt;bth&#39;</span><span class="p">,</span> <span class="n">down_projected</span><span class="p">,</span> <span class="n">up_weights</span><span class="p">)</span>
     <span class="n">up_projected</span> <span class="o">+=</span> <span class="n">up_biases</span>
     <span class="n">output</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">up_projected</span>
 
-    <span class="c1"># Unflatten output: [1, time * batch, hidden] -&gt; [time, batch, hidden]</span>
+    <span class="c1"># Unflatten output:</span>
+    <span class="c1">#   for &#39;TBC&#39;: [1, time * batch, hidden] -&gt; [time, batch, hidden]</span>
+    <span class="c1">#   for &#39;BTC&#39;: [1, batch * time, hidden] -&gt; [batch, time, hidden]</span>
     <span class="k">if</span> <span class="n">per_timestep_task</span><span class="p">:</span>
       <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">inputs_shape</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">output</span></div></div>
 
 
