@@ -252,21 +252,17 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="c1"># Enable variable sharing.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-
-<div class="viewcode-block" id="RegExSharedVariableModel.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.RegExSharedVariableModel.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Enable variable sharing.</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="RegExSharedVariableModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.RegExSharedVariableModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># We need to override this since constructing the BPropGraph</span>
     <span class="c1"># creates slot variables.</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span></div></div>
 </pre></div>
 
