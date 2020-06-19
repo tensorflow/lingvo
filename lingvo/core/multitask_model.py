@@ -104,19 +104,15 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
 
   def __init__(self, params):
     # Enable variable sharing.
+    p = params
     with py_utils.OpportunisticVariableReuseScope():
-      with py_utils.VariableRenameScope(params.variable_renaming_rules):
+      with py_utils.VariableRenameScope(p.variable_renaming_rules):
         super(RegExSharedVariableModel, self).__init__(params)
-
-  def CreateVariables(self):
-    # Enable variable sharing.
-    with py_utils.OpportunisticVariableReuseScope():
-      with py_utils.VariableRenameScope(self.params.variable_renaming_rules):
-        super(RegExSharedVariableModel, self).CreateVariables()
 
   def ConstructFPropBPropGraph(self):
     # We need to override this since constructing the BPropGraph
     # creates slot variables.
+    p = self._params
     with py_utils.OpportunisticVariableReuseScope():
-      with py_utils.VariableRenameScope(self.params.variable_renaming_rules):
+      with py_utils.VariableRenameScope(p.variable_renaming_rules):
         super(RegExSharedVariableModel, self).ConstructFPropBPropGraph()

@@ -256,7 +256,8 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_atten_vec_out, atten_vec_out)
 
   def _testSameBatchSize(self, same_batch_size, packed_inputs=False):
-    with self.session(use_gpu=True, graph=tf.Graph()):
+    g = tf.Graph()
+    with g.as_default():
       tf.random.set_seed(398847392)
       params, tensors = self._AdditiveAttentionInputs(packed_inputs, tgt_bs=3)
       source_vecs, source_contexts, source_padding, _, query_vec, _ = tensors
@@ -277,6 +278,7 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       self.assertLen(atten.vars.Flatten(), 3)
 
+    with self.session(use_gpu=True, graph=g):
       self.evaluate(tf.global_variables_initializer())
       atten_vec_out, prob_out = self.evaluate([atten_vec, atten_prob])
     return atten_vec_out, prob_out

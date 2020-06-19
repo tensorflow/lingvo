@@ -268,20 +268,10 @@ class SeqLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super(SeqLayer, self).__init__(params)
     p = self.params
+    assert p.name
+    num_cells = len(p.cell_tpl)
     self._before_layers = []
     self._cells = []
-    for l in p.before_tpl:
-      self.CreateChild(l.name, l)
-      self._before_layers.append((l.name, self.children[l.name]))
-    for l in p.cell_tpl:
-      self.CreateChild(l.name, l)
-      self._cells.append((l.name, self.children[l.name]))
-
-  def _CreateChildrenVariables(self, skip=None):
-    p = self.params
-    skip = skip or []
-
-    num_cells = len(p.cell_tpl)
     before_tpl_device = ''
     cell_devices = [''] * num_cells
     if py_utils.use_tpu():
@@ -290,18 +280,16 @@ class SeqLayer(base_layer.BaseLayer):
       cell_devices = [
           cluster.WorkerDeviceInModelSplit(i) for i in range(num_cells)
       ]
-
-    for unused_name, l in self._before_layers:
+    for l in p.before_tpl:
       with tf.device(before_tpl_device):
-        l.CreateVariables()
-        skip.append(l)
-
-    for i, (unused_name, l) in enumerate(self._cells):
+        assert l.name
+        self.CreateChild(l.name, l)
+        self._before_layers.append((l.name, self.children[l.name]))
+    for i, l in enumerate(p.cell_tpl):
       with tf.device(cell_devices[i]):
-        l.CreateVariables()
-        skip.append(l)
-
-    super(SeqLayer, self)._CreateChildrenVariables(skip)
+        assert l.name
+        self.CreateChild(l.name, l)
+        self._cells.append((l.name, self.children[l.name]))
 
   def FProp(self, theta, *args):
     """Round-robin every children cells in cell_tpl among worker devices.

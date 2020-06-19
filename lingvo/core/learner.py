@@ -110,10 +110,6 @@ class Learner(base_layer.BaseLayer):
     self.CreateChild('lr_schedule', p.lr_schedule)
     self.CreateChild('optimizer', p.optimizer)
 
-  def _CreateVariablesScope(self):
-    # For backwards compatibility: no variable scope.
-    return tf.variable_scope(tf.get_variable_scope())
-
   def GetVarGrads(self):
     return self._var_grads
 

@@ -122,10 +122,6 @@ class RepeatLayer(base_layer.BaseLayer):
       with py_utils.VariableShapePrefixContext(p.repeat):
         self.CreateChild('body', p.body)
 
-  def CreateVariables(self):
-    with py_utils.VariableShapePrefixContext(self.params.repeat):
-      super(RepeatLayer, self).CreateVariables()
-
   def FProp(self, theta, *args):
     p = self.params
     # Collects all variable key and values into sets.
@@ -244,10 +240,6 @@ class SoftCondLayer(base_layer.BaseLayer):
       # by p.body.
       with py_utils.VariableShapePrefixContext(p.num_experts):
         self.CreateChild('body', p.body)
-
-  def _CreateChildrenVariables(self, skip=None):
-    with py_utils.VariableShapePrefixContext(self.params.num_experts):
-      super(SoftCondLayer, self)._CreateChildrenVariables(skip)
 
   def _GetExpertDist(self, theta, inputs, *args):
     """Get the task id from inputs tensors."""

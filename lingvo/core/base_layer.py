@@ -20,7 +20,6 @@ from __future__ import division
 from __future__ import print_function
 
 import abc
-import collections
 import itertools
 import re
 import threading
@@ -181,7 +180,7 @@ class BaseLayerMeta(type):
   def __call__(cls, *args, **kwargs):
     self = super(BaseLayerMeta, cls).__call__(*args, **kwargs)
     # This happens after self.__init__()
-    self.CreateVariables()
+    self._CheckInvariants()  # pylint: disable=protected-access
     self._disable_create_child = True  # pylint: disable=protected-access
     return self
 
@@ -189,12 +188,6 @@ class BaseLayerMeta(type):
 class ABCLayerMeta(BaseLayerMeta, abc.ABCMeta):
   pass
 
-
-# NamedTuple that records the metadata for creating a variable.
-# For internal use only. Subclasses of BaseLayer should use
-# self.CreateVariable() to create variables.
-CreateVariableMeta = collections.namedtuple(
-    'CreateVariableMeta', ['var_scope', 'var_params', 'theta_fn', 'kwargs'])
 
 LAYER_WT = 'layer_weight_variable'
 
@@ -347,8 +340,6 @@ class BaseLayer(tf.Module):
     self._var_symbolic_shape_map = {}
 
     self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
-    self._variables_to_create = {}
-    self._create_variables_called = False
 
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
@@ -516,7 +507,7 @@ class BaseLayer(tf.Module):
         self._params.fprop_dtype != self._params.dtype):
 
       def MaybeCastToFPropDtype(x):
-        if x is not None and x.dtype == self._params.dtype:
+        if x.dtype == self._params.dtype:
           return tf.cast(x, self._params.fprop_dtype)
         else:
           return x
@@ -692,80 +683,12 @@ class BaseLayer(tf.Module):
           collections=(var_params.collections +
                        [py_utils.SKIP_LP_REGULARIZATION]))
     self._var_symbolic_shape_map[name] = var_params.shape
-    meta = CreateVariableMeta(
-        var_scope=tf.get_variable_scope(),
-        var_params=var_params.Copy(),
-        theta_fn=theta_fn,
-        kwargs=kwargs)
-    if self._create_variables_called:
-      self._CreateVariable(name, meta)
-    else:
-      self._variables_to_create[name] = meta
-
-  def _CreateVariable(self, name, meta):
-    """Immediately creates the variable described by `meta`.
-
-    For internal use only. Subclasses of BaseLayer should use
-    self.CreateVariable() to create variables.
-
-    Args:
-      name: The variable name.
-      meta: A CreateVariableMeta describing the variable to be created.
-    """
-    with tf.variable_scope(meta.var_scope):
-      meta.kwargs.setdefault('default_seed', self.params.random_seed)
-      value, var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
-      self._private_vars[name] = var
-      if meta.theta_fn is not None:
-        value = meta.theta_fn(value)
-      self._private_theta[name] = value
-
-  def _CreateVariablesScope(self):
-    """Variable scope to use in CreateVariables.
-
-    Do not override! Existing cases are for backwards compatibility.
-
-    Returns:
-      A variable scope to run CreateVariables in.
-    """
-    return tf.variable_scope(
-        py_utils.SanitizeScopeKey(self.params.name), auxiliary_name_scope=False)
-
-  def CreateVariables(self):
-    """Create variables for this layer and child layers.
-
-    Should not be overridden. Override self._CreateVariables instead.
-    """
-    if self._create_variables_called:
-      return
-    self._create_variables_called = True
-
-    self._VerifyChildren()
-    with self._CreateVariablesScope():
-      self._CreateChildrenVariables()
-      for name, meta in list(self._variables_to_create.items()):
-        self._CreateVariable(name, meta)
-      self._CreateVariables()
-    self._VerifyVarsAndTheta()
-
-  def _CreateChildrenVariables(self, skip=None):
-    """Create variables for child layers.
-
-    Should be rarely overridden, only in cases when control over the context of
-    children CreateVariables calls are needed.
-
-    Args:
-      skip: list of child layers to skip.
-    """
-    skip = skip or []
-    for child in self._children_list:
-      if child not in skip:
-        # For now each layer is responsible for calling its own CreateVariables.
-        pass
-
-  def _CreateVariables(self):
-    """Actually create variables for this layer."""
-    pass
+    kwargs.setdefault('default_seed', self.params.random_seed)
+    value, var = py_utils.CreateVariable(name, var_params, **kwargs)
+    self._private_vars[name] = var
+    if theta_fn is not None:
+      value = theta_fn(value)
+    self._private_theta[name] = value
 
   def AddExtraTheta(self, theta_name, theta_value):
     """Add extra `theta` that doesn't directly correspond to `vars`."""
@@ -851,6 +774,10 @@ class BaseLayer(tf.Module):
       child: A sub-layer of this layer.
     """
     self._children_list.append(child)
+
+  def _CheckInvariants(self):
+    self._VerifyChildren()
+    self._VerifyVarsAndTheta()
 
   def _VerifyChildren(self):
     """Verify all children created by this layer are via `CreateChild(ren)`."""

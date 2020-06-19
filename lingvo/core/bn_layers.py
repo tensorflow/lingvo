@@ -499,10 +499,6 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
     p.fprop_dtype = None
 
-  def _CreateVariables(self):
-    super(BatchNormLayerNoPadding, self)._CreateVariables()
-    p = self.params
-
     # Skip L-P regularization for these variables.
     collections = [
         self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
@@ -513,27 +509,28 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         dtype=p.dtype,
         collections=collections)
 
-    self.CreateVariable('beta', pc)
-    # Note, The real gamma to use is 1 + gamma.
-    self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+    with tf.variable_scope(p.name):
+      self.CreateVariable('beta', pc)
+      # Note, The real gamma to use is 1 + gamma.
+      self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
-    moving_collections = [
-        'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
-        self.__class__.__name__ + '_vars'
-    ]
-    mva = py_utils.WeightParams(
-        shape=[p.dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=moving_collections)
-    # Two statistics computed from sufficient stats.
-    self.CreateVariable('moving_mean', mva, trainable=False)
-    mvv = py_utils.WeightParams(
-        shape=[p.dim],
-        init=py_utils.WeightInit.Constant(1.0),
-        dtype=p.dtype,
-        collections=moving_collections)
-    self.CreateVariable('moving_variance', mvv, trainable=False)
+      moving_collections = [
+          'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
+          self.__class__.__name__ + '_vars'
+      ]
+      mva = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=moving_collections)
+      # Two statistics computed from sufficient stats.
+      self.CreateVariable('moving_mean', mva, trainable=False)
+      mvv = py_utils.WeightParams(
+          shape=[p.dim],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=moving_collections)
+      self.CreateVariable('moving_variance', mvv, trainable=False)
 
     # Accumulate bn sufficient stats over micro-batches.
     dim = self.vars.beta.shape[0]
