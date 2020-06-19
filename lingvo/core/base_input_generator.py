@@ -50,6 +50,8 @@ import six
 from six.moves import map
 from six.moves import range
 from six.moves import zip
+import tensorflow.compat.v1 as tf1
+import tensorflow.compat.v2 as tf2
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import io_ops
@@ -1083,7 +1085,7 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
   generated_cls = type(name, (BaseInputGenerator,), {})
 
   @classmethod
-  def Params(cls):
+  def _Params(cls):
     """Generates Params to configure the InputGenerator.
 
     This function analyses the signature of the given callable `func` and
@@ -1111,19 +1113,31 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     inspect_utils.DefineParams(func, p.args, actual_ignore_args)
     return p
 
-  def _InputBatch(self):
-    """Generates data tensors by invoking the pipeline."""
+  def _Init(self, params):
+    """Initializes the InputGenerator."""
+    super(generated_cls, self).__init__(params)
     p = self.params
+
+    # We have to make the one-shot iterator only once as _InputBatch will be
+    # called repeatedly in TFv2.
     overrides = {k: p.Get(v) for k, v in map_args.items()}
     dataset = inspect_utils.CallWithParams(func, p.args, **overrides)
-    assert isinstance(dataset, tf.data.Dataset), (
+    assert isinstance(dataset, (tf1.data.Dataset, tf2.data.Dataset)), (
         'DefineTFDataInput must take a callable which returns a '
         '`tf.data.Dataset`. The given callable `%s` returned `%s`' %
         (func, dataset))
-    return tf.tf1.data.make_one_shot_iterator(dataset).get_next()
+    self.iterator = tf1.data.make_one_shot_iterator(dataset)
+
+  def _InputBatch(self):
+    """Generates data tensors by invoking the pipeline."""
+
+    # TFv1: Returns Tensors which will be determined by Session.run().
+    # TFv2: Returns Tensors with actual values.
+    return self.iterator.get_next()
 
   # Overrides member methods.
-  generated_cls.Params = Params
+  generated_cls.Params = _Params
+  generated_cls.__init__ = _Init
   generated_cls._InputBatch = _InputBatch  # pylint: disable=protected-access
 
   # Sets __module__ to the caller's module name for pickling and restoring from

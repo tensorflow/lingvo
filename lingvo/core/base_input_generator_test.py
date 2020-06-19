@@ -27,6 +27,9 @@ import numpy as np
 
 from six.moves import range
 
+import tensorflow.compat.v1 as tf1
+import tensorflow.compat.v2 as tf2
+
 
 def _CreateFakeTFRecordFiles(record_count=10):
   tmpdir = tempfile.mkdtemp()
@@ -143,6 +146,16 @@ def _TestDatasetFnWithRepeat(begin=0, end=10):
   return tf.data.Dataset.from_tensor_slices(tf.range(begin, end)).repeat()
 
 
+def _TestDatasetFnV1(begin=0, end=10):
+  """Similar to _TestDatasetFn but returns TFv1's dataset explicitly."""
+  return tf1.data.Dataset.from_tensor_slices(tf.range(begin, end))
+
+
+def _TestDatasetFnV2(begin=0, end=10):
+  """Similar to _TestDatasetFn but returns TFv2's dataset explicitly."""
+  return tf2.data.Dataset.from_tensor_slices(tf.range(begin, end))
+
+
 class _TestDatasetClass:
   """A class that generates tf.data by its member function."""
 
@@ -172,6 +185,10 @@ _TestTFDataInputWithRepeat = base_input_generator.DefineTFDataInput(
     '_TestTFDataInputWithRepeat', _TestDatasetFnWithRepeat)
 _TestTFDataInputWithBoundMethod = base_input_generator.DefineTFDataInput(
     '_TestTFDataInputWithBoundMethod', _TestDatasetObject.DatasetFn)
+_TestTFDataInputV1 = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputV1', _TestDatasetFnV1)
+_TestTFDataInputV2 = base_input_generator.DefineTFDataInput(
+    '_TestTFDataInputV2', _TestDatasetFnV2)
 
 
 class TFDataInputTest(test_utils.TestCase):
@@ -183,6 +200,8 @@ class TFDataInputTest(test_utils.TestCase):
     self.assertEqual(_TestTFDataInputWithoutDefault.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithRepeat.__module__, '__main__')
     self.assertEqual(_TestTFDataInputWithBoundMethod.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputV1.__module__, '__main__')
+    self.assertEqual(_TestTFDataInputV2.__module__, '__main__')
 
   def testExample(self):
     """Tests the example code in the function docstring."""
@@ -354,6 +373,58 @@ class TFDataInputTest(test_utils.TestCase):
 
       # Consumes all data.
       for i in range(p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testDatasetV1(self):
+    """Tests the TFv1 Dataset."""
+    p = _TestTFDataInputV1.Params()
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.begin, 0)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputV1)
+
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.args.end):
+        self.assertEqual(sess.run(data), i)
+
+      with self.assertRaises(tf.errors.OutOfRangeError):
+        sess.run(data)
+
+  def testDatasetV2(self):
+    """Tests the TFv2 Dataset."""
+    p = _TestTFDataInputV2.Params()
+    self.assertIn('args', p)
+    self.assertIn('begin', p.args)
+    self.assertIn('end', p.args)
+    self.assertEqual(p.args.begin, 0)
+    self.assertEqual(p.args.end, 10)
+
+    ig = p.Instantiate()
+    self.assertIsInstance(ig, _TestTFDataInputV2)
+
+    # We keep the TFv1's Session here since v1/v2 behaviors would not coexist.
+    # TODO(oday): write TFv2-specific tests.
+    with self.session(graph=tf.get_default_graph()) as sess:
+      data = ig.GetPreprocessedInputBatch()
+      self.assertIsInstance(data, tf.Tensor)
+      self.assertAllEqual(data.shape, ())
+      self.assertEqual(data.dtype, tf.int32)
+
+      # Consumes all data.
+      for i in range(p.args.begin, p.args.end):
         self.assertEqual(sess.run(data), i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
