@@ -958,8 +958,6 @@ class Evaler(base_runner.BaseRunner):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
         self._model = self.params.Instantiate()
         self._params = self._model.params
-        # Always create the same graph to make sure node names are always
-        # exactly the same.
         self._model.ConstructFPropGraph()
         self._task = self._model.GetTask(self._model_task_name)
       self._initialize_tables = tf.tables_initializer()

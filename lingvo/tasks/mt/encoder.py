@@ -614,6 +614,21 @@ class TransformerEncoder(base_layer.BaseLayer):
     p.transformer_stack.name = p.name
     self.CreateChild('transformer_stack', p.transformer_stack)
 
+  def _CreateChildrenVariables(self, skip=None):
+    skip = skip or []
+    # HACK: Backwards compatibility -- transformer_stack needs to be created
+    # outside of tf.variable_scope(p.name).
+    skip.append(self.transformer_stack)
+    super(TransformerEncoder, self)._CreateChildrenVariables(skip)
+
+  # HACK: Backwards compatibility -- transformer_stack needs to be created
+  # outside of tf.variable_scope(p.name).
+  def CreateVariables(self):
+    if self._create_variables_called:
+      return
+    self.transformer_stack.CreateVariables()
+    super(TransformerEncoder, self).CreateVariables()
+
   def FProp(self, theta, input_batch):
     """Embeds source ids and transforms with TransformerStack.
 
