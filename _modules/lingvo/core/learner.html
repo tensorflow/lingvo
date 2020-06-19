@@ -258,6 +258,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
 
+<div class="viewcode-block" id="Learner._CreateVariablesScope"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CreateVariablesScope">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariablesScope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># For backwards compatibility: no variable scope.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">())</span></div>
+
 <div class="viewcode-block" id="Learner.GetVarGrads"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.GetVarGrads">[docs]</a>  <span class="k">def</span> <span class="nf">GetVarGrads</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grads</span></div>
 

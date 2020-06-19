@@ -265,6 +265,13 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.builder_layers.RepeatLayer.CreateVariables">
+<code class="sig-name descname">CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer.CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer.CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for this layer and child layers.</p>
+<p>Should not be overridden. Override self._CreateVariables instead.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.builder_layers.RepeatLayer.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#RepeatLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.RepeatLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Forward propagation.</p>
@@ -352,6 +359,19 @@ Soft Conditional Computation, B. Yang, G. Bender, Q.V. Le, J. Ngiam
 <dt id="lingvo.core.builder_layers.SoftCondLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.builder_layers.SoftCondLayer._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">skip</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/builder_layers.html#SoftCondLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.builder_layers.SoftCondLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>skip</strong> – list of child layers to skip.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

@@ -762,6 +762,21 @@
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
 
+<div class="viewcode-block" id="TransformerEncoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="c1"># HACK: Backwards compatibility -- transformer_stack needs to be created</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">(</span><span class="n">skip</span><span class="p">)</span></div>
+
+  <span class="c1"># HACK: Backwards compatibility -- transformer_stack needs to be created</span>
+  <span class="c1"># outside of tf.variable_scope(p.name).</span>
+<div class="viewcode-block" id="TransformerEncoder.CreateVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="TransformerEncoder.FProp"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerEncoder.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Embeds source ids and transforms with TransformerStack.</span>
 

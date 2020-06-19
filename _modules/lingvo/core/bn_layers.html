@@ -647,6 +647,10 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;Name of BatchNormLayerNoPadding is not set.&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="kc">None</span>
 
+<div class="viewcode-block" id="BatchNormLayerNoPadding._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BatchNormLayerNoPadding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="c1"># Skip L-P regularization for these variables.</span>
     <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span>
@@ -657,34 +661,33 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
-      <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;beta&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="c1"># Note, The real gamma to use is 1 + gamma.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mf">1.0</span> <span class="o">+</span> <span class="n">x</span><span class="p">)</span>
 
-      <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">MOVING_AVERAGE_VARIABLES</span><span class="p">,</span>
-          <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span>
-      <span class="p">]</span>
-      <span class="n">mva</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
-      <span class="c1"># Two statistics computed from sufficient stats.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_mean&#39;</span><span class="p">,</span> <span class="n">mva</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="n">mvv</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_variance&#39;</span><span class="p">,</span> <span class="n">mvv</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">moving_collections</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="s1">&#39;moving_vars&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">MOVING_AVERAGE_VARIABLES</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span>
+    <span class="p">]</span>
+    <span class="n">mva</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
+    <span class="c1"># Two statistics computed from sufficient stats.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_mean&#39;</span><span class="p">,</span> <span class="n">mva</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">mvv</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="n">moving_collections</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;moving_variance&#39;</span><span class="p">,</span> <span class="n">mvv</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
     <span class="c1"># Accumulate bn sufficient stats over micro-batches.</span>
     <span class="n">dim</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">beta</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="s1">&#39;counts&#39;</span><span class="p">,</span> <span class="n">AddingAccumulator</span><span class="p">([],</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="s1">&#39;mean_ss&#39;</span><span class="p">,</span> <span class="n">AddingAccumulator</span><span class="p">([</span><span class="n">dim</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="s1">&#39;variance_ss&#39;</span><span class="p">,</span> <span class="n">AddingAccumulator</span><span class="p">([</span><span class="n">dim</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">RegisterAccumulator</span><span class="p">(</span><span class="s1">&#39;variance_ss&#39;</span><span class="p">,</span> <span class="n">AddingAccumulator</span><span class="p">([</span><span class="n">dim</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="BatchNormLayerNoPadding.PostTrainingStepUpdate"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayerNoPadding.PostTrainingStepUpdate">[docs]</a>  <span class="k">def</span> <span class="nf">PostTrainingStepUpdate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">global_step</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Updates moving_mean, moving_variance after each training step.&quot;&quot;&quot;</span>

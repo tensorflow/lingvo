@@ -416,10 +416,20 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">SeqLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-    <span class="n">num_cells</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">before_tpl</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+
+<div class="viewcode-block" id="SeqLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+
+    <span class="n">num_cells</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">)</span>
     <span class="n">before_tpl_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="n">cell_devices</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_cells</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
@@ -428,16 +438,18 @@
       <span class="n">cell_devices</span> <span class="o">=</span> <span class="p">[</span>
           <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_cells</span><span class="p">)</span>
       <span class="p">]</span>
-    <span class="k">for</span> <span class="n">l</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">before_tpl</span><span class="p">:</span>
+
+    <span class="k">for</span> <span class="n">unused_name</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="p">:</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">before_tpl_device</span><span class="p">):</span>
-        <span class="k">assert</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_before_layers</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
-    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">):</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">unused_name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">cell_devices</span><span class="p">[</span><span class="n">i</span><span class="p">]):</span>
-        <span class="k">assert</span> <span class="n">l</span><span class="o">.</span><span class="n">name</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_cells</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">l</span><span class="o">.</span><span class="n">name</span><span class="p">]))</span>
+        <span class="n">l</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+
+    <span class="nb">super</span><span class="p">(</span><span class="n">SeqLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">(</span><span class="n">skip</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SeqLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.gpipe.html#lingvo.core.gpipe.SeqLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Round-robin every children cells in cell_tpl among worker devices.</span>

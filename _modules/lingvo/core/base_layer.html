@@ -168,6 +168,7 @@
 <span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">abc</span>
+<span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">threading</span>
@@ -328,7 +329,7 @@
   <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="c1"># This happens after self.__init__()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CheckInvariants</span><span class="p">()</span>  <span class="c1"># pylint: disable=protected-access</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># pylint: disable=protected-access</span>
     <span class="k">return</span> <span class="bp">self</span></div>
 
@@ -336,6 +337,12 @@
 <div class="viewcode-block" id="ABCLayerMeta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.ABCLayerMeta">[docs]</a><span class="k">class</span> <span class="nc">ABCLayerMeta</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="n">abc</span><span class="o">.</span><span class="n">ABCMeta</span><span class="p">):</span>
   <span class="k">pass</span></div>
 
+
+<span class="c1"># NamedTuple that records the metadata for creating a variable.</span>
+<span class="c1"># For internal use only. Subclasses of BaseLayer should use</span>
+<span class="c1"># self.CreateVariable() to create variables.</span>
+<span class="n">CreateVariableMeta</span> <span class="o">=</span> <span class="n">collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span>
+    <span class="s1">&#39;CreateVariableMeta&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var_scope&#39;</span><span class="p">,</span> <span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">])</span>
 
 <span class="n">LAYER_WT</span> <span class="o">=</span> <span class="s1">&#39;layer_weight_variable&#39;</span>
 
@@ -488,6 +495,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="BaseLayer.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calls `FProp`.&quot;&quot;&quot;</span>
@@ -655,7 +664,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">dtype</span><span class="p">):</span>
 
       <span class="k">def</span> <span class="nf">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
-        <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
           <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
           <span class="k">return</span> <span class="n">x</span>
@@ -831,12 +840,80 @@
           <span class="n">collections</span><span class="o">=</span><span class="p">(</span><span class="n">var_params</span><span class="o">.</span><span class="n">collections</span> <span class="o">+</span>
                        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">]))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var_params</span><span class="o">.</span><span class="n">shape</span>
-    <span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
-    <span class="k">if</span> <span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">value</span> <span class="o">=</span> <span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">CreateVariableMeta</span><span class="p">(</span>
+        <span class="n">var_scope</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">(),</span>
+        <span class="n">var_params</span><span class="o">=</span><span class="n">var_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
+        <span class="n">theta_fn</span><span class="o">=</span><span class="n">theta_fn</span><span class="p">,</span>
+        <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span></div>
+
+<div class="viewcode-block" id="BaseLayer._CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Immediately creates the variable described by `meta`.</span>
+
+<span class="sd">    For internal use only. Subclasses of BaseLayer should use</span>
+<span class="sd">    self.CreateVariable() to create variables.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: The variable name.</span>
+<span class="sd">      meta: A CreateVariableMeta describing the variable to be created.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">meta</span><span class="o">.</span><span class="n">var_scope</span><span class="p">):</span>
+      <span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
+      <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
+      <span class="k">if</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+<div class="viewcode-block" id="BaseLayer._CreateVariablesScope"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariablesScope">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariablesScope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Variable scope to use in CreateVariables.</span>
+
+<span class="sd">    Do not override! Existing cases are for backwards compatibility.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A variable scope to run CreateVariables in.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span> <span class="n">auxiliary_name_scope</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="BaseLayer.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create variables for this layer and child layers.</span>
+
+<span class="sd">    Should not be overridden. Override self._CreateVariables instead.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyChildren</span><span class="p">()</span>
+    <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariablesScope</span><span class="p">():</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Create variables for child layers.</span>
+
+<span class="sd">    Should be rarely overridden, only in cases when control over the context of</span>
+<span class="sd">    children CreateVariables calls are needed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      skip: list of child layers to skip.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">child</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">skip</span><span class="p">:</span>
+        <span class="c1"># For now each layer is responsible for calling its own CreateVariables.</span>
+        <span class="k">pass</span></div>
+
+<div class="viewcode-block" id="BaseLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Actually create variables for this layer.&quot;&quot;&quot;</span>
+    <span class="k">pass</span></div>
 
 <div class="viewcode-block" id="BaseLayer.AddExtraTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.AddExtraTheta">[docs]</a>  <span class="k">def</span> <span class="nf">AddExtraTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta_name</span><span class="p">,</span> <span class="n">theta_value</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Add extra `theta` that doesn&#39;t directly correspond to `vars`.&quot;&quot;&quot;</span>
@@ -922,10 +999,6 @@
 <span class="sd">      child: A sub-layer of this layer.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseLayer._CheckInvariants"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CheckInvariants">[docs]</a>  <span class="k">def</span> <span class="nf">_CheckInvariants</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyChildren</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseLayer._VerifyChildren"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._VerifyChildren">[docs]</a>  <span class="k">def</span> <span class="nf">_VerifyChildren</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Verify all children created by this layer are via `CreateChild(ren)`.&quot;&quot;&quot;</span>

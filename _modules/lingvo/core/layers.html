@@ -505,6 +505,23 @@
 
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
+<div class="viewcode-block" id="BaseConv2DLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">skip</span> <span class="o">=</span> <span class="n">skip</span> <span class="ow">or</span> <span class="p">[]</span>
+    <span class="c1"># HACK: Backwards compatibility -- bn needs to be created</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
+      <span class="n">skip</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseConv2DLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">(</span><span class="n">skip</span><span class="p">)</span></div>
+
+  <span class="c1"># HACK: Backwards compatibility -- bn needs to be created</span>
+  <span class="c1"># outside of tf.variable_scope(p.name).</span>
+<div class="viewcode-block" id="BaseConv2DLayer.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span><span class="p">:</span>
+      <span class="k">return</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseConv2DLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span></div>
+
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The number of output channels for this conv layer.&quot;&quot;&quot;</span>
@@ -1073,6 +1090,33 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_bn_folded</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Folded batchnorm is not compatible with affine_last&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Determine quantization needs based on whether fusing activation</span>
+    <span class="c1"># or not.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
+                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">and</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">):</span>
+      <span class="c1"># Not a fused activation function.</span>
+      <span class="c1"># Need a qtensor to track the pre-activation tensor. The name is</span>
+      <span class="c1"># compatible with older checkpoints.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="s1">&#39;affine_matmul&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
+      <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">bn_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+      <span class="n">bn_params</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
+    <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
+
+<div class="viewcode-block" id="ProjectionLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">ProjectionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
@@ -1099,56 +1143,32 @@
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">weights_var_name</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
-        <span class="n">mask_var_name</span> <span class="o">=</span> <span class="s1">&#39;mask&#39;</span>
-        <span class="n">threshold_var_name</span> <span class="o">=</span> <span class="s1">&#39;threshold&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="n">mask_var_name</span><span class="p">,</span> <span class="n">mask_w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="n">threshold_var_name</span><span class="p">,</span> <span class="n">threshold_w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="n">weights_var_name</span> <span class="o">=</span> <span class="s1">&#39;w&#39;</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
+      <span class="n">mask_var_name</span> <span class="o">=</span> <span class="s1">&#39;mask&#39;</span>
+      <span class="n">threshold_var_name</span> <span class="o">=</span> <span class="s1">&#39;threshold&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="n">mask_var_name</span><span class="p">,</span> <span class="n">mask_w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="n">threshold_var_name</span><span class="p">,</span> <span class="n">threshold_w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-        <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
-              <span class="s1">&#39;masked_w&#39;</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
+            <span class="s1">&#39;masked_w&#39;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
-            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
+          <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span>
+                                                        <span class="n">mask_var_name</span><span class="p">),</span>
+          <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b_pc</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">g_pc</span><span class="p">)</span>
-
-    <span class="c1"># Determine quantization needs based on whether fusing activation</span>
-    <span class="c1"># or not.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
-                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">and</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">):</span>
-      <span class="c1"># Not a fused activation function.</span>
-      <span class="c1"># Need a qtensor to track the pre-activation tensor. The name is</span>
-      <span class="c1"># compatible with older checkpoints.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="s1">&#39;affine_matmul&#39;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">bn_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-      <span class="n">bn_params</span><span class="o">.</span><span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
-    <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b_pc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">g_pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -2022,11 +2042,15 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
     <span class="n">total_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span>
-    <span class="n">actual_shards</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_actual_shards</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span>
         <span class="n">p</span><span class="o">.</span><span class="n">max_num_shards</span><span class="p">,</span>
         <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">total_size</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">MIN_PARAMS_PER_SHARD</span><span class="p">)))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="n">actual_shards</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
+        <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actual_shards</span><span class="p">))</span>
 
+<div class="viewcode-block" id="EmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">EmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
@@ -2039,27 +2063,26 @@
     <span class="c1"># back to the worker.</span>
     <span class="n">emb_vars</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">emb_shards</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">actual_shards</span><span class="p">):</span>
-        <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="c1"># TODO(b/158490758): remove default_seed=None setting.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
-        <span class="n">emb_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">])</span>
-        <span class="c1"># NOTE: self.theta[var_name] has transformations such as variational</span>
-        <span class="c1"># noise applied via theta_fn in self.CreateVariable. For embedding layer</span>
-        <span class="c1"># we apply variational noise explicitly in EmbLookup, so we do not use</span>
-        <span class="c1"># self.theta[var_name] here.</span>
-        <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">on_ps</span><span class="p">:</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
-          <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
-        <span class="n">emb_shards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
-        <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_actual_shards</span><span class="p">):</span>
+      <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="c1"># TODO(b/158490758): remove default_seed=None setting.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+      <span class="n">emb_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">])</span>
+      <span class="c1"># NOTE: self.theta[var_name] has transformations such as variational noise</span>
+      <span class="c1"># applied via theta_fn in self.CreateVariable. For embedding layer we</span>
+      <span class="c1"># apply variational noise explicitly in EmbLookup, so we do not use</span>
+      <span class="c1"># self.theta[var_name] here.</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">on_ps</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="n">emb_shards</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+      <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
+      <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+      <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_vars</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_shards</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">emb_shards</span></div>
 
 <div class="viewcode-block" id="EmbeddingLayer.EmbLookupDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EmbeddingLayer.EmbLookupDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookupDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span></div>
@@ -2142,6 +2165,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_table_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TableConfig</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_padded_vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">,</span> <span class="n">combiner</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">combiner</span><span class="p">)</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+<div class="viewcode-block" id="TPUEmbeddingTable._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
@@ -2154,57 +2182,53 @@
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="n">embedding_table_vars</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">):</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+        <span class="n">device_name</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">device_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/replica:0/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
+        <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+        <span class="n">embedding_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="n">embedding_table_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">)</span>
+        <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+
+        <span class="c1"># Only trainer and controller needs the slot variables.</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-          <span class="n">device_name</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">device_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1">/replica:0/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+          <span class="k">continue</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">accumulator_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">]</span>
 
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device_name</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">outside_all_rewrites</span><span class="p">():</span>
-          <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
-          <span class="n">embedding_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-          <span class="n">embedding_table_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">)</span>
-          <span class="c1"># Remove from _private_vars / _private_thetas to be added later as wm.</span>
-          <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
-          <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">var_name</span><span class="p">]</span>
+        <span class="c1"># Only the Trainer needs these ops.</span>
+        <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;creating load and retrieve ops.&#39;</span><span class="p">)</span>
+          <span class="n">load_parameters_op</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span><span class="o">.</span><span class="n">load_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
+                  <span class="n">parameters</span><span class="o">=</span><span class="n">embedding_var</span><span class="p">,</span>
+                  <span class="n">accumulators</span><span class="o">=</span><span class="n">accumulator_var</span><span class="p">,</span>
+                  <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
+                  <span class="n">num_shards</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+                  <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
 
-          <span class="c1"># Only trainer and controller needs the slot variables.</span>
-          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
-            <span class="k">continue</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">,</span> <span class="n">w_ada</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-          <span class="n">accumulator_var</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">/Adagrad&#39;</span> <span class="o">%</span> <span class="n">var_name</span><span class="p">]</span>
-
-          <span class="c1"># Only the Trainer needs these ops.</span>
-          <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;creating load and retrieve ops.&#39;</span><span class="p">)</span>
-            <span class="n">load_parameters_op</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span><span class="o">.</span><span class="n">load_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
-                    <span class="n">parameters</span><span class="o">=</span><span class="n">embedding_var</span><span class="p">,</span>
-                    <span class="n">accumulators</span><span class="o">=</span><span class="n">accumulator_var</span><span class="p">,</span>
-                    <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
-                    <span class="n">num_shards</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
-                    <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">load_parameters_op</span><span class="p">)</span>
-
-            <span class="n">retrieved_table</span><span class="p">,</span> <span class="n">retrieved_accumulator</span> <span class="o">=</span> <span class="p">(</span>
-                <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
-                <span class="o">.</span><span class="n">retrieve_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
-                    <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
-                    <span class="n">num_shards</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
-                    <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
-            <span class="n">retrieve_parameters_op</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">,</span> <span class="n">retrieved_table</span><span class="p">),</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accumulator_var</span><span class="p">,</span> <span class="n">retrieved_accumulator</span><span class="p">))</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
+          <span class="n">retrieved_table</span><span class="p">,</span> <span class="n">retrieved_accumulator</span> <span class="o">=</span> <span class="p">(</span>
+              <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">tpu_ops</span>
+              <span class="o">.</span><span class="n">retrieve_tpu_embedding_adagrad_parameters</span><span class="p">(</span>
+                  <span class="n">table_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_table_name</span><span class="p">,</span>
+                  <span class="n">num_shards</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+                  <span class="n">shard_id</span><span class="o">=</span><span class="n">i</span><span class="p">))</span>
+          <span class="n">retrieve_parameters_op</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">control_flow_ops</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">embedding_var</span><span class="p">,</span> <span class="n">retrieved_table</span><span class="p">),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accumulator_var</span><span class="p">,</span> <span class="n">retrieved_accumulator</span><span class="p">))</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedding_table_vars</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">embedding_table_vars</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">embedding_table_vars</span><span class="p">]</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2320,6 +2344,14 @@
     <span class="k">assert</span> <span class="n">np</span><span class="o">.</span><span class="n">all</span><span class="p">([</span><span class="n">t</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">==</span> <span class="n">num_tpu_hosts</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">])</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer._CreateVariablesScope"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer._CreateVariablesScope">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariablesScope</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># For backwards compatibility: no variable scope.</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">())</span></div>
+
+<div class="viewcode-block" id="TPUEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">TPUEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+
     <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -2344,10 +2376,10 @@
               <span class="n">table</span><span class="o">.</span><span class="n">table_name</span><span class="p">,</span> <span class="n">max_sequence_length</span><span class="o">=</span><span class="n">table</span><span class="o">.</span><span class="n">max_sequence_length</span><span class="p">)</span>
       <span class="n">mode</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TRAINING</span>
       <span class="n">optimization_parameters</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">AdagradParameters</span><span class="p">(</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="n">initial_accumulator</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">learning_rate</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">initial_accumulator</span><span class="p">)</span>
       <span class="n">device_config</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">DeviceConfig</span><span class="p">(</span>
           <span class="n">num_cores</span><span class="o">=</span><span class="n">num_cores</span><span class="p">,</span>
-          <span class="n">num_hosts</span><span class="o">=</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
+          <span class="n">num_hosts</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">tables</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">,</span>
           <span class="n">job_name</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">worker</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span> <span class="o">=</span> <span class="n">tpu_embedding_lib</span><span class="o">.</span><span class="n">TPUEmbedding</span><span class="p">(</span>
           <span class="n">table_to_config_dict</span><span class="p">,</span>
@@ -2356,16 +2388,15 @@
           <span class="n">mode</span><span class="p">,</span>
           <span class="n">master</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
           <span class="n">optimization_parameters</span><span class="o">=</span><span class="n">optimization_parameters</span><span class="p">,</span>
-          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="n">p</span>
-          <span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">,</span>
+          <span class="n">pipeline_execution_with_tensor_core</span><span class="o">=</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pipeline_execution_with_tensor_core</span><span class="p">),</span>
           <span class="n">device_config</span><span class="o">=</span><span class="n">device_config</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_tpu_embedding</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;adding load and retrieve ops to collection.&#39;</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">,</span> <span class="n">load_op_list</span><span class="p">)</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_RETRIEVE_OPS</span><span class="p">,</span>
-                           <span class="n">retrieve_op_list</span><span class="p">)</span>
+                           <span class="n">retrieve_op_list</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids_map</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Looks up embedding vectors for each entry in ids_map.</span>
@@ -2479,46 +2510,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">=</span> <span class="s1">&#39;matmul&#39;</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_matmul</span> <span class="k">else</span> <span class="s1">&#39;gather&#39;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="ow">in</span> <span class="n">valid_fprop_modes</span><span class="p">,</span> <span class="p">(</span>
         <span class="s1">&#39;fprop_mode must be one of </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">valid_fprop_modes</span><span class="p">)</span>
-
-    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">tpu_compat</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">!=</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_weight_tensor</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span> <span class="o">%</span> <span class="mi">128</span> <span class="o">==</span> <span class="mi">0</span>
-        <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span> <span class="o">//</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">]</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]</span>
-    <span class="k">else</span><span class="p">:</span>
-      <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]</span>
-    <span class="n">weight_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span>
-
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Define weights</span>
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
-        <span class="n">mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                                        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-                                        <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">threshold_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
-                                             <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-                                             <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">mask_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="n">threshold_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
-        <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
-
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-                                         <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
-
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
+    <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
 
     <span class="c1"># flags passed to @tf.Defun</span>
     <span class="n">compiled</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">()</span>
@@ -2648,6 +2640,52 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span> <span class="o">=</span> <span class="n">EmbFprop</span>
     <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">==</span> <span class="s1">&#39;gather&#39;</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span> <span class="o">=</span> <span class="n">EmbGather</span>
+
+<div class="viewcode-block" id="SimpleEmbeddingLayer._GetWeightShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._GetWeightShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWeightShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">tpu_compat</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop_mode</span> <span class="o">!=</span> <span class="s1">&#39;matmul&#39;</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_3d_weight_tensor</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span> <span class="o">%</span> <span class="mi">128</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)</span> <span class="o">//</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">128</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">emb_shape_suf</span> <span class="o">=</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]</span>
+    <span class="n">weight_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span>
+    <span class="k">return</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">weight_shape</span></div>
+
+<div class="viewcode-block" id="SimpleEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SimpleEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
+
+    <span class="c1"># Define weights</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">weight_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
+      <span class="n">mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                      <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+                                      <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">threshold_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
+                                           <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;mask&#39;</span><span class="p">,</span> <span class="n">mask_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;threshold&#39;</span><span class="p">,</span> <span class="n">threshold_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+      <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
+
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+                                       <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleEmbeddingLayer.EmbLookupDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer.EmbLookupDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookupDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lookups embedding vectors for ids.&quot;&quot;&quot;</span>
@@ -3099,6 +3137,13 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SimpleFullSoftmax._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SimpleFullSoftmax</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="n">num_classes_per_shard</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span>
     <span class="c1"># When using sampled soft-max we&#39;d rather work with weights of</span>
     <span class="c1"># shape=[num_classes_per_shard, p.input_dim] to avoid an expensive transpose</span>
@@ -3108,54 +3153,52 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sampled</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">use_num_classes_major_weight</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">weights_shard_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="n">weights_shard_shape</span><span class="p">,</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">weights_shard_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
+      <span class="n">mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
+                                      <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
+                                      <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+      <span class="n">threshold_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
+                                           <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+                                           <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
+      <span class="n">weights_var_name</span> <span class="o">=</span> <span class="s1">&#39;weight_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
-        <span class="n">mask_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">pc</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
-                                        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">),</span>
-                                        <span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
-        <span class="n">threshold_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">([],</span>
-                                             <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-                                             <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">mask_var_name</span> <span class="o">=</span> <span class="s1">&#39;mask_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+        <span class="n">threshold_var_name</span> <span class="o">=</span> <span class="s1">&#39;threshold_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="n">mask_var_name</span><span class="p">,</span> <span class="n">mask_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+            <span class="n">threshold_var_name</span><span class="p">,</span> <span class="n">threshold_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
-        <span class="n">weights_var_name</span> <span class="o">=</span> <span class="s1">&#39;weight_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
-          <span class="n">mask_var_name</span> <span class="o">=</span> <span class="s1">&#39;mask_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-          <span class="n">threshold_var_name</span> <span class="o">=</span> <span class="s1">&#39;threshold_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-              <span class="n">mask_var_name</span><span class="p">,</span> <span class="n">mask_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-              <span class="n">threshold_var_name</span><span class="p">,</span> <span class="n">threshold_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
+              <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
 
-          <span class="k">def</span> <span class="nf">MaskWeightFn</span><span class="p">(</span><span class="n">weight</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">multiply</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
-                <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
+            <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
 
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
-              <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span>
-              <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
-              <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-        <span class="k">else</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">num_classes_per_shard</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._GetInputs"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._GetInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -4245,20 +4288,20 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">GradNormTracker</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">decay</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;log_mean&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;log_mean_squared&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;total_weight&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;total_rejections&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span>
+<div class="viewcode-block" id="GradNormTracker._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GradNormTracker._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">GradNormTracker</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;log_mean&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;log_mean_squared&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;total_weight&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;total_rejections&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GradNormTracker.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GradNormTracker.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">grad_norm</span><span class="p">,</span> <span class="n">has_nan</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update gradient norm moving avgs, and returns whether or not ...</span>
