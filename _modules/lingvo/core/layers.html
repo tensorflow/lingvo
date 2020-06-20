@@ -1050,9 +1050,11 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;apply_pruning&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;Whether to prune the weights while training&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;use_einsum&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use tf.einsum for optimizing &#39;</span>
-        <span class="s1">&#39;computations. Might cause problems with model quantization for on &#39;</span>
-        <span class="s1">&#39;device inference b/146421936.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;use_einsum&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use tf.einsum for optimizing &#39;</span>
+        <span class="s1">&#39;computations. When this is set to False, this causes an increase in &#39;</span>
+        <span class="s1">&#39;TPU memory usage (b/158336491).  When this is set to True, it might &#39;</span>
+        <span class="s1">&#39; cause problems with model quantization for on device inference &#39;</span>
+        <span class="s1">&#39;(b/146421936)&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
