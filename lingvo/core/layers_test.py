@@ -1766,7 +1766,7 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
                            layer_callback=None,
                            bn_decay=0.999,
                            bn_use_moving_avg_in_training=False,
-                           use_einsum=False):
+                           use_einsum=True):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True):

@@ -902,9 +902,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('apply_pruning', False,
              'Whether to prune the weights while training')
     p.Define(
-        'use_einsum', False, 'Whether to use tf.einsum for optimizing '
-        'computations. Might cause problems with model quantization for on '
-        'device inference b/146421936.')
+        'use_einsum', True, 'Whether to use tf.einsum for optimizing '
+        'computations. When this is set to False, this causes an increase in '
+        'TPU memory usage (b/158336491).  When this is set to True, it might '
+        ' cause problems with model quantization for on device inference '
+        '(b/146421936)')
     return p
 
   def __init__(self, params):
