@@ -401,6 +401,29 @@ class GroupNormLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
       self.assertAllEqual(paddings.eval(), paddings_out.eval())
 
+  def testGroupNormLayerFPropCumulativeMode(self):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 2
+      params.num_groups = 2
+      params.cumulative = True
+      # gn_in[0]: [[0, 1], [2, 3], [4, 5], [6, 7]]
+      # gn_in[1]: [[8, 9], [10, 11], [12, 13], [14, 15]]
+      gn_in = tf.reshape(np.arange(16, dtype=np.float32), [2, 4, 1, 2])
+      paddings = tf.convert_to_tensor([[0, 0], [0, 0], [0, 0], [0, 0]],
+                                      dtype=tf.float32)
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
+
+      tf.global_variables_initializer().run()
+      base_block = np.array([[0., 0.], [1.4128014, 1.4128014],
+                             [1.5487288, 1.5487288], [1.6033384, 1.6033384]])
+
+      expected_out = np.stack([base_block, base_block],
+                              axis=0).reshape([2, 4, 1, 2])
+      self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
+
 
 class ConvLayerTest(test_utils.TestCase):
   """Tests conv layers.

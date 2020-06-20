@@ -51,6 +51,7 @@ class AddingAccumulator(base_layer.Accumulator):
 def ComputeMomentsWithPadding(inputs,
                               padding,
                               reduce_over_dims,
+                              cumulative_axis=None,
                               enable_cross_replica_sum_on_tpu=False,
                               keepdims=False):
   """Computes mean and variance over the valid data points in inputs."""
@@ -62,6 +63,10 @@ def ComputeMomentsWithPadding(inputs,
   sum_v = tf.reduce_sum(
       inputs * tf.cast(mask, inputs.dtype), reduce_over_dims, keepdims=keepdims)
   count_v = tf.reduce_sum(mask, reduce_over_dims, keepdims=keepdims)
+
+  if cumulative_axis is not None:
+    sum_v = tf.math.cumsum(sum_v, axis=cumulative_axis)
+    count_v = tf.math.cumsum(count_v, axis=cumulative_axis)
   # Input shape is guaranteed to be a multiple of mask shape because the
   # inputs * mask op above was successfully broadcasted.
   input_size_on_reduced_dims = tf.reduce_prod(
@@ -81,6 +86,8 @@ def ComputeMomentsWithPadding(inputs,
       (inputs - mean) * (inputs - mean) * mask,
       reduce_over_dims,
       keepdims=keepdims)
+  if cumulative_axis is not None:
+    sum_vv = tf.math.cumsum(sum_vv, axis=cumulative_axis)
 
   if py_utils.use_tpu() and enable_cross_replica_sum_on_tpu:
     sum_vv = tf.tpu.cross_replica_sum(sum_vv)
@@ -268,7 +275,7 @@ class BatchNormLayer(base_layer.BaseLayer):
         rank = tf.rank(paddings)
         reduce_over_dims = tf.range(0, rank - 1)
         mean, variance = ComputeMomentsWithPadding(
-            inputs, paddings, reduce_over_dims,
+            inputs, paddings, reduce_over_dims, None,
             p.enable_cross_replica_sum_on_tpu)
 
         py_utils.UpdateBatchNormVars(self.vars.moving_mean, mean, self._decay)
@@ -668,6 +675,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     p.Define('dim', 0, 'Depth of the input/output.')
     p.Define('num_groups', 32, 'Number of groups for GroupNorm.')
     p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
+    p.Define('cumulative', False, 'If true, only normalize by current and '
+             'previous time steps.')
     return p
 
   def __init__(self, params):
@@ -731,8 +740,16 @@ class GroupNormLayer(base_layer.BaseLayer):
             counts, means_ss, variance_ss, None)
       else:
         expanded_paddings = tf.reshape(paddings, [n, h, 1, 1, 1])
-        norm_mean, norm_variance = ComputeMomentsWithPadding(
-            x, expanded_paddings, [1, 2, 4], keepdims=True)
+        if p.cumulative:
+          norm_mean, norm_variance = ComputeMomentsWithPadding(
+              x,
+              expanded_paddings,
+              reduce_over_dims=[2, 4],
+              cumulative_axis=1,
+              keepdims=True)
+        else:
+          norm_mean, norm_variance = ComputeMomentsWithPadding(
+              x, expanded_paddings, [1, 2, 4], keepdims=True)
 
       norm_mean = py_utils.CheckNumerics(
           norm_mean, 'mean of %s failed numeric check' % p.name)
@@ -741,13 +758,13 @@ class GroupNormLayer(base_layer.BaseLayer):
 
       beta = theta.beta
       gamma = theta.gamma
-
+      t = h if p.cumulative else 1
       with tf.control_dependencies([
           py_utils.assert_greater_equal(norm_variance,
                                         tf.cast(0., norm_variance.dtype)),
-          py_utils.assert_shape_match([n, 1, 1, num_groups, 1],
+          py_utils.assert_shape_match([n, t, 1, num_groups, 1],
                                       tf.shape(norm_mean)),
-          py_utils.assert_shape_match([n, 1, 1, num_groups, 1],
+          py_utils.assert_shape_match([n, t, 1, num_groups, 1],
                                       tf.shape(norm_variance)),
       ]):
         x = (x - norm_mean) / tf.sqrt(norm_variance + self._epsilon)
