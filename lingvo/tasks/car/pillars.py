@@ -62,16 +62,18 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
   """Layer for processing points to grid outputs."""
 
   @classmethod
-  def Params(cls, num_laser_features):
+  def Params(cls, num_laser_features, num_output_features=64):
     p = super(PointsToGridFeaturizer, cls).Params()
     p.Define('num_laser_features', num_laser_features,
              'The number of (non-xyz) laser features of the input.')
 
     builder = Builder()
     total_num_laser_features = 9 + num_laser_features
-    p.Define('featurizer',
-             builder.Featurizer('feat', [total_num_laser_features, 64]),
-             'Point cloud feature extractor.')
+    p.Define(
+        'featurizer',
+        builder.Featurizer('feat',
+                           [total_num_laser_features, num_output_features]),
+        'Point cloud feature extractor.')
     return p
 
   def __init__(self, params):
@@ -179,16 +181,19 @@ class Builder(builder_lib.ModelBuilderBase):
             self._Conv('c3x3', (3, 3, odims, odims))),
         self._Fetch('final'))
 
-  def _TopDown(self, name, strides=(2, 2, 2)):
+  def _TopDown(self, name, strides=(2, 2, 2), channel_multiplier=1):
     """[1]. Sec 2.2."""
     if len(strides) != 3:
       raise ValueError('`strides` expected to be list/tuple of len 3.')
 
     return self._Seq(
         name,
-        self._Block('b0', strides[0], 3, 64, 64),
-        self._Block('b1', strides[1], 5, 64, 128),
-        self._Block('b2', strides[2], 5, 128, 256))
+        self._Block('b0', strides[0], 3, channel_multiplier * 64,
+                    channel_multiplier * 64),
+        self._Block('b1', strides[1], 5, channel_multiplier * 64,
+                    channel_multiplier * 128),
+        self._Block('b2', strides[2], 5, channel_multiplier * 128,
+                    channel_multiplier * 256))
 
   def _Upsample(self, name, stride, idims, odims):
     """[1]. Sec 2.2."""
@@ -203,14 +208,15 @@ class Builder(builder_lib.ModelBuilderBase):
         self._BN('bn', odims),
         self._Relu('relu'))
 
-  def Contract(self, down_strides=(2, 2, 2)):
+  def Contract(self, down_strides=(2, 2, 2), channel_multiplier=1):
     """Contracting part of [1] Sec 2.2."""
     return self._Branch(
         'branch',
-        self._TopDown('topdown', strides=down_strides),
+        self._TopDown('topdown', strides=down_strides,
+                      channel_multiplier=channel_multiplier),
         ['b1.final', 'b0.final'])
 
-  def Expand(self, odims):
+  def Expand(self, odims, channel_multiplier=1):
     """Expanding part of [1] Sec 2.2."""
     # Note that the resulting output will be 3*odims
     return self._Concat(
@@ -218,24 +224,24 @@ class Builder(builder_lib.ModelBuilderBase):
         self._Seq(
             'b2',
             self._ArgIdx('idx', [0]),
-            self._Upsample('ups', 4, 256, odims)),
+            self._Upsample('ups', 4, channel_multiplier * 256, odims)),
         self._Seq(
             'b1',
             self._ArgIdx('idx', [1]),
-            self._Upsample('ups', 2, 128, odims)),
+            self._Upsample('ups', 2, channel_multiplier * 128, odims)),
         self._Seq(
             'b0',
             self._ArgIdx('idx', [2]),
-            self._Upsample('ups', 1, 64, odims)))
+            self._Upsample('ups', 1, channel_multiplier * 64, odims)))
 
-  def Backbone(self, odims, down_strides=(2, 2, 2)):
+  def Backbone(self, odims, down_strides=(2, 2, 2), channel_multiplier=1):
     """[1]. Sec 2.2."""
     # We assume (H, W) are multiple of 8. So that we can concat
     # multiple-scale feature maps together after upsample.
     return self._Seq(
         'backbone',
-        self.Contract(down_strides),
-        self.Expand(odims))
+        self.Contract(down_strides, channel_multiplier=channel_multiplier),
+        self.Expand(odims, channel_multiplier=channel_multiplier))
 
   def Detector(self, name, idims, odims, conv_init_method=None,
                bias_params_init=None):
