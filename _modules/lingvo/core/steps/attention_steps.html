@@ -213,9 +213,9 @@
 <span class="sd">        its children layers.</span>
 <span class="sd">      external_inputs: A NestedMap containing tensors:</span>
 
-<span class="sd">        - src: a [batch, seq_len, src_len] tensor that forms the input to the</span>
+<span class="sd">        - src: a [time, batch, depth] tensor that forms the input to the</span>
 <span class="sd">          attention layer.</span>
-<span class="sd">        - padding: a [batch, seq_len] 0/1 tensor indicating which parts of</span>
+<span class="sd">        - padding: a [time, batch] 0/1 tensor indicating which parts of</span>
 <span class="sd">          src contain useful information.</span>
 <span class="sd">        - context: Optional. See the class documentation for more details.</span>
 
@@ -232,6 +232,30 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">atten</span><span class="p">,</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">external_inputs</span><span class="o">.</span><span class="n">padding</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">packed_inputs</span></div>
 
+<div class="viewcode-block" id="AttentionStep._GetMaxSeqLength"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep._GetMaxSeqLength">[docs]</a>  <span class="k">def</span> <span class="nf">_GetMaxSeqLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Compute the maximum sequence length of the encoded source sequence.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      src_encs:  Encoded source sequence pre-processed by using</span>
+<span class="sd">        PrepareExternalInputs. It can be either a [time, batch, depth] tensor</span>
+<span class="sd">        (when there is only one source) or a NestedMap of [time, batch, depth]</span>
+<span class="sd">        tensors (when there are more than one source).</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      max_seq_length: the maximum sequence length of the encoded source</span>
+<span class="sd">      sequence. It can be either a scalar (when there is only one source) or</span>
+<span class="sd">      a NestedMap of scalars (when there are more than one source).</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># TODO(shaojinding): Create a MultiSourceAttentionStep class for the</span>
+    <span class="c1"># scenarios when there are multiple sources to avoid the use of if/else.</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">src_encs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">src_encs</span><span class="p">:</span>
+        <span class="n">max_seq_length</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">src_encs</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">src_encs</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">max_seq_length</span></div>
+
 <div class="viewcode-block" id="AttentionStep.ZeroState"><a class="viewcode-back" href="../../../../lingvo.core.steps.attention_steps.html#lingvo.core.steps.attention_steps.AttentionStep.ZeroState">[docs]</a>  <span class="k">def</span> <span class="nf">ZeroState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">prepared_inputs</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Produce a zero state for this step.</span>
 
@@ -245,7 +269,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      state0, a state parameter to pass to FProp on its first invocation.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">max_seq_length</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">prepared_inputs</span><span class="o">.</span><span class="n">src</span><span class="p">,</span> <span class="mi">3</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">max_seq_length</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetMaxSeqLength</span><span class="p">(</span><span class="n">prepared_inputs</span><span class="o">.</span><span class="n">src</span><span class="p">)</span>
     <span class="n">atten_state</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ZeroAttentionState</span><span class="p">(</span><span class="n">max_seq_length</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">)</span>
     <span class="p">(</span><span class="n">new_atten_context</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span>
      <span class="n">new_atten_states</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">ComputeContextVectorWithSource</span><span class="p">(</span>

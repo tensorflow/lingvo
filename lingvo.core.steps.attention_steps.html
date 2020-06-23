@@ -203,9 +203,9 @@ feature data so that FProp runs faster.</p>
 its children layers.</p></li>
 <li><p><strong>external_inputs</strong> – <p>A NestedMap containing tensors:</p>
 <ul>
-<li><p>src: a [batch, seq_len, src_len] tensor that forms the input to the
+<li><p>src: a [time, batch, depth] tensor that forms the input to the
 attention layer.</p></li>
-<li><p>padding: a [batch, seq_len] 0/1 tensor indicating which parts of
+<li><p>padding: a [time, batch] 0/1 tensor indicating which parts of
 src contain useful information.</p></li>
 <li><p>context: Optional. See the class documentation for more details.</p></li>
 </ul>
@@ -214,6 +214,28 @@ src contain useful information.</p></li>
 </dd>
 <dt class="field-even">Returns</dt>
 <dd class="field-even"><p>state0, a state parameter to pass to FProp on its first invocation.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.steps.attention_steps.AttentionStep._GetMaxSeqLength">
+<code class="sig-name descname">_GetMaxSeqLength</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">src_encs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/steps/attention_steps.html#AttentionStep._GetMaxSeqLength"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.steps.attention_steps.AttentionStep._GetMaxSeqLength" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the maximum sequence length of the encoded source sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>src_encs</strong> – Encoded source sequence pre-processed by using
+PrepareExternalInputs. It can be either a [time, batch, depth] tensor
+(when there is only one source) or a NestedMap of [time, batch, depth]
+tensors (when there are more than one source).</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>the maximum sequence length of the encoded source
+sequence. It can be either a scalar (when there is only one source) or
+a NestedMap of scalars (when there are more than one source).</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>max_seq_length</p>
 </dd>
 </dl>
 </dd></dl>
