@@ -104,10 +104,16 @@ class BaseModelsTest(test_utils.TestCase):
     self.assertIsInstance(mdl, base_model.SingleTaskModel)
     for task in mdl.tasks:
       tp = task.params.train
+      # If the model has explicitly specified ema_decay_moving_vars to
+      # True or False, then we assume they understand the implication
+      # of that choice.
       if tp.ema_decay_moving_vars is not None:
         # ema_decay_moving_vars is set explicitly.
         continue
       # Otherwise the model should not contain any BatchNormLayer.
+      #
+      # If a model fails this test, the user should explicitly specify
+      # ema_decay_moving_vars, or ensure no BatchNormLayers are in their model.
       all_layers = []
       TraverseLayer(task, all_layers.append)
       batch_norm_layers = [
