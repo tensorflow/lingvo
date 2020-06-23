@@ -65,9 +65,9 @@ class AttentionStep(step.Step):
         its children layers.
       external_inputs: A NestedMap containing tensors:
 
-        - src: a [batch, seq_len, src_len] tensor that forms the input to the
+        - src: a [time, batch, depth] tensor that forms the input to the
           attention layer.
-        - padding: a [batch, seq_len] 0/1 tensor indicating which parts of
+        - padding: a [time, batch] 0/1 tensor indicating which parts of
           src contain useful information.
         - context: Optional. See the class documentation for more details.
 
@@ -84,6 +84,30 @@ class AttentionStep(step.Step):
         theta.atten, external_inputs.src, context, external_inputs.padding)
     return packed_inputs
 
+  def _GetMaxSeqLength(self, src_encs):
+    """Compute the maximum sequence length of the encoded source sequence.
+
+    Args:
+      src_encs:  Encoded source sequence pre-processed by using
+        PrepareExternalInputs. It can be either a [time, batch, depth] tensor
+        (when there is only one source) or a NestedMap of [time, batch, depth]
+        tensors (when there are more than one source).
+
+    Returns:
+      max_seq_length: the maximum sequence length of the encoded source
+      sequence. It can be either a scalar (when there is only one source) or
+      a NestedMap of scalars (when there are more than one source).
+    """
+    # TODO(shaojinding): Create a MultiSourceAttentionStep class for the
+    # scenarios when there are multiple sources to avoid the use of if/else.
+    if isinstance(src_encs, py_utils.NestedMap):
+      max_seq_length = py_utils.NestedMap()
+      for key in src_encs:
+        max_seq_length[key] = py_utils.GetShape(src_encs[key], 3)[0]
+    else:
+      max_seq_length = py_utils.GetShape(src_encs, 3)[0]
+    return max_seq_length
+
   def ZeroState(self, theta, prepared_inputs, batch_size):
     """Produce a zero state for this step.
 
@@ -97,7 +121,7 @@ class AttentionStep(step.Step):
     Returns:
       state0, a state parameter to pass to FProp on its first invocation.
     """
-    max_seq_length = py_utils.GetShape(prepared_inputs.src, 3)[0]
+    max_seq_length = self._GetMaxSeqLength(prepared_inputs.src)
     atten_state = self.atten.ZeroAttentionState(max_seq_length, batch_size)
     (new_atten_context, _,
      new_atten_states) = self.atten.ComputeContextVectorWithSource(
