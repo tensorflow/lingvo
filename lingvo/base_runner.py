@@ -194,7 +194,11 @@ class BaseRunner(object):
       tf.logging.info('%s done.', job_name)
       return
     except Exception as e:  # pylint:disable=broad-except
-      if 'Compilation failure' in str(e):
+      fatal_error_msgs = [
+          'Compilation failure',
+          'Run-time shape mismatch for TPUExecute argument'
+      ]
+      if any([x in str(e) for x in fatal_error_msgs]):
         # Fatal error if failing to compile graph on TPU.
         retry = False
       elif isinstance(e, tf.errors.AbortedError):
