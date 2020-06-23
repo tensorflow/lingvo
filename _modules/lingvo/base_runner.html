@@ -342,7 +342,11 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> done.&#39;</span><span class="p">,</span> <span class="n">job_name</span><span class="p">)</span>
       <span class="k">return</span>
     <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>  <span class="c1"># pylint:disable=broad-except</span>
-      <span class="k">if</span> <span class="s1">&#39;Compilation failure&#39;</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+      <span class="n">fatal_error_msgs</span> <span class="o">=</span> <span class="p">[</span>
+          <span class="s1">&#39;Compilation failure&#39;</span><span class="p">,</span>
+          <span class="s1">&#39;Run-time shape mismatch for TPUExecute argument&#39;</span>
+      <span class="p">]</span>
+      <span class="k">if</span> <span class="nb">any</span><span class="p">([</span><span class="n">x</span> <span class="ow">in</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fatal_error_msgs</span><span class="p">]):</span>
         <span class="c1"># Fatal error if failing to compile graph on TPU.</span>
         <span class="n">retry</span> <span class="o">=</span> <span class="kc">False</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">errors</span><span class="o">.</span><span class="n">AbortedError</span><span class="p">):</span>
