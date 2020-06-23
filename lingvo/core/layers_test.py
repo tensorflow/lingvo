@@ -5022,5 +5022,41 @@ class CCTGatingNetworkTest(test_utils.TestCase):
       self.assertAllClose(out_v, [[[0., 1., 1.], [0., 0., 1.], [0., 1., 1.]]])
 
 
+class CondScaleShiftFFNLayerTest(test_utils.TestCase):
+
+  def testCondScaleShiftFFNLayerConstruction(self):
+    with self.session(use_gpu=False):
+      params = layers.CondScaleShiftFFNLayer.Params().Set(
+          name='ss_ffn',
+          input_dim=10,
+          output_dim=7,
+          scale_fn='NONE',
+          shift_fn='NONE')
+      params.ffn.hidden_layer_dims = [5, 5]
+      layer_ss = params.Instantiate()
+      time_c, batch_c, in_dim_c = 15, 2, 10
+      a = tf.constant(1.0, shape=[time_c, batch_c, in_dim_c])
+      layer_ss.FPropDefaultTheta(a)
+
+  def testCondScaleShiftFFNLayerFprop(self):
+    with self.session(use_gpu=False):
+      time_c, batch_c, in_dim_c, out_dim_c = 15, 2, 10, 7
+      params = layers.CondScaleShiftFFNLayer.Params().Set(
+          name='ss_ffn',
+          input_dim=in_dim_c,
+          output_dim=out_dim_c,
+          scale_fn='NONE',
+          shift_fn='NONE')
+      params.ffn.hidden_layer_dims = [5, 5]
+      layer_ss = params.Instantiate()
+
+      a = tf.constant(1.0, shape=[time_c, batch_c, in_dim_c])
+      scale_out, shift_out = layer_ss.FPropDefaultTheta(a)
+      self.evaluate(tf.global_variables_initializer())
+      scale_out, shift_out = self.evaluate([scale_out, shift_out])
+      self.assertEqual(scale_out.shape, (time_c, batch_c, out_dim_c))
+      self.assertEqual(shift_out.shape, (time_c, batch_c, out_dim_c))
+
+
 if __name__ == '__main__':
   tf.test.main()

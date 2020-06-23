@@ -4905,3 +4905,75 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
     flops = 5 * other_dims * p.num_outputs * p.hidden_layer_dim
     out_shape = tshape.Shape(inputs[:-1] + [symbolic.ToStatic(p.num_outputs)])
     return py_utils.NestedMap(flops=flops, out_shapes=(out_shape,))
+
+
+class CondScaleShiftFFNLayer(base_layer.BaseLayer):
+  """Feature Modulation layer.
+
+  https://distill.pub/2018/feature-wise-transformations/
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CondScaleShiftFFNLayer, cls).Params()
+    p.Define('input_dim', 0, 'Depth of the input.')
+    p.Define('output_dim', 0, 'Depth of the output.')
+    p.Define('ffn', FeedForwardNet.Params(), 'Projection layer params')
+    p.Define('scale_fn', 'NONE',
+             'The activation function to use for scale output')
+    p.Define('shift_fn', 'NONE',
+             'The activation function to use for shift output')
+    return p
+
+  def __init__(self, params):
+    super(CondScaleShiftFFNLayer, self).__init__(params)
+    p = self.params
+    assert p.name
+
+    output_dim = p.output_dim * 2  # 1st split for shift, 2nd split for scale
+    with tf.variable_scope(p.name):
+      params_ffn = p.ffn.Copy().Set(
+          input_dim=p.input_dim, name='{}_ffn'.format(p.name))
+      params_fcout = FCLayer.Params().Copy().Set(
+          input_dim=params_ffn.hidden_layer_dims[-1],
+          output_dim=output_dim,
+          activation='NONE',
+          name='{}_fcout'.format(p.name))
+      self.CreateChild('ffn', params_ffn)
+      self.CreateChild('fcout', params_fcout)
+
+  def FProp(self, theta, inputs, paddings=None):
+    """Calculate scale shift and modify input.
+
+    Args:
+      theta: params.
+      inputs: The input tensor. Shaped [..., input_dim].
+      paddings: The input padding tensors.
+
+    Returns:
+      Output after calculating shift and scale (2 tensors).
+      Shaped [..., output_dim].
+    """
+    p = self.params
+
+    ffn_output = self.ffn.FProp(theta.ffn, inputs, paddings)
+    fcout_output = self.fcout.FProp(theta.fcout, ffn_output, paddings)
+    scale_output, shift_output = tf.split(
+        fcout_output, num_or_size_splits=2, axis=-1)
+
+    def OpWrapper(name, tensor):
+      """Wrapper for retrieve tf operations."""
+      if name in _ACTIVATIONS:
+        op = _ACTIVATIONS[name]
+      else:
+        if name == 'EXP':
+          op = tf.exp
+        elif name == 'NONE':
+          op = tf.identity
+        else:
+          raise ValueError()
+        return op(tensor)
+
+    scale_output = OpWrapper(p.scale_fn, scale_output)
+    shift_output = OpWrapper(p.shift_fn, shift_output)
+    return scale_output, shift_output
