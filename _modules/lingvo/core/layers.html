@@ -2044,8 +2044,7 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">actual_shards</span><span class="p">):</span>
         <span class="n">var_name</span> <span class="o">=</span> <span class="s1">&#39;var_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="c1"># TODO(b/158490758): remove default_seed=None setting.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">default_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
         <span class="n">emb_vars</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">var_name</span><span class="p">])</span>
         <span class="c1"># NOTE: self.theta[var_name] has transformations such as variational</span>
         <span class="c1"># noise applied via theta_fn in self.CreateVariable. For embedding layer</span>
