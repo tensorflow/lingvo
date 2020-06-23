@@ -252,10 +252,16 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">assertIsInstance</span><span class="p">(</span><span class="n">mdl</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">SingleTaskModel</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">mdl</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
+      <span class="c1"># If the model has explicitly specified ema_decay_moving_vars to</span>
+      <span class="c1"># True or False, then we assume they understand the implication</span>
+      <span class="c1"># of that choice.</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">ema_decay_moving_vars</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
         <span class="c1"># ema_decay_moving_vars is set explicitly.</span>
         <span class="k">continue</span>
       <span class="c1"># Otherwise the model should not contain any BatchNormLayer.</span>
+      <span class="c1">#</span>
+      <span class="c1"># If a model fails this test, the user should explicitly specify</span>
+      <span class="c1"># ema_decay_moving_vars, or ensure no BatchNormLayers are in their model.</span>
       <span class="n">all_layers</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">TraverseLayer</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">all_layers</span><span class="o">.</span><span class="n">append</span><span class="p">)</span>
       <span class="n">batch_norm_layers</span> <span class="o">=</span> <span class="p">[</span>
