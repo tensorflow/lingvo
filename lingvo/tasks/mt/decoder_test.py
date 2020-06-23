@@ -1274,7 +1274,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       tf.global_variables_initializer().run()
       actual_dec_out = sess.run(dec_out)
       print('actual decoder output =', actual_dec_out)
-      self.assertAllClose(21.456993, actual_dec_out.metrics['loss'][0])
+      self.assertAllClose(27.047781, actual_dec_out.metrics['loss'][0])
 
   def testDecoderFPropPackedInput(self):
     with self.session(use_gpu=True) as sess:
@@ -1284,7 +1284,7 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       tf.global_variables_initializer().run()
       actual_loss = sess.run(loss)
       print('actual loss = ', actual_loss)
-      self.assertAllClose(11.993881, actual_loss)
+      self.assertAllClose(15.041874, actual_loss)
 
   def testDecoderExtendStep(self):
     with self.session(use_gpu=True) as sess:
@@ -1338,12 +1338,13 @@ class TransformerBatchMajorDecoderTest(test_utils.TestCase,
       self.assertTupleEqual((source_batch, num_hyps_per_beam),
                             actual_decode.topk_scores.shape)
 
-      expected_topk_ids = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [2, 0, 0, 0, 0],
-                           [16, 11, 18, 2, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
-                           [2, 0, 0, 0, 0], [16, 16, 8, 2, 0]]
-      expected_topk_lens = [0, 0, 1, 4, 0, 0, 1, 4]
-      expected_topk_scores = [[0., 0.], [-1.325442, -5.175302], [0., 0.],
-                              [-1.85333, -6.320226]]
+      expected_topk_ids = [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0], [8, 16, 2, 0, 0],
+                           [8, 11, 7, 2, 0], [0, 0, 0, 0, 0], [0, 0, 0, 0, 0],
+                           [8, 8, 8, 2, 0], [8, 11, 7, 2, 0]]
+      expected_topk_lens = [0, 0, 3, 4, 0, 0, 4, 4]
+      expected_topk_scores = [[0., 0.], [-3.154168, -3.2543223], [0., 0.],
+                              [-4.8691816, -4.9210157]]
+      tf.logging.info(['testBeamSearchDecode actual_decode', actual_decode])
 
       self.assertAllEqual(expected_topk_ids, actual_decode.topk_ids)
       self.assertAllEqual(expected_topk_lens, actual_decode.topk_lens)

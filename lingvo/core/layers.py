@@ -1896,8 +1896,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
     with tf.variable_scope(p.name):
       for i in range(actual_shards):
         var_name = 'var_%d' % i
-        # TODO(b/158490758): remove default_seed=None setting.
-        self.CreateVariable(var_name, w_pc, default_seed=None)
+        self.CreateVariable(var_name, w_pc)
         emb_vars.append(self.vars[var_name])
         # NOTE: self.theta[var_name] has transformations such as variational
         # noise applied via theta_fn in self.CreateVariable. For embedding layer

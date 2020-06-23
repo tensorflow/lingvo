@@ -4833,10 +4833,11 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual = self.evaluate(output)
       if data_format == 'BTC':
         actual = tf.transpose(actual, [1, 0, 2])
-      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.262231, 0.667873, -0.92701, 2.246897],
-                   [-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      tf.logging.info('testSingleStepFProp actual=%r' % actual)
+      expected = [[[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.05022227, 0.9056754, -0.3771479, 2.1245508],
+                   [1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.55389655, 0.5207228, 0.46842042, 0.13366304]]]
       self.assertEqual(actual.shape, (1, 4, 4))
       # Batch elements 0 and 2 are equal because they had the same input
       # and the same task ID.
@@ -4862,11 +4863,12 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual = self.evaluate(output)
       if data_format == 'BTC':
         actual = tf.transpose(actual, [1, 0, 2])
+      tf.logging.info('testMultiStepFProp actual=%r' % actual)
       # Output is same as above but with shape same as input.
-      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.262231, 0.667873, -0.92701, 2.246897]],
-                  [[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      expected = [[[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.05022227, 0.9056754, -0.3771479, 2.1245508]],
+                  [[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.55389655, 0.5207228, 0.46842045, 0.13366304]]]
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
@@ -4892,11 +4894,12 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual = self.evaluate(output)
       if data_format == 'BTC':
         actual = tf.transpose(actual, [1, 0, 2])
+      tf.logging.info('testSpecifyTaskPerTimestepFProp actual=%r' % actual)
       # Output is same as above.
-      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.262231, 0.667873, -0.92701, 2.246897]],
-                  [[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.737031, 0.330693, -0.227962, 0.138892]]]
+      expected = [[[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.05022227, 0.9056754, -0.3771479, 2.1245508]],
+                  [[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.55389655, 0.5207228, 0.46842042, 0.13366304]]]
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
@@ -4920,10 +4923,11 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       actual = self.evaluate(output)
       if data_format == 'BTC':
         actual = tf.transpose(actual, [1, 0, 2])
-      expected = [[[-0.674434, -0.331616, 0.066886, 0.388049],
-                   [0.262231, 0.667873, -0.92701, 2.246897]],
-                  [[0.181782, 0.928383, -0.307064, 0.560411],
-                   [-0.674434, -0.331616, 0.066886, 0.388049]]]
+      tf.logging.info('testDifferentTaskPerTimestepFProp actual=%r' % actual)
+      expected = [[[1.1579462, 1.2241995, -0.6177901, 0.23089096],
+                   [0.05022227, 0.9056754, -0.3771479, 2.1245508]],
+                  [[0.6961179, 0.06690431, -0.08757646, 0.40129724],
+                   [1.1579462, 1.2241995, -0.6177901, 0.23089096]]]
       self.assertEqual(actual.shape, (2, 2, 4))
       self.assertAllClose(expected, actual, rtol=1e-05, atol=1e-05)
 
@@ -4952,7 +4956,10 @@ class MultitaskAdapterLayerTest(test_utils.TestCase, parameterized.TestCase):
       dense_grads = [DenseGrad(x, y) for (x, y) in zip(all_vars, grads)]
       dense_grad_sums = [tf.reduce_sum(g) for g in dense_grads]
       grad_vs = self.evaluate(dense_grad_sums)
-      self.assertAllClose([0., -0.239046, 12.765231, 16.0, 0.342786, -1.191779],
+      self.assertAllClose([
+          -5.364418e-07, 3.405262e+00, 1.252710e+01, 1.600000e+01, 1.335246e+00,
+          2.513876e-01
+      ],
                           grad_vs,
                           rtol=1e-05,
                           atol=1e-05)

@@ -51,15 +51,16 @@ class EncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out = enc_out.eval()
+      tf.logging.info('testForwardPass actual_enc_out %r' % actual_enc_out)
       expected_enc_out = [
-          [[1.5309354e-06, -1.7816075e-07, 3.8047763e-06, -5.6422067e-07],
-           [1.9017770e-06, -2.9778969e-06, -4.5083775e-06, -1.7054812e-06]],
-          [[-2.1852782e-06, -1.8208171e-06, -1.4747930e-06, -5.8206351e-06],
-           [6.7667429e-07, -3.6828042e-06, -1.0916860e-05, -3.2522742e-06]],
-          [[-3.2333378e-07, 3.2147584e-06, 5.0556650e-07, -7.0188378e-07],
-           [-6.5340635e-07, 1.9502845e-06, -9.2459632e-06, 5.1955390e-06]],
-          [[2.0232728e-06, 4.9331529e-06, 1.1346837e-06, 7.5571520e-06],
-           [-5.8475212e-07, 3.5547487e-06, -3.9037773e-06, 8.9575424e-06]]
+          [[-2.5584161e-06, -5.6742726e-07, -8.1548797e-06, 2.6712776e-06],
+           [1.1781749e-06, -4.7786052e-08, 4.2439538e-06, -3.3840388e-06]],
+          [[-2.6852279e-06, 2.0878532e-07, -1.0491179e-05, 5.9619756e-06],
+           [2.0423495e-06, 3.1651740e-07, 5.7234793e-06, -3.8120934e-06]],
+          [[3.0904158e-07, -1.2983286e-06, -1.2469604e-05, 6.6027828e-06],
+           [-3.8620223e-07, 3.8890593e-07, 1.9976458e-06, 1.0078909e-06]],
+          [[1.0130438e-07, -1.1145677e-06, -1.2745468e-05, 8.0924037e-06],
+           [-1.3496270e-06, -3.2355717e-06, -3.0266469e-06, -3.9747570e-06]]
       ]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
@@ -138,14 +139,16 @@ class EncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out = enc_out.eval()
-      expected_enc_out = [[[4.3564430e-07, -2.3954138e-07],
-                           [-9.8339186e-08, 8.5873717e-07]],
-                          [[1.4911951e-07, -3.4084817e-07],
-                           [-7.1341539e-08, 2.1979017e-06]],
-                          [[-6.4054962e-07, -1.1942817e-06],
-                           [-6.6461860e-07, 1.0963676e-06]],
-                          [[-1.3252994e-06, -1.5549912e-06],
-                           [-1.4652252e-06, 1.4637867e-06]]]
+      tf.logging.info('testUniEncoderForwardPass actual_enc_out %r' %
+                      actual_enc_out)
+      expected_enc_out = [[[-4.3304257e-07, 5.4100457e-07],
+                           [-4.0170832e-07, -2.6441572e-07]],
+                          [[-1.7024040e-07, -1.8555815e-07],
+                           [-6.4563977e-07, -3.7835261e-07]],
+                          [[-2.4001852e-07, 5.1114228e-07],
+                           [-3.4349023e-07, -1.0049351e-06]],
+                          [[1.8068013e-07, -6.8982729e-08],
+                           [3.3005003e-07, -8.8834116e-07]]]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPass(self):
@@ -160,14 +163,16 @@ class EncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out = enc_out.eval()
-      expected_enc_out = [[[4.0744379e-07, -2.0108675e-06],
-                           [-4.2056736e-06, 9.2221135e-06]],
-                          [[1.2086311e-06, -2.2510878e-07],
-                           [-2.2938407e-06, 9.3108029e-06]],
-                          [[3.4632390e-06, -3.1495360e-06],
-                           [9.1814104e-07, 1.9459947e-06]],
-                          [[-9.0593801e-08, -1.2912932e-06],
-                           [-5.8420886e-07, -6.5603672e-07]]]
+      tf.logging.info('testBiEncoderForwardPass actual_enc_out %r' %
+                      actual_enc_out)
+      expected_enc_out = [[[-2.47998378e-06, 7.36457878e-06],
+                           [7.89248020e-07, -2.67464316e-06]],
+                          [[-2.98803275e-06, 8.20233890e-06],
+                           [1.00139073e-06, -2.24554151e-06]],
+                          [[-5.06675951e-06, 1.15983785e-05],
+                           [-4.58391014e-07, -2.99553108e-07]],
+                          [[-4.34937465e-06, 8.58816838e-06],
+                           [-1.74859031e-06, 3.99598093e-06]]]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPassWithDropout(self):
@@ -184,14 +189,14 @@ class EncoderTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out = enc_out.eval()
       print('bi_enc_actual_enc_out_with_dropout', np.array_repr(actual_enc_out))
-      expected_enc_out = [[[1.60383240e-06, 1.22550023e-06],
-                           [-7.21660126e-06, 1.05704457e-05]],
-                          [[1.42539475e-05, -2.06075638e-05],
-                           [-4.98754298e-06, 1.51066461e-05]],
-                          [[-7.15192800e-06, -6.44075908e-06],
-                           [5.02962678e-07, -3.40795486e-06]],
-                          [[-6.54424548e-06, 9.88359807e-06],
-                           [1.42836643e-06, -1.68607176e-06]]]
+      expected_enc_out = [[[-1.8358192e-05, 1.2103478e-05],
+                           [2.9347059e-06, -3.0652325e-06]],
+                          [[-8.1282624e-06, 4.5443494e-06],
+                           [3.0826509e-06, -5.2950490e-06]],
+                          [[-4.6669629e-07, 2.4246765e-05],
+                           [-1.5221613e-06, -1.9654153e-06]],
+                          [[-1.1511075e-05, 1.9061190e-05],
+                           [-5.7250163e-06, 9.2785704e-06]]]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
   def testBiEncoderForwardPassWithTransparent(self):
@@ -207,14 +212,17 @@ class EncoderTest(test_utils.TestCase):
 
       self.evaluate(tf.global_variables_initializer())
       actual_enc_out = enc_out.eval()
-      expected_enc_out = [[[-7.4536911e-05, 8.8465633e-05],
-                           [2.8940600e-05, 3.2297492e-05]],
-                          [[-1.9775725e-05, 9.8312848e-05],
-                           [5.1837378e-05, 1.2998647e-05]],
-                          [[4.5528584e-05, -6.8125606e-05],
-                           [1.0955606e-04, -2.1024598e-04]],
-                          [[8.5454740e-05, -1.8263397e-04],
-                           [5.2042866e-05, -1.6407830e-04]]]
+      tf.logging.info(
+          'testBiEncoderForwardPassWithTransparent actual_enc_out %r' %
+          actual_enc_out)
+      expected_enc_out = [[[1.53976856e-04, -1.66475205e-04],
+                           [-1.02031634e-04, 1.39693424e-04]],
+                          [[1.62726530e-04, -2.22654475e-04],
+                           [-4.89080339e-05, 1.10912690e-04]],
+                          [[1.28586107e-04, -1.62333992e-04],
+                           [7.22907062e-05, -9.17545694e-05]],
+                          [[9.02724860e-05, -1.71898617e-04],
+                           [-9.77059244e-06, 7.55862275e-05]]]
       self.assertAllClose(expected_enc_out, actual_enc_out)
 
 
