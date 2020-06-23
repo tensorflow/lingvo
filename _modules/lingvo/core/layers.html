@@ -5053,6 +5053,78 @@
     <span class="n">flops</span> <span class="o">=</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">other_dims</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_outputs</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dim</span>
     <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_outputs</span><span class="p">)])</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">flops</span><span class="o">=</span><span class="n">flops</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">out_shape</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="CondScaleShiftFFNLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CondScaleShiftFFNLayer">[docs]</a><span class="k">class</span> <span class="nc">CondScaleShiftFFNLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Feature Modulation layer.</span>
+
+<span class="sd">  https://distill.pub/2018/feature-wise-transformations/</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CondScaleShiftFFNLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CondScaleShiftFFNLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CondScaleShiftFFNLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ffn&#39;</span><span class="p">,</span> <span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Projection layer params&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scale_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;The activation function to use for scale output&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shift_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+             <span class="s1">&#39;The activation function to use for shift output&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CondScaleShiftFFNLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># 1st split for shift, 2nd split for scale</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">params_ffn</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ffn</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_ffn&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+      <span class="n">params_fcout</span> <span class="o">=</span> <span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">params_ffn</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span>
+          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_fcout&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;ffn&#39;</span><span class="p">,</span> <span class="n">params_ffn</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fcout&#39;</span><span class="p">,</span> <span class="n">params_fcout</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CondScaleShiftFFNLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CondScaleShiftFFNLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Calculate scale shift and modify input.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: params.</span>
+<span class="sd">      inputs: The input tensor. Shaped [..., input_dim].</span>
+<span class="sd">      paddings: The input padding tensors.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Output after calculating shift and scale (2 tensors).</span>
+<span class="sd">      Shaped [..., output_dim].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">ffn_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ffn</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">ffn</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">fcout_output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fcout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fcout</span><span class="p">,</span> <span class="n">ffn_output</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">scale_output</span><span class="p">,</span> <span class="n">shift_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+        <span class="n">fcout_output</span><span class="p">,</span> <span class="n">num_or_size_splits</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">OpWrapper</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">tensor</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Wrapper for retrieve tf operations.&quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span><span class="p">:</span>
+        <span class="n">op</span> <span class="o">=</span> <span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;EXP&#39;</span><span class="p">:</span>
+          <span class="n">op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span>
+        <span class="k">elif</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
+          <span class="n">op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">op</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+
+    <span class="n">scale_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">scale_fn</span><span class="p">,</span> <span class="n">scale_output</span><span class="p">)</span>
+    <span class="n">shift_output</span> <span class="o">=</span> <span class="n">OpWrapper</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shift_fn</span><span class="p">,</span> <span class="n">shift_output</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">scale_output</span><span class="p">,</span> <span class="n">shift_output</span></div></div>
 </pre></div>
 
            </div>
