@@ -146,7 +146,8 @@ def inlined_matrix_inverse_pth_root(mat_g,
     new_mat_m = tf.matmul(mat_power(mat_m_i, exponent), mat_m)
     new_mat_h = tf.matmul(mat_h, mat_m_i)
     new_error = tf.reduce_max(tf.abs(new_mat_m - identity))
-    return (i + 1, new_mat_m, new_mat_h, mat_h, new_error, new_error < error)
+    return (i + 1, new_mat_m, new_mat_h, mat_h, new_error,
+            new_error < error * 1.2)
 
   if mat_g_size == 1:
     mat_h = tf.pow(mat_g + ridge_epsilon, alpha)
