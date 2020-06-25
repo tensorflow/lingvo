@@ -182,7 +182,7 @@ def CopyFieldsTo(from_p, to_p, skip=None):
       skips InstantiableParams' 'cls' parameter.
 
   Returns:
-    None
+    The updated to_p.
   """
   skip = skip or []
   skip.append('cls')

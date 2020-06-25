@@ -195,9 +195,6 @@ LOG_SCALE_CLAMP_BOUND = 20.0
 class IdentityLayer(base_layer.BaseLayer):
   """Identity layer, adds name and propagates its input."""
 
-  def __init__(self, params):
-    super(IdentityLayer, self).__init__(params)
-
   def FProp(self, theta, inputs, *args):
     """Identity mapping.
 
