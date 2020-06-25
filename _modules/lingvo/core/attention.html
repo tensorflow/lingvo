@@ -173,7 +173,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
-<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -2857,10 +2856,6 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_probs</span><span class="p">:</span>
           <span class="n">probs</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
               <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">)</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;atten_probs&#39;</span><span class="p">)</span>
-
-        <span class="c1"># [multiplier, source_batch]</span>
-        <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_probs_norm&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">))</span>
 
         <span class="c1"># [source_batch, multiplier, source_length]</span>
         <span class="n">probs_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
@@ -2991,21 +2986,16 @@
 
     <span class="n">log_variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">log_variances</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LOG_SCALE_CLAMP_BOUND</span><span class="p">)</span>
     <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">log_variances</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_variances&#39;</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
 
     <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">priors_logits</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_weights&#39;</span><span class="p">,</span> <span class="n">priors</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_offset</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="n">position_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">position_offset_logits</span><span class="p">)</span>
       <span class="n">position_offset</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">max_offset</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">position_offset</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">position_offset_logits</span><span class="p">)</span>
-    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;gmm_offsets&#39;</span><span class="p">,</span> <span class="n">position_offset</span><span class="p">)</span>
 
     <span class="n">new_position</span> <span class="o">=</span> <span class="n">attention_state</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">position_offset</span>
-    <span class="n">variances</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;variances&#39;</span><span class="p">)</span>
-    <span class="n">priors</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddDebugTensor</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;priors&#39;</span><span class="p">)</span>
 
     <span class="c1"># Tile and reshape encoder_positions to [source_batch, source_length]</span>
     <span class="c1"># so that it can be evaluated by locations GMMs in a vectorized way.</span>
