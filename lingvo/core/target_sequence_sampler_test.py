@@ -179,6 +179,7 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       src_len = 5
       tgt_len = 7
       batch_size = 2
+      keras_layer = py_utils.NestedMap(dense=None)
 
       def InitBeamSearchCallBack(unused_theta, unused_encoder_outputs,
                                  num_hyps_per_beam):
@@ -193,8 +194,10 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
         hidden = tf.random.stateless_normal([batch_size, hidden_dim],
                                             seed=[8273747, 9])
         # A stateful 'dense' layer.
-        dense = tf.keras.layers.Dense(vocab_size, input_shape=hidden.shape)
-        log_probs = tf.nn.log_softmax(dense(hidden))
+        if not keras_layer.dense:
+          keras_layer.dense = tf.keras.layers.Dense(
+              vocab_size, input_shape=hidden.shape)
+        log_probs = tf.nn.log_softmax(keras_layer.dense(hidden))
         return (py_utils.NestedMap(log_probs=log_probs),
                 py_utils.NestedMap(step=states.step + 1))
 
