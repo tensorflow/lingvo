@@ -25,7 +25,6 @@ from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
-from lingvo.core import summary_utils
 from lingvo.core import symbolic
 
 import numpy as np
@@ -2709,10 +2708,6 @@ class GmmMonotonicAttention(BaseAttentionLayer):
         if p.normalize_probs:
           probs /= tf.maximum(
               tf.reduce_sum(probs, axis=2, keepdims=True), 1e-12)
-        probs = py_utils.AddDebugTensor(probs, name='atten_probs')
-
-        # [multiplier, source_batch]
-        summary_utils.histogram('gmm_probs_norm', tf.reduce_sum(probs, axis=2))
 
         # [source_batch, multiplier, source_length]
         probs_transposed = tf.transpose(probs, [1, 0, 2])
@@ -2843,21 +2838,16 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
     log_variances = tf.minimum(log_variances, layers.LOG_SCALE_CLAMP_BOUND)
     variances = tf.exp(log_variances)
-    summary_utils.histogram('gmm_variances', variances)
 
     priors = tf.nn.softmax(priors_logits)
-    summary_utils.histogram('gmm_weights', priors)
 
     if p.max_offset > 0:
       position_offset = tf.nn.sigmoid(position_offset_logits)
       position_offset *= p.max_offset
     else:
       position_offset = tf.exp(position_offset_logits)
-    summary_utils.histogram('gmm_offsets', position_offset)
 
     new_position = attention_state[:, :, 0] + position_offset
-    variances = py_utils.AddDebugTensor(variances, name='variances')
-    priors = py_utils.AddDebugTensor(priors, name='priors')
 
     # Tile and reshape encoder_positions to [source_batch, source_length]
     # so that it can be evaluated by locations GMMs in a vectorized way.
