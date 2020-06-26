@@ -188,7 +188,8 @@ class ExecutorTpu(base_runner.BaseRunner):
 
     tf.logging.info('train_cfg.cls: %s', train_cfg.cls)
 
-    self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir, 'params.txt')
+    self._WriteToLog(train_cfg.ToText(), self._checkpoint_dir,
+                     'trainer_params.txt')
     self._program_schedule_dict = {}
     self._programs = []
 
