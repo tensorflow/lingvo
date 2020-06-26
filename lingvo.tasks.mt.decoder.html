@@ -200,14 +200,69 @@
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">
-<code class="sig-name descname">_FPropSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_paddings</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeXentLoss">
+<code class="sig-name descname">_ComputeXentLoss</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_paddings</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._ComputeXentLoss"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeXentLoss" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes cross-entropy loss given the softmax input, labels and weights.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this
 layer and its children layers.</p></li>
+<li><p><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</p></li>
+<li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
+<li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_paddings</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>time_axis</strong> – If 0, the inputs are time-major: [time, batch, …]; if 1, the
+inputs are batch-major: [batch, time, …].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The cross entropy loss.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeSoftmaxMetrics">
+<code class="sig-name descname">_ComputeSoftmaxMetrics</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">xent_loss</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._ComputeSoftmaxMetrics"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeSoftmaxMetrics" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy metrics given the cross-entropy loss.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>xent_loss</strong> – The output of <a class="reference internal" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeXentLoss" title="lingvo.tasks.mt.decoder.MTBaseDecoder._ComputeXentLoss"><code class="xref py py-obj docutils literal notranslate"><span class="pre">_ComputeXentLoss</span></code></a>.</p></li>
+<li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
+<li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>target_segment_ids</strong> – A matrix of params.dtype. [time, batch].</p></li>
+<li><p><strong>time_axis</strong> – If 0, the inputs are time-major: [time, batch, …]; if 1, the
+inputs are batch-major: [batch, time, …].</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A tuple (metrics, per_example_tensors).</dt><dd><dl class="simple">
+<dt>metrics:</dt><dd><p>A dictionary containing metrics for the xent loss and prediction
+accuracy.</p>
+</dd>
+<dt>per_example_tensors:</dt><dd><p>A dictionary of per-example tensors.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax">
+<code class="sig-name descname">_FPropSoftmax</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">softmax_input</span></em>, <em class="sig-param"><span class="n">target_labels</span></em>, <em class="sig-param"><span class="n">target_weights</span></em>, <em class="sig-param"><span class="n">target_paddings</span></em>, <em class="sig-param"><span class="n">target_segment_ids</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_axis</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTBaseDecoder._FPropSoftmax"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTBaseDecoder._FPropSoftmax" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes cross-entropy loss given the softmax input, labels and weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
 <li><p><strong>softmax_input</strong> – A tensor of shape [time, batch, p.softmax.input_dim].</p></li>
 <li><p><strong>target_labels</strong> – A matrix of tf.int32. [time, batch].</p></li>
 <li><p><strong>target_weights</strong> – A matrix of params.dtype. [time, batch].</p></li>

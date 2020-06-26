@@ -1304,6 +1304,25 @@
 
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">+=</span> <span class="n">b</span>  <span class="c1"># NOTE: Bias on matmul is never quantized.</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivationFunction</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">with_activation</span><span class="p">,</span> <span class="n">quant</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="ProjectionLayer._ApplyActivationFunction"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._ApplyActivationFunction">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyActivationFunction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                               <span class="n">out</span><span class="p">,</span>
+                               <span class="n">inputs</span><span class="p">,</span>
+                               <span class="n">with_activation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                               <span class="n">quant</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Applies the activation function in one step.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      out: The result of applying the weight matrix (and bias) to the inputs.</span>
+<span class="sd">      inputs: FProp inputs.</span>
+<span class="sd">      with_activation: Whether to also compute the activation function.</span>
+<span class="sd">      quant: Whether to apply quantization.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      Output tensor reshaped.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">with_activation</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
         <span class="c1"># Track quantization for unfused activation function.</span>
@@ -2664,7 +2683,7 @@
       <span class="n">embs</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="SimpleEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleEmbeddingLayer._FlatFProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._FlatFProp">[docs]</a>  <span class="k">def</span> <span class="nf">_FlatFProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Lookups embedding vectors for ids.</span>
 
 <span class="sd">    Args:</span>
@@ -2672,8 +2691,8 @@
 <span class="sd">      ids: A rank-N int32 tensor.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
-<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
+<span class="sd">      A tuple of the flattened inputs to the embedding lookup, and a tensor that</span>
+<span class="sd">      is ready to be reshaped into the final shape in FProp.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ids should be a tf.Tensor!&#39;</span><span class="p">)</span>
@@ -2687,7 +2706,8 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
               <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
       <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">flat_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">flat_ids</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
       <span class="n">emb_noise</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">scale</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">),</span>
@@ -2698,9 +2718,22 @@
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scale_sqrt_depth</span><span class="p">:</span>
       <span class="n">embs_result</span> <span class="o">*=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**</span><span class="mf">0.5</span>
+    <span class="k">return</span> <span class="n">flat_ids</span><span class="p">,</span> <span class="n">embs_result</span></div>
 
-    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]],</span>
-                          <span class="mi">0</span><span class="p">)</span>
+<div class="viewcode-block" id="SimpleEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Lookups embedding vectors for ids.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: Named tuple collection of weights for the layer.</span>
+<span class="sd">      ids: A rank-N int32 tensor.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A rank-(N+1) params.dtype tensor.</span>
+<span class="sd">      embs[indices, :] is the embedding vector for ids[indices].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FlatFProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="n">out_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">),</span> <span class="p">[</span><span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">)]],</span> <span class="mi">0</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">embs_result</span><span class="p">,</span> <span class="n">out_shape</span><span class="p">)</span></div></div>
 
 
@@ -3177,7 +3210,7 @@
     <span class="n">new_theta</span><span class="o">.</span><span class="n">bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">AddPerStepVN</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">new_theta</span></div>
 
-<div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeightsHelper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">)</span>
@@ -3198,7 +3231,10 @@
     <span class="k">if</span> <span class="n">abs_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_inference</span><span class="p">:</span>
       <span class="n">abs_min</span> <span class="o">=</span> <span class="o">-</span><span class="n">abs_max</span>  <span class="c1"># pylint: disable=invalid-unary-operand-type</span>
       <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="n">abs_min</span><span class="p">,</span> <span class="n">abs_max</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">logits</span></div>
 
+<div class="viewcode-block" id="SimpleFullSoftmax._LogitsUsingConcatenatedWeights"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeights">[docs]</a>  <span class="k">def</span> <span class="nf">_LogitsUsingConcatenatedWeights</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LogitsUsingConcatenatedWeightsHelper</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">QTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax.SimpleLogits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax.SimpleLogits">[docs]</a>  <span class="k">def</span> <span class="nf">SimpleLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>

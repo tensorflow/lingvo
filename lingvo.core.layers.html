@@ -701,6 +701,25 @@ quantization, it is required.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers.ProjectionLayer._ApplyActivationFunction">
+<code class="sig-name descname">_ApplyActivationFunction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">out</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">with_activation</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">quant</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._ApplyActivationFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._ApplyActivationFunction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Applies the activation function in one step.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>out</strong> – The result of applying the weight matrix (and bias) to the inputs.</p></li>
+<li><p><strong>inputs</strong> – FProp inputs.</p></li>
+<li><p><strong>with_activation</strong> – Whether to also compute the activation function.</p></li>
+<li><p><strong>quant</strong> – Whether to apply quantization.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>Output tensor reshaped.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers.ProjectionLayer.FPropMeta">
 <em class="property">classmethod </em><code class="sig-name descname">FPropMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <a class="reference internal" href="#lingvo.core.layers.ProjectionLayer.FProp" title="lingvo.core.layers.ProjectionLayer.FProp"><code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code></a> computation for this layer.</p>
@@ -1322,6 +1341,24 @@ not shard the embeddings.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.layers.SimpleEmbeddingLayer._FlatFProp">
+<code class="sig-name descname">_FlatFProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">ids</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleEmbeddingLayer._FlatFProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleEmbeddingLayer._FlatFProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Lookups embedding vectors for ids.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – Named tuple collection of weights for the layer.</p></li>
+<li><p><strong>ids</strong> – A rank-N int32 tensor.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tuple of the flattened inputs to the embedding lookup, and a tensor that
+is ready to be reshaped into the final shape in FProp.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.layers.SimpleEmbeddingLayer.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">ids</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Lookups embedding vectors for ids.</p>
@@ -1599,6 +1636,11 @@ this layer’s dtype.</p></li>
 <dl class="py method">
 <dt id="lingvo.core.layers.SimpleFullSoftmax._ConcatWeights">
 <code class="sig-name descname">_ConcatWeights</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax._ConcatWeights"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax._ConcatWeights" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper">
+<code class="sig-name descname">_LogitsUsingConcatenatedWeightsHelper</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax._LogitsUsingConcatenatedWeightsHelper" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
