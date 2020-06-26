@@ -137,6 +137,8 @@ class PointToGridOp : public OpKernel {
     auto t_grid_centers = grid_centers->tensor<float, 4>();
     auto t_num_points = num_points->tensor<int32, 3>();
 
+    // Padded points will be set to 0. Users can compute the mean by taking
+    // the sum and dividing by effective number of points.
     t_output_points.setConstant(0);
 
     for (int bx = 0; bx < x_intervals_; ++bx) {
@@ -161,14 +163,6 @@ class PointToGridOp : public OpKernel {
           for (int i = 0; i < effective_num; ++i) {
             t_output_points.chip<0>(bx).chip<0>(by).chip<0>(bz).chip<0>(i) =
                 t_input_points.chip<0>(bucket[i]);
-          }
-
-          // Pad the number of points to num_points_per_cell_ using the grid
-          // center.
-          for (int i = effective_num; i < num_points_per_cell_; ++i) {
-            t_output_points(bx, by, bz, i, 0) = cell_x_center;
-            t_output_points(bx, by, bz, i, 1) = cell_y_center;
-            t_output_points(bx, by, bz, i, 2) = cell_z_center;
           }
         }
       }

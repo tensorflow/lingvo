@@ -59,11 +59,26 @@ class PointGridOpTest(test_utils.TestCase):
         ]
       boundaries = np.stack(np.meshgrid(*boundaries, indexing='ij'), axis=-1)
 
-      # [gx, gy, gz, k, 3]
-      valid = np.logical_and(
+      # Cast num_points to the points_mask, indicating whether a point
+      # within a pillar is a real point or not.
+      points_index = np.arange(num_points_per_cell, dtype=num_points.dtype)
+      points_index = np.reshape(points_index, [1, 1, 1, num_points_per_cell])
+      real_points_mask = np.less(points_index, num_points[..., np.newaxis])
+      real_points_mask = np.tile(
+          np.expand_dims(real_points_mask, axis=-1), [1, 1, 1, 1, 3])
+
+      # Check whether real points are within the right boundaries.
+      valid_bound = np.logical_and(
           out_points[..., :3] >= boundaries[:-1, :-1, :-1, np.newaxis, ...],
           out_points[..., :3] < boundaries[1:, 1:, 1:, np.newaxis, ...])
-      self.assertEqual(np.all(valid), True)
+      padded_points_mask = 1 - real_points_mask
+      # Check if points are either in valid bounds or padded.
+      valid = np.logical_or(valid_bound, padded_points_mask)
+      self.assertTrue(np.all(valid))
+
+      # Check that points are either zero (padded) or real.
+      valid = np.logical_or(out_points[..., :3] == 0, real_points_mask)
+      self.assertTrue(np.all(valid))
 
       counts = np.zeros(grid_size)
 
