@@ -1156,6 +1156,25 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
+    return self._ApplyActivationFunction(out, inputs, with_activation, quant)
+
+  def _ApplyActivationFunction(self,
+                               out,
+                               inputs,
+                               with_activation=True,
+                               quant=False):
+    """Applies the activation function in one step.
+
+    Args:
+      out: The result of applying the weight matrix (and bias) to the inputs.
+      inputs: FProp inputs.
+      with_activation: Whether to also compute the activation function.
+      quant: Whether to apply quantization.
+
+    Returns:
+      Output tensor reshaped.
+    """
+    p = self.params
     if with_activation and p.activation != 'NONE':
       if self._pre_activation_qt_name:
         # Track quantization for unfused activation function.
@@ -2516,7 +2535,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       embs *= p.embedding_dim**0.5
     return tf.reshape(embs, out_shape)
 
-  def FProp(self, theta, ids):
+  def _FlatFProp(self, theta, ids):
     """Lookups embedding vectors for ids.
 
     Args:
@@ -2524,8 +2543,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       ids: A rank-N int32 tensor.
 
     Returns:
-      A rank-(N+1) params.dtype tensor.
-      embs[indices, :] is the embedding vector for ids[indices].
+      A tuple of the flattened inputs to the embedding lookup, and a tensor that
+      is ready to be reshaped into the final shape in FProp.
     """
     if not isinstance(ids, tf.Tensor):
       tf.logging.warning('ids should be a tf.Tensor!')
@@ -2539,7 +2558,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
           py_utils.assert_between(
               ids, 0, p.vocab_size, name='vocab_id_validation')
       ], ids)
-    embs_result = self._fprop(self.QWeight(theta.wm), tf.reshape(ids, [-1]))
+    flat_ids = tf.reshape(ids, [-1])
+    embs_result = self._fprop(self.QWeight(theta.wm), flat_ids)
     if p.vn.global_vn or p.vn.per_step_vn:
       emb_noise = p.vn.scale * tf.random.normal(
           tf.shape(embs_result),
@@ -2550,9 +2570,22 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
     if p.scale_sqrt_depth:
       embs_result *= p.embedding_dim**0.5
+    return flat_ids, embs_result
 
-    out_shape = tf.concat([tf.shape(ids), [symbolic.ToStatic(p.embedding_dim)]],
-                          0)
+  def FProp(self, theta, ids):
+    """Lookups embedding vectors for ids.
+
+    Args:
+      theta: Named tuple collection of weights for the layer.
+      ids: A rank-N int32 tensor.
+
+    Returns:
+      A rank-(N+1) params.dtype tensor.
+      embs[indices, :] is the embedding vector for ids[indices].
+    """
+    _, embs_result = self._FlatFProp(theta, ids)
+    out_shape = tf.concat(
+        [tf.shape(ids), [symbolic.ToStatic(self.params.embedding_dim)]], 0)
     return tf.reshape(embs_result, out_shape)
 
 
@@ -3029,7 +3062,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
     new_theta.bias = py_utils.AddPerStepVN(p, tf.concat(biases, axis=0))
     return new_theta
 
-  def _LogitsUsingConcatenatedWeights(self, theta, inputs):
+  def _LogitsUsingConcatenatedWeightsHelper(self, theta, inputs):
     p = self.params
     inputs = self.QTensor('inputs', inputs)
     wm = self.QWeight(theta.wm)
@@ -3050,7 +3083,10 @@ class SimpleFullSoftmax(SoftmaxLayer):
     if abs_max is not None and not p.is_inference:
       abs_min = -abs_max  # pylint: disable=invalid-unary-operand-type
       logits = py_utils.clip_by_value(logits, abs_min, abs_max)
+    return logits
 
+  def _LogitsUsingConcatenatedWeights(self, theta, inputs):
+    logits = self._LogitsUsingConcatenatedWeightsHelper(theta, inputs)
     return self.QTensor('logits', logits)
 
   def SimpleLogits(self, theta, inputs):

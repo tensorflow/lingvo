@@ -94,14 +94,14 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     p.softmax.num_classes = vocab_size
     return p
 
-  def _FPropSoftmax(self,
-                    theta,
-                    softmax_input,
-                    target_labels,
-                    target_weights,
-                    target_paddings,
-                    target_segment_ids=None,
-                    time_axis=0):
+  def _ComputeXentLoss(self,
+                       theta,
+                       softmax_input,
+                       target_labels,
+                       target_weights,
+                       target_paddings,
+                       target_segment_ids=None,
+                       time_axis=0):
     """Computes cross-entropy loss given the softmax input, labels and weights.
 
     Args:
@@ -116,12 +116,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
         inputs are batch-major: [batch, time, ...].
 
     Returns:
-      A tuple (metrics, per_example_tensors).
-        metrics:
-          A dictionary containing metrics for the xent loss and prediction
-          accuracy.
-        per_example_tensors:
-          A dictionary of per-example tensors.
+      The cross entropy loss.
     """
     p = self.params
     softmax_input = tf.reshape(softmax_input, [-1, p.softmax.input_dim])
@@ -148,7 +143,33 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
           class_weights=tf.reshape(target_weights, [-1, 1]),
           class_probabilities=tf.reshape(target_probs,
                                          [-1, p.softmax.num_classes]))
+    return xent_loss
 
+  def _ComputeSoftmaxMetrics(self,
+                             xent_loss,
+                             target_labels,
+                             target_weights,
+                             target_segment_ids=None,
+                             time_axis=0):
+    """Computes cross-entropy metrics given the cross-entropy loss.
+
+    Args:
+      xent_loss: The output of `_ComputeXentLoss`.
+      target_labels: A matrix of tf.int32. [time, batch].
+      target_weights: A matrix of params.dtype. [time, batch].
+      target_segment_ids: A matrix of params.dtype. [time, batch].
+      time_axis: If 0, the inputs are time-major: [time, batch, ...]; if 1, the
+        inputs are batch-major: [batch, time, ...].
+
+    Returns:
+      A tuple (metrics, per_example_tensors).
+        metrics:
+          A dictionary containing metrics for the xent loss and prediction
+          accuracy.
+        per_example_tensors:
+          A dictionary of per-example tensors.
+    """
+    p = self.params
     if p.per_word_avg_loss:
       final_loss = tf.identity(xent_loss.avg_xent, name='loss')
       loss_weight = tf.identity(xent_loss.total_weight, name='num_predictions')
@@ -211,6 +232,40 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
           name='fraction_of_correct_next_step_preds')
       metrics['fraction_of_correct_next_step_preds'] = (accuracy, num_preds)
     return metrics, per_example_tensors
+
+  def _FPropSoftmax(self,
+                    theta,
+                    softmax_input,
+                    target_labels,
+                    target_weights,
+                    target_paddings,
+                    target_segment_ids=None,
+                    time_axis=0):
+    """Computes cross-entropy loss given the softmax input, labels and weights.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      softmax_input: A tensor of shape [time, batch, p.softmax.input_dim].
+      target_labels: A matrix of tf.int32. [time, batch].
+      target_weights: A matrix of params.dtype. [time, batch].
+      target_paddings: A matrix of params.dtype. [time, batch].
+      target_segment_ids: A matrix of params.dtype. [time, batch].
+      time_axis: If 0, the inputs are time-major: [time, batch, ...]; if 1, the
+        inputs are batch-major: [batch, time, ...].
+
+    Returns:
+      A tuple (metrics, per_example_tensors).
+        metrics:
+          A dictionary containing metrics for the xent loss and prediction
+          accuracy.
+        per_example_tensors:
+          A dictionary of per-example tensors.
+    """
+    xent_loss = self._ComputeXentLoss(theta, softmax_input, target_labels,
+                                      target_weights, target_paddings)
+    return self._ComputeSoftmaxMetrics(xent_loss, target_labels, target_weights,
+                                       target_segment_ids, time_axis=time_axis)
 
   def ComputeLoss(self, theta, predictions, targets):
     """Populates a metrics dictionary based on the output of ComputePredictions.
