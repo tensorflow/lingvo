@@ -7,7 +7,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "mnist",
     srcs = ["mnist.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:model_registry",
         "//lingvo/core:base_model_params",
@@ -20,7 +20,7 @@ py_library(
 py_library(
     name = "params",
     srcs = ["params.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         ":mnist",

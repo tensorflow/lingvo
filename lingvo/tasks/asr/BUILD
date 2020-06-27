@@ -7,7 +7,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "frontend",
     srcs = ["frontend.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -36,7 +36,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -62,7 +62,7 @@ py_test(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -94,7 +94,7 @@ py_test(
 py_library(
     name = "fusion",
     srcs = ["fusion.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -107,7 +107,7 @@ py_library(
 py_library(
     name = "decoder_utils",
     srcs = ["decoder_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -133,7 +133,7 @@ py_test(
 py_library(
     name = "contextualizer_base",
     srcs = ["contextualizer_base.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo/core:base_layer",
     ],
@@ -142,7 +142,7 @@ py_library(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":contextualizer_base",
         ":decoder_utils",
@@ -187,7 +187,7 @@ py_test(
 py_library(
     name = "model_test_input_generator",
     srcs = ["model_test_input_generator.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -198,7 +198,7 @@ py_library(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":decoder_utils",
