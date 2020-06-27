@@ -205,6 +205,23 @@ class LearningRateScheduleTest(test_utils.TestCase):
           ])
       self.assertEqual(len(lrs.Value(42).shape), 0)
 
+  def testPolynomialLimitOriginLRSchedule(self):
+    p = schedule.PolynomialSchedule.Params().Set(
+        power=2, start=(0, 0.), limit=(20000, 2.), origin='limit')
+    with self.session():
+      lrs = p.Instantiate()
+      pts = [[i, lrs.Value(i).eval()] for i in [0, 5000, 10000, 15000, 20000]]
+      self.assertAllClose(
+          pts,
+          [
+              [0, 0.0],
+              [5000, 0.875],  # 2 * (1 - (1 - 0.25) ** 2)
+              [10000, 1.5],  # 2 * (1 - (1 - 0.5) ** 2)
+              [15000, 1.875],  # 2 * (1 - (1 - 0.75) ** 2)
+              [20000, 2.0],
+          ])
+      self.assertEqual(len(lrs.Value(42).shape), 0)
+
   def testCombinedLRSchedule(self):
     p = schedule.CombinedMinimumSchedule.Params().Set(schedules=[
         schedule.LinearSchedule.Params().Set(

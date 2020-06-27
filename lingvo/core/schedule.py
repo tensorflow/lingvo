@@ -137,6 +137,8 @@ class PolynomialSchedule(BaseSchedule):
     p.Define('power', 1, 'Polynomial power.')
     p.Define('start', (0, 1.), '(x0, y0)')
     p.Define('limit', (1, 1.), '(x1, y1)')
+    p.Define('origin', 'start', 'Origin of the polynomial. Can be "start" or '
+             '"limit".')
     return p
 
   def __init__(self, params):
@@ -156,7 +158,13 @@ class PolynomialSchedule(BaseSchedule):
       y0 = tf.cast(y0, dtype=x.dtype)
       y1 = tf.cast(y1, dtype=x.dtype)
 
-      f_x = ((x - x0) / (x1 - x0))**p.power
+      ratio = (x - x0) / (x1 - x0)
+      if p.origin == 'start':
+        f_x = ratio**p.power
+      elif p.origin == 'limit':
+        f_x = 1 - (1 - ratio)**p.power
+      else:
+        raise ValueError('Invalid parameter origin: %s' % p.origin)
       y = y0 + f_x * (y1 - y0)
       return tf.where(x < x0, y0, tf.where(x >= x1, y1, y))
 
