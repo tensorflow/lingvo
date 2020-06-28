@@ -6,7 +6,7 @@ licenses(["notice"])  # Apache 2.0
 
 py_library(
     name = "all_params",
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     # LINT.IfChange(task_dirs)
     deps = [
         "//lingvo/tasks/asr/params",

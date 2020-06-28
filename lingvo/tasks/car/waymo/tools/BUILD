@@ -9,7 +9,7 @@ py_library(
     srcs = [
         "waymo_proto_to_tfe.py",
     ],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit apache_beam dependency.
         "//lingvo:compat",
@@ -27,7 +27,7 @@ py_binary(
         "generate_waymo_tf.py",
     ],
     python_version = "PY3",
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":waymo_proto_to_tfe",
         # Implicit absl.app dependency.

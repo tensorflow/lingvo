@@ -9,7 +9,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "simple_wer",
     srcs = ["simple_wer.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
     ],
@@ -29,7 +29,7 @@ py_test(
 py_library(
     name = "simple_wer_v2",
     srcs = ["simple_wer_v2.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit six dependency.
     ],

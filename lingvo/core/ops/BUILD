@@ -44,7 +44,7 @@ gen_op_pylib(
 py_library(
     name = "ops",
     srcs = ["__init__.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":py_x_ops",  # buildcleaner: keep
         "//lingvo:compat",

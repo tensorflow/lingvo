@@ -8,7 +8,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "classifier",
     srcs = ["classifier.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_model",
@@ -43,7 +43,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",

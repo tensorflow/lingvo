@@ -40,7 +40,7 @@ py_library(
     srcs = [
         "waymo_ap_metric.py",
     ],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -59,7 +59,7 @@ py_library(
 py_library(
     name = "waymo_decoder",
     srcs = ["waymo_decoder.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":waymo_ap_metric",
         ":waymo_metadata",
@@ -79,7 +79,7 @@ py_library(
     srcs = [
         "waymo_metadata.py",
     ],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo/tasks/car:evaluation_metadata",
     ],
@@ -88,7 +88,7 @@ py_library(
 py_library(
     name = "waymo_open_input_generator",
     srcs = ["waymo_open_input_generator.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:datasource",
@@ -103,7 +103,7 @@ py_library(
 py_library(
     name = "export_to_submission_format_lib",
     srcs = ["export_to_submission_format.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",
@@ -117,7 +117,7 @@ py_binary(
     name = "export_to_submission_format",
     srcs = ["export_to_submission_format.py"],
     python_version = "PY3",
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":export_to_submission_format_lib",
         # Implicit six dependency.

@@ -7,7 +7,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "attention_steps",
     srcs = ["attention_steps.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":rnn_steps",
         "//lingvo:compat",
@@ -33,7 +33,7 @@ py_test(
 py_library(
     name = "embedding_steps",
     srcs = ["embedding_steps.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:layers",
@@ -58,7 +58,7 @@ py_test(
 py_library(
     name = "rnn_steps",
     srcs = ["rnn_steps.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",

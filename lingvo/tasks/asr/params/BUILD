@@ -21,7 +21,7 @@ py_library(
         ":param_files",
     ],
     data = ["//lingvo/tasks/asr:wpm_files"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     tags = ["keep_dep"],
     deps = [
         "//lingvo:model_registry",

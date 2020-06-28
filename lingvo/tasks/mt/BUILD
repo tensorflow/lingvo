@@ -13,7 +13,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "layers",
     srcs = ["layers.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -38,7 +38,7 @@ py_library(
     name = "layers_test_lib",
     testonly = 1,
     srcs = ["layers_test.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -53,7 +53,7 @@ py_library(
 py_library(
     name = "encoder",
     srcs = ["encoder.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":layers",
         "//lingvo:compat",
@@ -86,7 +86,7 @@ py_test(
 py_library(
     name = "decoder",
     srcs = ["decoder.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:attention",
@@ -120,7 +120,7 @@ py_library(
     name = "decoder_test_lib",
     testonly = 1,
     srcs = ["decoder_test.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         # Implicit absl.testing.parameterized dependency.
@@ -140,7 +140,7 @@ py_library(
 py_library(
     name = "data_augmenter",
     srcs = ["data_augmenter.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -167,7 +167,7 @@ py_test(
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":text_input_py_pb2",
         "//lingvo:compat",
@@ -207,7 +207,7 @@ py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":encoder",
@@ -239,7 +239,7 @@ py_library(
     data = [
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":encoder",
@@ -269,7 +269,7 @@ filegroup(
 py_library(
     name = "base_config",
     srcs = ["base_config.py"],
-    srcs_version = "PY3",
+    srcs_version = "PY2AND3",
     deps = [
         ":decoder",
         ":encoder",
