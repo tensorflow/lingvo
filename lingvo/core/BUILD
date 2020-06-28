@@ -334,6 +334,7 @@ py_library(
         ":base_input_generator",
         ":base_model",
         ":hyperparams",
+        "//lingvo:datasets_lib",
     ],
 )
 

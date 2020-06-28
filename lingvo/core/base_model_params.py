@@ -18,6 +18,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from lingvo import datasets
 from lingvo.core import base_input_generator
 from lingvo.core import base_model
 from lingvo.core import hyperparams
@@ -47,7 +48,9 @@ class _BaseModelParams(object):
     try:
       f = getattr(self, dataset)
     except AttributeError as e:
-      raise DatasetError(str(e))
+      raise DatasetError(
+          str(e) +
+          '; available datasets are: %s' % datasets.GetDatasets(type(self)))
     return f()
 
 
