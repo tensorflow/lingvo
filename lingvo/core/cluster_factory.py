@@ -52,7 +52,8 @@ def ForTestingWorker(mode=None,
                      tpus=None,
                      add_summary=None,
                      cpus=None,
-                     do_eval=None):
+                     do_eval=None,
+                     num_tpu_hosts=None):
   """Returns a Cluster for unittesting with a worker."""
   p = Current().params.Copy()
   if mode is not None:
@@ -72,6 +73,8 @@ def ForTestingWorker(mode=None,
     p.add_summary = add_summary
   if do_eval is not None:
     p.do_eval = do_eval
+  if num_tpu_hosts is not None:
+    p.worker.num_tpu_hosts = num_tpu_hosts
   return p.Instantiate()
 
 

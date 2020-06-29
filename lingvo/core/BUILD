@@ -182,8 +182,10 @@ py_test(
     python_version = "PY3",
     deps = [
         ":base_input_generator",
+        ":cluster_factory",
         ":hyperparams",
         ":test_utils",
+        # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         # Implicit mock dependency.
         # Implicit numpy dependency.

@@ -18,8 +18,10 @@
 import os
 import shutil
 import tempfile
+from absl.testing import flagsaver
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
+from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import test_utils
 import mock
@@ -45,6 +47,31 @@ def _CreateFakeTFRecordFiles(record_count=10):
       example = tf.train.Example(features=tf.train.Features(feature=feature))
       w.write(example.SerializeToString())
   return tmpdir, data_path
+
+
+class BaseInputGeneratorBatchSizeTest(test_utils.TestCase):
+
+  @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
+  def testSingleHostInfeed(self):
+    with cluster_factory.ForTestingWorker(tpus=128):
+      p = base_input_generator.BaseInputGenerator.Params()
+      p.batch_size = 16
+      p.use_per_host_infeed = False
+      input_generator = p.Instantiate()
+
+      self.assertEqual(2048, input_generator.InfeedBatchSize())
+      self.assertEqual(2048, input_generator.GlobalBatchSize())
+
+  @flagsaver.flagsaver(xla_device='tpu', enable_asserts=False)
+  def testPerHostInfeed(self):
+    with cluster_factory.ForTestingWorker(tpus=128, num_tpu_hosts=8):
+      p = base_input_generator.BaseInputGenerator.Params()
+      p.batch_size = 16
+      p.use_per_host_infeed = True
+      input_generator = p.Instantiate()
+
+      self.assertEqual(256, input_generator.InfeedBatchSize())
+      self.assertEqual(2048, input_generator.GlobalBatchSize())
 
 
 class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):

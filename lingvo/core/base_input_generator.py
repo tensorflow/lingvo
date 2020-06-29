@@ -142,19 +142,20 @@ class BaseInputGenerator(base_layer.BaseLayer):
     tf.logging.info('GlobalBatchSize {}'.format(global_batch_size))
     return global_batch_size
 
-  def InfeedBatchSize(self):
-    """Returns the batch size of the input batch: int or dynamic int tensor."""
-    p = self.params
+  def _ScaleBatchSizeToBatchPerInput(self, batch_size):
+    """Scales a batch_size parameter to the batch size of the infeed."""
     cluster = self.cluster
-    # Here we do not call self.GlobalBatchSize() since it can be overridden,
-    # e.g., when packed inputs are used.
-    batch_per_input = p.batch_size * cluster.num_splits_per_client
+    batch_per_input = batch_size * cluster.num_splits_per_client
     # If use_per_host_infeed, each input op is only responsible
     # for generating a subset of the whole batch.
-    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      tf.logging.info('batch_size %d cluster.num_tpu_hosts %d', batch_per_input,
-                      cluster.num_tpu_hosts)
+    if self.params.use_per_host_infeed and cluster.num_tpu_hosts > 0:
       batch_per_input //= cluster.num_tpu_hosts
+    return batch_per_input
+
+  def InfeedBatchSize(self):
+    """Returns the batch size of the input batch: int or dynamic int tensor."""
+    batch_per_input = self._ScaleBatchSizeToBatchPerInput(
+        self.params.batch_size)
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
 
@@ -759,18 +760,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     p = self.params
     cluster = self.cluster
     infeed_bucket_batch_limit = [
-        b * cluster.num_splits_per_client for b in p.bucket_batch_limit
+        self._ScaleBatchSizeToBatchPerInput(b) for b in p.bucket_batch_limit
     ]
-    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      if not py_utils.use_tpu():
-        raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
-            cluster.num_tpu_hosts))
-      tf.logging.info(
-          'scaling infeed_bucket_batch_limit num_tpu_hosts={}'.format(
-              cluster.num_tpu_hosts))
-      infeed_bucket_batch_limit = [
-          x // cluster.num_tpu_hosts for x in infeed_bucket_batch_limit
-      ]
     tf.logging.info(
         'infeed_bucket_batch_limit={} num_splits_per_client={} bucket_batch_limit={}'
         .format(infeed_bucket_batch_limit, cluster.num_splits_per_client,
