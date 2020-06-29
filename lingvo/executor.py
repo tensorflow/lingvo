@@ -305,9 +305,6 @@ class ExecutorTpu(base_runner.BaseRunner):
           tf.logging.info('Program schedule told us to stop.')
           return
 
-        # TODO(blee): More complex saving rules. Currently, we assume
-        # we save after every task's program schedule execution.
-        #
         # global_step local variable above is a result of sess.run, not a
         # tf variable, so when we do save_only_checkpointer.Save(...) here
         # py_utils.GetGlobalStep() is ahead of it by
@@ -315,4 +312,4 @@ class ExecutorTpu(base_runner.BaseRunner):
         # steps ahead already, due to program_schedule.Run(sess).
         #
         if not self._ml_perf_log:
-          self.save_only_checkpointer.Save(sess, py_utils.GetGlobalStep())
+          self.save_only_checkpointer.MaybeSave(sess, py_utils.GetGlobalStep())
