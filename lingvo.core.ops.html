@@ -860,6 +860,28 @@ The value when the key is not found.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.ops.static_map_int_int">
+<code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">static_map_int_int</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">vals</span></em>, <em class="sig-param"><span class="n">keys</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">unk</span><span class="o">=</span><span class="default_value">- 1</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.static_map_int_int" title="Permalink to this definition">¶</a></dt>
+<dd><p>Maps every element of x according a static mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32.</p></li>
+<li><p><strong>vals</strong> – A list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. The list of values.</p></li>
+<li><p><strong>keys</strong> – An optional list of <code class="xref py py-obj docutils literal notranslate"><span class="pre">ints</span></code>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">[]</span></code>.
+The list of keys. If empty, defaults to [0 .. len(keys)).</p></li>
+<li><p><strong>unk</strong> – An optional <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#int" title="(in Python v3.7)"><code class="xref py py-obj docutils literal notranslate"><span class="pre">int</span></code></a>. Defaults to <code class="xref py py-obj docutils literal notranslate"><span class="pre">-1</span></code>.
+The value when the key is not found.</p></li>
+<li><p><strong>name</strong> – A name for the operation (optional).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A <code class="xref py py-obj docutils literal notranslate"><span class="pre">Tensor</span></code> of type <code class="xref py py-obj docutils literal notranslate"><span class="pre">int32</span></code>. A Tensor of type int32. Same shape of x.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.ops.get_preconditioners">
 <code class="sig-prename descclassname">lingvo.core.ops.</code><code class="sig-name descname">get_preconditioners</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">shapes</span></em>, <em class="sig-param"><span class="n">preconditioner_compute_graphdef</span></em>, <em class="sig-param"><span class="n">keys</span></em>, <em class="sig-param"><span class="n">name</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="headerlink" href="#lingvo.core.ops.get_preconditioners" title="Permalink to this definition">¶</a></dt>
 <dd><p>Get preconditioners for Shampoo optimizer.</p>
