@@ -13,7 +13,7 @@ py_library(
     name = "codelab",
     srcs = ["codelab.py"],
     data = [":brown_corpus_wpm_data"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
@@ -28,7 +28,7 @@ py_library(
 py_library(
     name = "params",
     srcs = ["params.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = ["keep_dep"],
     deps = [
         ":codelab",

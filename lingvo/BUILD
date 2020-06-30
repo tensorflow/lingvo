@@ -24,7 +24,7 @@ config_setting(
 py_library(
     name = "base_runner",
     srcs = ["base_runner.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_trial",
         ":compat",
@@ -38,7 +38,7 @@ py_library(
 py_library(
     name = "base_trial",
     srcs = ["base_trial.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo/core:hyperparams",
     ],
@@ -47,7 +47,7 @@ py_library(
 py_library(
     name = "compat",
     srcs = ["compat.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         # Implicit absl.flags dependency.
         # Implicit absl.logging dependency.
@@ -67,14 +67,14 @@ py_test(
 py_library(
     name = "model_imports_no_params",
     srcs = ["model_imports.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
 )
 
 # Depend on this for access to the model registry with params for all tasks as
 # transitive deps.  Only py_binary should depend on this target.
 py_library(
     name = "model_imports",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":model_imports_no_params",
         "//lingvo/tasks:all_params",
@@ -95,7 +95,7 @@ py_library(
     name = "models_test_helper",
     testonly = 1,
     srcs = ["models_test_helper.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":compat",
         "//lingvo/core:base_input_generator",
@@ -123,7 +123,7 @@ py_test(
 py_library(
     name = "model_registry",
     srcs = ["model_registry.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":compat",
         ":model_imports_no_params",
@@ -142,7 +142,7 @@ py_library(
     name = "model_registry_test_lib",
     testonly = 1,
     srcs = ["model_registry_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":compat",
         ":model_registry",
@@ -156,13 +156,13 @@ py_library(
 py_library(
     name = "datasets_lib",
     srcs = ["datasets.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
 )
 
 py_library(
     name = "trainer_lib",
     srcs = ["trainer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_trial",
         ":compat",
@@ -191,7 +191,7 @@ lingvo_py_binary(
     name = "trainer",
     srcs = [":trainer_lib"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":model_imports",
         ":trainer_lib",
@@ -234,7 +234,7 @@ py_library(
     name = "trainer_test_lib",
     testonly = 1,
     srcs = ["trainer_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     tags = [
         "noasan",
         "nomsan",
@@ -267,7 +267,7 @@ lingvo_py_binary(
         "//lingvo/tasks/punctuator/tools:download_brown_corpus",
     ],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":model_imports",  # build_cleaner: keep
         ":trainer_lib",  # build_cleaner: keep
@@ -294,7 +294,7 @@ genrule(
 py_library(
     name = "executor_lib",
     srcs = ["executor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":compat",
         # Implicit network file system dependency.

@@ -13,7 +13,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "input_generator",
     srcs = ["input_generator.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -41,7 +41,7 @@ py_test(
 py_library(
     name = "layers",
     srcs = ["layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -74,7 +74,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "model",
     srcs = ["model.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":layers",
         "//lingvo:compat",

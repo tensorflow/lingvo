@@ -15,7 +15,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "attention",
     srcs = ["attention.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":layers",
@@ -47,7 +47,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "base_decoder",
     srcs = ["base_decoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":beam_search_helper",
@@ -60,7 +60,7 @@ py_library(
 py_library(
     name = "batch_major_attention",
     srcs = ["batch_major_attention.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder",
@@ -82,7 +82,7 @@ py_library(
     srcs = [
         "beam_search_helper.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -108,7 +108,7 @@ py_test(
 py_library(
     name = "bfloat16_variables",
     srcs = ["bfloat16_variables.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
     ],
@@ -128,7 +128,7 @@ py_test(
 py_library(
     name = "constants",
     srcs = ["constants.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
 )
 
 py_library(
@@ -136,7 +136,7 @@ py_library(
     srcs = [
         "target_sequence_sampler.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -161,7 +161,7 @@ py_test(
 py_library(
     name = "base_input_generator",
     srcs = ["base_input_generator.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":datasource",
@@ -211,7 +211,7 @@ py_test(
 py_library(
     name = "base_layer",
     srcs = ["base_layer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":hyperparams",
@@ -224,7 +224,7 @@ py_library(
 py_library(
     name = "bn_layers",
     srcs = ["bn_layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -251,7 +251,7 @@ py_test(
 py_library(
     name = "reversible_layers",
     srcs = ["reversible_layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -276,7 +276,7 @@ py_test(
 py_library(
     name = "decoder_lib",
     srcs = ["decoder_lib.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
     ],
 )
@@ -284,7 +284,7 @@ py_library(
 py_library(
     name = "base_model",
     srcs = ["base_model.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_layer",
@@ -331,7 +331,7 @@ py_test(
 py_library(
     name = "base_model_params",
     srcs = ["base_model_params.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -354,7 +354,7 @@ py_test(
 py_library(
     name = "build_data",
     srcs = ["build_data.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         # Implicit build_data dependency.
@@ -364,7 +364,7 @@ py_library(
 py_library(
     name = "builder",
     srcs = ["builder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":builder_layers",
         ":hyperparams",
@@ -379,7 +379,7 @@ py_library(
 py_library(
     name = "builder_layers",
     srcs = ["builder_layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":computation_cost",
@@ -430,7 +430,7 @@ py_test(
 py_library(
     name = "cluster",
     srcs = ["cluster.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         "//lingvo:compat",
@@ -442,7 +442,7 @@ py_library(
 py_library(
     name = "cluster_factory",
     srcs = ["cluster_factory.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo/core:cluster",
     ],
@@ -465,7 +465,7 @@ py_test(
 py_library(
     name = "datasource",
     srcs = ["datasource.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -490,7 +490,7 @@ py_test(
 py_library(
     name = "matrix_functions",
     srcs = ["matrix_functions.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core/ops",
@@ -514,7 +514,7 @@ py_test(
 py_library(
     name = "distributed_shampoo",
     srcs = ["distributed_shampoo.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":matrix_functions",
         "//lingvo:compat",
@@ -539,7 +539,7 @@ py_test(
 py_library(
     name = "early_stop",
     srcs = ["early_stop.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         "//lingvo:compat",
@@ -578,7 +578,7 @@ lingvo_proto_py(
 py_library(
     name = "hyperparams",
     srcs = ["hyperparams.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         ":hyperparams_py_pb2",
         ":symbolic",
@@ -616,7 +616,7 @@ py_test(
 py_library(
     name = "inference_graph_exporter",
     srcs = ["inference_graph_exporter.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_model",
         ":bfloat16_variables",
@@ -649,7 +649,7 @@ py_test(
 py_library(
     name = "input_generator_helper",
     srcs = ["input_generator_helper.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -673,7 +673,7 @@ py_test(
 py_library(
     name = "inspect_utils",
     srcs = ["inspect_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
 )
 
 py_test(
@@ -690,7 +690,7 @@ py_test(
 py_library(
     name = "layers",
     srcs = ["layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":bn_layers",
@@ -715,7 +715,7 @@ py_library(
 py_library(
     name = "learner",
     srcs = ["learner.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":optimizer",
@@ -743,7 +743,7 @@ py_test(
 py_library(
     name = "conv_layers_with_time_padding",
     srcs = ["conv_layers_with_time_padding.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":bn_layers",
@@ -757,7 +757,7 @@ py_library(
 py_library(
     name = "conv_layers_builder",
     srcs = ["conv_layers_builder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder",
@@ -811,7 +811,7 @@ py_library(
     name = "layers_test_lib",
     testonly = 1,
     srcs = ["layers_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":gpipe",
@@ -830,7 +830,7 @@ py_library(
 py_library(
     name = "saver",
     srcs = ["saver.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         # Implicit python proto dependency.
@@ -842,7 +842,7 @@ py_library(
 py_library(
     name = "schedule",
     srcs = ["schedule.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":early_stop",
@@ -888,7 +888,7 @@ py_test(
 py_library(
     name = "metrics",
     srcs = ["metrics.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":plot",
         ":py_utils",
@@ -907,7 +907,7 @@ py_library(
 py_library(
     name = "ml_perf_bleu_metric",
     srcs = ["ml_perf_bleu_metric.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":metrics",
         "//lingvo:compat",
@@ -943,7 +943,7 @@ py_test(
 py_library(
     name = "multitask_model",
     srcs = ["multitask_model.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_model",
         ":py_utils",
@@ -972,7 +972,7 @@ py_library(
     srcs = [
         "adagraft.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core/ops",
@@ -996,7 +996,7 @@ py_test(
 py_library(
     name = "optimizer",
     srcs = ["optimizer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":adagraft",
         ":base_layer",
@@ -1025,7 +1025,7 @@ py_test(
 py_library(
     name = "plot",
     srcs = ["plot.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         # Implicit Tkinter dependency.  # buildcleaner: keep
@@ -1051,7 +1051,7 @@ py_test(
 py_library(
     name = "predictor_lib",
     srcs = ["predictor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
@@ -1067,7 +1067,7 @@ lingvo_py_binary(
     name = "predictor",
     srcs = ["predictor.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
@@ -1097,7 +1097,7 @@ py_test(
 py_library(
     name = "predictor_runner_base",
     srcs = ["predictor_runner_base.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":predictor_lib",
         ":py_utils",
@@ -1111,7 +1111,7 @@ py_library(
 py_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         ":hyperparams",
         ":retry",
@@ -1156,7 +1156,7 @@ py_test(
 py_library(
     name = "quant_utils",
     srcs = ["quant_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -1184,7 +1184,7 @@ py_test(
 py_library(
     name = "layers_with_gpipe",
     srcs = ["layers_with_gpipe.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":gpipe",
@@ -1217,7 +1217,7 @@ py_test(
 py_library(
     name = "spectrum_augmenter",
     srcs = ["spectrum_augmenter.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1242,7 +1242,7 @@ py_test(
 py_library(
     name = "spectrum_augmenter_on_device",
     srcs = ["spectrum_augmenter_on_device.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1269,7 +1269,7 @@ py_test(
 py_library(
     name = "generic_input",
     srcs = ["generic_input.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1297,7 +1297,7 @@ py_test(
 py_library(
     name = "gpipe",
     srcs = ["gpipe.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1328,7 +1328,7 @@ py_test(
 py_library(
     name = "recurrent",
     srcs = ["recurrent.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":constants",
@@ -1355,7 +1355,7 @@ py_library(
     name = "recurrent_test_lib",
     testonly = 1,
     srcs = ["recurrent_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1384,7 +1384,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "relative_atten_util",
     srcs = ["relative_atten_util.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1394,7 +1394,7 @@ py_library(
 py_library(
     name = "retry",
     srcs = ["retry.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         # Implicit retry dependency.
     ],
@@ -1428,7 +1428,7 @@ py_test(
 py_library(
     name = "self_attention_layer",
     srcs = ["self_attention_layer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":batch_major_attention",
         # Implicit six dependency.
@@ -1438,7 +1438,7 @@ py_library(
 py_library(
     name = "sendrecv",
     srcs = ["sendrecv.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         "//lingvo:compat",
     ],
@@ -1475,7 +1475,7 @@ py_test(
 py_library(
     name = "summary_utils",
     srcs = ["summary_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":plot",
@@ -1488,7 +1488,7 @@ py_library(
 py_library(
     name = "task_scheduler",
     srcs = ["task_scheduler.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":early_stop",
@@ -1514,7 +1514,7 @@ py_test(
 py_library(
     name = "test_helper",
     srcs = ["test_helper.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
     ],
@@ -1523,7 +1523,7 @@ py_library(
 py_library(
     name = "test_utils",
     srcs = ["test_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -1546,7 +1546,7 @@ py_test(
 py_library(
     name = "trainer_test_utils",
     srcs = ["trainer_test_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1559,7 +1559,7 @@ py_library(
 py_library(
     name = "test_trainer_utils",
     srcs = ["test_trainer_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
@@ -1571,7 +1571,7 @@ py_library(
 py_library(
     name = "wpm_encoder",
     srcs = ["wpm_encoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         "//lingvo:compat",
@@ -1594,7 +1594,7 @@ py_test(
 py_library(
     name = "tokenizers",
     srcs = ["tokenizers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1624,7 +1624,7 @@ py_test(
 py_library(
     name = "rnn_cell",
     srcs = ["rnn_cell.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         ":py_utils",
@@ -1653,7 +1653,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "layers_with_attention",
     srcs = ["layers_with_attention.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":attention",
         ":base_layer",
@@ -1685,7 +1685,7 @@ py_test(
 py_library(
     name = "rnn_layers",
     srcs = ["rnn_layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":attention",
         ":base_layer",
@@ -1715,7 +1715,7 @@ py_library(
     name = "rnn_layers_test_lib",
     testonly = 1,
     srcs = ["rnn_layers_test.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":attention",
         ":base_layer",
@@ -1735,7 +1735,7 @@ py_library(
 py_library(
     name = "lstm_frnn_layer",
     srcs = ["lstm_frnn_layer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Implicit absl.flags dependency.
         "//lingvo:compat",
@@ -1750,7 +1750,7 @@ py_test(
     name = "lstm_frnn_layer_test",
     srcs = ["lstm_frnn_layer_test.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":lstm_frnn_layer",
         # Implicit absl.testing.parameterized dependency.
@@ -1763,7 +1763,7 @@ py_test(
 py_library(
     name = "scorers",
     srcs = ["scorers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Implicit six dependency.
     ],
@@ -1785,7 +1785,7 @@ py_test(
 py_library(
     name = "model_helper",
     srcs = ["model_helper.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":rnn_layers",
         "//lingvo:compat",
@@ -1795,7 +1795,7 @@ py_library(
 py_library(
     name = "tshape",
     srcs = ["tshape.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         "//lingvo:compat",
         # Implicit six dependency.
@@ -1817,7 +1817,7 @@ py_test(
 py_library(
     name = "symbolic",
     srcs = ["symbolic.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         # Implicit six dependency.
         # Implicit sympy dependency.
@@ -1839,7 +1839,7 @@ py_test(
 py_library(
     name = "insertion",
     srcs = ["insertion.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1861,7 +1861,7 @@ lingvo_cuda_py_test(
 py_library(
     name = "computation_cost",
     srcs = ["computation_cost.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":bn_layers",
         "//lingvo:compat",
@@ -1871,7 +1871,7 @@ py_library(
 py_library(
     name = "checkpointer_lib",
     srcs = ["checkpointer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -1883,7 +1883,7 @@ py_library(
 py_library(
     name = "program_lib",
     srcs = ["program.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_model",
         ":checkpointer_lib",
@@ -1902,7 +1902,7 @@ py_library(
 py_library(
     name = "step",
     srcs = ["step.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1973,7 +1973,7 @@ py_test(
 py_library(
     name = "ml_perf_tokenizer",
     srcs = ["ml_perf_tokenizer.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":py_utils",
@@ -1987,7 +1987,7 @@ py_library(
 py_library(
     name = "ml_perf_log",
     srcs = ["ml_perf_log.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
 )
 
 py_test(
@@ -2005,7 +2005,7 @@ py_library(
     srcs = [
         "egdd.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Implicit numpy dependency.
         # Implicit six dependency.

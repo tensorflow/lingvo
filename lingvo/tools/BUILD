@@ -13,7 +13,7 @@ py_binary(
     name = "gke_launch",
     srcs = ["gke_launch.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Implicit absl.app dependency.
         # Implicit absl.flags dependency.
@@ -26,7 +26,7 @@ py_binary(
     name = "keras2ckpt",
     srcs = ["keras2ckpt.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
     ],
@@ -36,7 +36,7 @@ py_binary(
     name = "bpe_word_tokenizer",
     srcs = ["bpe_word_tokenizer.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         # Implicit six dependency.
@@ -47,7 +47,7 @@ py_binary(
     name = "wpm_encode_file",
     srcs = ["wpm_encode_file.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":wpm_encode_file_lib",
         # Implicit six dependency.
@@ -57,7 +57,7 @@ py_binary(
 py_library(
     name = "wpm_encode_file_lib",
     srcs = ["wpm_encode_file.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:wpm_encoder",
@@ -70,7 +70,7 @@ py_binary(
     name = "print_tf_records",
     srcs = ["print_tf_records.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         # Implicit six dependency.
@@ -81,7 +81,7 @@ py_binary(
     name = "compute_stats",
     srcs = ["compute_stats.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -92,7 +92,7 @@ py_binary(
 py_library(
     name = "audio_lib",
     srcs = ["audio_lib.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Additional FFT kernels dependency.
         "//lingvo:compat",
@@ -104,7 +104,7 @@ py_library(
 py_library(
     name = "beam_utils",
     srcs = ["beam_utils.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
 )
 
 py_test(
@@ -139,7 +139,7 @@ py_test(
 py_library(
     name = "compare_params_lib",
     srcs = ["compare_params.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo:model_registry",
@@ -163,7 +163,7 @@ py_binary(
     name = "create_asr_features",
     srcs = ["create_asr_features.py"],
     python_version = "PY3",
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":audio_lib",
         "//lingvo:compat",

@@ -9,7 +9,7 @@ licenses(["notice"])  # Apache 2.0
 py_library(
     name = "car_layers",
     srcs = ["car_layers.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":car_lib",
         "//lingvo:compat",
@@ -21,7 +21,7 @@ py_library(
 py_library(
     name = "detection_3d_lib",
     srcs = ["detection_3d_lib.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":geometry",
         "//lingvo:compat",
@@ -34,7 +34,7 @@ py_library(
 py_library(
     name = "detection_decoder",
     srcs = ["detection_decoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":detection_3d_lib",
         "//lingvo:compat",
@@ -57,7 +57,7 @@ py_test(
 py_library(
     name = "detection_3d_metrics",
     srcs = ["detection_3d_metrics.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":summary",
         ":transform_util",
@@ -117,7 +117,7 @@ py_library(
     srcs = [
         "ap_metric.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":breakdown_metric",
         "//lingvo:compat",
@@ -134,7 +134,7 @@ py_library(
     srcs = [
         "calibration_processing.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:plot",
@@ -161,7 +161,7 @@ py_library(
     srcs = [
         "breakdown_metric.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":calibration_processing",
         "//lingvo:compat",
@@ -191,7 +191,7 @@ py_test(
 py_library(
     name = "builder_lib",
     srcs = ["builder_lib.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":car_layers",
         "//lingvo:compat",
@@ -222,7 +222,7 @@ py_library(
     srcs = [
         "evaluation_metadata.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         # Implicit numpy dependency.
         # Implicit six dependency.
@@ -232,7 +232,7 @@ py_library(
 py_library(
     name = "car_lib",
     srcs = ["car_lib.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -242,7 +242,7 @@ py_library(
 py_library(
     name = "geometry",
     srcs = ["geometry.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:py_utils",
@@ -253,7 +253,7 @@ py_library(
 py_library(
     name = "input_extractor",
     srcs = ["input_extractor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -278,7 +278,7 @@ py_test(
 py_library(
     name = "base_decoder",
     srcs = ["base_decoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
@@ -290,7 +290,7 @@ py_library(
 py_library(
     name = "base_extractor",
     srcs = ["base_extractor.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_input_generator",
@@ -307,7 +307,7 @@ py_library(
     srcs = [
         "kitti_ap_metric.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":ap_metric",
         "//lingvo:compat",
@@ -320,7 +320,7 @@ py_library(
 py_library(
     name = "kitti_decoder",
     srcs = ["kitti_decoder.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":base_decoder",
         ":detection_3d_lib",
@@ -342,14 +342,14 @@ py_library(
     srcs = [
         "kitti_metadata.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [":evaluation_metadata"],
 )
 
 py_library(
     name = "lr_util",
     srcs = ["lr_util.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
         "//lingvo/core:cluster_factory",
@@ -375,7 +375,7 @@ py_test(
 py_library(
     name = "pillars",
     srcs = ["pillars.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
@@ -394,7 +394,7 @@ py_library(
 py_library(
     name = "point_detector",
     srcs = ["point_detector.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":detection_decoder",
         ":kitti_decoder",
@@ -409,7 +409,7 @@ py_library(
 py_library(
     name = "pointnet",
     srcs = ["pointnet.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":builder_lib",
         "//lingvo:compat",
@@ -422,7 +422,7 @@ py_library(
 py_library(
     name = "starnet",
     srcs = ["starnet.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":builder_lib",
         ":detection_3d_lib",
@@ -438,7 +438,7 @@ py_library(
 py_library(
     name = "summary",
     srcs = ["summary.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":transform_util",
         # Implicit PIL dependency.
@@ -481,7 +481,7 @@ py_library(
     srcs = [
         "transform_util.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
     deps = [
         # Implicit numpy dependency.
     ],
@@ -531,7 +531,7 @@ py_test(
 py_library(
     name = "input_preprocessors",
     srcs = ["input_preprocessors.py"],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":car_lib",
         ":detection_3d_lib",
@@ -550,7 +550,7 @@ py_library(
     srcs = [
         "kitti_input_generator.py",
     ],
-    srcs_version = "PY2AND3",
+    srcs_version = "PY3",
     deps = [
         ":geometry",
         ":input_extractor",
