@@ -682,6 +682,26 @@ vals: The list of values.
 unk: The value when the key is not found.
 )doc");
 
+REGISTER_OP("StaticMapIntInt")
+    .Input("x: int32")
+    .Output("y: int32")
+    .Attr("keys: list(int) = []")
+    .Attr("vals: list(int)")
+    .Attr("unk: int = -1")
+    .SetShapeFn([](shape_inference::InferenceContext* c) {
+      c->set_output(0, c->input(0));
+      return ::tensorflow::Status::OK();
+    })
+    .Doc(R"doc(
+Maps every element of x according a static mapping.
+
+x: A Tensor of type int32.
+y: A Tensor of type int32. Same shape of x.
+keys: The list of keys. If empty, defaults to [0 .. len(keys)).
+vals: The list of values.
+unk: The value when the key is not found.
+)doc");
+
 REGISTER_OP("ComputePreconditioners")
     .Input("inputs: num_tensors * float32")
     .Input("exponents: num_tensors * float32")

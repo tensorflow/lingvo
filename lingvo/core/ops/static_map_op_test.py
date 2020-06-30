@@ -26,6 +26,11 @@ class StaticMapOpsTest(test_utils.TestCase):
 
   def testStaticMap(self):
     with self.session():
+      self.assertAllEqual([[-1, -2, -3], [-1, -5, -6]],
+                          ops.static_map_int_int(
+                              x=[[1, 2, 3], [8, 5, 6]],
+                              keys=[1, 2, 3, 4, 5, 6],
+                              vals=[-1, -2, -3, -4, -5, -6]).eval())
       self.assertAllEqual([[1, 3, 5], [7, 9, 11]],
                           ops.static_map_string_int(
                               x=[['a', 'b', 'c'], ['d', 'e', 'f']],
