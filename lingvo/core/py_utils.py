@@ -264,8 +264,10 @@ def with_dependencies(dependencies, output_tensor):  # pylint: disable=invalid-n
 def _PrintOptions(*args, **kwargs):
   original = np.get_printoptions()
   np.set_printoptions(*args, **kwargs)
-  yield
-  np.set_printoptions(**original)
+  try:
+    yield
+  finally:
+    np.set_printoptions(**original)
 
 
 def _Print(name, x):
@@ -542,10 +544,8 @@ def use_resource_variables():  # pylint: disable=invalid-name
   return _FromGlobal('use_resource_var') or tpu_compat()
 
 
-@contextlib.contextmanager
 def outside_all_rewrites():  # pylint: disable=invalid-name
-  with tf.control_dependencies(None):
-    yield
+  return tf.control_dependencies(None)
 
 
 # TODO(jamesqin): remove once b/147439702 is fixed.
@@ -1371,33 +1371,28 @@ def SanitizeScopeKey(key):
 # If False (default) the default tf.get_variable is used, that is:
 # - Reusing scopes only allow getting existing variables
 # - Non-reusing scopes only allow getting new variables
-# With OPPORTUNISTIC_VARIABLE_REUSE==True:
+# With GetOpportunisticVariableReuse() == True:
 # - Reusing scopes only allow getting existing variables, as usual
 # - Non-reusing scopes reuse new variables or get new ones
-_OPPORTUNISTIC_VARIABLE_REUSE_KEY = ('__lingvo_opportunistic_variable_reuse',)
-
-_get_opportunistic_variable_reuse = _CollectionGetter(
-    _OPPORTUNISTIC_VARIABLE_REUSE_KEY, lambda: [False])
-
-_VARIABLE_RENAME_RULES_KEY = ('__lingvo_variable_rename_rules',)
-
-_get_rename_rules_stack = _CollectionGetter(_VARIABLE_RENAME_RULES_KEY,
-                                            lambda: [])
+_OPPORTUNISTIC_VARIABLE_REUSE = ThreadLocalStack().stack
 
 
 @contextlib.contextmanager
 def OpportunisticVariableReuseScope(enable_opportunistic_reuse=True):
-  opportunistic_var_reuse = _get_opportunistic_variable_reuse()
-  old_val = opportunistic_var_reuse[0]
-  opportunistic_var_reuse[0] = enable_opportunistic_reuse
-  yield
-  opportunistic_var_reuse[0] = old_val
+  _OPPORTUNISTIC_VARIABLE_REUSE.append(enable_opportunistic_reuse)
+  try:
+    yield
+  finally:
+    _OPPORTUNISTIC_VARIABLE_REUSE.pop()
 
 
 def GetOpportunisticVariableReuse():
   """Get the current variable reuse setting."""
-  opportunistic_var_reuse = _get_opportunistic_variable_reuse()
-  return opportunistic_var_reuse[0]
+  return (_OPPORTUNISTIC_VARIABLE_REUSE[-1]
+          if _OPPORTUNISTIC_VARIABLE_REUSE else False)
+
+
+_VARIABLE_RENAME_RULES = ThreadLocalStack().stack
 
 
 @contextlib.contextmanager
@@ -1411,10 +1406,11 @@ def VariableRenameScope(renames):
   Yields:
     scope in which the renaming rules are applied
   """
-  rename_rules_stack = _get_rename_rules_stack()
-  rename_rules_stack.append(renames)
-  yield
-  rename_rules_stack.pop()
+  _VARIABLE_RENAME_RULES.append(renames)
+  try:
+    yield
+  finally:
+    _VARIABLE_RENAME_RULES.pop()
 
 
 def GetVariableName(name):
@@ -1428,7 +1424,7 @@ def GetVariableName(name):
   """
   matched = False
   new_name = name
-  for renames in _get_rename_rules_stack():
+  for renames in _VARIABLE_RENAME_RULES:
     for regexp, name_format in renames:
       match = re.match(regexp, name)
       if match:
@@ -1469,8 +1465,10 @@ def VariableShapePrefixContext(shape_prefix):
   """
   assert shape_prefix > 0, ('%s' % shape_prefix)
   _VARIABLE_SHAPE_PREFIXES.append(shape_prefix)
-  yield
-  _VARIABLE_SHAPE_PREFIXES.pop()
+  try:
+    yield
+  finally:
+    _VARIABLE_SHAPE_PREFIXES.pop()
 
 
 def GetVariableShapePrefixes():
@@ -1690,7 +1688,7 @@ def CreateVariable(name,
             synchronization=synchronization,
             aggregation=aggregation)
 
-  if _get_opportunistic_variable_reuse()[0]:
+  if GetOpportunisticVariableReuse():
     try:
       var = GetVar()
     except ValueError:  # Possibly the variable already exists
@@ -1756,8 +1754,6 @@ def GlobalStepContext(global_step_tensor):
   _GLOBAL_STEP_STACK.append(global_step_tensor)
   try:
     yield
-  except:
-    raise
   finally:
     _GLOBAL_STEP_STACK.pop()
 
@@ -2926,7 +2922,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   return relevant_updates, irrelevant_updates
 
 
-_SAMPLE_STEP_KEY = 'sample_step'
+_SAMPLE_STEP_STACK = ThreadLocalStack().stack
 
 
 @contextlib.contextmanager
@@ -2944,17 +2940,15 @@ def SampleStep(step):
   Yields:
     a context manager for the step scope.
   """
-  stack = tf.get_collection_ref(_SAMPLE_STEP_KEY)
   try:
-    stack.append(step)
+    _SAMPLE_STEP_STACK.append(step)
     yield step
   finally:
-    stack.pop()
+    _SAMPLE_STEP_STACK.pop()
 
 
 def _GetSampleStep():
-  stack = tf.get_collection(_SAMPLE_STEP_KEY)
-  return stack[-1] if stack else None
+  return _SAMPLE_STEP_STACK[-1] if _SAMPLE_STEP_STACK else None
 
 
 def AddDebugTensor(tensor, summarize=None, name=None):
@@ -4033,14 +4027,14 @@ def RemoveAssertContext(remove=True):
   if remove:
     saved_assert_equal = tf.check_ops.assert_equal
 
-    # pylint: disable=unused-argument
-    def NoOP(*args, **kwargs):
+    def NoOP(*args, **kwargs):  # pylint: disable=unused-argument
       return tf.no_op()
 
-    # pylint: enable=unused-argument
     tf.check_ops.assert_equal = NoOP  # Make assert_equal a no op.
-    yield
-    tf.check_ops.assert_equal = saved_assert_equal
+    try:
+      yield
+    finally:
+      tf.check_ops.assert_equal = saved_assert_equal
   else:
     yield
 
