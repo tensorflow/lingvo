@@ -146,6 +146,13 @@ deprecation._PRINT_DEPRECATION_WARNINGS = False
 # pylint: enable=protected-access
 
 
+class ThreadLocalStack(threading.local):
+
+  def __init__(self):
+    super(ThreadLocalStack, self).__init__()
+    self.stack = []
+
+
 def Assert(condition, data, *args, **kwargs):
   if _FromGlobal('enable_asserts'):
     return tf.Assert(condition, data, *args, **kwargs)
@@ -539,13 +546,6 @@ def use_resource_variables():  # pylint: disable=invalid-name
 def outside_all_rewrites():  # pylint: disable=invalid-name
   with tf.control_dependencies(None):
     yield
-
-
-class _ThreadLocalStack(threading.local):
-
-  def __init__(self):
-    super(_ThreadLocalStack, self).__init__()
-    self.stack = []
 
 
 # TODO(jamesqin): remove once b/147439702 is fixed.
@@ -1454,7 +1454,7 @@ _ALL_VARS_KEY = ('__lingvo_all_vars',)
 
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
-_VARIABLE_SHAPE_PREFIXES = _ThreadLocalStack().stack
+_VARIABLE_SHAPE_PREFIXES = ThreadLocalStack().stack
 
 
 @contextlib.contextmanager
@@ -1748,7 +1748,7 @@ def GetGlobalVariableScope():
   return _global_variable_scope
 
 
-_GLOBAL_STEP_STACK = []
+_GLOBAL_STEP_STACK = ThreadLocalStack().stack
 
 
 @contextlib.contextmanager

@@ -22,7 +22,6 @@ from __future__ import print_function
 import abc
 import itertools
 import re
-import threading
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
@@ -31,14 +30,7 @@ import six
 from six.moves import zip
 
 
-class _LocalLayerStack(threading.local):
-
-  def __init__(self):
-    super(_LocalLayerStack, self).__init__()
-    self.layer_stack = []
-
-
-_LAYER_STACK = _LocalLayerStack()
+_LAYER_STACK = py_utils.ThreadLocalStack().stack
 
 
 class Accumulator(object):
@@ -116,7 +108,7 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
 
   def Wrapper(self, *args, **kwargs):
     """Decorator wrapper fn."""
-    stack = _LAYER_STACK.layer_stack
+    stack = _LAYER_STACK
     if stack and stack[-1] is self:
       # Short circuit if called multiple times (eg. super() chain).
       func(self, *args, **kwargs)
@@ -310,7 +302,7 @@ class BaseLayer(tf.Module):
     self._setattr_tracking = False
 
     self._parent = None
-    for parent in reversed(_LAYER_STACK.layer_stack):
+    for parent in reversed(_LAYER_STACK):
       if parent is not self:
         self._parent = parent
         break
