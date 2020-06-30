@@ -412,8 +412,10 @@
 <span class="k">def</span> <span class="nf">_PrintOptions</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="n">original</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">get_printoptions</span><span class="p">()</span>
   <span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-  <span class="k">yield</span>
-  <span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="o">**</span><span class="n">original</span><span class="p">)</span></div>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="o">**</span><span class="n">original</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="_Print"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Print">[docs]</a><span class="k">def</span> <span class="nf">_Print</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
@@ -690,10 +692,8 @@
   <span class="k">return</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;use_resource_var&#39;</span><span class="p">)</span> <span class="ow">or</span> <span class="n">tpu_compat</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.outside_all_rewrites">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
-<span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">):</span>
-    <span class="k">yield</span></div>
+<div class="viewcode-block" id="outside_all_rewrites"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.outside_all_rewrites">[docs]</a><span class="k">def</span> <span class="nf">outside_all_rewrites</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span></div>
 
 
 <span class="c1"># TODO(jamesqin): remove once b/147439702 is fixed.</span>
@@ -1519,33 +1519,28 @@
 <span class="c1"># If False (default) the default tf.get_variable is used, that is:</span>
 <span class="c1"># - Reusing scopes only allow getting existing variables</span>
 <span class="c1"># - Non-reusing scopes only allow getting new variables</span>
-<span class="c1"># With OPPORTUNISTIC_VARIABLE_REUSE==True:</span>
+<span class="c1"># With GetOpportunisticVariableReuse() == True:</span>
 <span class="c1"># - Reusing scopes only allow getting existing variables, as usual</span>
 <span class="c1"># - Non-reusing scopes reuse new variables or get new ones</span>
-<span class="n">_OPPORTUNISTIC_VARIABLE_REUSE_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_opportunistic_variable_reuse&#39;</span><span class="p">,)</span>
-
-<span class="n">_get_opportunistic_variable_reuse</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span>
-    <span class="n">_OPPORTUNISTIC_VARIABLE_REUSE_KEY</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="p">[</span><span class="kc">False</span><span class="p">])</span>
-
-<span class="n">_VARIABLE_RENAME_RULES_KEY</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;__lingvo_variable_rename_rules&#39;</span><span class="p">,)</span>
-
-<span class="n">_get_rename_rules_stack</span> <span class="o">=</span> <span class="n">_CollectionGetter</span><span class="p">(</span><span class="n">_VARIABLE_RENAME_RULES_KEY</span><span class="p">,</span>
-                                            <span class="k">lambda</span><span class="p">:</span> <span class="p">[])</span>
+<span class="n">_OPPORTUNISTIC_VARIABLE_REUSE</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
 
 
 <div class="viewcode-block" id="OpportunisticVariableReuseScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.OpportunisticVariableReuseScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
 <span class="k">def</span> <span class="nf">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="n">enable_opportunistic_reuse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-  <span class="n">opportunistic_var_reuse</span> <span class="o">=</span> <span class="n">_get_opportunistic_variable_reuse</span><span class="p">()</span>
-  <span class="n">old_val</span> <span class="o">=</span> <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-  <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">enable_opportunistic_reuse</span>
-  <span class="k">yield</span>
-  <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">old_val</span></div>
+  <span class="n">_OPPORTUNISTIC_VARIABLE_REUSE</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">enable_opportunistic_reuse</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_OPPORTUNISTIC_VARIABLE_REUSE</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="GetOpportunisticVariableReuse"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetOpportunisticVariableReuse">[docs]</a><span class="k">def</span> <span class="nf">GetOpportunisticVariableReuse</span><span class="p">():</span>
   <span class="sd">&quot;&quot;&quot;Get the current variable reuse setting.&quot;&quot;&quot;</span>
-  <span class="n">opportunistic_var_reuse</span> <span class="o">=</span> <span class="n">_get_opportunistic_variable_reuse</span><span class="p">()</span>
-  <span class="k">return</span> <span class="n">opportunistic_var_reuse</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span></div>
+  <span class="k">return</span> <span class="p">(</span><span class="n">_OPPORTUNISTIC_VARIABLE_REUSE</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+          <span class="k">if</span> <span class="n">_OPPORTUNISTIC_VARIABLE_REUSE</span> <span class="k">else</span> <span class="kc">False</span><span class="p">)</span></div>
+
+
+<span class="n">_VARIABLE_RENAME_RULES</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
 
 
 <div class="viewcode-block" id="VariableRenameScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VariableRenameScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
@@ -1559,10 +1554,11 @@
 <span class="sd">  Yields:</span>
 <span class="sd">    scope in which the renaming rules are applied</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">rename_rules_stack</span> <span class="o">=</span> <span class="n">_get_rename_rules_stack</span><span class="p">()</span>
-  <span class="n">rename_rules_stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">renames</span><span class="p">)</span>
-  <span class="k">yield</span>
-  <span class="n">rename_rules_stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+  <span class="n">_VARIABLE_RENAME_RULES</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">renames</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_VARIABLE_RENAME_RULES</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="GetVariableName"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetVariableName">[docs]</a><span class="k">def</span> <span class="nf">GetVariableName</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
@@ -1576,7 +1572,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">matched</span> <span class="o">=</span> <span class="kc">False</span>
   <span class="n">new_name</span> <span class="o">=</span> <span class="n">name</span>
-  <span class="k">for</span> <span class="n">renames</span> <span class="ow">in</span> <span class="n">_get_rename_rules_stack</span><span class="p">():</span>
+  <span class="k">for</span> <span class="n">renames</span> <span class="ow">in</span> <span class="n">_VARIABLE_RENAME_RULES</span><span class="p">:</span>
     <span class="k">for</span> <span class="n">regexp</span><span class="p">,</span> <span class="n">name_format</span> <span class="ow">in</span> <span class="n">renames</span><span class="p">:</span>
       <span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">regexp</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">match</span><span class="p">:</span>
@@ -1617,8 +1613,10 @@
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="k">assert</span> <span class="n">shape_prefix</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shape_prefix</span><span class="p">)</span>
   <span class="n">_VARIABLE_SHAPE_PREFIXES</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shape_prefix</span><span class="p">)</span>
-  <span class="k">yield</span>
-  <span class="n">_VARIABLE_SHAPE_PREFIXES</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_VARIABLE_SHAPE_PREFIXES</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="GetVariableShapePrefixes"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetVariableShapePrefixes">[docs]</a><span class="k">def</span> <span class="nf">GetVariableShapePrefixes</span><span class="p">():</span>
@@ -1838,7 +1836,7 @@
             <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
             <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
 
-  <span class="k">if</span> <span class="n">_get_opportunistic_variable_reuse</span><span class="p">()[</span><span class="mi">0</span><span class="p">]:</span>
+  <span class="k">if</span> <span class="n">GetOpportunisticVariableReuse</span><span class="p">():</span>
     <span class="k">try</span><span class="p">:</span>
       <span class="n">var</span> <span class="o">=</span> <span class="n">GetVar</span><span class="p">()</span>
     <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>  <span class="c1"># Possibly the variable already exists</span>
@@ -1904,8 +1902,6 @@
   <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">global_step_tensor</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="k">yield</span>
-  <span class="k">except</span><span class="p">:</span>
-    <span class="k">raise</span>
   <span class="k">finally</span><span class="p">:</span>
     <span class="n">_GLOBAL_STEP_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
@@ -3074,7 +3070,7 @@
   <span class="k">return</span> <span class="n">relevant_updates</span><span class="p">,</span> <span class="n">irrelevant_updates</span></div>
 
 
-<span class="n">_SAMPLE_STEP_KEY</span> <span class="o">=</span> <span class="s1">&#39;sample_step&#39;</span>
+<span class="n">_SAMPLE_STEP_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
 
 
 <div class="viewcode-block" id="SampleStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SampleStep">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
@@ -3092,17 +3088,15 @@
 <span class="sd">  Yields:</span>
 <span class="sd">    a context manager for the step scope.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">stack</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection_ref</span><span class="p">(</span><span class="n">_SAMPLE_STEP_KEY</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
-    <span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+    <span class="n">_SAMPLE_STEP_STACK</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
     <span class="k">yield</span> <span class="n">step</span>
   <span class="k">finally</span><span class="p">:</span>
-    <span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+    <span class="n">_SAMPLE_STEP_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
 
 
 <div class="viewcode-block" id="_GetSampleStep"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetSampleStep">[docs]</a><span class="k">def</span> <span class="nf">_GetSampleStep</span><span class="p">():</span>
-  <span class="n">stack</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">_SAMPLE_STEP_KEY</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">stack</span> <span class="k">else</span> <span class="kc">None</span></div>
+  <span class="k">return</span> <span class="n">_SAMPLE_STEP_STACK</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_SAMPLE_STEP_STACK</span> <span class="k">else</span> <span class="kc">None</span></div>
 
 
 <div class="viewcode-block" id="AddDebugTensor"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddDebugTensor">[docs]</a><span class="k">def</span> <span class="nf">AddDebugTensor</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -4181,14 +4175,14 @@
   <span class="k">if</span> <span class="n">remove</span><span class="p">:</span>
     <span class="n">saved_assert_equal</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span>
 
-    <span class="c1"># pylint: disable=unused-argument</span>
-    <span class="k">def</span> <span class="nf">NoOP</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">NoOP</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=unused-argument</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()</span>
 
-    <span class="c1"># pylint: enable=unused-argument</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">NoOP</span>  <span class="c1"># Make assert_equal a no op.</span>
-    <span class="k">yield</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">saved_assert_equal</span>
+    <span class="k">try</span><span class="p">:</span>
+      <span class="k">yield</span>
+    <span class="k">finally</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">check_ops</span><span class="o">.</span><span class="n">assert_equal</span> <span class="o">=</span> <span class="n">saved_assert_equal</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">yield</span></div>
 
