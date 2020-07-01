@@ -1519,6 +1519,97 @@
     <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div></div>
 
 
+<div class="viewcode-block" id="MultiSourceAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceAttention</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Batch major attention with multiple source sub-attentions.</span>
+
+<span class="sd">  It attends to multiple sources and uses one query as input to generates a</span>
+<span class="sd">  combined attention context. The dimension of the combined context vector is a</span>
+<span class="sd">  sum of all source context vectors. Each source attention has its separate</span>
+<span class="sd">  params and is associated with a source key.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiSourceAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_atten_tpls&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;A list of (source_key, attention_param) pairs.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Default key dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Default hidden dimension.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primary_source_key&#39;</span><span class="p">,</span> <span class="s1">&#39;source_0&#39;</span><span class="p">,</span> <span class="s1">&#39;Key for the primary source &#39;</span>
+        <span class="s1">&#39;whose attention probabilities will be used as an output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_merger_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Params to specify how to merge source attention vectors.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an MultiSourceAttention object.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">primary_source_key</span> <span class="ow">in</span> <span class="p">[</span>
+        <span class="n">x</span> <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span>
+    <span class="p">],</span> <span class="p">(</span><span class="s1">&#39;Source attention must have the primary source key.&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">atten_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+        <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+          <span class="n">child_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+
+      <span class="c1"># Initialize source context vector merging layer.</span>
+      <span class="n">merger_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_merger&#39;</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="n">merger_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_merger&#39;</span><span class="p">,</span> <span class="n">merger_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MultiSourceAttention.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+            <span class="n">theta</span><span class="p">,</span>
+            <span class="n">query_vec</span><span class="p">,</span>
+            <span class="n">key_vec</span><span class="p">,</span>
+            <span class="n">value_vec</span><span class="p">,</span>
+            <span class="n">paddings</span><span class="p">,</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="n">result_map</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+        <span class="n">result_map</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+                <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">),</span> <span class="n">query_vec</span><span class="p">,</span>
+                <span class="n">key_vec</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span> <span class="n">value_vec</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span>
+                <span class="n">paddings</span><span class="p">[</span><span class="n">source_key</span><span class="p">],</span>
+                <span class="n">segment_mask</span><span class="p">[</span><span class="n">source_key</span><span class="p">]</span> <span class="k">if</span> <span class="n">segment_mask</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+                <span class="n">per_step_padding</span><span class="p">))</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_CombineContext</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">result_map</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MultiSourceAttention._CombineContext"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention._CombineContext">[docs]</a>  <span class="k">def</span> <span class="nf">_CombineContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">enc_map</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">):</span>
+    <span class="n">encs</span> <span class="o">=</span> <span class="n">enc_map</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="n">combined_enc</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">atten_merger</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten_merger</span><span class="p">,</span> <span class="p">[</span><span class="n">enc</span> <span class="k">for</span> <span class="n">enc</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">encs</span><span class="p">],</span>
+                                <span class="n">query_vec</span><span class="p">))</span>
+    <span class="c1"># Return atten_probs of the primary source.</span>
+    <span class="k">return</span> <span class="n">combined_enc</span><span class="p">,</span> <span class="n">enc_map</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">primary_source_key</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MultiSourceAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+                 <span class="n">theta</span><span class="p">,</span>
+                 <span class="n">query</span><span class="p">,</span>
+                 <span class="n">key</span><span class="p">,</span>
+                 <span class="n">paddings</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="n">primary_source_key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">primary_source_key</span>
+    <span class="n">child_name</span> <span class="o">=</span> <span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">primary_source_key</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">child_name</span><span class="p">]</span><span class="o">.</span><span class="n">AttenProbs</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">child_name</span><span class="p">),</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">[</span><span class="n">primary_source_key</span><span class="p">],</span>
+        <span class="n">paddings</span><span class="p">[</span><span class="n">primary_source_key</span><span class="p">],</span>
+        <span class="n">segment_mask</span><span class="p">[</span><span class="n">primary_source_key</span><span class="p">]</span> <span class="k">if</span> <span class="n">segment_mask</span> <span class="k">else</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="n">per_step_padding</span><span class="p">)</span></div></div>
+
+
 <div class="viewcode-block" id="TransformerAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerAttentionLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Multiheaded attention sub-layer in Transformer layer.</span>
 
@@ -1579,6 +1670,17 @@
              <span class="s1">&#39;If True, add input (or normalized input) to the output.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="TransformerAttentionLayer._InitAttentionParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerAttentionLayer._InitAttentionParams">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttentionParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an initialized transformer attention parameters.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+    <span class="k">return</span> <span class="n">params</span></div>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1587,13 +1689,8 @@
       <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Initialize multiheaded attention.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
+      <span class="c1"># Initialize attention.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_InitAttentionParams</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
       <span class="c1"># Initialize attention layer normalization.</span>
@@ -1736,6 +1833,56 @@
     <span class="k">return</span> <span class="n">ctx_vec</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
 
 
+<div class="viewcode-block" id="TransformerMultiSourceAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerMultiSourceAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerMultiSourceAttentionLayer</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Batch major multi-source multi-headed attention.</span>
+
+<span class="sd">  Only supports scenarios 3 described by comments on TransformerAttentionLayer:</span>
+
+<span class="sd">  3. Multi-source multi-headed cross-attention, where attention keys and values</span>
+<span class="sd">     (source_vecs) are coming from different sources (one of them is usually</span>
+<span class="sd">     the outputs of the encoder), and queries coming from the previous layer</span>
+<span class="sd">     outputs (decoder). Specifically, attention keys and values are NestedMaps</span>
+<span class="sd">     containing encodings of different sources. This corresponds to a</span>
+<span class="sd">     multi-source decoder-to-encoder attention mechanism, i.e., decoder attends</span>
+<span class="sd">     to encoder outputs and other sources.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="TransformerMultiSourceAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerMultiSourceAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_source&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of sources to attend to.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primary_source_index&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Index of the primary source whose &#39;</span>
+        <span class="s1">&#39;attention probs will be returned.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;multi_source_atten&#39;</span><span class="p">,</span> <span class="n">MultiSourceAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;Multi-source attention params.&#39;</span><span class="p">)</span>
+    <span class="c1"># Only used for case 3.</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="TransformerMultiSourceAttentionLayer._InitAttentionParams"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerMultiSourceAttentionLayer._InitAttentionParams">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttentionParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an initialized multi-source transformer attention parameters.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">source_atten_tpls</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="c1"># Set up each source attention.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_source</span><span class="p">):</span>
+      <span class="n">src_key</span> <span class="o">=</span> <span class="s1">&#39;source_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">src_atten</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">src_atten</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">,</span>
+                        <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_InitAttentionParams</span><span class="p">(</span><span class="n">src_atten</span><span class="p">)</span>
+      <span class="n">src_atten</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">src_key</span>
+      <span class="n">source_atten_tpls</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_key</span><span class="p">,</span> <span class="n">src_atten</span><span class="p">))</span>
+
+    <span class="c1"># Initialize multi-source attention.</span>
+    <span class="n">msa</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">multi_source_atten</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">msa</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multi_source_atten&#39;</span>
+    <span class="n">msa</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">msa</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span>
+    <span class="n">msa</span><span class="o">.</span><span class="n">source_atten_tpls</span> <span class="o">=</span> <span class="n">source_atten_tpls</span>
+    <span class="n">msa</span><span class="o">.</span><span class="n">primary_source_key</span> <span class="o">=</span> <span class="s1">&#39;source_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">primary_source_index</span>
+    <span class="k">return</span> <span class="n">msa</span></div></div>
+
+
 <div class="viewcode-block" id="TransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Transformer layer with multiheaded attention.</span>
 
@@ -1804,6 +1951,12 @@
       <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fflayer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
+<div class="viewcode-block" id="TransformerLayer._GetSourceBatchSize"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer._GetSourceBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSourceBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="TransformerLayer._GetSourceLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer._GetSourceLength">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSourceLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div>
+
 <div class="viewcode-block" id="TransformerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
             <span class="n">query_vec</span><span class="p">,</span>
@@ -1852,7 +2005,10 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;aux_atten&#39;</span><span class="p">):</span>
         <span class="c1"># Next the cross-attention layer.</span>
         <span class="n">target_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-        <span class="n">source_batch</span><span class="p">,</span> <span class="n">source_time</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+
+        <span class="n">source_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceBatchSize</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
+        <span class="n">source_time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceLength</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
+
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">]),</span> <span class="p">[</span><span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
@@ -1926,7 +2082,7 @@
 <span class="sd">      value - [target_time, target_batch, num_heads, dim_per_head].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">target_batch</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
-    <span class="n">source_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">source_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetSourceBatchSize</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">)</span>
 
     <span class="c1"># First the self-attention layer.</span>
     <span class="n">atten_vec</span><span class="p">,</span> <span class="n">updated_states</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span>
@@ -1944,6 +2100,42 @@
         <span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">target_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">atten_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">cur_output</span><span class="p">,</span> <span class="n">updated_states</span></div></div>
+
+
+<div class="viewcode-block" id="MultiSourceTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceTransformerLayer</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Multi-source transformer layer with multiheaded attention.</span>
+
+<span class="sd">  Multi-source attention is used for cross attention.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiSourceTransformerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceTransformerLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_source&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of sources to attend to.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;primary_source_index&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Index for the primary source &#39;</span>
+        <span class="s1">&#39;whose attention probabilities will be used as an output.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span>
+                      <span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">)</span>
+    <span class="c1"># Set up multi-source attention layer</span>
+    <span class="n">cross_atten_p</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_atten_tpl</span>
+    <span class="n">cross_atten_p</span><span class="o">.</span><span class="n">num_source</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_source</span>
+    <span class="n">cross_atten_p</span><span class="o">.</span><span class="n">primary_source_index</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">primary_source_index</span>
+    <span class="k">assert</span> <span class="n">params</span><span class="o">.</span><span class="n">tr_self_atten_tpl</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceTransformerLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">primary_source_key</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;source_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">primary_source_index</span>
+
+<div class="viewcode-block" id="MultiSourceTransformerLayer._GetSourceBatchSize"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerLayer._GetSourceBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSourceBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_source_key</span><span class="p">],</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="MultiSourceTransformerLayer._GetSourceLength"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerLayer._GetSourceLength">[docs]</a>  <span class="k">def</span> <span class="nf">_GetSourceLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aux_vec</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">aux_vec</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">primary_source_key</span><span class="p">],</span> <span class="mi">2</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span></div></div>
 
 
 <span class="c1"># mt_attention_layer.MultiHeadedAttentionXL</span>
@@ -2038,6 +2230,17 @@
 <div class="viewcode-block" id="TransformerDecoderLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.TransformerDecoderLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoderLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="n">p</span></div></div>
+
+
+<div class="viewcode-block" id="MultiSourceTransformerDecoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerDecoderLayer">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceTransformerDecoderLayer</span><span class="p">(</span><span class="n">MultiSourceTransformerLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Multi-source transformer decoder layer with multiheaded attention.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="MultiSourceTransformerDecoderLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceTransformerDecoderLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceTransformerDecoderLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="k">return</span> <span class="n">p</span></div></div>
