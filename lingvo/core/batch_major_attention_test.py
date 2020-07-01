@@ -17,6 +17,7 @@
 
 from absl.testing import parameterized
 from lingvo import compat as tf
+from lingvo.core import attention as tm_attention
 from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention
 from lingvo.core import hyperparams
@@ -384,6 +385,115 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
       new_source_vecs = np.reshape(new_source_vecs, (6, 24))
       self.assertAllClose([4.116683, 0.0, 0.0, 0.0, 0.0, 0.0],
                           np.sum(new_source_vecs, axis=1))
+
+
+class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
+
+  def testAttenProbs(self):
+    (query_vec, key_vec, paddings, per_step_padding, query_vec_p, key_vec_p,
+     paddings_p, per_step_padding_p) = _AttentionInputs()
+
+    # Two-source attention.
+    mha_params = attention.MultiHeadedAttention.Params().Set(
+        name='atten', input_dim=4, hidden_dim=4)
+    atten_merger_p = tm_attention.MergerLayer.Params().Set(
+        params_init=py_utils.WeightInit.Uniform(0.04),
+        merger_op='concat',  # concatenate attention
+        pre_proj_input_dims=[4, 4],
+        pre_proj_output_dims=[4, 4])
+    params = attention.MultiSourceAttention.Params().Set(
+        name='two_source_atten',
+        input_dim=4,
+        hidden_dim=4,
+        source_atten_tpls=[('src_1', mha_params),
+                           ('src_2', mha_params.Copy().Set(name='atten2'))],
+        primary_source_key='src_1',
+        atten_merger_tpl=atten_merger_p)
+    l = params.Instantiate()
+
+    probs = l.AttenProbs(
+        l.theta,
+        tf.expand_dims(query_vec, 2),
+        py_utils.NestedMap({
+            'src_1': tf.expand_dims(key_vec, 2),
+            'src_2': tf.expand_dims(key_vec, 2)
+        }),
+        py_utils.NestedMap({
+            'src_1': paddings,
+            'src_2': paddings
+        }),
+        segment_mask=None,
+        per_step_padding=per_step_padding)
+
+    with self.session(use_gpu=False) as sess:
+      tf.global_variables_initializer().run()
+      prob_out = sess.run(tf.squeeze(probs))
+
+    # Use numpy to perform the same computation to generate expected results.
+    query_vec_p = np.array(query_vec_p)
+    key_vec_p = np.array(key_vec_p)
+    key_vec_p = np.transpose(key_vec_p, (0, 2, 1))
+    expected_logit = np.matmul(query_vec_p, key_vec_p)
+    paddings_p = np.array(paddings_p)
+    paddings_p = np.expand_dims(paddings_p, axis=1)
+    paddings_p = np.tile(paddings_p, (1, 6, 1))
+    per_step_padding_p = np.array(per_step_padding_p)
+    paddings_p = 1.0 * np.logical_or(paddings_p, per_step_padding_p)
+    elexp = np.exp(expected_logit)
+    elexp *= (1.0 - paddings_p)
+    elexp += 1e-9
+    expected_prob_out = elexp / np.expand_dims(np.sum(elexp, axis=-1), axis=-1)
+    expected_prob_out = np.reshape(expected_prob_out, (6, 6, 6))
+    self.assertAllClose(expected_prob_out, prob_out)
+
+  def testFPropCrossAttention(self):
+    # input_batch:6, seq_len:6. Test n = 2 case.
+    with self.session(use_gpu=True) as sess:
+      query_vec, memory_vec, paddings, per_step_padding, _, _, _, _ = (
+          _AttentionInputs())
+      mha_params = attention.MultiHeadedAttention.Params().Set(
+          name='cross_atten', num_heads=2, input_dim=4, hidden_dim=4)
+      mha_params.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      atten_merger_p = tm_attention.MergerLayer.Params().Set(
+          params_init=py_utils.WeightInit.Uniform(0.04),
+          merger_op='concat',  # concatenate attention
+          pre_proj_input_dims=[4, 4],
+          pre_proj_output_dims=[4, 4])
+      # Two-source attention.
+      p = attention.MultiSourceAttention.Params().Set(
+          name='two_source_atten',
+          input_dim=4,
+          hidden_dim=4,
+          source_atten_tpls=[('src_1', mha_params),
+                             ('src_2', mha_params.Copy().Set(name='atten2'))],
+          primary_source_key='src_1',
+          atten_merger_tpl=atten_merger_p)
+      l = p.Instantiate()
+
+      tf.global_variables_initializer().run()
+      ctx_vec, _ = l.FProp(
+          l.theta,
+          query_vec,
+          py_utils.NestedMap({
+              'src_1': memory_vec,
+              'src_2': memory_vec
+          }),
+          py_utils.NestedMap({
+              'src_1': memory_vec,
+              'src_2': memory_vec
+          }),
+          py_utils.NestedMap({
+              'src_1': paddings,
+              'src_2': paddings
+          }),
+          segment_mask=None,
+          per_step_padding=per_step_padding)
+      context_vec_out = sess.run(ctx_vec)
+      context_vec_out = np.reshape(context_vec_out, (12, 24))
+      self.assertAllClose([
+          5.6162043, 5.0109887, 6.0565553, 6.0565553, 4.5718207, 5.253615,
+          2.0541124, 2.490314, 6.049119, 5.5567484, 4.409875, 5.8939424
+      ], np.sum(context_vec_out, axis=1))
 
 
 class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
@@ -1031,6 +1141,38 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_ctx = [19.345360, 15.057412, 13.744134, 13.387347]
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
 
+  def testMultiSourceTransformerAttentionLayerFPropCrossAttention(self):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs()
+      p = attention.TransformerMultiSourceAttentionLayer.Params().Set(
+          name='transformer_multi_source_cross_atten',
+          input_dim=4,
+          is_masked=False,
+          num_heads=2,
+          num_source=2)
+      p.multi_source_atten.atten_merger_tpl = (
+          tm_attention.MergerLayer.Params().Set(merger_op='sum'))
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(
+          l.theta, query_vec,
+          py_utils.NestedMap({
+              'source_0': aux_vec,
+              'source_1': aux_vec
+          }),
+          py_utils.NestedMap({
+              'source_0': aux_paddings,
+              'source_1': aux_paddings
+          }))
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (10, 4))
+      tf.logging.info(np.array_repr(actual_ctx))
+      expected_ctx = [32.4878, 25.145725, 21.534966, 22.007454]
+      self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=0))
+
   @parameterized.named_parameters(
       {
           'testcase_name': '_short_seq',
@@ -1100,6 +1242,46 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       expected_ctx = [
           4.7839108, 4.5303655, 5.5551023, 5.065767, 5.0493064, 3.2142467,
           2.8200178, 5.659971, 4.3814187, 2.60475
+      ] * multiplier
+      self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
+
+  @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
+  def testMultiSourceTransformerLayerFPropWithCrossAttention(self, multiplier):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs()
+      query_vec = tf.tile(query_vec, [multiplier, 1, 1])
+      paddings = tf.zeros([2 * multiplier, 5])
+      p = attention.TransformerLayer.Params()
+      p.name = 'transformer_layer'
+      p.input_dim = 4
+      p.tr_fflayer_tpl.hidden_dim = 7
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      # multi-source cross attention
+      p.tr_atten_tpl = (
+          attention.TransformerMultiSourceAttentionLayer.Params().Set(
+              num_source=2, primary_source_index=0, num_heads=2))
+      p.tr_self_atten_tpl = attention.TransformerAttentionLayer.Params().Set(
+          input_dim=4, num_heads=2)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(
+          l.theta, query_vec, paddings,
+          py_utils.NestedMap({
+              'source_0': aux_vec,
+              'source_1': aux_vec
+          }),
+          py_utils.NestedMap({
+              'source_0': aux_paddings,
+              'source_1': aux_paddings
+          }))
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (10 * multiplier, 4))
+      tf.logging.info(np.array_repr(actual_ctx))
+      expected_ctx = [
+          4.7839108, 4.5303655, 5.5551023, 5.0657663, 5.0493064, 3.2142467,
+          2.820018, 5.659971, 4.3814187, 2.60475
       ] * multiplier
       self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
 
@@ -1256,6 +1438,68 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         layer_output, prefix_states = l.ExtendStep(
             l.theta, tf.expand_dims(query_vec[:, i, :], 1), aux_vec,
             aux_paddings, prefix_states, i, use_short_seq_opt)
+        layer_output2.append(tf.squeeze(layer_output, 1))
+      layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
+
+      tf.global_variables_initializer().run()
+      actual_layer_output1, actual_layer_output2 = sess.run(
+          [layer_output1, layer_output2])
+      self.assertAllClose(actual_layer_output1, actual_layer_output2)
+
+  def _ConstructMultiSourceTransformerDecoderLayer(self,
+                                                   use_relative_atten=False):
+    p = attention.MultiSourceTransformerDecoderLayer.Params().Set(num_source=2)
+    p.name = 'multi_source_transformer_decoder_layer'
+    p.input_dim = 4
+    p.tr_fflayer_tpl.hidden_dim = 7
+    # multi-source cross attention
+    p.tr_atten_tpl = (
+        attention.TransformerMultiSourceAttentionLayer.Params().Set(
+            num_source=2, primary_source_index=0, num_heads=2))
+    p.tr_self_atten_tpl = attention.TransformerAttentionLayer.Params().Set(
+        input_dim=4, num_heads=2)
+    p.tr_atten_tpl.multi_source_atten.atten_merger_tpl = (
+        tm_attention.MergerLayer.Params().Set(merger_op='sum'))
+    if use_relative_atten:
+      p = attention.UseRelativeAttentionInTransformerLayer(p, 4)
+    p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+    return attention.MultiSourceTransformerDecoderLayer(p)
+
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_short_seq',
+          'use_short_seq_opt': True,
+      }, {
+          'testcase_name': '_long_seq',
+          'use_short_seq_opt': False,
+      })
+  def testMultiSourceTransformerDecoderLayerExtendStep(self, use_short_seq_opt):
+    with self.session(use_gpu=True) as sess:
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs()
+      paddings = tf.zeros([2, 5])
+      cached_key = tf.zeros([5, 2, 2, 2])
+      cached_value = tf.zeros([5, 2, 2, 2])
+      prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
+
+      l = self._ConstructMultiSourceTransformerDecoderLayer()
+
+      ms_aux_vec = py_utils.NestedMap({
+          'source_0': aux_vec,
+          'source_1': aux_vec
+      })
+      ms_aux_paddings = py_utils.NestedMap({
+          'source_0': aux_paddings,
+          'source_1': aux_paddings
+      })
+      layer_output1, _ = l.FProp(l.theta, query_vec, paddings, ms_aux_vec,
+                                 ms_aux_paddings)
+
+      layer_output2 = []
+      for i in range(5):
+        layer_output, prefix_states = l.ExtendStep(
+            l.theta, tf.expand_dims(query_vec[:, i, :], 1), ms_aux_vec,
+            ms_aux_paddings, prefix_states, i, use_short_seq_opt)
         layer_output2.append(tf.squeeze(layer_output, 1))
       layer_output2 = tf.transpose(tf.stack(layer_output2), [1, 0, 2])
 

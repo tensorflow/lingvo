@@ -1371,6 +1371,97 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
     return term_ac + term_bd
 
 
+class MultiSourceAttention(base_layer.BaseLayer):
+  """Batch major attention with multiple source sub-attentions.
+
+  It attends to multiple sources and uses one query as input to generates a
+  combined attention context. The dimension of the combined context vector is a
+  sum of all source context vectors. Each source attention has its separate
+  params and is associated with a source key.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(MultiSourceAttention, cls).Params()
+    p.Define('source_atten_tpls', None,
+             'A list of (source_key, attention_param) pairs.')
+    p.Define('input_dim', 0, 'Default key dimension.')
+    p.Define('hidden_dim', 0, 'Default hidden dimension.')
+    p.Define(
+        'primary_source_key', 'source_0', 'Key for the primary source '
+        'whose attention probabilities will be used as an output.')
+    p.Define('atten_merger_tpl', None,
+             'Params to specify how to merge source attention vectors.')
+    return p
+
+  def __init__(self, params):
+    """Constructs an MultiSourceAttention object."""
+    super(MultiSourceAttention, self).__init__(params)
+    p = self.params
+    assert p.primary_source_key in [
+        x for x, _ in p.source_atten_tpls
+    ], ('Source attention must have the primary source key.')
+    with tf.variable_scope(p.name):
+      for source_key, atten_p in p.source_atten_tpls:
+        child_p = atten_p.Copy()
+        if child_p.hidden_dim <= 0:
+          child_p.hidden_dim = p.hidden_dim
+        if child_p.input_dim <= 0:
+          child_p.input_dim = p.input_dim
+        self.CreateChild('atten_%s' % source_key, child_p)
+
+      # Initialize source context vector merging layer.
+      merger_p = p.atten_merger_tpl.Copy()
+      merger_p.name = 'atten_merger'
+      merger_p.source_dim = p.input_dim
+      merger_p.query_dim = p.input_dim
+      self.CreateChild('atten_merger', merger_p)
+
+  def FProp(self,
+            theta,
+            query_vec,
+            key_vec,
+            value_vec,
+            paddings,
+            segment_mask=None,
+            per_step_padding=None):
+    p = self.params
+    with tf.name_scope(self.params.name):
+      result_map = py_utils.NestedMap()
+      for source_key, _ in p.source_atten_tpls:
+        result_map[source_key] = (
+            self.children['atten_%s' % source_key].FProp(
+                theta.get('atten_%s' % source_key), query_vec,
+                key_vec[source_key], value_vec[source_key],
+                paddings[source_key],
+                segment_mask[source_key] if segment_mask else None,
+                per_step_padding))
+      return self._CombineContext(theta, result_map, query_vec)
+
+  def _CombineContext(self, theta, enc_map, query_vec):
+    encs = enc_map.Flatten()
+    combined_enc = (
+        self.atten_merger.FProp(theta.atten_merger, [enc for enc, _ in encs],
+                                query_vec))
+    # Return atten_probs of the primary source.
+    return combined_enc, enc_map[self.params.primary_source_key][1]
+
+  def AttenProbs(self,
+                 theta,
+                 query,
+                 key,
+                 paddings,
+                 segment_mask,
+                 per_step_padding=None):
+    primary_source_key = self.params.primary_source_key
+    child_name = 'atten_%s' % primary_source_key
+    return self.children[child_name].AttenProbs(
+        theta.get(child_name), query, key[primary_source_key],
+        paddings[primary_source_key],
+        segment_mask[primary_source_key] if segment_mask else None,
+        per_step_padding)
+
+
 class TransformerAttentionLayer(base_layer.BaseLayer):
   """Multiheaded attention sub-layer in Transformer layer.
 
@@ -1431,6 +1522,17 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
              'If True, add input (or normalized input) to the output.')
     return p
 
+  def _InitAttentionParams(self, atten_tpl):
+    """Returns an initialized transformer attention parameters."""
+    p = self.params
+    params = atten_tpl.Copy()
+    params.name = 'multihead_atten'
+    params.input_dim = p.input_dim
+    params.hidden_dim = p.hidden_dim
+    params.num_heads = p.num_heads
+    params.atten_dropout_prob = p.atten_dropout_prob
+    return params
+
   def __init__(self, params):
     super(TransformerAttentionLayer, self).__init__(params)
     p = self.params
@@ -1439,13 +1541,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       p.hidden_dim = p.input_dim
 
     with tf.variable_scope(p.name):
-      # Initialize multiheaded attention.
-      params = p.atten_tpl.Copy()
-      params.name = 'multihead_atten'
-      params.input_dim = p.input_dim
-      params.hidden_dim = p.hidden_dim
-      params.num_heads = p.num_heads
-      params.atten_dropout_prob = p.atten_dropout_prob
+      # Initialize attention.
+      params = self._InitAttentionParams(p.atten_tpl)
       self.CreateChild('atten', params)
 
       # Initialize attention layer normalization.
@@ -1588,6 +1685,56 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     return ctx_vec, updated_states
 
 
+class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
+  """Batch major multi-source multi-headed attention.
+
+  Only supports scenarios 3 described by comments on TransformerAttentionLayer:
+
+  3. Multi-source multi-headed cross-attention, where attention keys and values
+     (source_vecs) are coming from different sources (one of them is usually
+     the outputs of the encoder), and queries coming from the previous layer
+     outputs (decoder). Specifically, attention keys and values are NestedMaps
+     containing encodings of different sources. This corresponds to a
+     multi-source decoder-to-encoder attention mechanism, i.e., decoder attends
+     to encoder outputs and other sources.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(TransformerMultiSourceAttentionLayer, cls).Params()
+    p.Define('num_source', 0, 'Number of sources to attend to.')
+    p.Define(
+        'primary_source_index', 0, 'Index of the primary source whose '
+        'attention probs will be returned.')
+    p.Define('multi_source_atten', MultiSourceAttention.Params(),
+             'Multi-source attention params.')
+    # Only used for case 3.
+    p.is_masked = False
+    return p
+
+  def _InitAttentionParams(self, atten_tpl):
+    """Returns an initialized multi-source transformer attention parameters."""
+    p = self.params
+    source_atten_tpls = []
+    # Set up each source attention.
+    for i in range(p.num_source):
+      src_key = 'source_%d' % i
+      src_atten = atten_tpl.Copy()
+      src_atten = super(TransformerMultiSourceAttentionLayer,
+                        self)._InitAttentionParams(src_atten)
+      src_atten.name = 'multihead_atten_%s' % src_key
+      source_atten_tpls.append((src_key, src_atten))
+
+    # Initialize multi-source attention.
+    msa = p.multi_source_atten.Copy()
+    msa.name = 'multi_source_atten'
+    msa.input_dim = p.input_dim
+    msa.hidden_dim = p.hidden_dim
+    msa.source_atten_tpls = source_atten_tpls
+    msa.primary_source_key = 'source_%d' % p.primary_source_index
+    return msa
+
+
 class TransformerLayer(base_layer.BaseLayer):
   """Transformer layer with multiheaded attention.
 
@@ -1656,6 +1803,12 @@ class TransformerLayer(base_layer.BaseLayer):
       params.output_dim = p.output_dim
       self.CreateChild('fflayer', params)
 
+  def _GetSourceBatchSize(self, aux_vec):
+    return py_utils.GetShape(aux_vec, 2)[0]
+
+  def _GetSourceLength(self, aux_vec):
+    return py_utils.GetShape(aux_vec, 2)[1]
+
   def FProp(self,
             theta,
             query_vec,
@@ -1704,7 +1857,10 @@ class TransformerLayer(base_layer.BaseLayer):
       with tf.name_scope('aux_atten'):
         # Next the cross-attention layer.
         target_batch, target_time, dim = py_utils.GetShape(query_vec, 3)
-        source_batch, source_time = py_utils.GetShape(aux_vec, 2)
+
+        source_batch = self._GetSourceBatchSize(aux_vec)
+        source_time = self._GetSourceLength(aux_vec)
+
         atten_vec = tf.reshape(atten_vec, [-1, source_batch, target_time, dim])
         atten_vec = tf.reshape(
             tf.transpose(atten_vec, [1, 0, 2, 3]), [source_batch, -1, dim])
@@ -1778,7 +1934,7 @@ class TransformerLayer(base_layer.BaseLayer):
       value - [target_time, target_batch, num_heads, dim_per_head].
     """
     target_batch, _, dim = py_utils.GetShape(query_vec, 3)
-    source_batch = py_utils.GetShape(aux_vec)[0]
+    source_batch = self._GetSourceBatchSize(aux_vec)
 
     # First the self-attention layer.
     atten_vec, updated_states = self.self_atten.ExtendStep(
@@ -1796,6 +1952,42 @@ class TransformerLayer(base_layer.BaseLayer):
         theta.fflayer, atten_vec,
         tf.zeros([target_batch, 1], dtype=atten_vec.dtype))
     return cur_output, updated_states
+
+
+class MultiSourceTransformerLayer(TransformerLayer):
+  """Multi-source transformer layer with multiheaded attention.
+
+  Multi-source attention is used for cross attention.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(MultiSourceTransformerLayer, cls).Params()
+    p.Define('num_source', 0, 'Number of sources to attend to.')
+    p.Define(
+        'primary_source_index', 0, 'Index for the primary source '
+        'whose attention probabilities will be used as an output.')
+    return p
+
+  def __init__(self, params):
+    assert issubclass(params.tr_atten_tpl.cls,
+                      TransformerMultiSourceAttentionLayer)
+    # Set up multi-source attention layer
+    cross_atten_p = params.tr_atten_tpl
+    cross_atten_p.num_source = params.num_source
+    cross_atten_p.primary_source_index = params.primary_source_index
+    assert params.tr_self_atten_tpl
+    super(MultiSourceTransformerLayer, self).__init__(params)
+
+  @property
+  def primary_source_key(self):
+    return 'source_%d' % self.params.primary_source_index
+
+  def _GetSourceBatchSize(self, aux_vec):
+    return py_utils.GetShape(aux_vec[self.primary_source_key], 2)[0]
+
+  def _GetSourceLength(self, aux_vec):
+    return py_utils.GetShape(aux_vec[self.primary_source_key], 2)[1]
 
 
 # mt_attention_layer.MultiHeadedAttentionXL
@@ -1890,6 +2082,17 @@ class TransformerDecoderLayer(TransformerLayer):
   @classmethod
   def Params(cls):
     p = super(TransformerDecoderLayer, cls).Params()
+    p.has_aux_atten = True
+    p.mask_self_atten = True
+    return p
+
+
+class MultiSourceTransformerDecoderLayer(MultiSourceTransformerLayer):
+  """Multi-source transformer decoder layer with multiheaded attention."""
+
+  @classmethod
+  def Params(cls):
+    p = super(MultiSourceTransformerDecoderLayer, cls).Params()
     p.has_aux_atten = True
     p.mask_self_atten = True
     return p

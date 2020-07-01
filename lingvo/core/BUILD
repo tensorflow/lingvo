@@ -62,6 +62,7 @@ py_library(
     srcs = ["batch_major_attention.py"],
     srcs_version = "PY3",
     deps = [
+        "attention",
         ":base_layer",
         ":builder",
         ":conv_layers_builder",
