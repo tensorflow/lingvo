@@ -186,11 +186,10 @@
 <span class="sd">      model = p.Instantiate()</span>
 <span class="sd">      model.FProp()  # FProp can access foo through cluster_factory.Current().</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">stack</span> <span class="o">=</span> <span class="n">Cluster</span><span class="o">.</span><span class="n">_ClusterStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>  <span class="c1"># pylint: disable=protected-access</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="n">stack</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">Cluster</span><span class="p">(</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+  <span class="n">current</span> <span class="o">=</span> <span class="n">Cluster</span><span class="o">.</span><span class="n">Top</span><span class="p">()</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">current</span><span class="p">:</span>
+    <span class="n">current</span> <span class="o">=</span> <span class="n">Cluster</span><span class="p">(</span><span class="n">Cluster</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+  <span class="k">return</span> <span class="n">current</span></div>
 
 
 <div class="viewcode-block" id="ForTestingWorker"><a class="viewcode-back" href="../../../lingvo.core.cluster_factory.html#lingvo.core.cluster_factory.ForTestingWorker">[docs]</a><span class="k">def</span> <span class="nf">ForTestingWorker</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
