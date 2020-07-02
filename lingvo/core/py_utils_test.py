@@ -2832,7 +2832,7 @@ class CallDefunTest(test_utils.TestCase):
       a = np.array([[1.0, 2.0], [0.0, -3.0]])
       b = np.array([[2.0, 0.0], [1.0, 1.0]])
       xs = [tf.constant(a), tf.constant(b)]
-      ys = py_utils.CallDefun(Fwd, Bak, xs)
+      ys = py_utils.CallDefun(Fwd, xs, Bak)
       loss = tf.reduce_sum(tf.square(ys))
       dw, dx, dy = tf.gradients(xs=xs + [ys], ys=loss)
       y, dw, dx, dy = self.evaluate([ys, dw, dx, dy])
@@ -2861,7 +2861,7 @@ class CallDefunTest(test_utils.TestCase):
 
       a = np.array([[1.0, 2.0], [0.0, -3.0]])
       x = tf.constant(a)
-      y = self.evaluate(py_utils.CallDefun(Fwd, Bak, x))
+      y = self.evaluate(py_utils.CallDefun(Fwd, x, Bak))
       self.assertAllEqual(y, np.zeros_like(a))
 
   def testNestedMap(self):
@@ -2879,7 +2879,7 @@ class CallDefunTest(test_utils.TestCase):
       a = np.array([[1.0, 2.0], [0.0, -3.0]])
       b = np.array([[2.0, 0.0], [1.0, 1.0]])
       xs = py_utils.NestedMap(w=tf.constant(a), x=tf.constant(b))
-      ys = py_utils.CallDefun(Fwd, Bak, xs)
+      ys = py_utils.CallDefun(Fwd, xs, Bak)
       loss = tf.reduce_sum(tf.square(ys.y))
       dw, dx, dy = tf.gradients(xs=xs.Flatten() + ys.Flatten(), ys=loss)
       y, dw, dx, dy = self.evaluate([ys.y, dw, dx, dy])

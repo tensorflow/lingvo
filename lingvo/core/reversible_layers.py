@@ -231,7 +231,7 @@ class StackedRevNetLayer(base_layer.BaseLayer):
 
     if self.params.custom_gradient:
       acts, _ = py_utils.CallDefun(
-          Fwd, Bak, [initial_step_seed, theta, inputs, extra_inputs])
+          Fwd, [initial_step_seed, theta, inputs, extra_inputs], Bak)
       py_utils.ResetStepSeed(final_step_seed)
       return acts
     else:

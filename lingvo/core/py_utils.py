@@ -4150,14 +4150,14 @@ def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
   return Call
 
 
-def CallDefun(fwd, bak, args):
+def CallDefun(fwd, args, bak=None):
   """Wraps fwd in a defun with custom gradient bak and calls it with args.
 
   Args:
     fwd: A callable xs: Nested Structure -> ys: Nested Structure.
+    args: A Nested Structure of tf.Tensor.
     bak: A callable xs, ys, dys: Nested Structure -> dxs: Nested Structure. The
       custom backprop function for fwd.
-    args: A Nested Structure of tf.Tensor.
 
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
