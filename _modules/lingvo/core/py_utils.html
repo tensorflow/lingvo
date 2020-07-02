@@ -4298,14 +4298,14 @@
   <span class="k">return</span> <span class="n">Call</span></div>
 
 
-<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
+<span class="sd">    args: A Nested Structure of tf.Tensor.</span>
 <span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
 <span class="sd">      custom backprop function for fwd.</span>
-<span class="sd">    args: A Nested Structure of tf.Tensor.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
