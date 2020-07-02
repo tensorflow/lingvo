@@ -30,7 +30,7 @@ import six
 from six.moves import zip
 
 
-_LAYER_STACK = py_utils.ThreadLocalStack().stack
+_LAYER_STACK = py_utils.ThreadLocalStack()
 
 
 class Accumulator(object):
@@ -108,7 +108,7 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
 
   def Wrapper(self, *args, **kwargs):
     """Decorator wrapper fn."""
-    stack = _LAYER_STACK
+    stack = _LAYER_STACK.stack
     if stack and stack[-1] is self:
       # Short circuit if called multiple times (eg. super() chain).
       func(self, *args, **kwargs)
@@ -302,7 +302,7 @@ class BaseLayer(tf.Module):
     self._setattr_tracking = False
 
     self._parent = None
-    for parent in reversed(_LAYER_STACK):
+    for parent in reversed(_LAYER_STACK.stack):
       if parent is not self:
         self._parent = parent
         break

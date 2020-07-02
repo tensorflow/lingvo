@@ -1374,25 +1374,25 @@ def SanitizeScopeKey(key):
 # With GetOpportunisticVariableReuse() == True:
 # - Reusing scopes only allow getting existing variables, as usual
 # - Non-reusing scopes reuse new variables or get new ones
-_OPPORTUNISTIC_VARIABLE_REUSE = ThreadLocalStack().stack
+_OPPORTUNISTIC_VARIABLE_REUSE = ThreadLocalStack()
 
 
 @contextlib.contextmanager
 def OpportunisticVariableReuseScope(enable_opportunistic_reuse=True):
-  _OPPORTUNISTIC_VARIABLE_REUSE.append(enable_opportunistic_reuse)
+  _OPPORTUNISTIC_VARIABLE_REUSE.stack.append(enable_opportunistic_reuse)
   try:
     yield
   finally:
-    _OPPORTUNISTIC_VARIABLE_REUSE.pop()
+    _OPPORTUNISTIC_VARIABLE_REUSE.stack.pop()
 
 
 def GetOpportunisticVariableReuse():
   """Get the current variable reuse setting."""
-  return (_OPPORTUNISTIC_VARIABLE_REUSE[-1]
-          if _OPPORTUNISTIC_VARIABLE_REUSE else False)
+  return (_OPPORTUNISTIC_VARIABLE_REUSE.stack[-1]
+          if _OPPORTUNISTIC_VARIABLE_REUSE.stack else False)
 
 
-_VARIABLE_RENAME_RULES = ThreadLocalStack().stack
+_VARIABLE_RENAME_RULES = ThreadLocalStack()
 
 
 @contextlib.contextmanager
@@ -1406,11 +1406,11 @@ def VariableRenameScope(renames):
   Yields:
     scope in which the renaming rules are applied
   """
-  _VARIABLE_RENAME_RULES.append(renames)
+  _VARIABLE_RENAME_RULES.stack.append(renames)
   try:
     yield
   finally:
-    _VARIABLE_RENAME_RULES.pop()
+    _VARIABLE_RENAME_RULES.stack.pop()
 
 
 def GetVariableName(name):
@@ -1424,7 +1424,7 @@ def GetVariableName(name):
   """
   matched = False
   new_name = name
-  for renames in _VARIABLE_RENAME_RULES:
+  for renames in _VARIABLE_RENAME_RULES.stack:
     for regexp, name_format in renames:
       match = re.match(regexp, name)
       if match:
@@ -1450,7 +1450,7 @@ _ALL_VARS_KEY = ('__lingvo_all_vars',)
 
 _get_all_vars = _CollectionGetter(_ALL_VARS_KEY, lambda: {})
 
-_VARIABLE_SHAPE_PREFIXES = ThreadLocalStack().stack
+_VARIABLE_SHAPE_PREFIXES = ThreadLocalStack()
 
 
 @contextlib.contextmanager
@@ -1464,16 +1464,16 @@ def VariableShapePrefixContext(shape_prefix):
     None.
   """
   assert shape_prefix > 0, ('%s' % shape_prefix)
-  _VARIABLE_SHAPE_PREFIXES.append(shape_prefix)
+  _VARIABLE_SHAPE_PREFIXES.stack.append(shape_prefix)
   try:
     yield
   finally:
-    _VARIABLE_SHAPE_PREFIXES.pop()
+    _VARIABLE_SHAPE_PREFIXES.stack.pop()
 
 
 def GetVariableShapePrefixes():
   """Return the list of shape prefixes for CreateVariable()."""
-  return _VARIABLE_SHAPE_PREFIXES
+  return _VARIABLE_SHAPE_PREFIXES.stack
 
 
 def GetFanInFanOut(shape):
@@ -1746,22 +1746,22 @@ def GetGlobalVariableScope():
   return _global_variable_scope
 
 
-_GLOBAL_STEP_STACK = ThreadLocalStack().stack
+_GLOBAL_STEP_STACK = ThreadLocalStack()
 
 
 @contextlib.contextmanager
 def GlobalStepContext(global_step_tensor):
-  _GLOBAL_STEP_STACK.append(global_step_tensor)
+  _GLOBAL_STEP_STACK.stack.append(global_step_tensor)
   try:
     yield
   finally:
-    _GLOBAL_STEP_STACK.pop()
+    _GLOBAL_STEP_STACK.stack.pop()
 
 
 def GetGlobalStep():
   """Return the global_step."""
-  if _GLOBAL_STEP_STACK:
-    return _GLOBAL_STEP_STACK[-1]
+  if _GLOBAL_STEP_STACK.stack:
+    return _GLOBAL_STEP_STACK.stack[-1]
   return tf.train.get_global_step()
 
 
@@ -2922,7 +2922,7 @@ def FindRelevantBatchNormUpdates(loss, batch_norm_updates):
   return relevant_updates, irrelevant_updates
 
 
-_SAMPLE_STEP_STACK = ThreadLocalStack().stack
+_SAMPLE_STEP_STACK = ThreadLocalStack()
 
 
 @contextlib.contextmanager
@@ -2941,14 +2941,14 @@ def SampleStep(step):
     a context manager for the step scope.
   """
   try:
-    _SAMPLE_STEP_STACK.append(step)
+    _SAMPLE_STEP_STACK.stack.append(step)
     yield step
   finally:
-    _SAMPLE_STEP_STACK.pop()
+    _SAMPLE_STEP_STACK.stack.pop()
 
 
 def _GetSampleStep():
-  return _SAMPLE_STEP_STACK[-1] if _SAMPLE_STEP_STACK else None
+  return _SAMPLE_STEP_STACK.stack[-1] if _SAMPLE_STEP_STACK.stack else None
 
 
 def AddDebugTensor(tensor, summarize=None, name=None):

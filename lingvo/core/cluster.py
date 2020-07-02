@@ -20,21 +20,14 @@ from __future__ import division
 from __future__ import print_function
 
 import heapq
-import threading
 import lingvo.compat as tf
 from lingvo.core import hyperparams
+from lingvo.core import py_utils
 import numpy as np
 from six.moves import range
 
 
-class _LocalClusterStack(threading.local):
-
-  def __init__(self):
-    super(_LocalClusterStack, self).__init__()
-    self.stack = []
-
-
-_CLUSTER_STACK = _LocalClusterStack()
+_CLUSTER_STACK = py_utils.ThreadLocalStack()
 
 
 class _Cluster(object):
@@ -145,19 +138,18 @@ class _Cluster(object):
           ret[i, j] = cls._MakeDeviceString(job_spec.name, i, 'GPU', j)
     return ret
 
-  @staticmethod
-  def _ClusterStack():
-    return _CLUSTER_STACK
-
   def __enter__(self):
     _CLUSTER_STACK.stack.append(self)
     return self
 
   def __exit__(self, type_arg, value_arg, traceback_arg):
-    stack = _CLUSTER_STACK.stack
-    assert stack
-    assert stack[-1] is self
+    assert _CLUSTER_STACK.stack
+    assert _CLUSTER_STACK.stack[-1] is self
     _CLUSTER_STACK.stack.pop()
+
+  @staticmethod
+  def Top():
+    return _CLUSTER_STACK.stack[-1] if _CLUSTER_STACK.stack else None
 
   def __init__(self, params):
     self._params = params.Copy()
