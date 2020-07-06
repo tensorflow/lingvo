@@ -2830,6 +2830,49 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
     return tf.gather_nd(theta.w, tf.expand_dims(calibrated_indices, -1))
 
 
+class SinusoidalPositionalEmbeddingLayer(base_layer.BaseLayer):
+  """Generates sinusoidals with respect to the position in time and dimension.
+
+  Implements the a variant of the positional embedding layer from 'Attention is
+  All You Need', the Transformer Network that doesn't require tuning of the
+  max_timescale/min_timescale. See this blog post and Ron's colab.
+  https://kazemnejad.com/blog/transformer_architecture_positional_encoding
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(SinusoidalPositionalEmbeddingLayer, cls).Params()
+    p.Define('embedding_dim', 0, 'Dimension of the embedding to be generated.')
+    return p
+
+  def __init__(self, params):
+    super(SinusoidalPositionalEmbeddingLayer, self).__init__(params)
+    p = self.params
+    if p.embedding_dim % 2 != 0:
+      raise ValueError('embedding_dim needs to be even.')
+
+  def FProp(self, theta, seq_length):
+    """Generates a Tensor of sinusoids with different frequencies.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      seq_length: Sequence length of the embeddings to be generated
+
+    Returns:
+      a Tensor of shape [seq_length, embedding_dim].
+    """
+    p = self.params
+    positions = tf.cast(tf.range(seq_length), py_utils.FPropDtype(p))
+    num_timescales = p.embedding_dim // 2
+    freq = tf.range(
+        1, num_timescales + 1,
+        dtype=py_utils.FPropDtype(p)) * (2 * math.pi / seq_length)
+    scaled_pos = tf.matmul(positions[:, tf.newaxis], freq[tf.newaxis, :])
+    sincos = tf.concat([tf.sin(scaled_pos), tf.cos(scaled_pos)], axis=-1)
+    return tf.reshape(sincos, [seq_length, -1])
+
+
 class SoftmaxLayer(quant_utils.QuantizableLayer):
   """Base class for softmax layers."""
 
@@ -3391,8 +3434,8 @@ class SingleShardFullSoftmax(SoftmaxLayer):
       logits = self.Logits(theta, activation)
       per_example_xent, per_example_argmax = self.XentLossFromLogits(
           theta, logits, class_ids, class_probabilities)
-      return py_utils.NestedMap(xent=per_example_xent,
-                                amax=per_example_argmax), py_utils.NestedMap()
+      return py_utils.NestedMap(
+          xent=per_example_xent, amax=per_example_argmax), py_utils.NestedMap()
 
     inputs_nmap = py_utils.NestedMap(activation=activation)
     if class_ids is not None:
@@ -3465,8 +3508,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
       class_ids = py_utils.HasShape(class_ids, ids_shape)
       class_ids = tf.squeeze(class_ids, -1)
     if class_probabilities is not None:
-      class_probabilities = py_utils.HasShape(class_probabilities,
-                                              probs_shape)
+      class_probabilities = py_utils.HasShape(class_probabilities, probs_shape)
 
     if (not self.do_eval) and (p.chunk_size > 0):
       # Chunking.
@@ -4787,15 +4829,15 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
       theta: A NestedMap object containing weights' values of this layer and its
         children layers.
       inputs: A tensor containing the activations from the previous layer. For
-        'TBC', the shape is [time, batch, input_dim] and for 'BTC', it's
-        [batch, time, input_dim].
+        'TBC', the shape is [time, batch, input_dim] and for 'BTC', it's [batch,
+        time, input_dim].
       tasks: An int32 tensor containing the task ID for each input.  If 'tasks'
         is of rank 2, we assume it to be of shape [time, batch] if 'BTC' and
         [batch, time] if 'TBC', indicating a different task for each timestep.
-        In this case we look up adapter params for each timestep.  If 'tasks'
-        is of rank 1, we assume it to be of shape [batch], indicating a single
-        task for all timesteps of a sequence. This latter setup uses
-        substantially less memory and is generally preferred.
+        In this case we look up adapter params for each timestep.  If 'tasks' is
+        of rank 1, we assume it to be of shape [batch], indicating a single task
+        for all timesteps of a sequence. This latter setup uses substantially
+        less memory and is generally preferred.
 
     Returns:
       A tensor containing the adapted activations with shape

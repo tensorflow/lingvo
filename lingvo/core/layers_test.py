@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for layers."""
 
-
 import math
 
 from absl.testing import parameterized
@@ -499,14 +498,14 @@ class ConvLayerTest(test_utils.TestCase):
       conv1_submodules = [ModuleName(v) for v in conv1.submodules]
       conv2_variables = [v.name for v in conv2.variables]
       conv2_submodules = [ModuleName(v) for v in conv2.submodules]
-      expected_conv1_vars = ['global_step:0', 'conv1/w/var:0',
-                             'conv1/moving_mean/var:0',
-                             'conv1/moving_variance/var:0', 'conv1/beta/var:0',
-                             'conv1/gamma/var:0']
-      expected_conv2_vars = ['global_step:0', 'conv2/w/var:0',
-                             'conv2/moving_mean/var:0',
-                             'conv2/moving_variance/var:0', 'conv2/beta/var:0',
-                             'conv2/gamma/var:0']
+      expected_conv1_vars = [
+          'global_step:0', 'conv1/w/var:0', 'conv1/moving_mean/var:0',
+          'conv1/moving_variance/var:0', 'conv1/beta/var:0', 'conv1/gamma/var:0'
+      ]
+      expected_conv2_vars = [
+          'global_step:0', 'conv2/w/var:0', 'conv2/moving_mean/var:0',
+          'conv2/moving_variance/var:0', 'conv2/beta/var:0', 'conv2/gamma/var:0'
+      ]
       expected_conv1_modules = ['bbf_BatchNormLayer_conv1']
       expected_conv2_modules = ['bbf_BatchNormLayer_conv2']
       self.assertCountEqual(expected_conv1_vars, conv1_variables)
@@ -2940,6 +2939,20 @@ class EmbeddingLayerTest(test_utils.TestCase):
       print('actual_position_embs:', actual_pos_emb)
       self.assertAllClose(actual_pos_emb, expected_output)
 
+  def testSinusoidalPositionalEmbeddingLayer(self):
+    with self.session(use_gpu=False):
+      p = layers.SinusoidalPositionalEmbeddingLayer.Params()
+      p.name = 'position_emb'
+      p.embedding_dim = 2
+      seq_length = 4
+
+      pos_emb_layer = layers.SinusoidalPositionalEmbeddingLayer(p)
+      position_embs = pos_emb_layer.FPropDefaultTheta(seq_length)
+      actual_position_embs, = self.evaluate([position_embs])
+      expected_output = [[math.sin(p / 2 * math.pi),
+                          math.cos(p / 2 * math.pi)] for p in range(4)]
+      self.assertAllClose(actual_position_embs, expected_output)
+
   def testOneHotEmbeddingLayer(self):
     with self.session(use_gpu=True):
       params = layers.OneHotEmbeddingLayer.Params()
@@ -3501,10 +3514,8 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
         per_example_xent = xent_output.per_example_xent
         per_example_argmax = xent_output.per_example_argmax
       else:
-        self.assertAllClose(per_example_xent,
-                            xent_output.per_example_xent)
-        self.assertAllClose(per_example_argmax,
-                            xent_output.per_example_argmax)
+        self.assertAllClose(per_example_xent, xent_output.per_example_xent)
+        self.assertAllClose(per_example_argmax, xent_output.per_example_argmax)
 
   def _RunSimpleFullSoftmaxGradientChecker(self, batch_size, num_classes,
                                            chunk_size):
@@ -3531,7 +3542,9 @@ class SingleShardSoftmaxLayerTest(test_utils.TestCase):
         softmax = params.Instantiate()
         xent_loss = softmax.FProp(
             softmax.theta,
-            inputs, class_weights=class_weights, class_ids=class_ids)
+            inputs,
+            class_weights=class_weights,
+            class_ids=class_ids)
         softmax_vars = softmax.vars.Flatten()
         # Now add the backward graph.
         grads = tf.gradients(xent_loss.total_xent, softmax_vars)
