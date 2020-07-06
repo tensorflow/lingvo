@@ -1145,6 +1145,37 @@ new_name_format will be interpolated using the matched groups.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils._GetVariableCreator">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_GetVariableCreator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_GetVariableCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._GetVariableCreator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.VariableCreatorScope">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">VariableCreatorScope</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">variable_creator</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#VariableCreatorScope"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.VariableCreatorScope" title="Permalink to this definition">¶</a></dt>
+<dd><p>Yields a context around a variable_creator, used by <a class="reference internal" href="#lingvo.core.py_utils.CreateVariable" title="lingvo.core.py_utils.CreateVariable"><code class="xref py py-obj docutils literal notranslate"><span class="pre">CreateVariable()</span></code></a>.</p>
+<p>The function must have the following signature:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">variable_creator</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The function may delegate variable creation to the next variable creator, or
+return its own tf.Variable.</p>
+<p>This differs from tf.variable_creator_scope in that tf.variable_creator_scope
+modifies a tf.Variable() call while this modifies a tf.get_variable() call. As
+the code is migrated to TF2 and tf.get_variable() is deprecated, this may be
+upgraded to using tf.variable_creator_scope instead.</p>
+<p>This differs from tf.variable_scope(custom_getter=variable_creator) in that
+the kwargs passed can be manipulated.</p>
+<p>Variable creators are resolved from the outermost towards the innermost.</p>
+<p>The innermost variable creator function is tf.get_variable. The passed in
+kwargs must conform to what tf.get_variable accepts.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>variable_creator</strong> – A variable creator function.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.CreateVariable">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CreateVariable</code><span class="sig-paren">(</span><em class="sig-param">name</em>, <em class="sig-param">params</em>, <em class="sig-param">reuse=None</em>, <em class="sig-param">trainable=True</em>, <em class="sig-param">collections=None</em>, <em class="sig-param">default_seed=None</em>, <em class="sig-param">synchronization=&lt;VariableSynchronization.AUTO: 0&gt;</em>, <em class="sig-param">aggregation=&lt;VariableAggregationV2.NONE: 0&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CreateVariable" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates tf.Variable according to param_config.</p>

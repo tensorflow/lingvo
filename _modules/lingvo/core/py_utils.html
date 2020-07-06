@@ -1642,6 +1642,50 @@
     <span class="k">return</span> <span class="n">fan_in</span><span class="p">,</span> <span class="n">fan_out</span></div>
 
 
+<span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
+
+
+<div class="viewcode-block" id="_GetVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableCreator</span><span class="p">():</span>
+  <span class="n">fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span>
+  <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_VARIABLE_CREATOR_STACK</span><span class="p">):</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">fn</span></div>
+
+
+<div class="viewcode-block" id="VariableCreatorScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VariableCreatorScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">VariableCreatorScope</span><span class="p">(</span><span class="n">variable_creator</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Yields a context around a variable_creator, used by `CreateVariable()`.</span>
+
+<span class="sd">  The function must have the following signature::</span>
+
+<span class="sd">    def variable_creator(next_creator, **kwargs)</span>
+
+<span class="sd">  The function may delegate variable creation to the next variable creator, or</span>
+<span class="sd">  return its own tf.Variable.</span>
+
+<span class="sd">  This differs from tf.variable_creator_scope in that tf.variable_creator_scope</span>
+<span class="sd">  modifies a tf.Variable() call while this modifies a tf.get_variable() call. As</span>
+<span class="sd">  the code is migrated to TF2 and tf.get_variable() is deprecated, this may be</span>
+<span class="sd">  upgraded to using tf.variable_creator_scope instead.</span>
+
+<span class="sd">  This differs from tf.variable_scope(custom_getter=variable_creator) in that</span>
+<span class="sd">  the kwargs passed can be manipulated.</span>
+
+<span class="sd">  Variable creators are resolved from the outermost towards the innermost.</span>
+
+<span class="sd">  The innermost variable creator function is tf.get_variable. The passed in</span>
+<span class="sd">  kwargs must conform to what tf.get_variable accepts.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    variable_creator: A variable creator function.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">variable_creator</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_VARIABLE_CREATOR_STACK</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
 <span class="c1"># TODO(yonghui): Add support for partitioned Variables.</span>
 <div class="viewcode-block" id="CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CreateVariable">[docs]</a><span class="k">def</span> <span class="nf">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span>
                    <span class="n">params</span><span class="p">,</span>
@@ -1798,6 +1842,12 @@
 
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">ComplexWrapper</span><span class="p">(</span><span class="n">v_init</span><span class="p">)</span>
 
+  <span class="k">def</span> <span class="nf">MaybePinVarsToCpu</span><span class="p">(</span><span class="n">next_creator</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">next_creator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
   <span class="c1"># TODO(yonghui): Possibly get away from variable_scope and implement our own</span>
   <span class="c1"># variable sharing mechanism.</span>
   <span class="k">def</span> <span class="nf">GetVar</span><span class="p">(</span><span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">):</span>
@@ -1812,24 +1862,12 @@
           <span class="n">use_resource</span><span class="o">=</span><span class="n">scope</span><span class="o">.</span><span class="n">use_resource</span> <span class="ow">or</span> <span class="n">use_resource_variables</span><span class="p">())</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_scope</span><span class="p">),</span> \
         <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">var_name</span><span class="p">,</span> <span class="n">reuse</span><span class="o">=</span><span class="n">reuse</span><span class="p">)</span> <span class="k">as</span> <span class="n">scope</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">):</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s1">&#39;/cpu:0&#39;</span><span class="p">):</span>
-          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
-              <span class="s1">&#39;var&#39;</span><span class="p">,</span>
-              <span class="n">var_shape</span><span class="p">,</span>
-              <span class="n">dtype</span><span class="p">,</span>
-              <span class="n">v_init</span><span class="p">,</span>
-              <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
-              <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
-              <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
-              <span class="n">synchronization</span><span class="o">=</span><span class="n">synchronization</span><span class="p">,</span>
-              <span class="n">aggregation</span><span class="o">=</span><span class="n">aggregation</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span>
-            <span class="s1">&#39;var&#39;</span><span class="p">,</span>
-            <span class="n">var_shape</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="p">,</span>
-            <span class="n">v_init</span><span class="p">,</span>
+      <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybePinVarsToCpu</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
+            <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">,</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">initializer</span><span class="o">=</span><span class="n">v_init</span><span class="p">,</span>
             <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">,</span>
             <span class="n">trainable</span><span class="o">=</span><span class="n">trainable</span><span class="p">,</span>
             <span class="n">validate_shape</span><span class="o">=</span><span class="kc">True</span> <span class="k">if</span> <span class="n">var_shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="kc">False</span><span class="p">,</span>
