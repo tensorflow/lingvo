@@ -1541,6 +1541,41 @@ positional embeddings.</p></li>
 </dd></dl>
 
 <dl class="py class">
+<dt id="lingvo.core.layers.SinusoidalPositionalEmbeddingLayer">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SinusoidalPositionalEmbeddingLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SinusoidalPositionalEmbeddingLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Generates sinusoidals with respect to the position in time and dimension.</p>
+<p>Implements the a variant of the positional embedding layer from ‘Attention is
+All You Need’, the Transformer Network that doesn’t require tuning of the
+max_timescale/min_timescale. See this blog post and Ron’s colab.
+<a class="reference external" href="https://kazemnejad.com/blog/transformer_architecture_positional_encoding">https://kazemnejad.com/blog/transformer_architecture_positional_encoding</a></p>
+<dl class="py method">
+<dt id="lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SinusoidalPositionalEmbeddingLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">seq_length</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SinusoidalPositionalEmbeddingLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a Tensor of sinusoids with different frequencies.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
+its children layers.</p></li>
+<li><p><strong>seq_length</strong> – Sequence length of the embeddings to be generated</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>a Tensor of shape [seq_length, embedding_dim].</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
 <dt id="lingvo.core.layers.SoftmaxLayer">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.layers.</code><code class="sig-name descname">SoftmaxLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SoftmaxLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SoftmaxLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer" title="lingvo.core.quant_utils.QuantizableLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.quant_utils.QuantizableLayer</span></code></a></p>
@@ -2618,15 +2653,15 @@ trained for all tasks at the same time, or in one-off per-task training jobs.</p
 <li><p><strong>theta</strong> – A NestedMap object containing weights’ values of this layer and its
 children layers.</p></li>
 <li><p><strong>inputs</strong> – A tensor containing the activations from the previous layer. For
-‘TBC’, the shape is [time, batch, input_dim] and for ‘BTC’, it’s
-[batch, time, input_dim].</p></li>
+‘TBC’, the shape is [time, batch, input_dim] and for ‘BTC’, it’s [batch,
+time, input_dim].</p></li>
 <li><p><strong>tasks</strong> – An int32 tensor containing the task ID for each input.  If ‘tasks’
 is of rank 2, we assume it to be of shape [time, batch] if ‘BTC’ and
 [batch, time] if ‘TBC’, indicating a different task for each timestep.
-In this case we look up adapter params for each timestep.  If ‘tasks’
-is of rank 1, we assume it to be of shape [batch], indicating a single
-task for all timesteps of a sequence. This latter setup uses
-substantially less memory and is generally preferred.</p></li>
+In this case we look up adapter params for each timestep.  If ‘tasks’ is
+of rank 1, we assume it to be of shape [batch], indicating a single task
+for all timesteps of a sequence. This latter setup uses substantially
+less memory and is generally preferred.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

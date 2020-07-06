@@ -2978,6 +2978,49 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">calibrated_indices</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))</span></div></div>
 
 
+<div class="viewcode-block" id="SinusoidalPositionalEmbeddingLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer">[docs]</a><span class="k">class</span> <span class="nc">SinusoidalPositionalEmbeddingLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Generates sinusoidals with respect to the position in time and dimension.</span>
+
+<span class="sd">  Implements the a variant of the positional embedding layer from &#39;Attention is</span>
+<span class="sd">  All You Need&#39;, the Transformer Network that doesn&#39;t require tuning of the</span>
+<span class="sd">  max_timescale/min_timescale. See this blog post and Ron&#39;s colab.</span>
+<span class="sd">  https://kazemnejad.com/blog/transformer_architecture_positional_encoding</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SinusoidalPositionalEmbeddingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SinusoidalPositionalEmbeddingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the embedding to be generated.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">SinusoidalPositionalEmbeddingLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;embedding_dim needs to be even.&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SinusoidalPositionalEmbeddingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SinusoidalPositionalEmbeddingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">seq_length</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Generates a Tensor of sinusoids with different frequencies.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      seq_length: Sequence length of the embeddings to be generated</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      a Tensor of shape [seq_length, embedding_dim].</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">seq_length</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="n">num_timescales</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="n">freq</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span>
+        <span class="mi">1</span><span class="p">,</span> <span class="n">num_timescales</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">))</span> <span class="o">*</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">math</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="n">seq_length</span><span class="p">)</span>
+    <span class="n">scaled_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">positions</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span> <span class="n">freq</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+    <span class="n">sincos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">scaled_pos</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">scaled_pos</span><span class="p">)],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">sincos</span><span class="p">,</span> <span class="p">[</span><span class="n">seq_length</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span></div></div>
+
+
 <div class="viewcode-block" id="SoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SoftmaxLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for softmax layers.&quot;&quot;&quot;</span>
 
@@ -3539,8 +3582,8 @@
       <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Logits</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">)</span>
       <span class="n">per_example_xent</span><span class="p">,</span> <span class="n">per_example_argmax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">XentLossFromLogits</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">class_ids</span><span class="p">,</span> <span class="n">class_probabilities</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">xent</span><span class="o">=</span><span class="n">per_example_xent</span><span class="p">,</span>
-                                <span class="n">amax</span><span class="o">=</span><span class="n">per_example_argmax</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+          <span class="n">xent</span><span class="o">=</span><span class="n">per_example_xent</span><span class="p">,</span> <span class="n">amax</span><span class="o">=</span><span class="n">per_example_argmax</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
     <span class="n">inputs_nmap</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">class_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -3613,8 +3656,7 @@
       <span class="n">class_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_ids</span><span class="p">,</span> <span class="n">ids_shape</span><span class="p">)</span>
       <span class="n">class_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">squeeze</span><span class="p">(</span><span class="n">class_ids</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">class_probabilities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">class_probabilities</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_probabilities</span><span class="p">,</span>
-                                              <span class="n">probs_shape</span><span class="p">)</span>
+      <span class="n">class_probabilities</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">class_probabilities</span><span class="p">,</span> <span class="n">probs_shape</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">chunk_size</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
       <span class="c1"># Chunking.</span>
@@ -4935,15 +4977,15 @@
 <span class="sd">      theta: A NestedMap object containing weights&#39; values of this layer and its</span>
 <span class="sd">        children layers.</span>
 <span class="sd">      inputs: A tensor containing the activations from the previous layer. For</span>
-<span class="sd">        &#39;TBC&#39;, the shape is [time, batch, input_dim] and for &#39;BTC&#39;, it&#39;s</span>
-<span class="sd">        [batch, time, input_dim].</span>
+<span class="sd">        &#39;TBC&#39;, the shape is [time, batch, input_dim] and for &#39;BTC&#39;, it&#39;s [batch,</span>
+<span class="sd">        time, input_dim].</span>
 <span class="sd">      tasks: An int32 tensor containing the task ID for each input.  If &#39;tasks&#39;</span>
 <span class="sd">        is of rank 2, we assume it to be of shape [time, batch] if &#39;BTC&#39; and</span>
 <span class="sd">        [batch, time] if &#39;TBC&#39;, indicating a different task for each timestep.</span>
-<span class="sd">        In this case we look up adapter params for each timestep.  If &#39;tasks&#39;</span>
-<span class="sd">        is of rank 1, we assume it to be of shape [batch], indicating a single</span>
-<span class="sd">        task for all timesteps of a sequence. This latter setup uses</span>
-<span class="sd">        substantially less memory and is generally preferred.</span>
+<span class="sd">        In this case we look up adapter params for each timestep.  If &#39;tasks&#39; is</span>
+<span class="sd">        of rank 1, we assume it to be of shape [batch], indicating a single task</span>
+<span class="sd">        for all timesteps of a sequence. This latter setup uses substantially</span>
+<span class="sd">        less memory and is generally preferred.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A tensor containing the adapted activations with shape</span>
