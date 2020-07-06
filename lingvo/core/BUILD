@@ -79,6 +79,29 @@ py_library(
 )
 
 py_library(
+    name = "batch_utils",
+    srcs = ["batch_utils.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":cluster_factory",
+        ":py_utils",
+    ],
+)
+
+py_test(
+    name = "batch_utils_test",
+    srcs = ["batch_utils_test.py"],
+    python_version = "PY3",
+    deps = [
+        ":batch_utils",
+        ":cluster_factory",
+        # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "beam_search_helper",
     srcs = [
         "beam_search_helper.py",
@@ -165,6 +188,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":batch_utils",
         ":datasource",
         ":hyperparams",
         ":input_generator_helper",

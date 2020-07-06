@@ -39,6 +39,7 @@ import inspect
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import batch_utils
 from lingvo.core import datasource
 from lingvo.core import hyperparams
 from lingvo.core import input_generator_helper as ig_helper
@@ -131,31 +132,17 @@ class BaseInputGenerator(base_layer.BaseLayer):
 
   def GlobalBatchSize(self):
     """Returns the total batch size (for stats), int or dynamic int tensor."""
-    p = self.params
-    global_batch_size = self.InfeedBatchSize()
-    cluster = self.cluster
-    if p.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      if not py_utils.use_tpu():
-        raise ValueError('Scaling to TPU hosts without TPUs. {}'.format(
-            cluster.num_tpu_hosts))
-      global_batch_size *= cluster.num_tpu_hosts
+    # Uses `InfeedBatchSize()` instead of calculating it from `p.batch_size`
+    # because the behavior would be overridden by subclasses.
+    global_batch_size = batch_utils.scale_infeed_to_global(
+        self.InfeedBatchSize(), self.params.use_per_host_infeed)
     tf.logging.info('GlobalBatchSize {}'.format(global_batch_size))
     return global_batch_size
 
-  def _ScaleBatchSizeToBatchPerInput(self, batch_size):
-    """Scales a batch_size parameter to the batch size of the infeed."""
-    cluster = self.cluster
-    batch_per_input = batch_size * cluster.num_splits_per_client
-    # If use_per_host_infeed, each input op is only responsible
-    # for generating a subset of the whole batch.
-    if self.params.use_per_host_infeed and cluster.num_tpu_hosts > 0:
-      batch_per_input //= cluster.num_tpu_hosts
-    return batch_per_input
-
   def InfeedBatchSize(self):
     """Returns the batch size of the input batch: int or dynamic int tensor."""
-    batch_per_input = self._ScaleBatchSizeToBatchPerInput(
-        self.params.batch_size)
+    batch_per_input = batch_utils.scale_split_to_infeed(
+        self.params.batch_size, self.params.use_per_host_infeed)
     tf.logging.info('batch_per_input: %d', batch_per_input)
     return batch_per_input
 
@@ -760,7 +747,8 @@ class BaseSequenceInputGenerator(BaseInputGeneratorFromFiles):
     p = self.params
     cluster = self.cluster
     infeed_bucket_batch_limit = [
-        self._ScaleBatchSizeToBatchPerInput(b) for b in p.bucket_batch_limit
+        batch_utils.scale_split_to_infeed(b, p.use_per_host_infeed)
+        for b in p.bucket_batch_limit
     ]
     tf.logging.info(
         'infeed_bucket_batch_limit={} num_splits_per_client={} bucket_batch_limit={}'
