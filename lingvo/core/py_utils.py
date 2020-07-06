@@ -1494,6 +1494,50 @@ def GetFanInFanOut(shape):
     return fan_in, fan_out
 
 
+_VARIABLE_CREATOR_STACK = ThreadLocalStack().stack
+
+
+def _GetVariableCreator():
+  fn = tf.get_variable
+  for wrapper in reversed(_VARIABLE_CREATOR_STACK):
+    fn = functools.partial(wrapper, fn)
+  return fn
+
+
+@contextlib.contextmanager
+def VariableCreatorScope(variable_creator):
+  """Yields a context around a variable_creator, used by `CreateVariable()`.
+
+  The function must have the following signature::
+
+    def variable_creator(next_creator, **kwargs)
+
+  The function may delegate variable creation to the next variable creator, or
+  return its own tf.Variable.
+
+  This differs from tf.variable_creator_scope in that tf.variable_creator_scope
+  modifies a tf.Variable() call while this modifies a tf.get_variable() call. As
+  the code is migrated to TF2 and tf.get_variable() is deprecated, this may be
+  upgraded to using tf.variable_creator_scope instead.
+
+  This differs from tf.variable_scope(custom_getter=variable_creator) in that
+  the kwargs passed can be manipulated.
+
+  Variable creators are resolved from the outermost towards the innermost.
+
+  The innermost variable creator function is tf.get_variable. The passed in
+  kwargs must conform to what tf.get_variable accepts.
+
+  Args:
+    variable_creator: A variable creator function.
+  """
+  _VARIABLE_CREATOR_STACK.append(variable_creator)
+  try:
+    yield
+  finally:
+    _VARIABLE_CREATOR_STACK.pop()
+
+
 # TODO(yonghui): Add support for partitioned Variables.
 def CreateVariable(name,
                    params,
@@ -1650,6 +1694,12 @@ def CreateVariable(name,
 
     v_init = ComplexWrapper(v_init)
 
+  def MaybePinVarsToCpu(next_creator, **kwargs):
+    if _FromGlobal('pin_vars_to_cpu'):
+      with tf.device('/cpu:0'):
+        return next_creator(**kwargs)
+    return next_creator(**kwargs)
+
   # TODO(yonghui): Possibly get away from variable_scope and implement our own
   # variable sharing mechanism.
   def GetVar(reuse=reuse):
@@ -1664,24 +1714,12 @@ def CreateVariable(name,
           use_resource=scope.use_resource or use_resource_variables())
     with tf.variable_scope(var_scope), \
         tf.variable_scope(var_name, reuse=reuse) as scope:
-      if _FromGlobal('pin_vars_to_cpu'):
-        with tf.device('/cpu:0'):
-          return tf.get_variable(
-              'var',
-              var_shape,
-              dtype,
-              v_init,
-              collections=collections,
-              trainable=trainable,
-              validate_shape=True if var_shape is not None else False,
-              synchronization=synchronization,
-              aggregation=aggregation)
-      else:
-        return tf.get_variable(
-            'var',
-            var_shape,
-            dtype,
-            v_init,
+      with VariableCreatorScope(MaybePinVarsToCpu):
+        return _GetVariableCreator()(
+            name='var',
+            shape=var_shape,
+            dtype=dtype,
+            initializer=v_init,
             collections=collections,
             trainable=trainable,
             validate_shape=True if var_shape is not None else False,
