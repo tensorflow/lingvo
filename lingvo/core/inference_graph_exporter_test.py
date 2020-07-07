@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for inference_graph_exporter."""
 
-
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -29,11 +28,6 @@ from lingvo.core import test_utils
 
 
 class DummyLegacyModel(base_model.BaseTask):
-
-  @classmethod
-  def Params(cls):
-    p = super(DummyLegacyModel, cls).Params()
-    return p
 
   def Inference(self):
     if py_utils.use_tpu():
@@ -71,11 +65,6 @@ class DummyLegacyModelParams(base_model_params.SingleTaskModelParams):
 
 
 class DummyModel(base_model.BaseTask):
-
-  @classmethod
-  def Params(cls):
-    p = super(DummyModel, cls).Params()
-    return p
 
   def Inference(self):
     with tf.name_scope('inference'):
@@ -176,12 +165,12 @@ class LinearModel(base_model.BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(LinearModel, cls).Params()
+    p = super().Params()
     p.name = 'linear_model'
     return p
 
   def __init__(self, params):
-    super(LinearModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       w = py_utils.WeightParams(

@@ -1,5 +1,4 @@
 # Lint as: python3
-# -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,6 @@
 # ==============================================================================
 """Tests for recurrent."""
 
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -24,8 +22,6 @@ from lingvo.core import recurrent
 from lingvo.core import symbolic
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 def _ApplyPadding(padding, v_no_pad, v_pad):
@@ -86,7 +82,7 @@ class _IncrementAccumulator(base_layer.Accumulator):
 class _SampleAccumulatorLayer(base_layer.BaseLayer):
 
   def __init__(self, params):
-    super(_SampleAccumulatorLayer, self).__init__(params)
+    super().__init__(params)
     self.accumulator_name = 'sample_accumulator'
     self.RegisterAccumulator(self.accumulator_name, _IncrementAccumulator())
 

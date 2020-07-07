@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for preconditioner driver."""
 
-
 import lingvo.compat as tf
 from lingvo.core import ops
 import numpy as np

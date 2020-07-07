@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,6 @@
 # limitations under the License.
 """Encoders for the machine translation model.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import math
 import lingvo.compat as tf
@@ -28,7 +25,6 @@ from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import summary_utils
 from lingvo.tasks.mt import layers as mt_layers
-from six.moves import range
 
 tf.flags.DEFINE_bool('transformer_encoder_truncates_inputs', False,
                      'Whether TransformerEncoder truncates inputs to max len.')
@@ -40,7 +36,7 @@ class MTEncoderV1(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for `MTEncoderV1`."""
-    p = super(MTEncoderV1, cls).Params()
+    p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl',
              rnn_cell.LSTMCellSimple.Params(),
@@ -77,7 +73,7 @@ class MTEncoderV1(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MTEncoderV1, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert not p.packed_input, ('Packed inputs are not yet supported for '
                                 'MTEncoderV1.')
@@ -208,7 +204,7 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for `MTEncoderUniRNN`."""
-    p = super(MTEncoderUniRNN, cls).Params()
+    p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl', rnn_cell.LSTMCellSimple.Params(),
              'Configs template for the RNN layer.')
@@ -245,7 +241,7 @@ class MTEncoderUniRNN(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MTEncoderUniRNN, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert not p.packed_input, ('Packed inputs are not yet supported for '
                                 'MTEncoderUniRNN.')
@@ -351,7 +347,7 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for `MTEncoderBiRNN`."""
-    p = super(MTEncoderBiRNN, cls).Params()
+    p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('lstm_tpl',
              rnn_cell.LSTMCellSimple.Params(),
@@ -393,7 +389,7 @@ class MTEncoderBiRNN(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MTEncoderBiRNN, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -522,7 +518,7 @@ class TransformerEncoder(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for `TransformerEncoder`."""
-    p = super(TransformerEncoder, cls).Params()
+    p = super().Params()
 
     # Embedding related
     p.Define('token_emb',
@@ -570,7 +566,7 @@ class TransformerEncoder(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerEncoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if p.shared_emb:
@@ -758,7 +754,7 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerBatchMajorEncoder, cls).Params()
+    p = super().Params()
 
     # Default config for the token embedding.
     p.Define(
@@ -795,7 +791,7 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerBatchMajorEncoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.output_data_format in ('TBC', 'BTC')

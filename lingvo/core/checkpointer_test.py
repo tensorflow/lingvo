@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for checkpointer."""
 
-
 import os
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -30,12 +29,12 @@ class LinearModel(base_model.BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(LinearModel, cls).Params()
+    p = super().Params()
     p.name = 'linear_model'
     return p
 
   def __init__(self, params):
-    super(LinearModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       w = py_utils.WeightParams(

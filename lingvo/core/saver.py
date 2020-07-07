@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,6 @@ The implementation mimics tf.train.Saver. Meanwhile, it allows us
 to carry out extra sanity checks on the checkpoint.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import re
 import time
 from lingvo import compat as tf
@@ -35,7 +31,7 @@ from tensorflow.python.ops import io_ops
 from tensorflow.python.training.checkpoint_state_pb2 import CheckpointState
 
 
-class SanityCheck(object):
+class SanityCheck:
 
   def Check(self, *args):
     """Returns true iff the sanity check passes."""
@@ -69,7 +65,7 @@ def _VarKey(var):
   return var.name[:-2]  # strip :0
 
 
-class Saver(object):
+class Saver:
   """Simpler version of tf.train.Saver with extra sanity checks."""
 
   def __init__(self,
@@ -124,7 +120,7 @@ class Saver(object):
     state = CheckpointState()
     if file_io.file_exists(self._state_file):
       content = file_io.read_file_to_string(self._state_file)
-      text_format.Merge(content, state)
+      text_format.Parse(content, state)
     return state
 
   def _SetState(self, state):

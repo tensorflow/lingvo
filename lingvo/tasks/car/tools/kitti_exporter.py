@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -85,10 +85,6 @@ following format:
   transform/camera_to_velo 4x4 matrix from camera xyz to velo xyz.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import contextlib
 import io
 import os
@@ -101,7 +97,6 @@ from lingvo import compat as tf
 from lingvo.tasks.car.tools import kitti_data
 import numpy as np
 from PIL import Image
-from six.moves import range
 
 FLAGS = flags.FLAGS
 

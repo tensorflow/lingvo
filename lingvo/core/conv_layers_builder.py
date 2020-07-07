@@ -43,7 +43,7 @@ GlobalPoolingLayer = conv_layers_with_time_padding.GlobalPoolingLayer
 class BiasLayer(builder_layers.BiasLayer):
 
   def FProp(self, theta, inputs, paddings):
-    bias_added = super(BiasLayer, self).FProp(theta, inputs)
+    bias_added = super().FProp(theta, inputs)
     return bias_added, paddings
 
 
@@ -52,7 +52,7 @@ class CausalPoolingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CausalPoolingLayer, cls).Params()
+    p = super().Params()
     p.Define('pooling_type', 'AVG', 'Pooling type: MAX|AVG')
     p.Define(
         'left_context', None, 'Number of frames to the left in the pooling'
@@ -129,7 +129,7 @@ class Builder(builder.Base):
 
   @classmethod
   def Params(cls):
-    p = super(Builder, cls).Params()
+    p = super().Params()
     p.Define('norm_layer_tpl',
              ConvBatchNormLayer.Params().Set(decay=0.999),
              'If specified, the normalization layer template.')
@@ -137,7 +137,7 @@ class Builder(builder.Base):
     return p
 
   def _BiasNoPadding(self, name, dims):
-    return super(Builder, self)._Bias(name, dims)
+    return super()._Bias(name, dims)
 
   def _Bias(self, name, dims):
     """Bias layer. The bias is added to the last dimension of the input."""

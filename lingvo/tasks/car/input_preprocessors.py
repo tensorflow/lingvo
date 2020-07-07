@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Input preprocessors."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -27,7 +23,6 @@ from lingvo.tasks.car import detection_3d_lib
 from lingvo.tasks.car import geometry
 from lingvo.tasks.car import ops
 import numpy as np
-from six.moves import range
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
@@ -92,7 +87,7 @@ class Preprocessor(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Default params."""
-    p = super(Preprocessor, cls).Params()
+    p = super().Params()
     p.name = cls.__name__
     return p
 
@@ -174,7 +169,7 @@ class EntryPreprocessor(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(EntryPreprocessor, cls).Params()
+    p = super().Params()
     p.Define('prefixes', ['pseudo_ri'], 'List of keys to apply to.')
     return p
 
@@ -254,7 +249,7 @@ class CreateDecoderCopy(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(CreateDecoderCopy, cls).Params()
+    p = super().Params()
     p.Define('keys', ['lasers', 'labels', 'images'],
              'Keys to look for and copy if exists.')
     p.Define('parent_key', 'decoder_copy', 'The key to nest the copies under.')
@@ -264,7 +259,7 @@ class CreateDecoderCopy(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(CreateDecoderCopy, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       if p.pad_lasers is not None:
@@ -315,7 +310,7 @@ class FilterByKey(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(FilterByKey, cls).Params()
+    p = super().Params()
     p.Define(
         'keep_key_prefixes', [''], 'Prefixes of keys to keep. If this '
         'contains the empty string, then it will keep all the keys.')
@@ -362,7 +357,7 @@ class FilterGroundTruthByNumPoints(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(FilterGroundTruthByNumPoints, cls).Params()
+    p = super().Params()
     p.Define(
         'min_num_points', 1, 'The minimum number of points allowed before '
         'the associated ground truth box is turned off. Defaults to 1.')
@@ -403,7 +398,7 @@ class FilterGroundTruthByDifficulty(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(FilterGroundTruthByDifficulty, cls).Params()
+    p = super().Params()
     p.Define(
         'background_id', 0, 'The ID of the background class we set '
         'filtered boxes to. Defaults to 0.')
@@ -500,7 +495,7 @@ class AddPerPointLabels(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(AddPerPointLabels, cls).Params()
+    p = super().Params()
     p.Define(
         'per_dimension_adjustment', None,
         'A list of len 3 of floats with the amount (in meters) to add to '
@@ -603,7 +598,7 @@ class PointsToGrid(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(PointsToGrid, cls).Params()
+    p = super().Params()
     p.Define('num_points_per_cell', 100,
              'The maximum number of points per cell.')
     p.Define('grid_size', (40, 40, 1), 'Grid size along x,y,z axis.')
@@ -690,7 +685,7 @@ class PointsToGrid(Preprocessor):
     return dtypes
 
 
-class _PointPillarGridSettings(object):
+class _PointPillarGridSettings:
   """Settings for PointPillars model defined in paper.
 
   https://arxiv.org/abs/1812.05784
@@ -784,7 +779,7 @@ class GridToPillars(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(GridToPillars, cls).Params()
+    p = super().Params()
     p.Define('num_points_per_cell', 100,
              'The maximum number of points per cell.')
     p.Define('num_pillars', 12000, 'The maximum number of pillars to produce.')
@@ -929,7 +924,7 @@ class GridAnchorCenters(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(GridAnchorCenters, cls).Params()
+    p = super().Params()
     p.Define(
         'grid_size', (20, 20, 1), 'Grid size along x,y,z axis. This will '
         'be used to generate the anchor center locations. Note that this '
@@ -1015,7 +1010,7 @@ class SparseCenterSelector(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(SparseCenterSelector, cls).Params()
+    p = super().Params()
     p.Define('num_cell_centers', 256, 'Number of centers.')
     p.Define(
         'features_preparation_layers', [],
@@ -1033,7 +1028,7 @@ class SparseCenterSelector(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(SparseCenterSelector, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if p.sampling_method not in self._SAMPLING_METHODS:
@@ -1182,7 +1177,7 @@ class SparseCellGatherFeatures(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(SparseCellGatherFeatures, cls).Params()
+    p = super().Params()
     p.Define('num_points_per_cell', 128, 'The number of points per cell.')
     p.Define('max_distance', 3.0, 'Max distance of point to cell center.')
     p.Define(
@@ -1278,7 +1273,7 @@ class SparseCellCentersTopK(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(SparseCellCentersTopK, cls).Params()
+    p = super().Params()
     p.Define('num_cell_centers', 512, 'The number of centers after filtering.')
     p.Define(
         'sort_by', 'distance', 'A string specifying which sort function '
@@ -1290,7 +1285,7 @@ class SparseCellCentersTopK(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(SparseCellCentersTopK, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.sort_by not in self._REGISTERED_SORT_FUNCTIONS:
       raise ValueError('{} not supported. We only support {}.'.format(
@@ -1346,7 +1341,7 @@ class TileAnchorBBoxes(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(TileAnchorBBoxes, cls).Params()
+    p = super().Params()
     p.Define('anchor_box_dimensions', [],
              'List of anchor box sizes per center.')
     p.Define('anchor_box_offsets', [], 'List of anchor box offsets per center.')
@@ -1386,7 +1381,7 @@ class TileAnchorBBoxes(Preprocessor):
     return dtypes
 
 
-class _AnchorBoxSettings(object):
+class _AnchorBoxSettings:
   """Helper class to parameterize and update anchor box settings."""
   # Implementations should fill out the following class members.
   DIMENSION_PRIORS = []
@@ -1556,7 +1551,7 @@ class AnchorAssignment(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(AnchorAssignment, cls).Params()
+    p = super().Params()
     p.Define(
         'foreground_assignment_threshold', 0.5,
         'Score (usually IOU) threshold for assigning a box as foreground.')
@@ -1645,7 +1640,7 @@ class DropLaserPointsOutOfRange(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(DropLaserPointsOutOfRange, cls).Params()
+    p = super().Params()
     p.Define('keep_x_range', (-np.inf, np.inf),
              'Only points that have x coordinates within this range are kept.')
     p.Define('keep_y_range', (-np.inf, np.inf),
@@ -1785,7 +1780,7 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RandomWorldRotationAboutZAxis, cls).Params()
+    p = super().Params()
     p.Define(
         'max_rotation', None,
         'The rotation amount will be randomly picked from '
@@ -1799,7 +1794,7 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(RandomWorldRotationAboutZAxis, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.max_rotation is None:
       raise ValueError('max_rotation needs to be specified, instead of None.')
@@ -1866,7 +1861,7 @@ class DropPointsOutOfFrustum(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(DropPointsOutOfFrustum, cls).Params()
+    p = super().Params()
     p.Define('keep_theta_range', (0., np.pi),
              'Only points that have theta coordinates within this range.')
     p.Define('keep_phi_range', (0., 2. * np.pi),
@@ -1957,7 +1952,7 @@ class DropBoxesOutOfRange(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(DropBoxesOutOfRange, cls).Params()
+    p = super().Params()
     p.Define('keep_x_range', (-np.inf, np.inf),
              'Only boxes that have x coordinates within this range are kept.')
     p.Define('keep_y_range', (-np.inf, np.inf),
@@ -2031,7 +2026,7 @@ class PadLaserFeatures(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(PadLaserFeatures, cls).Params()
+    p = super().Params()
     p.Define('max_num_points', 128500,
              'Max number of points to pad the points to.')
     return p
@@ -2089,12 +2084,12 @@ class WorldScaling(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(WorldScaling, cls).Params()
+    p = super().Params()
     p.Define('scaling', None, 'The scaling range.')
     return p
 
   def __init__(self, params):
-    super(WorldScaling, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.scaling is None:
       raise ValueError('scaling needs to be specified, instead of None.')
@@ -2143,7 +2138,7 @@ class RandomDropLaserPoints(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RandomDropLaserPoints, cls).Params()
+    p = super().Params()
     p.Define('keep_prob', 0.95, 'Probability for keeping points.')
     return p
 
@@ -2188,7 +2183,7 @@ class RandomFlipY(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RandomFlipY, cls).Params()
+    p = super().Params()
     p.Define('flip_probability', 0.5, 'Probability of flipping.')
     return p
 
@@ -2239,7 +2234,7 @@ class GlobalTranslateNoise(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(GlobalTranslateNoise, cls).Params()
+    p = super().Params()
     p.Define('noise_std', [0.2, 0.2, 0.2],
              'Standard deviation of translation noise per axis.')
     return p
@@ -2306,7 +2301,7 @@ class RandomBBoxTransform(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RandomBBoxTransform, cls).Params()
+    p = super().Params()
     p.Define(
         'max_rotation', None,
         'The rotation amount will be randomly picked from '
@@ -2334,7 +2329,7 @@ class RandomBBoxTransform(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(RandomBBoxTransform, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.max_rotation is None:
       raise ValueError('max_rotation needs to be specified, instead of None.')
@@ -2658,7 +2653,7 @@ class GroundTruthAugmentor(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(GroundTruthAugmentor, cls).Params()
+    p = super().Params()
     p.Define(
         'groundtruth_database', None,
         'If not None, loads groundtruths from this database and adds '
@@ -3017,7 +3012,7 @@ class FrustumDropout(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(FrustumDropout, cls).Params()
+    p = super().Params()
     p.Define('theta_width', 0.03, 'Theta angle width for dropping points.')
     p.Define('phi_width', 0.0, 'Phi angle width for dropping points.')
     p.Define(
@@ -3032,7 +3027,7 @@ class FrustumDropout(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(FrustumDropout, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.phi_width < 0:
       raise ValueError('phi_width must be >= 0, phi_width={}'.format(
@@ -3155,7 +3150,7 @@ class RepeatPreprocessor(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RepeatPreprocessor, cls).Params()
+    p = super().Params()
     p.Define('repeat_count', 1, 'Number of times the subprocessor is applied to'
              ' features.')
     p.Define('subprocessor', None, 'One of the input preprocessors.')
@@ -3163,7 +3158,7 @@ class RepeatPreprocessor(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(RepeatPreprocessor, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.subprocessor is None:
       raise ValueError('No subprocessor was specified for RepeatPreprocessor.')
@@ -3206,13 +3201,13 @@ class RandomApplyPreprocessor(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(RandomApplyPreprocessor, cls).Params()
+    p = super().Params()
     p.Define('prob', 1.0, 'The probability the subprocessor being executed.')
     p.Define('subprocessor', None, 'Params for an input preprocessor.')
     return p
 
   def __init__(self, params):
-    super(RandomApplyPreprocessor, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.subprocessor is None:
       raise ValueError('No subprocessor was specified for RepeatPreprocessor.')
@@ -3297,7 +3292,7 @@ class SparseSampler(Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(SparseSampler, cls).Params()
+    p = super().Params()
     p.Define('center_selector', 'farthest', 'Method to sample centers. '
              'Valid options - uniform, farthest.')
     p.Define('neighbor_sampler', 'uniform', 'Method to select neighbors. '
@@ -3324,7 +3319,7 @@ class SparseSampler(Preprocessor):
     return p
 
   def __init__(self, params):
-    super(SparseSampler, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       if p.features_preparation_layers:

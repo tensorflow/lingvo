@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,14 +21,9 @@
     https://arxiv.org/abs/1901.10430
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo.core import base_layer
 from lingvo.core import batch_major_attention
 from lingvo.core import py_utils
-from six.moves import range
 
 MultiHeadedSelfAttention = batch_major_attention.MultiHeadedAttention
 

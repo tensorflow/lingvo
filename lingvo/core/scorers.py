@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +15,9 @@
 # ==============================================================================
 """Helper classes for computing scores."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import math
 import six
-from six.moves import range
 
 
 def _ToUnicode(line):
@@ -38,7 +33,7 @@ def NGrams(lst, order):
   return (lst[i:i + order] for i in range(len(lst) - order + 1))
 
 
-class Unsegmenter(object):
+class Unsegmenter:
   """Un-segments (merges) segmented strings.
 
   Used to retain back the original surface form of strings that are encoded
@@ -68,7 +63,7 @@ class Unsegmenter(object):
       return line
 
 
-class BleuScorer(object):
+class BleuScorer:
   """Scorer to compute BLEU scores to measure translation quality.
 
   The BLEU score is the geometric average precision of all token n-grams of
@@ -114,7 +109,7 @@ class BleuScorer(object):
           # Clip hyp_matches so ngrams that are repeated more frequently in hyp
           # than ref are not double counted.
           hyp_matches[x] = min(hyp_matches[x] + 1, count)
-      self._hyp_ngram_matches[order_idx] += sum(six.itervalues(hyp_matches))
+      self._hyp_ngram_matches[order_idx] += sum(hyp_matches.values())
       self._hyp_ngram_counts[order_idx] += hyp_count
 
   def ComputeOverallScore(self):

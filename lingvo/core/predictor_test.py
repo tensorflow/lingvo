@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo.core.predictor."""
 
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_model

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
 # ==============================================================================
 """Input generator for KITTI data."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import datasource
 from lingvo.core import hyperparams
@@ -68,8 +65,7 @@ class KITTILaserExtractor(input_extractor.LaserExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(KITTILaserExtractor, cls).Params().Set(
-        max_num_points=None, num_features=1)
+    p = super().Params().Set(max_num_points=None, num_features=1)
     return p
 
   def FeatureMap(self):
@@ -125,7 +121,7 @@ class KITTIImageExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(KITTIImageExtractor, cls).Params()
+    p = super().Params()
     p.Define('decode_image', True, 'Whether to decode and produce image.')
     return p
 
@@ -284,7 +280,7 @@ class KITTILabelExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(KITTILabelExtractor, cls).Params()
+    p = super().Params()
     p.Define('max_num_objects', 50, 'The number of objects per example.')
     p.Define('filter_labels', None, 'If not None, specifies a list of label '
              'indices to keep.')
@@ -485,7 +481,7 @@ class KITTIBase(input_extractor.BaseExtractor):
 
   @classmethod
   def Params(cls, *args, **kwargs):
-    p = super(KITTIBase, cls).Params(*args, **kwargs)
+    p = super().Params(*args, **kwargs)
 
     # Subclasses should set the following in file_datasource:
     # - file_pattern_prefix: path to data directory (may be overridden at
@@ -528,7 +524,7 @@ class KITTILaser(KITTIBase):
         pad_lasers=input_preprocessors.PadLaserFeatures.Params().Set(
             max_num_points=128500))
 
-    p = super(KITTILaser, cls).Params(extractors).Set(
+    p = super().Params(extractors).Set(
         preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=['viz_copy', 'count_points', 'pad_lasers'])
     return p
@@ -580,7 +576,7 @@ class KITTISparseLaser(KITTIBase):
         pad_lasers=input_preprocessors.PadLaserFeatures.Params().Set(),
     )
 
-    p = super(KITTISparseLaser, cls).Params(extractors).Set(
+    p = super().Params(extractors).Set(
         preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=[
             'viz_copy',
@@ -637,7 +633,7 @@ class KITTIGrid(KITTIBase):
         pad_lasers=input_preprocessors.PadLaserFeatures.Params().Set(
             max_num_points=128500),
     )
-    p = super(KITTIGrid, cls).Params(extractors).Set(
+    p = super().Params(extractors).Set(
         preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=[
             'viz_copy',

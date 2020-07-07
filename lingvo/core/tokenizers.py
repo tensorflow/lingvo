@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Tokenizers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import ops
@@ -32,7 +28,7 @@ class BaseTokenizer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Defaults params for tokenizers."""
-    p = super(BaseTokenizer, cls).Params()
+    p = super().Params()
     p.name = 'tokenizer'
     p.Define('vocab_size', 64, 'The size of the vocabuary.')
     p.Define(
@@ -49,7 +45,7 @@ class BaseTokenizer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(BaseTokenizer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     self.sos_id = p.target_sos_id  # <S>
@@ -137,7 +133,7 @@ class VocabFileTokenizer(BaseTokenizer):
 
   @classmethod
   def Params(cls):
-    p = super(VocabFileTokenizer, cls).Params()
+    p = super().Params()
     p.Define('token_vocab_filepath', None,
              'If set, specifies a filepath to the token vocab file.')
     p.Define('ngram_vocab_filepath', None,
@@ -202,7 +198,7 @@ class BpeTokenizer(BaseTokenizer):
 
   @classmethod
   def Params(cls):
-    p = super(BpeTokenizer, cls).Params()
+    p = super().Params()
     p.Define('codes_filepath', None,
              'Specifies a filepath to the list of bpe codes vocab file.')
     p.Define('words_to_ids_filepath', None,
@@ -230,7 +226,7 @@ class WpmTokenizer(BaseTokenizer):
 
   @classmethod
   def Params(cls):
-    p = super(WpmTokenizer, cls).Params()
+    p = super().Params()
     p.Define(
         'vocab_filepath', None,
         'Specifies a filepath to the WPM vocab. The vocab is sorted by '
@@ -243,7 +239,7 @@ class WpmTokenizer(BaseTokenizer):
     return p
 
   def __init__(self, params):
-    super(WpmTokenizer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self._wpm_encoder = wpm_encoder.WpmEncoder(p.vocab_filepath, p.merge_prob)
     assert p.target_unk_id == self._wpm_encoder.unk_id

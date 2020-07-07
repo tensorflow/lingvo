@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ class Bfloat16VariableSaveable(saver.BaseSaverBuilder.SaveableObject):
         name,
         dtype=orig_dtype,
         device=var.device)
-    super(Bfloat16VariableSaveable, self).__init__(var, [spec], name)
+    super().__init__(var, [spec], name)
 
   def restore(self, restored_tensors, restored_shapes):
     restored_tensor = restored_tensors[0]

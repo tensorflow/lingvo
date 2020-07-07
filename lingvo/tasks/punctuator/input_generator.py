@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Punctuator input generator."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import string
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -33,7 +29,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
   @classmethod
   def Params(cls):
     """Defaults params for PunctuatorInput."""
-    p = super(PunctuatorInput, cls).Params()
+    p = super().Params()
     p.tokenizer = tokenizers.WpmTokenizer.Params()
     return p
 
@@ -104,7 +100,7 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
         **self.CommonInputOpArgs())
 
   def __init__(self, params):
-    super(PunctuatorInput, self).__init__(params)
+    super().__init__(params)
 
     # Build the input processing graph.
     (self._src_ids, self._src_paddings, self._tgt_ids, self._tgt_paddings,

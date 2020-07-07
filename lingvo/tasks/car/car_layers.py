@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,9 +18,6 @@
 These are usually sub-classes of base_layer.BaseLayer used by builder_lib.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -32,7 +29,7 @@ class SamplingAndGroupingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SamplingAndGroupingLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'num_samples', 0,
         'Number of points to be sampled. Each sampled point will be '

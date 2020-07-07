@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Base class for all jobs."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import time
 import traceback
@@ -30,7 +26,7 @@ from lingvo.core import early_stop
 from lingvo.core import py_utils
 
 
-class BaseRunner(object):
+class BaseRunner:
   """Base class for all jobs."""
 
   def __init__(self,

@@ -117,7 +117,7 @@ class InspectUtilsTest(test_utils.TestCase):
 
   def testClassInit(self):
 
-    class MyClass(object):
+    class MyClass:
 
       def __init__(self, a, b=3):
         self.a = a
@@ -139,7 +139,7 @@ class InspectUtilsTest(test_utils.TestCase):
   # TODO(oday): Remove this test when the bug on Keras has been resolved.
   def testClassInit2(self):
 
-    class MyClass(object):
+    class MyClass:
 
       def __init__(self, a, b=3):
         self.a = a
@@ -161,7 +161,7 @@ class InspectUtilsTest(test_utils.TestCase):
 
   def testMethod(self):
 
-    class MyClass(object):
+    class MyClass:
 
       def __init__(self):
         self._s = 'a/b'

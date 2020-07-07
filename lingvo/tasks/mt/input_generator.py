@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 """Machine translation input generator."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
@@ -26,7 +22,6 @@ from lingvo.core import py_utils
 from lingvo.core import summary_utils
 from lingvo.core import tokenizers
 from lingvo.tasks.mt import text_input_pb2
-import six
 
 from google.protobuf import descriptor_pb2
 
@@ -37,7 +32,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
   @classmethod
   def Params(cls):
     """Defaults params for `NmtInput`."""
-    p = super(NmtInput, cls).Params()
+    p = super().Params()
     p.Define(
         'natural_order_model', True,
         'Whether the model consuming the input is a natural order model. Input '
@@ -62,7 +57,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
           ('target_weight', tf.io.VarLenFeature(tf.float32)),
       ]
       features = tf.io.parse_single_example(record, dict(outputs))
-      for k, v in six.iteritems(features):
+      for k, v in features.items():
         features[k] = v.values
       bucket_key = tf.cast(
           tf.maximum(
@@ -78,7 +73,7 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
         **self.CommonInputOpArgs())
 
   def __init__(self, params):
-    super(NmtInput, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     self.natural_order_model = p.natural_order_model
@@ -158,7 +153,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
   @classmethod
   def Params(cls):
     """Default params for `MlPerfInput`."""
-    p = super(MlPerfInput, cls).Params()
+    p = super().Params()
 
     p.Define('natural_order_model', True, '')
     p.Define(
@@ -173,7 +168,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
     return p
 
   def __init__(self, params):
-    super(MlPerfInput, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     self.natural_order_model = p.natural_order_model
@@ -270,7 +265,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
       ]
 
       features = tf.io.parse_single_example(record, dict(outputs))
-      for k, v in six.iteritems(features):
+      for k, v in features.items():
         features[k] = v.values
 
       src_ids = features['inputs']
@@ -304,7 +299,7 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
           ('targets', tf.io.VarLenFeature(tf.int64)),
       ]
       features = tf.io.parse_single_example(record, dict(outputs))
-      for k, v in six.iteritems(features):
+      for k, v in features.items():
         features[k] = v.values
 
       src_ids = features['inputs']
@@ -489,7 +484,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     * Consider enabling multithreading for the trainer job (in the Train()
       method). For example: p.num_batcher_threads = 128.
     """
-    p = super(TextPackedInput, cls).Params()
+    p = super().Params()
 
     p.Define('file_pattern_task_ids', [],
              'task_id corresponding to list of file_patterns.')
@@ -526,7 +521,7 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     return p
 
   def __init__(self, params):
-    super(TextPackedInput, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not p.natural_order_model:
       raise ValueError('Only p.natural_order_model=True is supported now.')

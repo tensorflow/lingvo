@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Train models on the waymo open dataset."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
@@ -90,7 +86,7 @@ class WaymoSparseLaserTrain(waymo_open_input_generator.WaymoSparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoSparseLaserTrain, cls).Params()
+    p = super().Params()
     return WaymoTrainSpec(p)
 
 
@@ -99,7 +95,7 @@ class WaymoSparseLaserValidation(waymo_open_input_generator.WaymoSparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoSparseLaserValidation, cls).Params()
+    p = super().Params()
     return WaymoValSpec(p)
 
 
@@ -108,7 +104,7 @@ class WaymoSparseLaserMinival(waymo_open_input_generator.WaymoSparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoSparseLaserMinival, cls).Params()
+    p = super().Params()
     return WaymoMinivalSpec(p)
 
 
@@ -117,7 +113,7 @@ class WaymoSparseLaserTest(waymo_open_input_generator.WaymoSparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoSparseLaserTest, cls).Params()
+    p = super().Params()
     return WaymoTestSpec(p)
 
 
@@ -368,7 +364,7 @@ class StarNetVehicle(StarNetBase):
     CENTER_Z_OFFSETS = [0.819622]
 
   def _configure_input(self, p, split):
-    p = super(StarNetVehicle, self)._configure_input(p, split)
+    p = super()._configure_input(p, split)
 
     # Select points in approx z range, set using 10 and 90 percentile from
     # train data.
@@ -381,7 +377,7 @@ class StarNetVehicle(StarNetBase):
     return p
 
   def Task(self):
-    p = super(StarNetVehicle, self).Task()
+    p = super().Task()
     p.train.l2_regularizer_weight = 3e-5
 
     class_names = waymo_metadata.WaymoMetadata().ClassNames()
@@ -413,7 +409,7 @@ class StarNetPed(StarNetBase):
     CENTER_Z_OFFSETS = [0.819622]
 
   def _configure_input(self, p, split):
-    p = super(StarNetPed, self)._configure_input(p, split)
+    p = super()._configure_input(p, split)
 
     # Select points in approx z range, set using 10 and 90 percentile from
     # train data.
@@ -426,7 +422,7 @@ class StarNetPed(StarNetBase):
     return p
 
   def Task(self):
-    p = super(StarNetPed, self).Task()
+    p = super().Task()
     p.train.l2_regularizer_weight = 3e-6
 
     class_names = waymo_metadata.WaymoMetadata().ClassNames()
@@ -450,7 +446,7 @@ class StarNetPedFused(StarNetPed):
   """StarNet Pedestrian model with SparseSampler fused input preprocessor."""
 
   def _configure_input(self, p, split):
-    p = super(StarNetPedFused, self)._configure_input(p, split)
+    p = super()._configure_input(p, split)
 
     job_type = cluster_factory.Current().job
 

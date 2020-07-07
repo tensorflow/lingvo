@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -31,17 +31,11 @@ the shared filesystem. The trainer jobs are configured via a cluster spec
 flag, whereas the decoder jobs are configured with individual flags.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 from pipes import quote as shell_quote
 import shutil
 import subprocess
 import sys
-
-import six
 
 _SYNC_TRAIN_CLUSTER_SPEC = {
     "worker": [
@@ -191,7 +185,7 @@ def CopyTrainerToSharedMount():
 def InstallAndStartProcess(cluster_spec):
   """Unpacks the trainer and kick off training."""
   cluster_spec_flag = MakeFlagClusterSpec(cluster_spec)
-  for job_name, machines in six.iteritems(cluster_spec):
+  for job_name, machines in cluster_spec.items():
     task_idx = 0
     for machine_port in machines:
       machine_name = _Machine(machine_port)

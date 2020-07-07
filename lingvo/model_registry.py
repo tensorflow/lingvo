@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,10 +18,6 @@
 Typical usage will be to define and register a subclass of ModelParams
 for each dataset.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import inspect
 from lingvo import model_imports
@@ -67,7 +63,9 @@ def _MaybeUpdateParamsFromFlags(cfg):
     cfg.FromText(params_override)
 
 
-class _ModelRegistryHelper(object):
+class _ModelRegistryHelper:
+  """Helper class."""
+
   _MODEL_PARAMS_ALLOW_REDEF = False
 
   # Global dictionary mapping subclass name to registered ModelParam subclass.
@@ -152,7 +150,7 @@ class _ModelRegistryHelper(object):
       # Extend model to annotate source information.
       def Model(self):
         """Wraps BaseTask params into SingleTaskModel params."""
-        p = super(Registered, self).Model()
+        p = super().Model()
         p.model = self._registered_source_info
         return p
 

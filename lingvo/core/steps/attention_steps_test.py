@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for third_party.py.lingvo.core.steps.attention_steps."""
 
-
 from lingvo import compat as tf
 from lingvo.core import attention
 from lingvo.core import py_utils

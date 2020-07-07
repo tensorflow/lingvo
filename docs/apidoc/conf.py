@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-#
-# Configuration file for the Sphinx documentation builder.
-#
-# This file does only contain a selection of the most common options. For a
-# full list see the documentation:
-# http://www.sphinx-doc.org/en/master/config
+"""Configuration file for the Sphinx documentation builder.
+
+This file does only contain a selection of the most common options. For a
+full list see the documentation:
+http://www.sphinx-doc.org/en/master/config
+"""
 
 # -- Path setup --------------------------------------------------------------
 

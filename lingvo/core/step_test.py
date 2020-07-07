@@ -14,13 +14,11 @@
 # limitations under the License.
 """Tests for lingvo.core.step."""
 
-
 from lingvo import compat as tf
 from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import step
 from lingvo.core import test_utils
-from six.moves import range
 
 
 class TextStep(step.Step):
@@ -31,13 +29,6 @@ class TextStep(step.Step):
   to be long text strings that encode the sequence of operations that
   were performed.
   """
-
-  @classmethod
-  def Params(cls):
-    return super(TextStep, cls).Params()
-
-  def __init__(self, params):
-    super(TextStep, self).__init__(params)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     return external_inputs

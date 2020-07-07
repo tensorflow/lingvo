@@ -18,7 +18,6 @@ py_binary(
         # Implicit absl.logging dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -42,7 +41,6 @@ py_binary(
         "//lingvo/tasks/car/params",
         "//lingvo/tools:beam_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -63,6 +61,7 @@ py_test(
         "//lingvo/tasks/car/testdata:kitti_raw",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":kitti_data",
         "//lingvo:compat",
@@ -84,7 +83,6 @@ py_library(
         "//lingvo/core/ops:record_py_pb2",
         "//lingvo/tasks/car:kitti_metadata",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -93,10 +91,7 @@ py_binary(
     srcs = ["export_kitti_detection.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        ":export_kitti_detection_lib",
-        # Implicit six dependency.
-    ],
+    deps = [":export_kitti_detection_lib"],
 )
 
 py_binary(

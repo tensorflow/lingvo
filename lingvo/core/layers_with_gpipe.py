@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +15,6 @@
 # ==============================================================================
 """Lingvo layers that depend on layers and gpipe."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
@@ -26,8 +23,6 @@ from lingvo.core import py_utils
 from lingvo.core import tshape
 from lingvo.core.gpipe import FeatureExtractionLayer
 from lingvo.core.gpipe import PipeliningLayer
-from six.moves import range
-from six.moves import zip
 
 
 def _common_gpipe_transformer_params(p):
@@ -173,11 +168,11 @@ class GPipeTransformerLayer(layers_with_attention.TransformerLayer):
   @classmethod
   def Params(cls):
     """Configs for TransformerStack."""
-    p = super(GPipeTransformerLayer, cls).Params()
+    p = super().Params()
     return _common_gpipe_transformer_params(p)
 
   def __init__(self, params):
-    super(GPipeTransformerLayer, self).__init__(params)
+    super().__init__(params)
     _common_gpipe_transformer_init(self)
 
   @classmethod
@@ -232,11 +227,11 @@ class GPipeEvolvedTransformerEncoderLayer(
 
   @classmethod
   def Params(cls):
-    p = super(GPipeEvolvedTransformerEncoderLayer, cls).Params()
+    p = super().Params()
     return _common_gpipe_transformer_params(p)
 
   def __init__(self, params):
-    super(GPipeEvolvedTransformerEncoderLayer, self).__init__(params)
+    super().__init__(params)
     _common_gpipe_transformer_init(self)
 
   def FProp(self,
@@ -297,11 +292,11 @@ class GPipeEvolvedTransformerDecoderLayer(
 
   @classmethod
   def Params(cls):
-    p = super(GPipeEvolvedTransformerDecoderLayer, cls).Params()
+    p = super().Params()
     return _common_gpipe_transformer_params(p)
 
   def __init__(self, params):
-    super(GPipeEvolvedTransformerDecoderLayer, self).__init__(params)
+    super().__init__(params)
     _common_gpipe_transformer_init(self)
 
   def FProp(self,
@@ -362,7 +357,7 @@ class GPipeTransformerSoftmaxLayer(layers.SimpleFullSoftmax):
 
   @classmethod
   def Params(cls):
-    p = super(GPipeTransformerSoftmaxLayer, cls).Params()
+    p = super().Params()
     p.Define('inputs_from_decoder', False,
              'Bool, whether inputs to this layer come from decoder or not.')
     return p
@@ -390,9 +385,7 @@ class GPipeTransformerSoftmaxLayer(layers.SimpleFullSoftmax):
         transformer_output)[1]
     softmax_input = tf.reshape(transformer_output, [-1, p.input_dim])
     output_shape = [dim1, dim2, p.num_classes]
-    return tf.reshape(
-        super(GPipeTransformerSoftmaxLayer,
-              self).Logits(theta, [softmax_input]), output_shape)
+    return tf.reshape(super().Logits(theta, [softmax_input]), output_shape)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):
@@ -407,7 +400,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs of Embedding layers for TransformerStack."""
-    p = super(GPipeTransformerEmbeddingLayer, cls).Params()
+    p = super().Params()
     # Note: we use the same configs for src and tgt embeddings right now.
     p.Define('token_emb', layers.SimpleEmbeddingLayer.Params(),
              'The embedding layer params.')
@@ -439,7 +432,7 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(GPipeTransformerEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       p.token_emb.name = 'src_token_emb'
@@ -593,7 +586,7 @@ class GPipeTransformerStack(PipeliningLayer):
   @classmethod
   def Params(cls):
     """Configs for TransformerStack."""
-    p = super(GPipeTransformerStack, cls).Params()
+    p = super().Params()
 
     # GPipe Related
     p.Define(
@@ -672,7 +665,7 @@ class GPipeTransformerStack(PipeliningLayer):
       # Encoder layers.
       for i in range(p.num_encoder_layers):
         params = p.encoder_tpl.Copy()
-        params.name = 'encoder_%d' % (i)
+        params.name = 'encoder_%d' % i
         if p.is_transparent:
           params.is_transparent = p.is_transparent
           params.final_enc_layer = (i == (p.num_encoder_layers - 1))
@@ -692,7 +685,7 @@ class GPipeTransformerStack(PipeliningLayer):
       # Decoder layers.
       for i in range(p.num_decoder_layers):
         params = p.decoder_tpl.Copy()
-        params.name = 'decoder_%d' % (i)
+        params.name = 'decoder_%d' % i
         params.mask_self_atten = True
         if p.packed_input:
           params.packed_input = p.packed_input
@@ -714,7 +707,7 @@ class GPipeTransformerStack(PipeliningLayer):
         cells.append(cell)
         cell_start = cell_end + offset
       p.cell_tpl = cells
-    super(GPipeTransformerStack, self).__init__(p)
+    super().__init__(p)
 
     if p.label_smoothing:
       self.CreateChild('smoother', p.label_smoothing)
@@ -855,11 +848,10 @@ class GPipeTransformerStack(PipeliningLayer):
       assert source_pos_id is not None, (
           'Need to specify src_pos_id for packed input and embeddings.')
 
-    logits = super(GPipeTransformerStack,
-                   self).FProp(theta, source_input, source_paddings,
-                               target_input, target_paddings, source_segment_id,
-                               target_segment_id, source_pos_id, target_pos_id,
-                               source_task_id, target_task_id)
+    logits = super().FProp(theta, source_input, source_paddings, target_input,
+                           target_paddings, source_segment_id,
+                           target_segment_id, source_pos_id, target_pos_id,
+                           source_task_id, target_task_id)
     if not p.softmax_tpl:
       return logits
     label_weights = tf.reshape(label_weights, [-1])
@@ -904,7 +896,7 @@ class GPipeEvolvedTransformerStack(GPipeTransformerStack):
   @classmethod
   def Params(cls):
     """Configs for EvolvedTransformerStack."""
-    p = super(GPipeEvolvedTransformerStack, cls).Params()
+    p = super().Params()
     p.encoder_tpl = GPipeEvolvedTransformerEncoderLayer.Params()
     p.decoder_tpl = GPipeEvolvedTransformerDecoderLayer.Params()
     return p
@@ -916,7 +908,7 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for this MergerLayer class."""
-    p = super(DeterministicWeightsLayer, cls).Params()
+    p = super().Params()
     p.Define('num_sources', 0, 'Number of input sources to combine.')
     p.Define('weighted_merger_dropout_prob', 0.0,
              'Applies dropout to the weights.')
@@ -930,7 +922,7 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(DeterministicWeightsLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not p.name:
       raise ValueError('Layer must have a specified name!')

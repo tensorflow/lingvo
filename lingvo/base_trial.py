@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +15,12 @@
 # ==============================================================================
 """Defines trials for parameter exploration."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import time
 
 from lingvo.core import hyperparams
 
 
-class Trial(object):
+class Trial:
   """Base class for a trial."""
 
   @classmethod
@@ -106,7 +103,7 @@ class NoOpTrial(Trial):
   """A Trial implementation that does nothing."""
 
   def __init__(self):
-    super(NoOpTrial, self).__init__(Trial.Params())
+    super().__init__(Trial.Params())
 
   def Name(self):
     return ''

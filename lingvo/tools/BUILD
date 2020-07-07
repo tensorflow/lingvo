@@ -37,10 +37,7 @@ py_binary(
     srcs = ["bpe_word_tokenizer.py"],
     python_version = "PY3",
     srcs_version = "PY3",
-    deps = [
-        "//lingvo:compat",
-        # Implicit six dependency.
-    ],
+    deps = ["//lingvo:compat"],
 )
 
 py_binary(
@@ -85,7 +82,6 @@ py_binary(
     deps = [
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -112,6 +108,7 @@ py_test(
     srcs = ["beam_utils_test.py"],
     data = ["//lingvo/tasks/mt/testdata:wmt14_ende_tfexample"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":beam_utils",
         # Implicit apache_beam dependency.
@@ -128,6 +125,7 @@ py_test(
         "//lingvo/tools/testdata:audio_data",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":audio_lib",
         "//lingvo:compat",
@@ -151,6 +149,7 @@ py_test(
     name = "compare_params_test",
     srcs = ["compare_params_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":compare_params_lib",
         "//lingvo:compat",
@@ -167,7 +166,6 @@ py_binary(
     deps = [
         ":audio_lib",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 

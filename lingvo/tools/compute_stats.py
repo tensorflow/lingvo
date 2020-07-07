@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,8 @@
 # ==============================================================================
 """Compute stats from tfrecords files."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 import numpy as np
-from six.moves import range
 
 tf.flags.DEFINE_string('input_filepattern', '',
                        'File pattern of binary tfrecord files.')
@@ -32,7 +27,8 @@ tf.flags.DEFINE_string('feature_name', None, 'Name of feature to examine.')
 FLAGS = tf.flags.FLAGS
 
 
-class StatsCollector(object):
+class StatsCollector:
+  """Collect stats."""
 
   def __init__(self,):
     self._num_examples = 0

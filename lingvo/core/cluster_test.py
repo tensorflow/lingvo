@@ -15,13 +15,10 @@
 # ==============================================================================
 """Tests for cluster."""
 
-
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 class ClusterTest(test_utils.TestCase):

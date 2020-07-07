@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for best_step_op."""
 
-
 from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_helper

@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,17 +14,12 @@
 # limitations under the License.
 """Lingvo layers that depend on attention layers but are not recurrent."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import attention
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import symbolic
-from six.moves import range
 
 
 class TransformerAttentionLayer(base_layer.BaseLayer):
@@ -75,7 +71,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerAttentionLayer, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('context_dim', 0, 'Dimension of the attention contexts.')
     p.Define('atten_hidden_dim', 0, 'Dimension of the attention hidden dim.')
@@ -121,7 +117,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerAttentionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.source_dim
@@ -413,7 +409,7 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerMultiSourceAttentionLayer, cls).Params()
+    p = super().Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
     p.Define(
         'primary_source_index', 0, 'Index of the primary source whose '
@@ -425,7 +421,7 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerMultiSourceAttentionLayer, self).__init__(params)
+    super().__init__(params)
 
   def _InitAttention(self, atten_tpl):
     p = self.params
@@ -434,8 +430,7 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     for i in range(p.num_source):
       src_key = 'source_%d' % i
       src_atten = atten_tpl.Copy()
-      src_atten = super(TransformerMultiSourceAttentionLayer,
-                        self)._InitAttention(src_atten)
+      src_atten = super()._InitAttention(src_atten)
       src_atten.name = 'multihead_atten_%s' % src_key
       source_atten_tpls.append((src_key, src_atten))
 
@@ -464,7 +459,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerFeedForwardLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('output_dim', 0, 'Dimension of the layer output.')
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
@@ -495,7 +490,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerFeedForwardLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim
@@ -583,7 +578,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLayer, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('output_dim', 0, 'Dimension of the transformer block output.')
     p.Define('tr_atten_tpl',
@@ -612,7 +607,7 @@ class TransformerLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.source_dim
@@ -812,7 +807,7 @@ class EvolvedTransformerEncoderBranchedConvsLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EvolvedTransformerEncoderBranchedConvsLayer, cls).Params()
+    p = super().Params()
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('activation', 'RELU',
@@ -828,7 +823,7 @@ class EvolvedTransformerEncoderBranchedConvsLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(EvolvedTransformerEncoderBranchedConvsLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim
@@ -925,7 +920,7 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EvolvedTransformerDecoderBranchedConvsLayer, cls).Params()
+    p = super().Params()
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('activation', 'RELU',
@@ -938,7 +933,7 @@ class EvolvedTransformerDecoderBranchedConvsLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(EvolvedTransformerDecoderBranchedConvsLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim
@@ -1026,7 +1021,7 @@ class EvolvedTransformerBaseLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EvolvedTransformerBaseLayer, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define(
         'has_aux_atten', False,
@@ -1046,7 +1041,7 @@ class EvolvedTransformerEncoderLayer(EvolvedTransformerBaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EvolvedTransformerEncoderLayer, cls).Params()
+    p = super().Params()
     p.Define('glu_tpl', layers.GluLayer.Params(), 'Glu layer.')
     p.Define('branched_convs_tpl',
              EvolvedTransformerEncoderBranchedConvsLayer.Params(),
@@ -1055,7 +1050,7 @@ class EvolvedTransformerEncoderLayer(EvolvedTransformerBaseLayer):
     return p
 
   def __init__(self, params):
-    super(EvolvedTransformerEncoderLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.source_dim
@@ -1125,7 +1120,7 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EvolvedTransformerDecoderLayer, cls).Params()
+    p = super().Params()
     p.Define('tr_atten_tpl',
              TransformerAttentionLayer.Params().Set(num_attention_heads=8),
              'Transformer attention layer params.')
@@ -1142,7 +1137,7 @@ class EvolvedTransformerDecoderLayer(EvolvedTransformerBaseLayer):
     return p
 
   def __init__(self, params):
-    super(EvolvedTransformerDecoderLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.source_dim
@@ -1323,7 +1318,7 @@ class StyleLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(StyleLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input.')
     p.Define('output_dim', 0, 'Dimension of the output.')
     p.Define('num_styles', 0, 'Num of styles.')
@@ -1335,7 +1330,7 @@ class StyleLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(StyleLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.num_styles > 0
     assert p.input_dim > 0
@@ -1430,13 +1425,13 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLayerWithMultitaskAdapters, cls).Params()
+    p = super().Params()
     p.Define('adapter_tpl', layers.MultitaskAdapterLayer.Params(),
              'Template to use for multitask adapters.')
     return p
 
   def __init__(self, params):
-    super(TransformerLayerWithMultitaskAdapters, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -1476,10 +1471,9 @@ class TransformerLayerWithMultitaskAdapters(TransformerLayer):
       aux_time].
     """
     p = self.params
-    hidden, atten_prob = super(TransformerLayerWithMultitaskAdapters,
-                               self).FProp(theta, source_vecs, source_paddings,
-                                           aux_vecs, aux_paddings,
-                                           source_segment_id, aux_segment_id)
+    hidden, atten_prob = super().FProp(theta, source_vecs, source_paddings,
+                                       aux_vecs, aux_paddings,
+                                       source_segment_id, aux_segment_id)
     # Assumes the same task_id for the entire sequence during eval or when
     # not using packed_input.
     if not p.packed_input and not self.do_eval:
@@ -1560,7 +1554,7 @@ class CCTAttentionLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CCTAttentionLayer, cls).Params()
+    p = super().Params()
 
     # Transformer Attention params.
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
@@ -1600,7 +1594,7 @@ class CCTAttentionLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(CCTAttentionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.source_dim
@@ -1884,7 +1878,7 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CCTFeedForwardLayer, cls).Params()
+    p = super().Params()
     # Transformer Feedforward params.
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('output_dim', 0, 'Dimension of the layer output.')  # Deprecated.
@@ -1917,7 +1911,7 @@ class CCTFeedForwardLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(CCTFeedForwardLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim
@@ -2020,7 +2014,7 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerWithContextLayer, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Dimension of the transformer block input.')
     p.Define('output_dim', 0, 'Dimension of the transformer block output.')
     p.Define(
@@ -2044,7 +2038,7 @@ class TransformerWithContextLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerWithContextLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.has_aux_atten
     assert p.mask_self_atten

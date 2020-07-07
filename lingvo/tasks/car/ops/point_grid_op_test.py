@@ -15,13 +15,11 @@
 # ==============================================================================
 """Tests for lingvo.tasks.car.ops.point_grid_op."""
 
-
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import ops
 import numpy as np
-from six.moves import range
 
 
 class PointGridOpTest(test_utils.TestCase):

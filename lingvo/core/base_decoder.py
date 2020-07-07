@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Common decoder interface."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 
@@ -46,7 +42,7 @@ class BaseDecoder(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseDecoder, cls).Params()
+    p = super().Params()
     p.Define(
         'packed_input', False, 'If True, decoder and all layers support '
         'multiple examples in a single sequence.')
@@ -96,7 +92,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(BaseBeamSearchDecoder, cls).Params()
+    p = super().Params()
     p.Define('target_sos_id', 1, 'Id of the target sequence sos symbol.')
     p.Define('target_eos_id', 2, 'Id of the target sequence eos symbol.')
     # TODO(rpang): remove target_seq_len and use beam_search.target_seq_len
@@ -129,7 +125,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
     raise NotImplementedError('Abstract method')
 
   def __init__(self, params):
-    super(BaseBeamSearchDecoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
     p.beam_search.target_seq_len = p.target_seq_len
     p.beam_search.target_sos_id = p.target_sos_id

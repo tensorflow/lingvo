@@ -15,14 +15,12 @@
 # ==============================================================================
 """Tests for task_scheduler."""
 
-
 import os
 import lingvo.compat as tf
 from lingvo.core import early_stop
 from lingvo.core import task_scheduler
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 _NUMPY_RANDOM_SEED = 9885784
 

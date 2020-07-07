@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for asr frontend."""
 
-
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_helper

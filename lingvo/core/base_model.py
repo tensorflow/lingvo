@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Base model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import re
@@ -35,8 +31,6 @@ from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.core import summary_utils
 from lingvo.core import task_scheduler
-import six
-from six.moves import range
 from lingvo.core import decoder_lib
 from model_pruning.python import pruning
 
@@ -62,7 +56,7 @@ class BaseTask(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseTask, cls).Params()
+    p = super().Params()
     p.Define('input', None, 'Input generator Params.')
     p.Define('encoder', None, 'Encoder Params.')
     p.Define('online_encoder', None, 'Online Encoder Params.')
@@ -240,7 +234,7 @@ class BaseTask(base_layer.BaseLayer):
     assert issubclass(params.cls, BaseTask)
     # Ensure global_step exists before calling super.
     py_utils.GetOrCreateGlobalStepVar()
-    super(BaseTask, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
 
@@ -509,10 +503,10 @@ class BaseTask(base_layer.BaseLayer):
       metrics['num_samples_in_batch'] = (tf.convert_to_tensor(
           self.input_generator.GlobalBatchSize()), tf.constant(1.0))
     # Generates summaries.
-    for name, (value, weight) in six.iteritems(metrics):
+    for name, (value, weight) in metrics.items():
       self.AddEvalMetric(name, value, weight)
     per_example = self.FilterPerExampleTensors(per_example)
-    for name, value in six.iteritems(per_example):
+    for name, value in per_example.items():
       self.AddPerExampleTensor(name, value)
     # Loss.
     self._loss, self._num_predictions = metrics['loss']
@@ -560,7 +554,7 @@ class BaseTask(base_layer.BaseLayer):
       onehot = self.input_generator.GetInputSourceOneHot()
       gradient_mask = {
           k: tf.tensordot(v, onehot, 1)
-          for k, v in six.iteritems(self._per_input_gradient_mask)
+          for k, v in self._per_input_gradient_mask.items()
       }
     all_losses = []
     for optimization in self.learners:
@@ -576,7 +570,7 @@ class BaseTask(base_layer.BaseLayer):
           vmap,
           gradient_mask=gradient_mask,
           gradient_adjuster=self.AdjustGradients)
-      for key, (value, weight) in six.iteritems(eval_metrics):
+      for key, (value, weight) in eval_metrics.items():
         self.AddEvalMetric(key + '/' + loss_name, value, weight)
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
@@ -611,7 +605,7 @@ class BaseTask(base_layer.BaseLayer):
           self.loss, tpu_embedding_activations_dict, tpu_embedding)
       train_ops['tpu_embedding'] = tpu_embedding_send_gradient_op
 
-    for op_name, op in six.iteritems(train_ops):
+    for op_name, op in train_ops.items():
       assert op is not None, op_name
 
     # TODO(rpang): try to structure _train_op as:
@@ -865,7 +859,7 @@ class DistillationTask(BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(DistillationTask, cls).Params()
+    p = super().Params()
     p.Define('teacher', None, 'The teacher task params.')
     p.Define('student', None, 'The student task params.')
     p.Define(
@@ -898,7 +892,7 @@ class DistillationTask(BaseTask):
 
   def __init__(self, params):
     assert issubclass(params.cls, DistillationTask)
-    super(DistillationTask, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
     # While student does not need its own input generator for training, it
@@ -988,7 +982,7 @@ class DistillationTask(BaseTask):
   def BProp(self):
     p = self.params
     if p.train_teacher:
-      return super(DistillationTask, self).BProp()
+      return super().BProp()
     else:
       # Only bprop on student variables.
       self._BPropForVariables(self.student.vars)
@@ -1011,7 +1005,7 @@ class BaseModel(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseModel, cls).Params()
+    p = super().Params()
     p.Define(
         'model', None, 'Which python function generates the param. It includes '
         'the file name and lineno where the function is defined.')
@@ -1064,7 +1058,7 @@ class BaseModel(base_layer.BaseLayer):
     self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
     self._global_step = tf.identity(
         self._global_step_var, name='global_step_tensor')
-    super(BaseModel, self).__init__(params)
+    super().__init__(params)
 
     self._ema = None
     tp = self.params.train
@@ -1146,7 +1140,7 @@ class SingleTaskBase(BaseModel):
 
   def __init__(self, params):
     assert issubclass(params.cls, SingleTaskBase)
-    super(SingleTaskBase, self).__init__(params)
+    super().__init__(params)
 
   @property
   def tasks(self):
@@ -1178,7 +1172,7 @@ class SingleTaskModel(SingleTaskBase):
 
   @classmethod
   def Params(cls, task_params=None):
-    p = super(SingleTaskModel, cls).Params()
+    p = super().Params()
     p.Define(
         'task', None,
         '`InstantiableParams` object for a `BaseTask` or its derivatives.')
@@ -1217,7 +1211,7 @@ class SingleTaskModel(SingleTaskBase):
     p.train.ema_decay = p.task.train.ema_decay
     p.train.ema_decay_moving_vars = p.task.train.ema_decay_moving_vars
 
-    super(SingleTaskModel, self).__init__(p)
+    super().__init__(p)
 
     with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_task', self.params.task)
@@ -1233,7 +1227,7 @@ class MultiTaskSubModel(SingleTaskBase):
 
   @classmethod
   def Params(cls):
-    p = super(MultiTaskSubModel, cls).Params()
+    p = super().Params()
     p.name = 'multi_task_sub_model'
     p.Define('model_params', None, 'Params of a model to create.')
     p.Define('task_name', '', 'The name of the task to execute from the '
@@ -1241,7 +1235,7 @@ class MultiTaskSubModel(SingleTaskBase):
     return p
 
   def __init__(self, params):
-    super(MultiTaskSubModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_model', p.model_params)
@@ -1253,7 +1247,7 @@ class MultiTaskModel(BaseModel):
 
   @classmethod
   def Params(cls):
-    p = super(MultiTaskModel, cls).Params()
+    p = super().Params()
     p.Define(
         'task_params', hyperparams.Params(),
         'Params object mapping task name to `BaskTask`(or derivatives) '
@@ -1277,7 +1271,7 @@ class MultiTaskModel(BaseModel):
 
   def __init__(self, params):
     assert issubclass(params.cls, MultiTaskModel)
-    super(MultiTaskModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert len(p.task_params) > 1
 

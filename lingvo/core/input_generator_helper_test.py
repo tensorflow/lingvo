@@ -15,12 +15,10 @@
 # ==============================================================================
 """Tests for input_generator_helper."""
 
-
 import lingvo.compat as tf
 from lingvo.core import input_generator_helper
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 
 class InputGeneratorHelperTest(test_utils.TestCase):

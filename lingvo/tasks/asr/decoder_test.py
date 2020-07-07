@@ -23,8 +23,6 @@ from lingvo.core import test_utils
 from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.tasks.asr import decoder
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 from google.protobuf import text_format
 
@@ -590,7 +588,7 @@ class DecoderTest(test_utils.TestCase):
       }
     """
     expected_hyp = Hypothesis()
-    text_format.Merge(expected_str, expected_hyp)
+    text_format.Parse(expected_str, expected_hyp)
 
     decoded_hyp = self._testDecoderBeamSearchDecodeHelperWithOutput(params=p)
     self._VerifyHypothesesMatch(expected_hyp, decoded_hyp)

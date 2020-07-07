@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Metadata for Waymo dataset employed in evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo.tasks.car import evaluation_metadata
 
 
@@ -31,7 +27,7 @@ class WaymoMetadata(evaluation_metadata.EvaluationMetadata):
   """
 
   def __init__(self):
-    super(WaymoMetadata, self).__init__('waymo')
+    super().__init__('waymo')
 
   def ClassNames(self):
     """Returns a list of human-interpretable strings."""

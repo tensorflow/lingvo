@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for hyperparams."""
 
-
 import collections
 import enum
 
@@ -24,18 +23,16 @@ from lingvo.core import hyperparams as _params
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
 from lingvo.core import test_utils
-from six.moves import range
-from six.moves import zip
 
 FLAGS = tf.flags.FLAGS
 
 
-class TestClass1(object):
+class TestClass1:
   """This class is used in ParamsToSimpleTextTest as a value of a variable."""
   pass
 
 
-class TestClass2(object):
+class TestClass2:
   """This class is used in ParamsToSimpleTextTest as a value of a variable."""
   pass
 

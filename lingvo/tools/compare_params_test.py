@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for compare_params."""
 
-
 from lingvo import compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import test_utils

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 """Utilities for fusing language models with the decoder output."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
@@ -30,7 +26,7 @@ class FusionBase(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(FusionBase, cls).Params()
+    p = super().Params()
     p.Define('lm', lm_layers.NullLm.Params(), 'Language model params.')
     p.Define(
         'base_model_logits_dim', None,
@@ -46,7 +42,7 @@ class FusionBase(base_layer.BaseLayer):
     except AttributeError:
       pass
 
-    super(FusionBase, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
     self.CreateChild('lm', p.lm)

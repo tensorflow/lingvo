@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Utilities for generating image summaries using matplotlib."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import functools
 import traceback
@@ -30,12 +26,10 @@ import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import six
-from six.moves import range
-from six.moves import zip
 
 
 def ToUnicode(text):
-  if not isinstance(text, six.text_type):
+  if not isinstance(text, str):
     text = six.ensure_text(text, 'utf-8')
   return text
 
@@ -142,7 +136,7 @@ _SubplotMetadata = collections.namedtuple('_SubplotMetadata',
                                           ['tensor_list', 'plot_func'])
 
 
-class MatplotlibFigureSummary(object):
+class MatplotlibFigureSummary:
   """Helper to minimize boilerplate in creating a summary with several subplots.
 
   Typical usage::

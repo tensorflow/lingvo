@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """The compatible tensorflow library."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import tensorflow.compat.v1 as tf1
 from tensorflow.compat.v2 import *  # pylint:disable=wildcard-import, g-bad-import-order
@@ -38,9 +35,8 @@ from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import math_ops
-from tensorflow.python.util import module_wrapper as _module_wrapper
-
 from tensorflow.python.platform import app
+from tensorflow.python.util import module_wrapper as _module_wrapper
 # pylint: enable=g-direct-tensorflow-import
 # pylint: enable=unused-import, g-bad-import-order, g-import-not-at-top
 

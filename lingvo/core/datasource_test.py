@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo.core.datasource."""
 
-
 import lingvo.compat as tf
 
 from lingvo.core import datasource

@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for Asr Model."""
 
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import cluster_factory
@@ -35,7 +34,7 @@ class DecoderForTest(decoder.AsrDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(DecoderForTest, cls).Params()
+    p = super().Params()
     p.use_while_loop_based_unrolling = False
     return p
 

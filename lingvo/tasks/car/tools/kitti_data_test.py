@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for kitti_data."""
 
-
 from lingvo import compat as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
@@ -27,7 +26,7 @@ import numpy as np
 class KittiDataTest(test_utils.TestCase):
 
   def setUp(self):
-    super(KittiDataTest, self).setUp()
+    super().setUp()
     self._label_file = test_helper.test_src_dir_path(
         'tasks/car/testdata/kitti_raw_label_testdata.txt')
     self._calib_file = test_helper.test_src_dir_path(

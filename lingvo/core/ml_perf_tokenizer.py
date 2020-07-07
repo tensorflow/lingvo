@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Tokenizer for use for the MLPerf transformer benchmark."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo.core import ops
 from lingvo.core import tokenizers
 
@@ -28,7 +24,7 @@ class MlPerfTokenizer(tokenizers.BaseTokenizer):
 
   @classmethod
   def Params(cls):
-    p = super(MlPerfTokenizer, cls).Params()
+    p = super().Params()
     p.Define("vocab_filepath", None, "Specifies a filepath to the vocab.")
     return p
 

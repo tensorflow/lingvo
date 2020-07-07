@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,17 +38,12 @@ python export_kitti_detection.py \
 --logtostderr
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import flags
 from lingvo import compat as tf
 from lingvo.core.ops import record_pb2
 from lingvo.tasks.car import kitti_metadata
 from lingvo.tasks.car.tools import kitti_data
 import numpy as np
-from six.moves import zip
 
 
 FLAGS = flags.FLAGS

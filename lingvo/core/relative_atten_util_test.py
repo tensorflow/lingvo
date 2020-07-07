@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for relative_atten_util."""
 
-
 from absl.testing import parameterized
 
 from lingvo import compat as tf
@@ -76,7 +75,7 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
                                          parameterized.TestCase):
 
   def setUp(self):
-    super(TransformerXLRelativeAttentionTest, self).setUp()
+    super().setUp()
     self.input_dim = 32
     self.num_heads = 4
     self.batch = 4

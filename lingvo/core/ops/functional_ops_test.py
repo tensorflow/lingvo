@@ -15,12 +15,10 @@
 # ==============================================================================
 """Tests for functional ops."""
 
-
 from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 
 class FunctionalOpsTest(test_utils.TestCase):

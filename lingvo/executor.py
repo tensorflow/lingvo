@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """An experimental new unified TPU executor."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
@@ -140,8 +136,7 @@ class ExecutorTpu(base_runner.BaseRunner):
       tf_master: String path to the master job, e.g. 'local'.
       **kwargs: keyword args to pass through to BaseRunner.
     """
-    super(ExecutorTpu, self).__init__(train_cfg, model_task_name, logdir,
-                                      tf_master, **kwargs)
+    super().__init__(train_cfg, model_task_name, logdir, tf_master, **kwargs)
 
     self._cluster_def = self._cluster.worker_cluster_def
 

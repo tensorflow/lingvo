@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Lingvo layers that used for spectrum augmentation."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -88,7 +84,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SpectrumAugmenter, cls).Params()
+    p = super().Params()
     p.Define('freq_mask_max_bins', 15,
              'Maximum number of frequency bins of frequency masking.')
     p.Define('freq_mask_count', 1,
@@ -146,7 +142,7 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(SpectrumAugmenter, self).__init__(params)
+    super().__init__(params)
     p = self.params
     num_domains = len(p.domain_ids)
     for field in _SPECAUGMENT_ARGS:

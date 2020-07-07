@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for pointnet."""
 
-
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import py_utils

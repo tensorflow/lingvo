@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
 # ==============================================================================
 """Base models for point-cloud based detection."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import metrics
 from lingvo.core import py_utils
@@ -29,7 +26,6 @@ from lingvo.tasks.car import kitti_ap_metric
 from lingvo.tasks.car import kitti_metadata
 from lingvo.tasks.car import transform_util
 import numpy as np
-from six.moves import range
 
 
 class KITTIDecoder(base_decoder.BaseDecoder):
@@ -41,7 +37,7 @@ class KITTIDecoder(base_decoder.BaseDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(KITTIDecoder, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_predictions_outside_frustum', False,
         'If true, predictions whose bounding box center is outside of the '

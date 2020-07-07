@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,18 +14,12 @@
 # limitations under the License.
 """RNN cells (e.g., LSTM, GRU) that the Lingvo model uses."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import math
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
-from six.moves import range
-from six.moves import zip
 
 from tensorflow.python.util import deprecation as tf_deprecation  # pylint: disable=g-direct-tensorflow-import
 
@@ -66,7 +60,7 @@ class RNNCell(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(RNNCell, cls).Params()
+    p = super().Params()
     p.Define('inputs_arity', 1,
              'number of tensors expected for the inputs.act to FProp.')
     p.Define('num_input_nodes', 0, 'Number of input nodes.')
@@ -89,12 +83,12 @@ class RNNCell(quant_utils.QuantizableLayer):
 
   def __init__(self, params):
     """Initializes RnnCell."""
-    super(RNNCell, self).__init__(params)
+    super().__init__(params)
     assert not self.params.vn.per_step_vn, (
         'We do not support per step VN in RNN cells.')
 
   def _VariableCollections(self):
-    return [RNN_CELL_WT, '%s_vars' % (self.__class__.__name__)]
+    return [RNN_CELL_WT, '%s_vars' % self.__class__.__name__]
 
   def zero_state(self, theta, batch_size):
     """Returns the initial state given the batch size."""
@@ -248,7 +242,7 @@ class LSTMCellSimple(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(LSTMCellSimple, cls).Params()
+    p = super().Params()
     p.Define(
         'num_hidden_nodes', 0, 'Number of projection hidden nodes '
         '(see https://arxiv.org/abs/1603.08042). '
@@ -287,7 +281,7 @@ class LSTMCellSimple(RNNCell):
 
   def __init__(self, params):
     """Initializes LSTMCellSimple."""
-    super(LSTMCellSimple, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
     assert isinstance(p.cell_value_cap,
@@ -632,7 +626,7 @@ class LSTMCellGrouped(RNNCell):
 
   @classmethod
   def Params(cls, child_cell_cls=LSTMCellSimple):
-    p = super(LSTMCellGrouped, cls).Params()
+    p = super().Params()
     p.Define('child_lstm_tpl', child_cell_cls.Params(),
              'Template of child LSTM cells.')
     p.Define('num_hidden_nodes', 0, 'Number of hidden nodes.')
@@ -646,7 +640,7 @@ class LSTMCellGrouped(RNNCell):
 
   def __init__(self, params):
     """Initializes LSTMCellGrouped."""
-    super(LSTMCellGrouped, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
     assert p.num_input_nodes > 0
@@ -774,12 +768,12 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
 
   @classmethod
   def Params(cls):
-    p = super(LSTMCellSimpleDeterministic, cls).Params()
+    p = super().Params()
     return p
 
   def __init__(self, params):
     """Initializes LSTMCell."""
-    super(LSTMCellSimpleDeterministic, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     with tf.variable_scope(p.name):
@@ -895,14 +889,14 @@ class QuantizedLSTMCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(QuantizedLSTMCell, cls).Params()
+    p = super().Params()
     p.Define('cc_schedule', quant_utils.LinearClippingCapSchedule.Params(),
              'Clipping cap schedule.')
     return p
 
   def __init__(self, params):
     """Initializes QuantizedLSTMCell."""
-    super(QuantizedLSTMCell, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
 
@@ -1001,7 +995,7 @@ class LayerNormalizedLSTMCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(LayerNormalizedLSTMCell, cls).Params()
+    p = super().Params()
     p.Define(
         'cell_value_cap', 10.0, 'LSTM cell values are capped to be within '
         ' [-cell_value_cap, +cell_value_cap]. This can be a'
@@ -1021,7 +1015,7 @@ class LayerNormalizedLSTMCell(RNNCell):
       instructions='New models should use LayerNormalizedLSTMCellSimple.')
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCell."""
-    super(LayerNormalizedLSTMCell, self).__init__(params)
+    super().__init__(params)
     params = self.params
     if not isinstance(params.cell_value_cap, (int, float)):
       raise ValueError('Cell value cap must of type int or float!')
@@ -1196,13 +1190,13 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
 
   @classmethod
   def Params(cls):
-    p = super(LayerNormalizedLSTMCellSimple, cls).Params()
+    p = super().Params()
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     return p
 
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCellSimple."""
-    super(LayerNormalizedLSTMCellSimple, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
@@ -1285,7 +1279,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(LayerNormalizedLSTMCellLean, cls).Params()
+    p = super().Params()
     p.Define(
         'num_hidden_nodes', 0, 'Number of projection hidden nodes '
         '(see https://arxiv.org/abs/1603.08042). '
@@ -1315,7 +1309,7 @@ class LayerNormalizedLSTMCellLean(RNNCell):
 
   def __init__(self, params):
     """Initializes LayerNormalizedLSTMCellLean."""
-    super(LayerNormalizedLSTMCellLean, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
 
@@ -1487,7 +1481,7 @@ class DoubleProjectionLSTMCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(DoubleProjectionLSTMCell, cls).Params()
+    p = super().Params()
     p.Define(
         'num_input_hidden_nodes', 0,
         'Project all inputs, include m, to a hidden vector this size before '
@@ -1503,7 +1497,7 @@ class DoubleProjectionLSTMCell(RNNCell):
     return p
 
   def __init__(self, params):
-    super(DoubleProjectionLSTMCell, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
 
@@ -1653,7 +1647,7 @@ class ConvLSTMCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(ConvLSTMCell, cls).Params()
+    p = super().Params()
     p.Define(
         'inputs_shape', [None, None, None, None],
         'The shape of the input. It should be a list/tuple of size four.'
@@ -1682,7 +1676,7 @@ class ConvLSTMCell(RNNCell):
   def __init__(self, params):
     """Initializes ConvLSTMCell."""
     assert isinstance(params, hyperparams.Params)
-    super(ConvLSTMCell, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
     assert p.reset_cell_state is False, ('ConvLSTMCell currently doesnt '
@@ -1804,7 +1798,7 @@ class SRUCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(SRUCell, cls).Params()
+    p = super().Params()
     p.Define(
         'num_hidden_nodes', 0, 'Number of projection hidden nodes '
         '(see https://arxiv.org/abs/1603.08042). '
@@ -1848,7 +1842,7 @@ class SRUCell(RNNCell):
 
   def __init__(self, params):
     """Initializes SRUCell."""
-    super(SRUCell, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
     assert p.reset_cell_state is False, ('SRUCell currently doesnt support '
@@ -2182,7 +2176,7 @@ class QRNNPoolingCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(QRNNPoolingCell, cls).Params()
+    p = super().Params()
     p.Define(
         'cell_value_cap', 10.0, 'LSTM cell values are capped to be within '
         ' [-cell_value_cap, +cell_value_cap] if the value is not None. '
@@ -2196,7 +2190,7 @@ class QRNNPoolingCell(RNNCell):
 
   def __init__(self, params):
     """Initializes quasi-RNN Cell."""
-    super(QRNNPoolingCell, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
     assert p.reset_cell_state is False, ('QRNNPoolingCell currently doesnt '
@@ -2310,7 +2304,7 @@ class GRUCell(RNNCell):
 
   @classmethod
   def Params(cls):
-    p = super(GRUCell, cls).Params()
+    p = super().Params()
     p.Define(
         'num_hidden_nodes', 0, 'Number of projection hidden nodes '
         '(see https://arxiv.org/abs/1603.08042). '
@@ -2333,7 +2327,7 @@ class GRUCell(RNNCell):
 
   def __init__(self, params):
     """Initializes GRUCell."""
-    super(GRUCell, self).__init__(params)
+    super().__init__(params)
     assert isinstance(params, hyperparams.Params)
     p = self.params
     assert isinstance(p.cell_value_cap,

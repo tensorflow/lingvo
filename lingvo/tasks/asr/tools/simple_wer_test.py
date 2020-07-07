@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for simple_wer."""
 
-
 import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.asr.tools import simple_wer

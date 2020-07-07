@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Optimizers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import re
 
 import lingvo.compat as tf
@@ -34,7 +30,7 @@ class Base(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(Base, cls).Params()
+    p = super().Params()
     p.name = cls.__name__
     p.Define(
         'use_bf16_gradients_ar', False,
@@ -132,14 +128,14 @@ class CompositeOptimizer(Base):
 
   @classmethod
   def Params(cls):
-    p = super(CompositeOptimizer, cls).Params()
+    p = super().Params()
     p.Define(
         'optimizer_map', None,
         'Mapping of variable regex to (Lingvo Optimizer, learning rate) tuple.')
     return p
 
   def __init__(self, params):
-    super(CompositeOptimizer, self).__init__(params)
+    super().__init__(params)
     self._optimizer_map = {}
     self._lr_map = {}
     for index, regex in enumerate(params.optimizer_map):
@@ -259,7 +255,7 @@ class Momentum(Base):
 
   @classmethod
   def Params(cls):
-    p = super(Momentum, cls).Params()
+    p = super().Params()
     p.Define(
         'alpha', 0.9, 'The damping factor in the momentum '
         'optimizer. This controls how the velocity (averaged '
@@ -281,7 +277,7 @@ class RMSProp(Base):
 
   @classmethod
   def Params(cls):
-    p = super(RMSProp, cls).Params()
+    p = super().Params()
     p.Define('decay', 0.9, 'Discounting factor for the history/coming gradient')
     p.Define('momentum', 0.9, 'Momentum in RMSProp.')
     p.Define(
@@ -303,7 +299,7 @@ class Adagrad(Base):
 
   @classmethod
   def Params(cls):
-    p = super(Adagrad, cls).Params()
+    p = super().Params()
     p.Define('initial_accumulator_value', 1.0,
              "Adagrad's initial_accumulator_value.")
     return p
@@ -327,7 +323,7 @@ class AdaDelta(Base):
 
   @classmethod
   def Params(cls):
-    p = super(AdaDelta, cls).Params()
+    p = super().Params()
     p.Define('decay', 0.95,
              'Discounting factor for the history/coming gradient')
     p.Define(
@@ -349,7 +345,7 @@ class Adam(Base):
 
   @classmethod
   def Params(cls):
-    p = super(Adam, cls).Params()
+    p = super().Params()
     p.Define('beta1', 0.9, 'Beta1 for Adam.')
     p.Define('beta2', 0.999, 'Beta2 for Adam.')
     p.Define('epsilon', 1e-6, 'Epsilon for Adam.')
@@ -384,7 +380,7 @@ class Accumulator(Base):
 
   @classmethod
   def Params(cls):
-    p = super(Accumulator, cls).Params()
+    p = super().Params()
     p.Define('optimizer_tpl', Adam.Params(),
              'Params for the wrapped optimizer.')
     p.Define(
@@ -394,7 +390,7 @@ class Accumulator(Base):
     return p
 
   def __init__(self, params):
-    super(Accumulator, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self.CreateChild('_opt', p.optimizer_tpl)
 
@@ -450,7 +446,7 @@ class DistributedShampoo(Base):
 
   @classmethod
   def Params(cls):
-    params = super(DistributedShampoo, cls).Params()
+    params = super().Params()
     params.Define('momentum', 0.9, 'Momentum parameter.')
     params.Define('start_preconditioning_steps', 1000,
                   'When to start approximate full matrix preconditioning.')
@@ -551,7 +547,7 @@ class AdaGraft(Base):
 
   @classmethod
   def Params(cls):
-    params = super(AdaGraft, cls).Params()
+    params = super().Params()
 
     params.Define('magnitude_optimizer', None,
                   'Instantiated Optimizer layer providing the step size.')

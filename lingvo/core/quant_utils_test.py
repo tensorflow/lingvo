@@ -31,13 +31,13 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SampleQuantizedProjectionLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 2, 'Depth of the input.')
     p.Define('output_dim', 3, 'Depth of the output.')
     return p
 
   def __init__(self, params):
-    super(SampleQuantizedProjectionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     w_pc = py_utils.WeightParams(
@@ -299,7 +299,7 @@ class QuantizableLayerTest(test_utils.TestCase):
     return l
 
 
-class ClippingCapScheduleTest(object):
+class ClippingCapScheduleTest:
 
   def testLinearClippingCapSchedule(self):
     p = quant_utils.LinearClippingCapSchedule.Params()

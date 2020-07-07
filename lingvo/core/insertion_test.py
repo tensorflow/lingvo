@@ -15,12 +15,10 @@
 # ==============================================================================
 """Insertion Framework tests."""
 
-
 import lingvo.compat as tf
 from lingvo.core import insertion
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 
 class SequenceTest(test_utils.TestCase):

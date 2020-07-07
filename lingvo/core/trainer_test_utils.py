@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Toy models and input generation tools for testing trainer code."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -45,14 +41,14 @@ class CountingInputGenerator(base_input_generator.BaseInputGenerator):
 
   @classmethod
   def Params(cls):
-    p = super(CountingInputGenerator, cls).Params()
+    p = super().Params()
     p.Delete('batch_size')
     p.Define('batch_size', 2, 'batch size')
     p.Define('shape', [2, 2], 'source shape.')
     return p
 
   def __init__(self, params):
-    super(CountingInputGenerator, self).__init__(params)
+    super().__init__(params)
     self.shape = params.shape
 
   def _InputBatch(self):
@@ -70,7 +66,7 @@ class IdentityRegressionTask(base_model.BaseTask):
   """A simple regression task for testing."""
 
   def __init__(self, params):
-    super(IdentityRegressionTask, self).__init__(params)
+    super().__init__(params)
     with tf.variable_scope('IdentityRegressionTask'):
       self.CreateVariable(
           'm',
@@ -119,14 +115,14 @@ class IdentityRegressionModel(base_model.SingleTaskModel):
   """Simple regression model for testing."""
 
   def __init__(self, params):
-    super(IdentityRegressionModel, self).__init__(params)
+    super().__init__(params)
     self.global_steps = []
     self.metrics = []
     self.result_per_example_tensors = []
 
   @classmethod
   def Params(cls):
-    p = super(IdentityRegressionModel, cls).Params()
+    p = super().Params()
     p.name = 'IdentityRegressionModel'
     p.input = CountingInputGenerator.Params()
     p.task = IdentityRegressionTask.Params()

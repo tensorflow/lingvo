@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for beam_search_helper."""
 
-
 import lingvo.compat as tf
 from lingvo.core import beam_search_helper
 from lingvo.core import py_utils

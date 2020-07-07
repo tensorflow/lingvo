@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for trainer."""
 
-
 import os
 import random
 import re
@@ -29,7 +28,6 @@ from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
 import numpy as np
-from six.moves import range
 
 FLAGS = tf.flags.FLAGS
 
@@ -38,11 +36,11 @@ class BaseTrainerTest(test_utils.TestCase):
   """Base class for the test cases."""
 
   def __init__(self, *args, **kwargs):
-    super(BaseTrainerTest, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._trial = base_trial.NoOpTrial()
 
   def setUp(self):
-    super(BaseTrainerTest, self).setUp()
+    super().setUp()
     FLAGS.model_params_override = ''
     FLAGS.tf_master = tf.distribute.Server.create_local_server().target
     FLAGS.vizier_reporting_job = 'decoder'

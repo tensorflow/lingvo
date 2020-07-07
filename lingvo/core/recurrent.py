@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -80,18 +80,12 @@ Recurrent doesn't allow this, but you can change that behavior by setting the
 allow_implicit_captures flag.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 from lingvo.core import sendrecv
 from lingvo.core import symbolic
-from six.moves import range
-from six.moves import zip
 
 DevicePair = collections.namedtuple('DevicePair', ['send', 'recv'])
 
@@ -163,7 +157,8 @@ def _SeqLenDim(nmap):
   keys, values = zip(*nmap.FlattenItems())
   assert values, 'nmap is empty.'
   with tf.control_dependencies([
-      py_utils.assert_same_dim0(values, msg='recurrent._SeqLen: %s' % (keys,)),
+      py_utils.assert_same_dim0(
+          values, msg='recurrent._SeqLen: %s' % list(keys))
   ]):
     return tf.shape(values[0])[0]
 
@@ -269,7 +264,7 @@ def _TransformDType(nmap):
                         if x.dtype == tf.int32 else x)
 
 
-class _Recurrent(object):
+class _Recurrent:
   """A helper class to construct a recurrent neural net."""
 
   def __init__(self,
@@ -1087,7 +1082,7 @@ def Recurrent(theta,
   return acc_state, final_state
 
 
-class _Link(object):
+class _Link:
   """A link is a pair of channels."""
 
   def __init__(self, t, dpair):
@@ -1109,7 +1104,7 @@ def _Join(nmap_x, nmap_y, fn):
   return py_utils.Transform(fn, nmap_x, nmap_y).Flatten()
 
 
-class _Input(object):
+class _Input:
   """Input layers."""
 
   def __init__(self,
@@ -1186,7 +1181,7 @@ class _Input(object):
         unused_acc_state=self._unused_acc_state).Compute()
 
 
-class _Middle(object):
+class _Middle:
   """Middle layers."""
 
   def __init__(self, cell_fn, cell_out, cell_grad, cell_out_grad, theta, state0,
@@ -1272,7 +1267,7 @@ class _Middle(object):
         unused_acc_state=self._unused_acc_state).Compute()
 
 
-class _Output(object):
+class _Output:
   """Output layers."""
 
   def __init__(self, cell_fn, cell_grad, theta, state0, accumulator_layer,

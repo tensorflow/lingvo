@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,7 +25,7 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 
 
-class LSTMCellExt(object):
+class LSTMCellExt:
   """Extends LSTM-based cell classes with extra methods for parallelizing ...
 
   input projections across steps.
@@ -156,7 +156,7 @@ class LstmFRNN(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(LstmFRNN, cls).Params()
+    p = super().Params()
     p.Define('packed_input', False, 'To reset states for packed inputs.')
     p.Define(
         'cell', None,
@@ -167,7 +167,7 @@ class LstmFRNN(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(LstmFRNN, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.cell.cls not in (LSTMCellSimpleExt, LayerNormalizedLSTMCellSimpleExt,
                           LayerNormalizedLSTMCellLeanExt):

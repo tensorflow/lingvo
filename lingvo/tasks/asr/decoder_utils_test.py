@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for decoder utility functions."""
 
-
 import lingvo.compat as tf
 from lingvo.core import rnn_cell
 from lingvo.core import symbolic

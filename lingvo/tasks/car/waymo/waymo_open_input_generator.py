@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Input generator for waymo open dataset (WaymoOD)."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo.core import datasource
@@ -80,7 +76,7 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoFrameMetadataExtractor, cls).Params()
+    p = super().Params()
     p.Define(
         'equality_filters', None, 'A list of tuples(str, list) '
         'where each first value is a metadata key (e.g. `weather`) '
@@ -116,7 +112,7 @@ class WaymoFrameMetadataExtractor(input_extractor.FieldsExtractor):
                   filter_key, filter_value, valid_options))
 
   def __init__(self, params):
-    super(WaymoFrameMetadataExtractor, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if p.equality_filters:
@@ -216,7 +212,7 @@ class WaymoImageExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoImageExtractor, cls).Params()
+    p = super().Params()
     p.Define('camera_names',
              ['FRONT', 'FRONT_LEFT', 'FRONT_RIGHT', 'SIDE_LEFT', 'SIDE_RIGHT'],
              'The names of the cameras from which images will be extracted.')
@@ -345,8 +341,7 @@ class WaymoLaserExtractor(input_extractor.LaserExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoLaserExtractor, cls).Params().Set(
-        max_num_points=None, num_features=3)
+    p = super().Params().Set(max_num_points=None, num_features=3)
     p.Define('lidar_names', ['TOP', 'SIDE_LEFT', 'SIDE_RIGHT', 'FRONT', 'REAR'],
              'The names of the lidars from which lasers will be extracted.')
     p.Define(
@@ -447,7 +442,7 @@ class WaymoLabelExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoLabelExtractor, cls).Params()
+    p = super().Params()
     p.Define('max_num_objects', 512,
              'Each frame may contain up to these many bbox.')
     p.Define(
@@ -643,7 +638,7 @@ class RangeImageExtractor(input_extractor.FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(RangeImageExtractor, cls).Params()
+    p = super().Params()
     p.Define(
         'cbr_laser_names', ['SIDE_LEFT', 'FRONT', 'REAR', 'SIDE_RIGHT'],
         'The names of the CBR sensors from which range images '
@@ -936,7 +931,7 @@ class FilterNLZPoints(input_preprocessors.Preprocessor):
 
   @classmethod
   def Params(cls):
-    p = super(FilterNLZPoints, cls).Params()
+    p = super().Params()
     return p
 
   def TransformFeatures(self, features):
@@ -984,7 +979,7 @@ class WaymoSparseLaser(input_extractor.BaseExtractor):
         assign_anchors=input_preprocessors.AnchorAssignment.Params(),
         pad_lasers=input_preprocessors.PadLaserFeatures.Params().Set(),
     )
-    p = super(WaymoSparseLaser, cls).Params(extractors).Set(
+    p = super().Params(extractors).Set(
         preprocessors=_NestedMapToParams(preprocessors),
         preprocessors_order=[
             'viz_copy',

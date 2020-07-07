@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,6 @@ References:
   KERMIT: https://arxiv.org/pdf/1906.01604.pdf
   Insertion Transformer: https://arxiv.org/pdf/1902.03249.pdf
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -141,7 +137,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SymbolInsertionLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'rollin_policy', 'oracle',
         'Rollin policy, should be {oracle, uniform}. Rollin policy is the '
@@ -155,7 +151,7 @@ class SymbolInsertionLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(SymbolInsertionLayer, self).__init__(params)
+    super().__init__(params)
 
   def FProp(self,
             theta,

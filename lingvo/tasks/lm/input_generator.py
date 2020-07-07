@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Language model input generator."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
@@ -32,14 +28,14 @@ class LmInput(base_input_generator.BaseSequenceInputGenerator):
   @classmethod
   def Params(cls):
     """Defaults params for `LmInput`."""
-    p = super(LmInput, cls).Params()
+    p = super().Params()
     p.Define('fixed_input_shape', False, 'Fixed input shape or not.')
     p.tokenizer = tokenizers.AsciiTokenizer.Params()
     return p
 
   def __init__(self, params):
     params.pad_to_max_seq_length = True
-    super(LmInput, self).__init__(params)
+    super().__init__(params)
     p = self.params
     p.fixed_input_shape = p.fixed_input_shape or py_utils.use_tpu()
 

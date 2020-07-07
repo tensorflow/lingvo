@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 """Encoders for the speech model."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -28,8 +24,6 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import spectrum_augmenter
 from lingvo.core import summary_utils
-from six.moves import range
-from six.moves import zip
 
 from tensorflow.python.ops import inplace_ops
 
@@ -42,7 +36,7 @@ class AsrEncoder(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for AsrEncoder."""
-    p = super(AsrEncoder, cls).Params()
+    p = super().Params()
     p.Define('specaugment_network',
              spectrum_augmenter.SpectrumAugmenter.Params(),
              'Configs template for the augmentation network.')
@@ -147,7 +141,7 @@ class AsrEncoder(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(AsrEncoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
     name = p.name
 
@@ -162,7 +156,7 @@ class AsrEncoder(base_layer.BaseLayer):
       params_conv_layers = []
       for i in range(p.num_cnn_layers):
         conv_p = p.cnn_tpl.Copy()
-        conv_p.name = 'conv_L%d' % (i)
+        conv_p.name = 'conv_L%d' % i
         conv_p.filter_shape = p.conv_filter_shapes[i]
         conv_p.filter_stride = p.conv_filter_strides[i]
         params_conv_layers.append(conv_p)
@@ -180,18 +174,18 @@ class AsrEncoder(base_layer.BaseLayer):
         # shape as its input.
         _, _, width, in_channel = conv_output_shape
         f_conv_lstm_p = p.conv_lstm_tpl.Copy()
-        f_conv_lstm_p.name = 'f_conv_lstm_%d' % (i)
+        f_conv_lstm_p.name = 'f_conv_lstm_%d' % i
         f_conv_lstm_p.inputs_shape = [None, 1, width, in_channel]
         f_conv_lstm_p.cell_shape = [None, 1, width, in_channel]
         b_conv_lstm_p = f_conv_lstm_p.Copy()
-        b_conv_lstm_p.name = 'b_conv_lstm_%d' % (i)
+        b_conv_lstm_p.name = 'b_conv_lstm_%d' % i
         conv_lstm_rnn_p = self.CreateConvLstmLayerParams()
         conv_lstm_rnn_p.name = 'conv_lstm_rnn'
         conv_lstm_rnn_p.fwd = f_conv_lstm_p
         conv_lstm_rnn_p.bak = b_conv_lstm_p
         params_conv_lstm_rnn.append(conv_lstm_rnn_p)
         cnn_p = p.after_conv_lstm_cnn_tpl.Copy()
-        cnn_p.name = 'conv_lstm_cnn_%d' % (i)
+        cnn_p.name = 'conv_lstm_cnn_%d' % i
         cnn_p.filter_shape[2] = 2 * in_channel
         cnn_p.filter_shape[3] = in_channel
         params_conv_lstm_cnn.append(cnn_p)
@@ -212,13 +206,13 @@ class AsrEncoder(base_layer.BaseLayer):
       for i in range(p.num_lstm_layers):
         input_dim = output_dim
         forward_p = p.lstm_tpl.Copy()
-        forward_p.name = 'fwd_rnn_L%d' % (i)
+        forward_p.name = 'fwd_rnn_L%d' % i
         forward_p.num_input_nodes = input_dim
         forward_p.num_output_nodes = p.lstm_cell_size
         backward_p = forward_p.Copy()
-        backward_p.name = 'bak_rnn_L%d' % (i)
+        backward_p.name = 'bak_rnn_L%d' % i
         rnn_p = self.CreateBidirectionalRNNParams(forward_p, backward_p)
-        rnn_p.name = 'brnn_L%d' % (i)
+        rnn_p.name = 'brnn_L%d' % i
         params_rnn_layers.append(rnn_p)
         output_dim = 2 * p.lstm_cell_size
 
@@ -226,7 +220,7 @@ class AsrEncoder(base_layer.BaseLayer):
           proj_p = p.proj_tpl.Copy()
           proj_p.input_dim = 2 * p.lstm_cell_size
           proj_p.output_dim = 2 * p.lstm_cell_size
-          proj_p.name = 'proj_L%d' % (i)
+          proj_p.name = 'proj_L%d' % i
           params_proj_layers.append(proj_p)
 
         # add the skip layers
@@ -239,7 +233,7 @@ class AsrEncoder(base_layer.BaseLayer):
         # Adds the stacking layer.
         if p.layer_index_before_stacking == i:
           stacking_layer = p.stacking_layer_tpl.Copy()
-          stacking_layer.name = 'stacking_%d' % (i)
+          stacking_layer.name = 'stacking_%d' % i
           self.CreateChild('stacking', stacking_layer)
           stacking_window_len = (
               p.stacking_layer_tpl.left_context + 1 +

@@ -14,13 +14,11 @@
 # limitations under the License.
 """Tests for asr.input_generator."""
 
-
 import os
 import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.asr import input_generator
 import numpy as np
-from six.moves import range
 
 
 def _MakeBytesFeature(unicode_array):

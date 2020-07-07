@@ -24,8 +24,6 @@ from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
@@ -139,7 +137,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
           np.sum(context_vec_out, axis=1))
 
 
-class MultiHeadedAttentionXLOracle(object):
+class MultiHeadedAttentionXLOracle:
   """Oracle layer used for computing ground truths for MultiHeadedAttention.
 
   Written in a non-vectorized way.
@@ -639,7 +637,7 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(expected_ctx_vec.eval(), actual_ctx_vec.eval())
 
 
-class MultiHeadedAttentionRPEOracle(object):
+class MultiHeadedAttentionRPEOracle:
   """Computes ground truths for MultiHeadedfAttentionRPE.
 
   Written in a non-vectorized way.
@@ -1614,7 +1612,7 @@ class DummyDecoderRNNT(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(DummyDecoderRNNT, cls).Params()
+    p = super().Params()
     p.name = 'dummy_decoder_rnnt'
     p.Define('emb', _CreateDummyParams(['vocab_size']), 'Dummy emb.')
     p.Define('target_seq_len', 20, 'Dummy target seq len.')

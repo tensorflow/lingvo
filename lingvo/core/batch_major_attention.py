@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,6 @@
     https://arxiv.org/pdf/1706.03762.pdf Section 3.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder
@@ -35,7 +31,6 @@ from lingvo.core import py_utils
 from lingvo.core import relative_atten_util
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from six.moves import range
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
 
 
@@ -73,13 +68,13 @@ class PerDimScaleLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for `PerDimScaleLayer`."""
-    p = super(PerDimScaleLayer, cls).Params()
+    p = super().Params()
     p.Define('dim', 0, 'Number of individual dims .')
     return p
 
   def __init__(self, params):
     """Constructs a PerDimScaleLayer object."""
-    super(PerDimScaleLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     with tf.variable_scope(p.name):
@@ -124,7 +119,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for MultiHeadedProjectionLayer."""
-    p = super(MultiHeadedProjectionLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Input dimension.')
     p.Define('num_heads', 0, 'Number of heads.')
     p.Define('dim_per_head', 0, 'Size of each head.')
@@ -137,7 +132,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MultiHeadedProjectionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     pc = py_utils.WeightParams(
@@ -227,7 +222,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for _MultiHeadedAttention."""
-    p = super(MultiHeadedAttention, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Number of key nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
     p.Define('num_heads', 1, 'Num of attention heads.')
@@ -248,7 +243,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
   def __init__(self, params):
     """Constructs a _MultiHeadedAttention object."""
-    super(MultiHeadedAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.input_dim, 'input_dim is {}'.format(p.input_dim)
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
@@ -727,7 +722,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
 
   @classmethod
   def Params(cls):
-    p = super(MultiHeadedAttentionXL, cls).Params()
+    p = super().Params()
     p.Define('rel_pos_emb_dim', None,
              'Dimension of relative positional embedding.')
     p.Define('skip_term_b', False,
@@ -736,7 +731,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
 
   def __init__(self, params):
     """Constructs a MultiHeadedAttentionXL object."""
-    super(MultiHeadedAttentionXL, self).__init__(params)
+    super().__init__(params)
     params = self.params
 
     assert not params.packed_input, 'Packed input not implemented yet.'
@@ -843,11 +838,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
                  use_short_seq_opt=False):
     # TODO(jamesqin): support use_short_seq_opt for TransofrmerXL attention.
     assert not use_short_seq_opt
-    return super(MultiHeadedAttentionXL,
-                 self).ExtendStep(theta, query_vec, cached_key_vec,
-                                  cached_value_vec, paddings, segment_mask,
-                                  per_step_padding, time_step,
-                                  use_short_seq_opt)
+    return super().ExtendStep(theta, query_vec, cached_key_vec,
+                              cached_value_vec, paddings, segment_mask,
+                              per_step_padding, time_step, use_short_seq_opt)
 
 
 class MultiHeadedAttentionRPE(MultiHeadedAttention):
@@ -860,7 +853,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
 
   @classmethod
   def Params(cls):
-    p = super(MultiHeadedAttentionRPE, cls).Params()
+    p = super().Params()
     p.Define('rel_pos_emb_dim', None,
              'Dimension of relative positional embedding.')
     p.Define('rel_pos_radius', None,
@@ -874,7 +867,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
 
   def __init__(self, params):
     """Constructs a MultiHeadedAttentionRPE object."""
-    super(MultiHeadedAttentionRPE, self).__init__(params)
+    super().__init__(params)
     params = self.params
 
     assert not params.packed_input, 'Packed input not implemented yet.'
@@ -1048,11 +1041,9 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
                  use_short_seq_opt=False):
     # TODO(jamesqin): support use_short_seq_opt.
     assert not use_short_seq_opt
-    return super(MultiHeadedAttentionRPE,
-                 self).ExtendStep(theta, query_vec, cached_key_vec,
-                                  cached_value_vec, paddings, segment_mask,
-                                  per_step_padding, time_step,
-                                  use_short_seq_opt)
+    return super().ExtendStep(theta, query_vec, cached_key_vec,
+                              cached_value_vec, paddings, segment_mask,
+                              per_step_padding, time_step, use_short_seq_opt)
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -1100,7 +1091,7 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
   @classmethod
   def Params(cls):
     """Params for LocalCausalSelfAttention."""
-    p = super(LocalCausalSelfAttention, cls).Params()
+    p = super().Params()
     p.Define(
         'block_size', None, 'Size of a processing block, if unset, default to '
         'max(1, left_context-1).')
@@ -1112,7 +1103,7 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
 
   def __init__(self, params):
     """Constructs a LocalCausalSelfAttention object."""
-    super(LocalCausalSelfAttention, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
     assert p.left_context >= 1, 'Left context should be at least one.'
@@ -1277,7 +1268,7 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
 
   @classmethod
   def Params(cls):
-    p = super(LocalCausalSelfAttentionXL, cls).Params()
+    p = super().Params()
     p.Define('rel_pos_emb_dim', None,
              'Dimension of relative positional embedding.')
     p.Define('skip_term_b', False,
@@ -1286,7 +1277,7 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
 
   def __init__(self, params):
     """Constructs a LocalCausalSelfAttentionXL object."""
-    super(LocalCausalSelfAttentionXL, self).__init__(params)
+    super().__init__(params)
     params = self.params
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalide rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
@@ -1382,7 +1373,7 @@ class MultiSourceAttention(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MultiSourceAttention, cls).Params()
+    p = super().Params()
     p.Define('source_atten_tpls', None,
              'A list of (source_key, attention_param) pairs.')
     p.Define('input_dim', 0, 'Default key dimension.')
@@ -1396,7 +1387,7 @@ class MultiSourceAttention(base_layer.BaseLayer):
 
   def __init__(self, params):
     """Constructs an MultiSourceAttention object."""
-    super(MultiSourceAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.primary_source_key in [
         x for x, _ in p.source_atten_tpls
@@ -1495,7 +1486,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerAttentionLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the transformer block input.')
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_heads', 8, 'Number of attention heads.')
@@ -1534,7 +1525,7 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     return params
 
   def __init__(self, params):
-    super(TransformerAttentionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if not p.hidden_dim:
@@ -1701,7 +1692,7 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerMultiSourceAttentionLayer, cls).Params()
+    p = super().Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
     p.Define(
         'primary_source_index', 0, 'Index of the primary source whose '
@@ -1720,8 +1711,7 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     for i in range(p.num_source):
       src_key = 'source_%d' % i
       src_atten = atten_tpl.Copy()
-      src_atten = super(TransformerMultiSourceAttentionLayer,
-                        self)._InitAttentionParams(src_atten)
+      src_atten = super()._InitAttentionParams(src_atten)
       src_atten.name = 'multihead_atten_%s' % src_key
       source_atten_tpls.append((src_key, src_atten))
 
@@ -1743,7 +1733,7 @@ class TransformerLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLayer, cls).Params()
+    p = super().Params()
     p.Define('has_aux_atten', False,
              'If set, introduces a second attention layer')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
@@ -1772,7 +1762,7 @@ class TransformerLayer(base_layer.BaseLayer):
     return p.output_dim
 
   def __init__(self, params):
-    super(TransformerLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -1962,7 +1952,7 @@ class MultiSourceTransformerLayer(TransformerLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MultiSourceTransformerLayer, cls).Params()
+    p = super().Params()
     p.Define('num_source', 0, 'Number of sources to attend to.')
     p.Define(
         'primary_source_index', 0, 'Index for the primary source '
@@ -1977,7 +1967,7 @@ class MultiSourceTransformerLayer(TransformerLayer):
     cross_atten_p.num_source = params.num_source
     cross_atten_p.primary_source_index = params.primary_source_index
     assert params.tr_self_atten_tpl
-    super(MultiSourceTransformerLayer, self).__init__(params)
+    super().__init__(params)
 
   @property
   def primary_source_key(self):
@@ -2081,7 +2071,7 @@ class TransformerDecoderLayer(TransformerLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerDecoderLayer, cls).Params()
+    p = super().Params()
     p.has_aux_atten = True
     p.mask_self_atten = True
     return p
@@ -2092,7 +2082,7 @@ class MultiSourceTransformerDecoderLayer(MultiSourceTransformerLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MultiSourceTransformerDecoderLayer, cls).Params()
+    p = super().Params()
     p.has_aux_atten = True
     p.mask_self_atten = True
     return p
@@ -2103,7 +2093,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(StackedTransformerLayers, cls).Params()
+    p = super().Params()
     p.Define('has_aux_atten', False,
              'If set, introduces a second attention layer')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
@@ -2126,7 +2116,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(StackedTransformerLayers, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.num_layers > 0
@@ -2257,7 +2247,7 @@ class TransformerFeedForwardLayerWithTaskId(
 
   @classmethod
   def Params(cls):
-    p = super(TransformerFeedForwardLayerWithTaskId, cls).Params()
+    p = super().Params()
     p.Define('use_task_ids', False,
              'If set, introduces a second attention layer')
     return p
@@ -2296,7 +2286,7 @@ class GPipeTransformerLayer(TransformerLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GPipeTransformerLayer, cls).Params()
+    p = super().Params()
     p.tr_fflayer_tpl = TransformerFeedForwardLayerWithTaskId.Params()
     return p
 
@@ -2428,7 +2418,7 @@ class Builder(builder.Base):
 
   @classmethod
   def Params(cls):
-    p = super(Builder, cls).Params()
+    p = super().Params()
     p.Define('model_dim', 4, 'Model dim of this layer.')
     p.Define('num_heads', 1, 'Number of heads in the atten layer.')
     p.Define('ff_hidden_dim', 4, 'Hidden dim of the feedforward layer')
@@ -2473,14 +2463,14 @@ class Builder(builder.Base):
     return p
 
   def __init__(self, params):
-    super(Builder, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.num_splits > 1 or p.num_micro_batches > 1:
       assert p.deterministic_dropout
 
   def _Dropout(self, name, drop_prob):
     """Returns a DropoutLayer Params."""
-    return super(Builder, self)._Dropout(name, keep_prob=1.0 - drop_prob)
+    return super()._Dropout(name, keep_prob=1.0 - drop_prob)
 
   def _Add(self, name, residual_weight=1.0):
     return self._Fn(name, fn=lambda x, y: x + residual_weight * y,

@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for lingvo.core.steps.rnn_steps."""
 
-
 from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import step

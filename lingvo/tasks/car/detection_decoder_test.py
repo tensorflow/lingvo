@@ -18,7 +18,6 @@
 from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import detection_decoder
-from six.moves import range
 
 
 class DetectionDecoderTest(test_utils.TestCase):

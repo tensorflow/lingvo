@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,14 +15,8 @@
 # ==============================================================================
 """Helper functions for model."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import py_utils
-import six
-from six.moves import range
 
 
 def ComputeSplits(batch_size, num_splits):
@@ -110,7 +104,7 @@ def SplitDictOfTensors(t_dict, num_splits):
   """
   keys = []
   values = []
-  for k, v in sorted(six.iteritems(t_dict)):
+  for k, v in sorted(t_dict.items()):
     keys.append(k)
     values.append(v)
 

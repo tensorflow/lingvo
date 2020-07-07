@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for input generator."""
 
-
 import string
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -23,7 +22,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.tasks.punctuator import input_generator
-from six.moves import range
 
 
 class InputGeneratorTest(test_utils.TestCase):

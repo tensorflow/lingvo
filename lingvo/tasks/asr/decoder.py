@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Decoders for the speech model."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import math
@@ -35,8 +31,6 @@ from lingvo.tasks.asr import contextualizer_base
 from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import fusion
 from matplotlib import font_manager
-import six
-from six.moves import range
 
 
 def _ToTensorArray(name, v, max_seq_length, clear_after_read=None):
@@ -186,7 +180,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(AsrDecoderBase, cls).Params()
+    p = super().Params()
     p.Define('dropout_prob', 0.0, 'Prob at which we do dropout.')
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('emb_dim', 0, 'dimension of the embedding layer.')
@@ -312,7 +306,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     if params.min_ground_truth_prob < 1:
       # Move embedding lookup onto worker.
       params.emb.on_ps = False
-    super(AsrDecoderBase, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
     assert not p.packed_input, ('Packed inputs are not yet supported for '
@@ -721,11 +715,11 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         return (acc[0] + scale * tf.cast(metric[0], py_utils.FPropDtype(p)),
                 acc[1] + scale * tf.cast(metric[1], py_utils.FPropDtype(p)))
 
-      for logit_name, loss_weight in six.iteritems(p.logit_types):
+      for logit_name, loss_weight in p.logit_types.items():
         metrics, per_sequence_loss = self._ComputeMetrics(
             getattr(predictions, logit_name), targets.labels, targets.weights,
             target_probs)
-        for k, v in six.iteritems(metrics):
+        for k, v in metrics.items():
           tf.logging.info('Merging metric %s: %s', k, v)
           merged_metrics[k + '/' + logit_name] = v
           if k not in merged_metrics:
@@ -1231,7 +1225,7 @@ class AsrDecoder(AsrDecoderBase):
 
   @classmethod
   def Params(cls):
-    p = super(AsrDecoder, cls).Params()
+    p = super().Params()
     return p
 
   def AddAdditionalDecoderSummaries(self, encoder_outputs, targets, seq_out_tas,

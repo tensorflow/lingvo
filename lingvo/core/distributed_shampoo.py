@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Implementation for distributed Shampoo optimizer."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import functools
 import lingvo.compat as tf
@@ -33,7 +30,7 @@ from tensorflow.python.training import optimizer
 # pylint: enable=g-direct-tensorflow-import
 
 
-class PartitionConfig(object):
+class PartitionConfig:
   """Config for tensor partitioning."""
 
   def __init__(self, max_dim_size, partition_size):
@@ -47,7 +44,7 @@ class PartitionConfig(object):
     self.partition_size = partition_size
 
 
-class PartitionMetadata(object):
+class PartitionMetadata:
   """Metadata for partitioning."""
 
   def __init__(self, split_sizes_per_dim, num_splits_per_dim):
@@ -62,7 +59,7 @@ class PartitionMetadata(object):
     self.num_splits_per_dim = num_splits_per_dim
 
 
-class TensorPartitioner(object):
+class TensorPartitioner:
   """Shards Tensor's across its axis.
 
   In cases of TPUs, these partitions are zero cost, and does not involve data
@@ -196,7 +193,7 @@ class DistributedShampoo(optimizer.Optimizer):
       name: Optional name prefix for the operations created when applying
         gradients.
     """
-    super(DistributedShampoo, self).__init__(False, name)
+    super().__init__(False, name)
     self._learning_rate = learning_rate
     self._momentum = momentum
     self._initial_accumulator_value = initial_accumulator_value

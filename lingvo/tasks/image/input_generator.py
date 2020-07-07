@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +15,6 @@
 # ==============================================================================
 """Input generator for image data."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
@@ -31,7 +28,7 @@ class _MnistInputBase(base_input_generator.BaseTinyDatasetInput):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(_MnistInputBase, cls).Params()
+    p = super().Params()
     p.data_dtype = tf.uint8
     p.data_shape = (28, 28, 1)
     p.label_dtype = tf.uint8
@@ -51,7 +48,7 @@ class MnistTrainInput(_MnistInputBase):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(MnistTrainInput, cls).Params()
+    p = super().Params()
     p.data = 'x_train'
     p.label = 'y_train'
     p.num_samples = 60000
@@ -66,7 +63,7 @@ class MnistTestInput(_MnistInputBase):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(MnistTestInput, cls).Params()
+    p = super().Params()
     p.data = 'x_test'
     p.label = 'y_test'
     p.num_samples = 10000

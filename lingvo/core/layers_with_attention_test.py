@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for layers_with_attention."""
 
-
 import lingvo.compat as tf
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
@@ -23,7 +22,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 import numpy as np
-from six.moves import range
 
 
 class LayersWithAttentionTest(test_utils.TestCase):

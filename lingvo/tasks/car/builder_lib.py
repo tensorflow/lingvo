@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """A collection of helper functions to build lingvo layer params."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import math
 
@@ -29,8 +25,6 @@ from lingvo.core import py_utils
 from lingvo.tasks.car import car_layers
 
 import numpy as np
-import six
-from six.moves import zip
 
 # Keys for NestedMap for points: points, features, and padding.
 POINTS_KEY = 'points'
@@ -60,7 +54,7 @@ def KaimingUniformFanInRelu(shape):
 # Lingvo Layer Builders
 ################################################################################
 # pyformat: disable
-class ModelBuilderBase(object):
+class ModelBuilderBase:
   """Model builder with commonly used layers."""
 
   def __init__(self):
@@ -527,7 +521,7 @@ class ModelBuilderBase(object):
   #     1 representing a padded point, and 0 representing a real point.
   #
   ##########################################
-  class _Decorators(object):
+  class _Decorators:
     """Internal decorators for builder functions."""
 
     @classmethod
@@ -542,7 +536,7 @@ class ModelBuilderBase(object):
         A decorator function that can be applied on builder functions.
       """
 
-      if isinstance(expected_keys, six.string_types):
+      if isinstance(expected_keys, str):
         expected_keys = [expected_keys]
       expected_keys = set(expected_keys)
 
@@ -561,7 +555,7 @@ class ModelBuilderBase(object):
         def _DecoratedFn(self, *args, **kwargs):
           p = builder_fn(self, *args, **kwargs)
           # pylint: disable=protected-access
-          return self._Seq('validated_%s' % (p.name),
+          return self._Seq('validated_%s' % p.name,
                            self._ApplyFn('validate', fn=_ValidateFn), p)
           # pylint: enable=protected-access
         return _DecoratedFn

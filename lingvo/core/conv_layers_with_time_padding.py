@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Common conv layers."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -104,7 +100,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseConv2DLayerWithPadding, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_shape', (0, 0, 0, 0),
         'Filter shape. Must be a sequence of length 4. Elements are in'
@@ -137,7 +133,7 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(BaseConv2DLayerWithPadding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert len(p.filter_shape) == 4
@@ -265,12 +261,12 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
 
   @classmethod
   def Params(cls):
-    p = super(Conv2DLayerWithPadding, cls).Params()
+    p = super().Params()
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
   def __init__(self, params):
-    super(Conv2DLayerWithPadding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     w_pc = py_utils.WeightParams(
@@ -337,7 +333,7 @@ class CausalConv2DLayerWithPadding(Conv2DLayerWithPadding):
   """2D conv layer with causal dependency on the time axis."""
 
   def __init__(self, params):
-    super(CausalConv2DLayerWithPadding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.filter_shape[1] == 1, 'Only 1d causal convolution is supported.'
 
@@ -373,7 +369,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
 
   @classmethod
   def Params(cls):
-    p = super(DepthwiseConv2DLayer, cls).Params()
+    p = super().Params()
     # Redefine 'filter_shape' since the semantic of shape elements is different
     # from regular Conv2D.
     p.Delete('filter_shape')
@@ -386,7 +382,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     return p
 
   def __init__(self, params):
-    super(DepthwiseConv2DLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     w_pc = py_utils.WeightParams(
@@ -456,7 +452,7 @@ class CausalDepthwiseConv2DLayer(DepthwiseConv2DLayer):
   """Depthwise conv layer with causal dependency on the time axis."""
 
   def __init__(self, params):
-    super(CausalDepthwiseConv2DLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.filter_shape[1] == 1, 'Only 1d causal convolution is supported.'
 
@@ -491,7 +487,7 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
 
   @classmethod
   def Params(cls):
-    p = super(NormalizedDepthwiseConv2DLayer, cls).Params()
+    p = super().Params()
     p.Define('dropconnect_prob', 0.0,
              'Prob at which DropConnect regularization is performed.')
     p.Define('deterministic_dropout', False, 'Use determnisitc dropout or not.')
@@ -502,7 +498,7 @@ class NormalizedDepthwiseConv2DLayer(DepthwiseConv2DLayer):
     return p
 
   def __init__(self, params):
-    super(NormalizedDepthwiseConv2DLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.filter_shape[1] == 1, 'Only 1d convolution is supported.'
     assert p.temperature > 0.0, 'Absolute zero temperature is not possible.'
@@ -582,8 +578,7 @@ class ConvBatchNormLayer(bn_layers.BatchNormLayer):
 
   def FProp(self, theta, inputs, paddings):
     paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
-    bned = super(ConvBatchNormLayer, self).FProp(
-        theta, inputs, paddings_expanded)
+    bned = super().FProp(theta, inputs, paddings_expanded)
     return bned, paddings
 
 
@@ -595,8 +590,7 @@ class ConvCategoricalBN(bn_layers.CategoricalBN):
 
   def FProp(self, theta, inputs, paddings, class_emb):
     paddings_expanded = tf.expand_dims(tf.expand_dims(paddings, -1), -1)
-    bned = super(ConvCategoricalBN, self).FProp(theta, inputs,
-                                                paddings_expanded, class_emb)
+    bned = super().FProp(theta, inputs, paddings_expanded, class_emb)
     return bned, paddings
 
 
@@ -616,7 +610,7 @@ class ActivationLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(ActivationLayer, cls).Params()
+    p = super().Params()
     p.Define('activation', 'RELU',
              'The activation function to apply')
     return p
@@ -640,7 +634,7 @@ class GlobalPoolingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GlobalPoolingLayer, cls).Params()
+    p = super().Params()
     p.Define('pooling_type', 'MAX', 'Pooling type: MAX|AVG')
     return p
 

@@ -46,11 +46,11 @@ py_test(
     name = "detection_decoder_test",
     srcs = ["detection_decoder_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":detection_decoder",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -68,7 +68,6 @@ py_library(
         "//lingvo/core:py_utils",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit Tensorboard dependency.
     ],
 )
@@ -77,6 +76,7 @@ py_test(
     name = "detection_3d_metrics_test",
     srcs = ["detection_3d_metrics_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":detection_3d_metrics",
         ":transform_util",
@@ -91,12 +91,12 @@ py_test(
     name = "detection_3d_lib_test",
     srcs = ["detection_3d_lib_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":detection_3d_lib",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -104,6 +104,7 @@ py_test(
     name = "car_layers_test",
     srcs = ["car_layers_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":car_layers",
         "//lingvo:compat",
@@ -125,7 +126,6 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -139,7 +139,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core:plot",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -147,6 +146,7 @@ py_test(
     name = "calibration_processing_test",
     srcs = ["calibration_processing_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":calibration_processing",
         ":kitti_metadata",
@@ -168,7 +168,6 @@ py_library(
         "//lingvo/core:hyperparams",
         "//lingvo/core:plot",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -176,6 +175,7 @@ py_test(
     name = "breakdown_metric_test",
     srcs = ["breakdown_metric_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":breakdown_metric",
         ":kitti_ap_metric",
@@ -184,7 +184,6 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -199,7 +198,6 @@ py_library(
         "//lingvo/core:layers",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -208,6 +206,7 @@ py_test(
     srcs = ["builder_lib_test.py"],
     python_version = "PY3",
     shard_count = 2,
+    srcs_version = "PY3",
     deps = [
         ":builder_lib",
         "//lingvo:compat",
@@ -225,7 +224,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -266,6 +264,7 @@ py_test(
     name = "input_extractor_test",
     srcs = ["input_extractor_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_extractor",
         ":input_preprocessors",
@@ -298,7 +297,6 @@ py_library(
         "//lingvo/core:generic_input",
         "//lingvo/core:hyperparams",
         "//lingvo/core:py_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -333,7 +331,6 @@ py_library(
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -363,6 +360,7 @@ py_test(
     size = "small",
     srcs = ["lr_util_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":kitti_input_generator",
         ":lr_util",
@@ -402,7 +400,6 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -446,7 +443,6 @@ py_library(
         "//lingvo/core:plot",
         # Implicit matplotlib dependency.
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -454,6 +450,7 @@ py_test(
     name = "pointnet_test",
     srcs = ["pointnet_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":pointnet",
         # Implicit absl.testing.parameterized dependency.
@@ -467,12 +464,12 @@ py_test(
     name = "summary_test",
     srcs = ["summary_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":summary",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -481,7 +478,7 @@ py_library(
     srcs = [
         "transform_util.py",
     ],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         # Implicit numpy dependency.
     ],
@@ -494,6 +491,7 @@ py_test(
         "transform_util_test.py",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":transform_util",
         "//lingvo:compat",
@@ -505,12 +503,12 @@ py_test(
     name = "car_lib_test",
     srcs = ["car_lib_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":car_lib",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -518,13 +516,13 @@ py_test(
     name = "geometry_test",
     srcs = ["geometry_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":geometry",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -541,7 +539,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/tasks/car/ops",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 

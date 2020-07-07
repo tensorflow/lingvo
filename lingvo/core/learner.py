@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +20,6 @@ mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
 disjoint) subset of variables.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import re
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -40,7 +37,7 @@ class Learner(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(Learner, cls).Params()
+    p = super().Params()
     p.Define(
         'l2_regularizer_weight', None,
         'If not None, L2 regularization to apply to the weights. '
@@ -100,7 +97,7 @@ class Learner(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(Learner, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     self._var_grads = None

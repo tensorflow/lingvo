@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Checkpointing utilities for save/restore."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import time
 
@@ -28,7 +24,7 @@ from lingvo.core import py_utils
 import six
 
 
-class Checkpointer(object):
+class Checkpointer:
   """Checkpointing utility class.
 
   Needs to be created within a graph context.
@@ -129,7 +125,7 @@ class Checkpointer(object):
     uninitialized_var_names = sorted(list(sess.run(self._uninitialized_vars)))
     # uninitialized_var_names is a list of strings without ":0" suffix.
     # tf.report_uninitialized_variables returns binary strings.
-    assert all(isinstance(s, six.binary_type) for s in uninitialized_var_names)
+    assert all(isinstance(s, bytes) for s in uninitialized_var_names)
     return uninitialized_var_names
 
   def Restore(self, sess, force_reinitialize=False):

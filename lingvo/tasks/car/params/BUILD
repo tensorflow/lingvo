@@ -21,7 +21,6 @@ py_library(
         "//lingvo/tasks/car:lr_util",
         "//lingvo/tasks/car:starnet",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 

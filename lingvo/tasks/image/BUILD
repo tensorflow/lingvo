@@ -18,7 +18,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -26,6 +25,7 @@ py_test(
     name = "classifier_test",
     srcs = ["classifier_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":classifier",
         ":input_generator",
@@ -54,11 +54,11 @@ py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )

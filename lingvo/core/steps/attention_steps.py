@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,10 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Steps for attention computation."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from lingvo import compat as tf
 from lingvo.core import attention
@@ -42,14 +38,14 @@ class AttentionStep(step.Step):
 
   @classmethod
   def Params(cls):
-    p = super(AttentionStep, cls).Params()
+    p = super().Params()
     p.name = 'attention_step'
     p.Define('atten', attention.AdditiveAttention.Params(),
              'Params of a subclass of BaseAttentionLayer.')
     return p
 
   def __init__(self, params):
-    super(AttentionStep, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateChild('atten', p.atten)
@@ -204,7 +200,7 @@ class AttentionBlockStep(step.Step):
 
   @classmethod
   def Params(cls):
-    p = super(AttentionBlockStep, cls).Params()
+    p = super().Params()
     p.name = 'attention_block'
     p.Define('query_generator', rnn_steps.RnnStackStep.Params(),
              'Query generator params.')
@@ -215,7 +211,7 @@ class AttentionBlockStep(step.Step):
     return p
 
   def __init__(self, params):
-    super(AttentionBlockStep, self).__init__(params)
+    super().__init__(params)
     p = self.params
     name = p.name
     with tf.variable_scope(name):

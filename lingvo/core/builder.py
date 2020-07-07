@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,10 +22,6 @@ WARNING:
   layers.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 from lingvo import compat as tf
 from lingvo.core import builder_layers
@@ -33,11 +29,9 @@ from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import tshape
-from six.moves import range
-from six.moves import zip
 
 
-class Base(object):
+class Base:
   """Model builder with commonly used layers.
 
   A method in a builder class constructs a layer param.  FProp of a layer

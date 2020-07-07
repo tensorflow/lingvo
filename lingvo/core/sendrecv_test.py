@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for sendrecv."""
 
-
 import lingvo.compat as tf
 from lingvo.core import sendrecv
 from lingvo.core import test_utils

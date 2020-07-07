@@ -26,6 +26,7 @@ py_test(
         "//lingvo/tasks/punctuator/params:brown_corpus_wpm_data",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -33,7 +34,6 @@ py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -58,6 +58,7 @@ py_test(
     ],
     python_version = "PY3",
     shard_count = 4,
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         ":model",
@@ -65,6 +66,5 @@ py_test(
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )

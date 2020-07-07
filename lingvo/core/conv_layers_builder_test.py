@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for conv layers builder."""
 
-
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import bn_layers

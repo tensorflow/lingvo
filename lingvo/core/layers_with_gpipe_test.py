@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for layers_with_gpipe."""
 
-
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import layers_with_gpipe
@@ -27,7 +26,6 @@ from lingvo.core.layers_with_gpipe import GPipeEvolvedTransformerStack
 from lingvo.core.layers_with_gpipe import GPipeTransformerLayer
 from lingvo.core.layers_with_gpipe import GPipeTransformerStack
 import numpy as np
-from six.moves import range
 
 
 class GPipeTransformerLayersTest(test_utils.TestCase):

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,18 +15,11 @@
 # ==============================================================================
 """DataSources describe how files should be used to provide data."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
-
-import six
-from six.moves import range
 
 
 class DataSource(base_layer.BaseLayer):
@@ -34,7 +27,7 @@ class DataSource(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    return super(DataSource, cls).Params().Set(name='datasource')
+    return super().Params().Set(name='datasource')
 
   def BuildDataSource(self, data_source_from_file_pattern_fn):
     """Builds a data source.
@@ -66,7 +59,7 @@ class SimpleDataSource(DataSource):
 
   @classmethod
   def Params(cls):
-    p = super(SimpleDataSource, cls).Params()
+    p = super().Params()
     # TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param
     # and clean up existing usages.
     p.Define(
@@ -92,7 +85,7 @@ class SimpleDataSource(DataSource):
       `.NestedMap` of tf.Tensor.
     """
     p = self.params
-    if not isinstance(p.file_pattern, six.string_types):
+    if not isinstance(p.file_pattern, str):
       raise ValueError('SimpleDataSource expects p.file_pattern to be a string.'
                        ' To use multiple files use a comma separated string, '
                        'e.g. \', \'.join(list_of_file_patterns)')
@@ -113,7 +106,7 @@ class ChainingDataSource(DataSource):
 
   @classmethod
   def Params(cls):
-    p = super(ChainingDataSource, cls).Params()
+    p = super().Params()
     # TODO(b/139345706): This can probably be a list of DataSource params
     # instead of a list of file_patterns to be more generic.
     p.Define(
@@ -137,18 +130,17 @@ class ChainingDataSource(DataSource):
     """
     p = self.params
     if not isinstance(p.file_patterns, list):
-      raise ValueError('Expected a list, got %s' % (p.file_patterns,))
-    if not all(isinstance(x, six.string_types) for x in p.file_patterns):
+      raise ValueError('Expected a list, got %s' % p.file_patterns)
+    if not all(isinstance(x, str) for x in p.file_patterns):
       # Chaining doesn't work with weights or backprop filters, i.e. when
       # file_pattern param contains a list of
       # <file_pattern, weight, [bprop_variable_filter]> tuples.
-      raise ValueError('Expected a list of strings, got %s' %
-                       (p.file_patterns,))
+      raise ValueError('Expected a list of strings, got %s' % p.file_patterns)
 
     for file_pattern in p.file_patterns:
       if ',' in file_pattern:
-        raise ValueError('Can not use commas in file_pattern when chaining '
-                         'is used. file_pattern: %s' % (file_pattern,))
+        raise ValueError(('Can not use commas in file_pattern when chaining '
+                          'is used. file_pattern: %s') % file_pattern)
     ret = py_utils.NestedMap()
     ret.data = data_source_from_file_pattern_fn(','.join(p.file_patterns))
     ret.bprop_variable_filters = [''] * len(p.file_patterns)
@@ -160,7 +152,7 @@ class WithinBatchMixingDataSource(DataSource):
 
   @classmethod
   def Params(cls):
-    p = super(WithinBatchMixingDataSource, cls).Params()
+    p = super().Params()
     # TODO(b/139345706): This can probably be a list of DataSource params
     # instead of a list of file_patterns to be more generic.
     p.Define(
@@ -189,24 +181,25 @@ class WithinBatchMixingDataSource(DataSource):
     """
     p = self.params
     if not isinstance(p.file_patterns, list):
-      raise ValueError('Expected a list, got %s' % (p.file_patterns,))
+      raise ValueError('Expected a list, got %s' % p.file_patterns)
     if not isinstance(p.weights, list):
-      raise ValueError('Expected a list, got %s' % (p.weights,))
+      raise ValueError('Expected a list, got %s' % p.weights)
     if len(p.file_patterns) != len(p.weights):
       raise ValueError(
           'Expected p.file_patterns and p.weights to be the same length. '
           'Found %d file_patterns, and %d weights' %
           (len(p.file_patterns), len(p.weights)))
     # TODO(rosenberg) confirm that weights are numeric
-    if not all(isinstance(x, six.string_types) for x in p.file_patterns):
+    if not all(isinstance(x, str) for x in p.file_patterns):
       raise ValueError('Expected all elements of p.file_patterns to be strings')
 
     file_patterns = p.file_patterns
     weights = p.weights
     for file_pattern in file_patterns:
       if ',' in file_pattern:
-        raise ValueError('Can not use commas in file_pattern when within-batch '
-                         'mixing is used. file_pattern: %s' % (file_pattern,))
+        raise ValueError(
+            ('Can not use commas in file_pattern when within-batch '
+             'mixing is used. file_pattern: %s') % file_pattern)
     ret = py_utils.NestedMap()
     ret.data = data_source_from_file_pattern_fn(
         ','.join(file_patterns), input_source_weights=weights)
@@ -219,7 +212,7 @@ class CrossBatchMixingDataSource(DataSource):
 
   @classmethod
   def Params(cls):
-    p = super(CrossBatchMixingDataSource, cls).Params()
+    p = super().Params()
     # TODO(b/139345706): This can probably be a list of DataSource params
     # instead of a list of file_patterns to be more generic.
     p.Define(
@@ -269,7 +262,7 @@ class CrossBatchMixingDataSource(DataSource):
           'Expected p.file_patterns and p.weights to be the same length. '
           'Found %d file_patterns, and %d weights' %
           (len(p.file_patterns), len(p.weights)))
-    if not all(isinstance(x, six.string_types) for x in p.file_patterns):
+    if not all(isinstance(x, str) for x in p.file_patterns):
       raise ValueError('Expected all elements of p.file_patterns to be strings')
 
     # TODO(rosenberg) replace this with functools.partial
@@ -316,7 +309,7 @@ class CurriculumDataSource(DataSource):
 
   @classmethod
   def Params(cls):
-    p = super(CurriculumDataSource, cls).Params()
+    p = super().Params()
     p.Define(
         'datasource_params', [], 'A list of DataSource Params which define '
         'the DataSource curriculum.')
@@ -394,7 +387,7 @@ class PrefixedDataSource(SimpleDataSource):
 
   @classmethod
   def Params(cls):
-    p = super(PrefixedDataSource, cls).Params()
+    p = super().Params()
     p.Define(
         'file_pattern_prefix', '',
         'Prefix to add to file_pattern, eg. a base directory that contains '
@@ -403,7 +396,7 @@ class PrefixedDataSource(SimpleDataSource):
     return p
 
   def __init__(self, params):
-    super(PrefixedDataSource, self).__init__(params)
+    super().__init__(params)
 
     p = self.params
 

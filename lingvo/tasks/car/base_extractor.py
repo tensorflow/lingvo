@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,12 @@
 # ==============================================================================
 """Base extractor interface."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import datasource
 from lingvo.core import generic_input
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
-from six.moves import zip
 
 # Items exceeding this value will be dropped and not sent to the trainer.
 BUCKET_UPPER_BOUND = 9999
@@ -83,7 +79,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     Returns:
       A base_layer Params object.
     """
-    p = super(_BaseExtractor, cls).Params()
+    p = super().Params()
     p.Define('extractors', extractors,
              'A hyperparams.Params() of FieldsExtractors.')
     p.Define('preprocessors', hyperparams.Params(),
@@ -105,7 +101,7 @@ class _BaseExtractor(base_input_generator.BaseInputGeneratorFromFiles):
     return p
 
   def __init__(self, params):
-    super(_BaseExtractor, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     # Instantiate every extractor as a child layer.

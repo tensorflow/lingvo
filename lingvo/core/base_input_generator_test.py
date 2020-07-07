@@ -27,7 +27,6 @@ from lingvo.core import test_utils
 import mock
 import numpy as np
 
-from six.moves import range
 
 import tensorflow.compat.v1 as tf1
 import tensorflow.compat.v2 as tf2
@@ -83,11 +82,11 @@ class ToyInputGenerator(base_input_generator.BaseDataExampleInputGenerator):
 class BaseExampleInputGeneratorTest(test_utils.TestCase):
 
   def setUp(self):
-    super(BaseExampleInputGeneratorTest, self).setUp()
+    super().setUp()
     tf.reset_default_graph()
 
   def tearDown(self):
-    super(BaseExampleInputGeneratorTest, self).tearDown()
+    super().tearDown()
     if hasattr(self, '_tmpdir'):
       shutil.rmtree(self._tmpdir)
 

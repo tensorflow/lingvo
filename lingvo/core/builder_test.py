@@ -24,7 +24,6 @@ from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.core import tshape
 import numpy as np
-from six.moves import range
 import sympy
 
 

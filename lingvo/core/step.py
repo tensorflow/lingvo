@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,10 +29,6 @@ E.g.::
       (processing step_outputs...)
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 
 from lingvo import compat as tf
@@ -40,8 +36,6 @@ from lingvo.core import base_layer
 from lingvo.core import builder_layers
 from lingvo.core import py_utils
 from lingvo.core import recurrent
-import six
-from six.moves import range
 
 
 class Step(base_layer.BaseLayer):
@@ -55,7 +49,7 @@ class Step(base_layer.BaseLayer):
     if not external_inputs:
       external_inputs = py_utils.NestedMap()
     packed = external_inputs.DeepCopy()
-    for name, child in six.iteritems(self.children):
+    for name, child in self.children.items():
       child_external_inputs = external_inputs.get(name, py_utils.NestedMap())
       if isinstance(child, (tuple, list)):
         output = []
@@ -87,7 +81,7 @@ class Step(base_layer.BaseLayer):
       FProp() for processing the first time step.
     """
     state0 = py_utils.NestedMap()
-    for name, child in six.iteritems(self.children):
+    for name, child in self.children.items():
       if isinstance(child, (tuple, list)):
         output = []
         for i, sub in enumerate(child):
@@ -139,12 +133,12 @@ class StatelessLayerStep(Step):
 
   @classmethod
   def Params(cls):
-    p = super(StatelessLayerStep, cls).Params()
+    p = super().Params()
     p.Define('layer', None, 'Params for the layer that this step wraps.')
     return p
 
   def __init__(self, params):
-    super(StatelessLayerStep, self).__init__(params)
+    super().__init__(params)
     p = params
     with tf.variable_scope(p.name):
       self.CreateChild('layer', p.layer)
@@ -188,7 +182,7 @@ class StackStep(Step):
 
   @classmethod
   def Params(cls):
-    p = super(StackStep, cls).Params()
+    p = super().Params()
     p.Define(
         'sub', [], 'A list of sub-stack params. Each layer is '
         'expected to accept its input as NestedMap(inputs=[]), and '
@@ -211,7 +205,7 @@ class StackStep(Step):
     return p
 
   def __init__(self, params):
-    super(StackStep, self).__init__(params)
+    super().__init__(params)
     p = params
     with tf.variable_scope(p.name):
       self.sub_steps = []
@@ -310,7 +304,7 @@ class ParallelStep(Step):
 
   @classmethod
   def Params(cls):
-    p = super(ParallelStep, cls).Params()
+    p = super().Params()
     p.Define(
         'sub', [], 'A list of step params. Each step is '
         'expected to accept its input as NestedMap(inputs=[]), and '
@@ -320,7 +314,7 @@ class ParallelStep(Step):
     return p
 
   def __init__(self, params):
-    super(ParallelStep, self).__init__(params)
+    super().__init__(params)
     p = params
     with tf.variable_scope(p.name):
       self.CreateChildren('sub', p.sub)
@@ -409,7 +403,7 @@ class GraphStep(Step):
 
   @classmethod
   def Params(cls):
-    p = super(GraphStep, cls).Params()
+    p = super().Params()
     p.Define('output_signature', '', 'Signature of the step output.')
     p.Define('sub', [], 'A list of SubSteps (defined above).')
     p.Define('dict_type', py_utils.NestedMap, 'Type of nested dicts.')
@@ -419,7 +413,7 @@ class GraphStep(Step):
       '_Seq', ['name', 'signature', 'external_signature', 'step'])
 
   def __init__(self, params):
-    super(GraphStep, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     with tf.variable_scope(p.name):
@@ -551,12 +545,9 @@ class IteratorStep(Step):
 
   @classmethod
   def Params(cls):
-    p = super(IteratorStep, cls).Params()
+    p = super().Params()
     p.Define('axis', 1, 'The time dimension of the tensors.')
     return p
-
-  def __init__(self, params):
-    super(IteratorStep, self).__init__(params)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Prepares the input for iteration.
@@ -634,12 +625,12 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(RecurrentStepWrapper, cls).Params()
+    p = super().Params()
     p.Define('step', None, 'The step params that this class wraps.')
     return p
 
   def __init__(self, params):
-    super(RecurrentStepWrapper, self).__init__(params)
+    super().__init__(params)
     self.CreateChild('step', self.params.step)
 
   def PrepareExternalInputs(self, theta, external_inputs):

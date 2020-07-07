@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for compat.py."""
-
 
 import lingvo.compat as tf
 import tensorflow.compat.v1 as tf1

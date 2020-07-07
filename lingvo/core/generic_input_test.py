@@ -24,7 +24,6 @@ from lingvo.core import generic_input
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 
 class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):

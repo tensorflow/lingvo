@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,13 +15,9 @@
 # ==============================================================================
 """Library for calculating calibration on a prediction."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import plot
 import numpy as np
-from six.moves import range
 
 
 def ExpectedCalibrationError(confidence,
@@ -113,7 +109,7 @@ def CalibrationCurve(scores, hits, num_bins):
   return mean_predicted_accuracies, mean_empirical_accuracies, num_examples
 
 
-class CalibrationCalculator(object):
+class CalibrationCalculator:
   """Base class for calculating calibration on a prediction."""
 
   def __init__(self, metadata):

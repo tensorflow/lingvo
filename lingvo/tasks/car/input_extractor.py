@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,9 +19,6 @@ Input extractors are an API for parsing and processing a set of fields from
 serialized records.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -80,7 +77,7 @@ class FieldsExtractor(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(FieldsExtractor, cls).Params()
+    p = super().Params()
     p.name = cls.__name__
     return p
 
@@ -166,7 +163,7 @@ class LaserExtractor(FieldsExtractor):
 
   @classmethod
   def Params(cls):
-    p = super(LaserExtractor, cls).Params()
+    p = super().Params()
     p.Define('max_num_points', None, 'The number of points per spin.')
     p.Define('num_features', 1, 'Number of features per laser point.')
     return p

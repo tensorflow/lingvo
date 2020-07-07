@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,13 @@
 # ==============================================================================
 """Early stopping based on dev-set performance."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import ops
 
 
-class MetricHistory(object):
+class MetricHistory:
   """Record given metric versus global_step history to a file."""
 
   @staticmethod
@@ -127,7 +123,7 @@ class MetricHistory(object):
       f.write('%d %f\n' % (global_step, value))
 
 
-class EarlyStop(object):
+class EarlyStop:
   """Early stopping based on dev-set performance.
 
   Factors out the steps needed to perform early stopping in the trainer when a

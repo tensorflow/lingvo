@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
 # ==============================================================================
 """Metadata for KITTI dataset employed in evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo.tasks.car import evaluation_metadata
 
 
@@ -25,7 +22,7 @@ class KITTIMetadata(evaluation_metadata.EvaluationMetadata):
   """Metadata describing the KITTI dataset used for evaluation."""
 
   def __init__(self):
-    super(KITTIMetadata, self).__init__('kitti')
+    super().__init__('kitti')
 
   def ClassNames(self):
     """Returns a list of human-interpretable strings."""

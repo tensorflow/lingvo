@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,10 +19,6 @@ The sampled sequences can be used for training, e.g., with scheduled sampling,
 OCD, second-pass deliberation.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -42,7 +38,7 @@ class TargetSequenceSampler(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TargetSequenceSampler, cls).Params()
+    p = super().Params()
     p.Define('target_sos_id', 1, 'Id of the start of sentence token.')
     p.Define('target_eos_id', 2, 'Id of the end of sentence token.')
     p.Define('target_eoc_id', -1, 'Id of the end of chunk token.')

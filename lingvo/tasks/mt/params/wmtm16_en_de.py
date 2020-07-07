@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Train NMT Models on WMT'16 MMT English-German machine translation task."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
@@ -101,8 +97,7 @@ class WmtCaptionEnDeTransformerCloudTpu(WmtCaptionEnDeTransformer):
   """Params for WMT'16 En->De Captions (ignoring the images) on TPU."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(WmtCaptionEnDeTransformerCloudTpu,
-              self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
@@ -111,7 +106,7 @@ class WmtCaptionEnDeTransformerCloudTpu(WmtCaptionEnDeTransformer):
     return p
 
   def Task(self):
-    p = super(WmtCaptionEnDeTransformerCloudTpu, self).Task()
+    p = super().Task()
 
     p.encoder.token_emb.max_num_shards = 1
     p.decoder.token_emb.max_num_shards = 1

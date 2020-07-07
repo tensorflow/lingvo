@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,15 +21,11 @@ ByNumPoints: Calculate maximum recall based on number of points in bounding box.
 ByDifficulty: Calculate precision recall based on difficulty.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import plot
 from lingvo.tasks.car import calibration_processing as calibration
 import numpy as np
-from six.moves import range
 
 
 def _FindRecallAtGivenPrecision(precision_recall, precision_level):
@@ -96,7 +92,7 @@ def _FindMaximumRecall(precision_recall):
   return max_recall
 
 
-class BreakdownMetric(object):
+class BreakdownMetric:
   """Base class for calculating precision recall conditioned on a variate."""
 
   @classmethod
@@ -660,7 +656,7 @@ class ByDifficulty(BreakdownMetric):
 
   @classmethod
   def Params(cls):
-    p = super(ByDifficulty, cls).Params()
+    p = super().Params()
     p.Define('ap_key', 'ap', 'Metrics key for the AP value.')
     p.Define('pr_key', 'pr', 'Metrics key for the PR value.')
     return p

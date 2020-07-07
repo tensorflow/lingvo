@@ -15,7 +15,6 @@
 # ==============================================================================
 """Functional tests for Matrix functions."""
 
-
 import lingvo.compat as tf
 from lingvo.core import matrix_functions
 

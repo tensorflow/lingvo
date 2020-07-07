@@ -78,6 +78,7 @@ py_test(
     name = "sampling_ops_test",
     srcs = ["sampling_ops_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ops",
         # Implicit absl.testing.parameterized dependency.
@@ -125,6 +126,7 @@ py_test(
     name = "average_precision_3d_op_test",
     srcs = ["average_precision_3d_op_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
@@ -137,13 +139,13 @@ py_test(
     name = "point_grid_op_test",
     srcs = ["point_grid_op_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -161,12 +163,12 @@ py_test(
     name = "nms_3d_op_test",
     srcs = ["nms_3d_op_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ops",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 

@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lm.input_generator."""
 
-
 import lingvo.compat as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils

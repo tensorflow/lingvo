@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Train models on KITTI data."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 from lingvo import compat as tf
@@ -33,7 +29,6 @@ from lingvo.tasks.car import kitti_input_generator
 from lingvo.tasks.car import lr_util
 from lingvo.tasks.car import starnet
 import numpy as np
-from six.moves import zip
 
 
 # Set $KITTI_DIR to the base path of where all the KITTI files can be found.
@@ -71,7 +66,7 @@ class KITTITrain(kitti_input_generator.KITTILaser):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(KITTITrain, cls).Params()
+    p = super().Params()
     return KITTITrainSpec(p)
 
 
@@ -81,7 +76,7 @@ class KITTIValidation(kitti_input_generator.KITTILaser):
   @classmethod
   def Params(cls):
     """Defaults params."""
-    p = super(KITTIValidation, cls).Params()
+    p = super().Params()
     return KITTIValSpec(p)
 
 
@@ -90,7 +85,7 @@ class KITTITest(kitti_input_generator.KITTILaser):
 
   @classmethod
   def Params(cls):
-    p = super(KITTITest, cls).Params()
+    p = super().Params()
     return KITTITestSpec(p)
 
 
@@ -99,7 +94,7 @@ class KITTIGridTrain(kitti_input_generator.KITTIGrid):
 
   @classmethod
   def Params(cls):
-    p = super(KITTIGridTrain, cls).Params()
+    p = super().Params()
     return KITTITrainSpec(p)
 
 
@@ -108,7 +103,7 @@ class KITTIGridValidation(kitti_input_generator.KITTIGrid):
 
   @classmethod
   def Params(cls):
-    p = super(KITTIGridValidation, cls).Params()
+    p = super().Params()
     return KITTIValSpec(p)
 
 
@@ -117,7 +112,7 @@ class KITTIGridTest(kitti_input_generator.KITTIGrid):
 
   @classmethod
   def Params(cls):
-    p = super(KITTIGridTest, cls).Params()
+    p = super().Params()
     return KITTITestSpec(p)
 
 
@@ -126,7 +121,7 @@ class KITTISparseLaserTrain(kitti_input_generator.KITTISparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(KITTISparseLaserTrain, cls).Params()
+    p = super().Params()
     return KITTITrainSpec(p)
 
 
@@ -135,7 +130,7 @@ class KITTISparseLaserValidation(kitti_input_generator.KITTISparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(KITTISparseLaserValidation, cls).Params()
+    p = super().Params()
     return KITTIValSpec(p)
 
 
@@ -144,7 +139,7 @@ class KITTISparseLaserTest(kitti_input_generator.KITTISparseLaser):
 
   @classmethod
   def Params(cls):
-    p = super(KITTISparseLaserTest, cls).Params()
+    p = super().Params()
     return KITTITestSpec(p)
 
 
@@ -413,7 +408,7 @@ class StarNetCarModel0701(StarNetCarsBase):
     CENTER_Y_OFFSETS = np.linspace(-1.294, 1.294, 5)
 
   def _configure_generic_input(self, p):
-    super(StarNetCarModel0701, self)._configure_generic_input(p)
+    super()._configure_generic_input(p)
     # For selecting centers, drop points out of frustum and do approximate
     # ground removal.
     p.preprocessors.select_centers.features_preparation_layers = [
@@ -448,7 +443,7 @@ class StarNetCarModel0701(StarNetCarsBase):
     ]
 
   def _configure_trainer_input(self, p):
-    super(StarNetCarModel0701, self)._configure_trainer_input(p)
+    super()._configure_trainer_input(p)
 
     p.preprocessors.Define(
         'global_loc_noise',
@@ -458,7 +453,7 @@ class StarNetCarModel0701(StarNetCarsBase):
         p.preprocessors_order.index('world_scaling') + 1, 'global_loc_noise')
 
   def Task(self):
-    p = super(StarNetCarModel0701, self).Task()
+    p = super().Task()
 
     # Builder configuration.
     builder = starnet.Builder()
@@ -524,7 +519,7 @@ class StarNetPedCycModel0704(StarNetCarsBase):
     CENTER_Z_OFFSETS = [-0.6]
 
   def _configure_generic_input(self, p):
-    super(StarNetPedCycModel0704, self)._configure_generic_input(p)
+    super()._configure_generic_input(p)
     # For selecting centers, drop points out of frustum and do approximate
     # ground removal.
     p.preprocessors.select_centers.features_preparation_layers = [
@@ -552,7 +547,7 @@ class StarNetPedCycModel0704(StarNetCarsBase):
     p.preprocessors.gather_features.max_distance = 2.55
 
   def _configure_trainer_input(self, p):
-    super(StarNetPedCycModel0704, self)._configure_trainer_input(p)
+    super()._configure_trainer_input(p)
 
     allowed_label_ids = [
         kitti_input_generator.KITTILabelExtractor.KITTI_CLASS_NAMES.index(
@@ -570,16 +565,16 @@ class StarNetPedCycModel0704(StarNetCarsBase):
 
   def _configure_decoder_input(self, p):
     """Update input_config `p` for jobs running decoding."""
-    super(StarNetPedCycModel0704, self)._configure_decoder_input(p)
+    super()._configure_decoder_input(p)
     p.batch_size = 4
 
   def _configure_evaler_input(self, p):
     """Update input_config `p` for jobs running evaluation."""
-    super(StarNetPedCycModel0704, self)._configure_evaler_input(p)
+    super()._configure_evaler_input(p)
     p.batch_size = 4
 
   def Task(self):
-    p = super(StarNetPedCycModel0704, self).Task()
+    p = super().Task()
     p.train.learning_rate = 7e-4
 
     builder = starnet.Builder()

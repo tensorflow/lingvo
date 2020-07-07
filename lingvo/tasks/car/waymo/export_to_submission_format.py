@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,16 +24,11 @@ python export_to_submission_format.py \
 preds.bin and gts.bin will be found in /tmp/test_decoder_output/ dir.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 from absl import flags
 from lingvo import compat as tf
 from lingvo.core.ops import record_pb2
-from six.moves import range
 from waymo_open_dataset.protos import metrics_pb2
 
 FLAGS = flags.FLAGS

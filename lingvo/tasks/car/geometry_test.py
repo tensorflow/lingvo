@@ -15,13 +15,11 @@
 # ==============================================================================
 """Tests for geometry."""
 
-
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.car import geometry
 import numpy as np
-from six.moves import range
 
 
 class GeometryTest(test_utils.TestCase):

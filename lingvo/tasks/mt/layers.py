@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +14,11 @@
 # limitations under the License.
 """Lingvo MT layers.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
-from six.moves import range
 
 
 class TransformerStack(base_layer.BaseLayer):
@@ -37,7 +33,7 @@ class TransformerStack(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Configs for TransformerStack."""
-    p = super(TransformerStack, cls).Params()
+    p = super().Params()
 
     # Transformer related
     p.Define('model_dim', 1024, 'Characteristic depth (dimension).')
@@ -69,7 +65,7 @@ class TransformerStack(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TransformerStack, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -89,7 +85,7 @@ class TransformerStack(base_layer.BaseLayer):
           transformer_layer_params.append(params)
 
       for i, params in enumerate(transformer_layer_params):
-        params.name = 'trans_%d' % (i)
+        params.name = 'trans_%d' % i
         params.source_dim = p.model_dim
         params.packed_input = p.packed_input
         params.has_aux_atten = p.has_aux_attention

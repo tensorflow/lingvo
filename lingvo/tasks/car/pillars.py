@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,6 @@ r"""PointPillars implementation.
 
 [1] PointPillars. https://arxiv.org/abs/1812.05784
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import enum
 import functools
@@ -63,7 +59,7 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls, num_laser_features, num_output_features=64):
-    p = super(PointsToGridFeaturizer, cls).Params()
+    p = super().Params()
     p.Define('num_laser_features', num_laser_features,
              'The number of (non-xyz) laser features of the input.')
 
@@ -77,7 +73,7 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(PointsToGridFeaturizer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateChild('featurizer', p.featurizer)
@@ -153,7 +149,7 @@ class Builder(builder_lib.ModelBuilderBase):
   """Builder for the Pillars model."""
 
   def __init__(self):
-    super(Builder, self).__init__()
+    super().__init__()
     self.conv_init_method = builder_lib.KaimingUniformFanInRelu
     self.linear_params_init = py_utils.WeightInit.KaimingUniformFanInRelu()
     self.bn_params_init = py_utils.WeightInit.UniformPositive()
@@ -277,7 +273,7 @@ class ModelV1(point_detector.PointDetectorBase):
              num_anchors=2,
              num_classes=1,
              num_laser_features=1):
-    p = super(ModelV1, cls).Params(num_classes=num_classes)
+    p = super().Params(num_classes=num_classes)
     p.Define('grid_size_z', grid_size_z, 'The grid size along the z-axis.')
     p.Define('num_anchors', num_anchors, 'The number of anchor boxes.')
     p.Define('num_laser_features', num_laser_features,
@@ -361,7 +357,7 @@ class ModelV1(point_detector.PointDetectorBase):
     return p
 
   def __init__(self, params):
-    super(ModelV1, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self._utils = detection_3d_lib.Utils3D()
 

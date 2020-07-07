@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,17 +25,11 @@ Example::
   [topk_hyps] = pred.Run(["topk_hyps"], src_strings=["Hello World"])
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import threading
 from lingvo import model_imports
 import lingvo.compat as tf
 from lingvo.core import inference_graph_pb2
 from lingvo.core import py_utils
-import six
-from six.moves import zip
 
 from google.protobuf import text_format
 
@@ -62,21 +56,10 @@ def LoadInferenceGraph(path, clear_device_placement=False):
   return inference_graph
 
 
-class Predictor(object):
+class Predictor:
   """Loads a model and does inference.
 
   See model.Inference() documentation for list of fetches and feeds.
-
-  Args:
-    inference_graph: A saved InferenceGraph proto.
-    subgraph_name: The subgraph to use for prediction.
-    checkpoint: An optional checkpoint to load.
-    device_type: Device type string. Either "cpu", "gpu", or "tpu".
-    tf_master: The tf_master.
-    session_config: A tf.SessionConfig to use. By default
-      py_utils.SessionConfig() is used.
-    clear_device_placement: If set, clears device field of loaded inference
-      graph.
   """
 
   def __init__(self,
@@ -87,9 +70,22 @@ class Predictor(object):
                tf_master="",
                session_config=None,
                clear_device_placement=False):
+    """Constructor.
+
+    Args:
+      inference_graph: A saved InferenceGraph proto.
+      subgraph_name: The subgraph to use for prediction.
+      checkpoint: An optional checkpoint to load.
+      device_type: Device type string. Either "cpu", "gpu", or "tpu".
+      tf_master: The tf_master.
+      session_config: A tf.SessionConfig to use. By default
+        py_utils.SessionConfig() is used.
+      clear_device_placement: If set, clears device field of loaded inference
+        graph.
+    """
     assert device_type in ["cpu", "gpu", "tpu"]
     subgraph_name = subgraph_name or "default"
-    if isinstance(inference_graph, six.string_types):
+    if isinstance(inference_graph, str):
       tf.logging.info("Reading inference graph from %s.", inference_graph)
       inference_graph = LoadInferenceGraph(inference_graph,
                                            clear_device_placement)
@@ -256,7 +252,7 @@ class Predictor(object):
         raise KeyError(
             "%s is not in the list of available feeds. Available keys: %s" %
             (k, list(self._feeds.keys())))
-    feeds = {self._feeds[k]: v for k, v in six.iteritems(kwargs)}
+    feeds = {self._feeds[k]: v for k, v in kwargs.items()}
 
     run_options = tf.RunOptions(report_tensor_allocations_upon_oom=False)
     if session_run_options:

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +14,11 @@
 # limitations under the License.
 # =============================================================================
 """Batch normalization layers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
-from six.moves import range
 
 from tensorflow.python.ops import nn  # pylint:disable=g-direct-tensorflow-import
 from tensorflow.python.tpu import tpu_function  # pylint:disable=g-direct-tensorflow-import
@@ -35,7 +31,7 @@ class AddingAccumulator(base_layer.Accumulator):
   """Accumulator for the sufficient statistics."""
 
   def __init__(self, shape, dtype):
-    super(AddingAccumulator, self).__init__()
+    super().__init__()
     self.dtype = dtype
     self.shape = shape
 
@@ -103,7 +99,7 @@ class BatchNormLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BatchNormLayer, cls).Params()
+    p = super().Params()
     p.Define('dim', 0, 'Depth of the input/output.')
     p.Define(
         'decay', 0.999,
@@ -172,7 +168,7 @@ class BatchNormLayer(base_layer.BaseLayer):
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
   def __init__(self, params):
-    super(BatchNormLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 
@@ -396,7 +392,7 @@ class CategoricalBN(BatchNormLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CategoricalBN, cls).Params()
+    p = super().Params()
     p.Define('class_emb_dim', None, 'Dim of input class embedding.')
 
     p.use_moving_avg_in_training = False
@@ -427,7 +423,7 @@ class CategoricalBN(BatchNormLayer):
     assert not params.use_moving_avg_in_training
     assert not params.use_fused_batch_norm_for_eval
     assert params.add_stats_to_moving_average_variables
-    super(CategoricalBN, self).__init__(params)
+    super().__init__(params)
 
   def _GetBetaGamma(self, theta, inputs, **kwargs):
     assert 'class_emb' in kwargs
@@ -494,7 +490,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Parameters for BatchNormLayerNoPadding."""
-    p = super(BatchNormLayerNoPadding, cls).Params()
+    p = super().Params()
     p.Define('dim', 0, 'Depth of the input/output.')
     p.Define(
         'decay', 0.997,
@@ -509,7 +505,7 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(BatchNormLayerNoPadding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
     p.fprop_dtype = None
@@ -679,7 +675,7 @@ class GroupNormLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GroupNormLayer, cls).Params()
+    p = super().Params()
     p.Define('dim', 0, 'Depth of the input/output.')
     p.Define('num_groups', 32, 'Number of groups for GroupNorm.')
     p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
@@ -688,7 +684,7 @@ class GroupNormLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(GroupNormLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.num_groups > 0

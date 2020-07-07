@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Common utility functions for generating summaries."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import time
 import lingvo.compat as tf
@@ -295,7 +291,7 @@ def PlotSequenceFeatures(plots, name, **kwargs):
                      **kwargs)
 
 
-class StatsCounter(object):
+class StatsCounter:
   """A single counter in TF."""
 
   def __init__(self, name):
@@ -321,7 +317,7 @@ class StatsCounter(object):
       return tf.identity(tf.assign_add(self._var, delta))
 
 
-class StepRateTracker(object):
+class StepRateTracker:
   """A class that tracks step/example rate."""
 
   def __init__(self):

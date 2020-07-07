@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Train NMT Models on WMT'14 English-German machine translation task."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 
@@ -127,7 +123,7 @@ class WmtEnDeTransformerSmallCloudTpu(WmtEnDeTransformerSmall):
   """Small Transformer Params for WMT'14 En->De on TPU."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(WmtEnDeTransformerSmallCloudTpu, self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
@@ -135,7 +131,7 @@ class WmtEnDeTransformerSmallCloudTpu(WmtEnDeTransformerSmall):
     return p
 
   def Task(self):
-    p = super(WmtEnDeTransformerSmallCloudTpu, self).Task()
+    p = super().Task()
 
     p.decoder.token_emb.max_num_shards = 1
     p.encoder.token_emb.max_num_shards = 1
@@ -147,7 +143,7 @@ class WmtEnDeRNMT(WmtEnDeTransformerBase):
   """Params for WMT'14 En->De in sync training."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(WmtEnDeRNMT, self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     if is_eval:
       p.bucket_upper_bound = [10, 14, 19, 26, 36, 50, 70, 98, 200]
@@ -189,7 +185,7 @@ class WmtEnDeRNMTCloudTpu(WmtEnDeRNMT):
   """Params for WMT'14 En->De in sync training on TPU."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(WmtEnDeRNMTCloudTpu, self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     p.pad_to_max_seq_length = True
     p.source_max_length = p.bucket_upper_bound[-1]
@@ -198,7 +194,7 @@ class WmtEnDeRNMTCloudTpu(WmtEnDeRNMT):
     return p
 
   def Task(self):
-    p = super(WmtEnDeRNMTCloudTpu, self).Task()
+    p = super().Task()
 
     p.encoder.emb.max_num_shards = 1
     p.decoder.emb.max_num_shards = 1

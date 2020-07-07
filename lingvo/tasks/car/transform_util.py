@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,12 @@
 # ==============================================================================
 """Utilities for performing 3D transformations on points."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import copy
 
 import numpy as np
 
 
-class Box2D(object):
+class Box2D:
   """A representation of a 2D rotated bounding box.
 
   Box2D is based on conventions for 3D coordinate systems where y-x are

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,6 @@
 Currently support: MASS
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo.core import base_layer
 from lingvo.core import ops
 from lingvo.core import py_utils
@@ -36,7 +32,7 @@ class MASS(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     # Params for the MASS op api.
-    p = super(MASS, cls).Params()
+    p = super().Params()
     p.Define('mask_id', 3, 'Id for the mask token.')
     p.Define('mask_ratio', 0.5, 'Mask fraction.')
     p.Define('mask_minlen', 0, 'Minimum number of tokens to mask.')
@@ -75,7 +71,7 @@ class MASS(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MASS, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not np.isclose([p.keep_prob + p.rand_prob + p.mask_prob], [1]):
       raise ValueError('keep_prob, rand_prob, mask_prob must sum to 1')

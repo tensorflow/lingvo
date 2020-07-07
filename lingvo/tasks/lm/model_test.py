@@ -15,14 +15,12 @@
 # ==============================================================================
 """Tests for lm.model."""
 
-
 import lingvo.compat as tf
 from lingvo.core import test_helper
 from lingvo.core import test_utils
 from lingvo.core import tokenizers
 from lingvo.tasks.lm import input_generator
 from lingvo.tasks.lm import model
-from six.moves import range
 
 
 class ModelTest(test_utils.TestCase):

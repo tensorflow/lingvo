@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Common layers."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import copy
 import math
@@ -37,9 +33,6 @@ from lingvo.core import summary_utils
 from lingvo.core import symbolic
 from lingvo.core import tshape
 import numpy as np
-import six
-from six.moves import range
-from six.moves import zip
 import sympy
 
 # pylint:disable=g-direct-tensorflow-import
@@ -59,7 +52,7 @@ class DeconvLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(DeconvLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_shape', (0, 0, 0, 0),
         'Filter shape. Must be a sequence of length 4. Elements are in'
@@ -72,7 +65,7 @@ class DeconvLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(DeconvLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert len(p.filter_shape) == 4
@@ -234,7 +227,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseConv2DLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_shape', (0, 0, 0, 0),
         'Filter shape. Must be a sequence of length 4. Elements are in'
@@ -296,7 +289,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(BaseConv2DLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert len(p.filter_shape) == 4
@@ -745,7 +738,7 @@ class DepthwiseConv2DLayer(BaseConv2DLayer):
 
   @classmethod
   def Params(cls):
-    p = super(DepthwiseConv2DLayer, cls).Params()
+    p = super().Params()
     # Redefine 'filter_shape' since the semantic of shape elements is different
     # from regular Conv2D.
     p.Delete('filter_shape')
@@ -806,7 +799,7 @@ class SeparableConv2DLayer(Conv2DLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SeparableConv2DLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'depth_multiplier', 1,
         'Number of depthwise convolution output channels per input channel. '
@@ -830,7 +823,7 @@ class SeparableConv2DLayer(Conv2DLayer):
     params.filter_stride = (1, 1)
     params.dilation_rate = (1, 1)
 
-    super(SeparableConv2DLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     del params
 
@@ -851,12 +844,12 @@ class SeparableConv2DLayer(Conv2DLayer):
   def FProp(self, theta, inputs, paddings=None):
     inputs, paddings = self.depthwise_conv.FProp(theta.depthwise_conv, inputs,
                                                  paddings)
-    return super(SeparableConv2DLayer, self).FProp(theta, inputs, paddings)
+    return super().FProp(theta, inputs, paddings)
 
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     in_shape = self.depthwise_conv.OutShape(in_shape)
-    return super(SeparableConv2DLayer, self).OutShape(in_shape)
+    return super().OutShape(in_shape)
 
 
 class ProjectionLayer(quant_utils.QuantizableLayer):
@@ -864,7 +857,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(ProjectionLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Depth of the input.')
     p.Define('output_dim', 0, 'Depth of the output.')
     p.Define(
@@ -907,7 +900,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(ProjectionLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert symbolic.EvalExpr(symbolic.STATIC_VALUES, p.input_dim) > 0
@@ -1224,7 +1217,7 @@ class FCLayer(ProjectionLayer):
 
   @classmethod
   def Params(cls):
-    p = super(FCLayer, cls).Params()
+    p = super().Params()
     p.batch_norm = False
     p.has_bias = True
     return p
@@ -1241,7 +1234,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(FeedForwardNet, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('hidden_layer_dims', [], 'Depth of the hidden layer outputs.')
     p.Define(
@@ -1274,7 +1267,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(FeedForwardNet, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert symbolic.ToStatic(p.input_dim) > 0
@@ -1294,7 +1287,7 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
       weight_norm = [weight_norm] * num_layers
 
     activation = p.activation
-    if isinstance(activation, six.string_types):
+    if isinstance(activation, str):
       activation = [activation] * num_layers
     else:
       assert len(activation) == num_layers
@@ -1388,7 +1381,7 @@ class StackingOverTime(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(StackingOverTime, cls).Params()
+    p = super().Params()
     p.Define('left_context', 0,
              'Number of time steps to stack on the left to the central step.')
     p.Define('right_context', 0,
@@ -1397,7 +1390,7 @@ class StackingOverTime(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(StackingOverTime, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.left_context >= 0
@@ -1598,7 +1591,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(PoolingLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'window_shape', (0, 0),
         'Window shape. Must be a pair of ints. Elements are in'
@@ -1617,7 +1610,7 @@ class PoolingLayer(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(PoolingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert len(p.window_shape) == 2
@@ -1708,14 +1701,14 @@ class BlurPoolLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BlurPoolLayer, cls).Params()
+    p = super().Params()
     p.Define('blur_filter', 'B5', 'One of [R2, T3, B5]; the fixed blur filter.')
     p.Define('subsample_type', '1D', 'Choose between [1D, 2D] subsampling.')
     p.Define('input_channels', None, 'Number of input channels.')
     return p
 
   def __init__(self, params):
-    super(BlurPoolLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.blur_filter in ['R2', 'T3', 'B5']
@@ -1810,7 +1803,7 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SingleShardEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0, 'Num tokens in vocab.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define(
@@ -1819,7 +1812,7 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(SingleShardEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
@@ -1870,7 +1863,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(EmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define('max_num_shards', 0, 'Num param shards.')
@@ -1884,7 +1877,7 @@ class EmbeddingLayer(base_layer.BaseLayer):
   MIN_PARAMS_PER_SHARD = 1024 * 256
 
   def __init__(self, params):
-    super(EmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
@@ -1967,7 +1960,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TPUEmbeddingTable, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0, 'Depth of the input.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
     p.Define('input_keys', None, 'Name of inputs in InputBatch.')
@@ -1986,7 +1979,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TPUEmbeddingTable, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.vocab_size > 0
     assert p.embedding_dim > 0
@@ -2164,7 +2157,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(TPUEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('tables', None, 'TPUEmbeddingTables')
     p.Define('pipeline_execution_with_tensor_core', False,
              'Set to True to be faster. See tpu_embedding.py for details.')
@@ -2173,7 +2166,7 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(TPUEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.tables
@@ -2308,7 +2301,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SimpleEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0,
              'Depth of the input. I.e., the number of classes.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
@@ -2337,7 +2330,7 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(SimpleEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.vocab_size > 0
     assert symbolic.ToStatic(p.embedding_dim) > 0
@@ -2594,7 +2587,7 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(OneHotEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0,
              'Depth of the input. I.e., the number of classes.')
     p.Define('embedding_dim', 0, 'Depth of the output.')
@@ -2602,7 +2595,7 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(OneHotEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.vocab_size > 1
@@ -2656,7 +2649,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(PositionalEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'min_timescale', 1, 'Start of the geometric index.'
         'Determines the periodicity of the added signal.')
@@ -2673,7 +2666,7 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(PositionalEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.min_timescale
@@ -2787,7 +2780,7 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(RelativePositionalEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'radius', None,
         'Radius of the relative window size. Distance are clipped to '
@@ -2796,7 +2789,7 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(RelativePositionalEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     params = self.params
     if not isinstance(params.radius, numbers.Integral) or params.radius <= 0:
       raise ValueError('params.radius must be a positive int, but is %s' %
@@ -2841,12 +2834,12 @@ class SinusoidalPositionalEmbeddingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(SinusoidalPositionalEmbeddingLayer, cls).Params()
+    p = super().Params()
     p.Define('embedding_dim', 0, 'Dimension of the embedding to be generated.')
     return p
 
   def __init__(self, params):
-    super(SinusoidalPositionalEmbeddingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.embedding_dim % 2 != 0:
       raise ValueError('embedding_dim needs to be even.')
@@ -2879,7 +2872,7 @@ class SoftmaxLayer(quant_utils.QuantizableLayer):
   @classmethod
   def Params(cls):
     """Params for SoftmaxLayer."""
-    p = super(SoftmaxLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input.')
     p.Define('num_classes', 0, 'Total number of target classes.')
     p.Define(
@@ -2998,7 +2991,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
   @classmethod
   def Params(cls):
     """Params for SimpleFullSoftmax."""
-    p = super(SimpleFullSoftmax, cls).Params()
+    p = super().Params()
     p.Define(
         'num_sampled', 0, 'Number of samples to use for the sampled soft-max. '
         'Default value of 0 means no sampling is done; if set to > 0 then '
@@ -3020,7 +3013,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
 
   def __init__(self, params):
     """Constructs a SimpleFullSoftmax layer."""
-    super(SimpleFullSoftmax, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     # We shard params across the class dimension.
@@ -3310,7 +3303,7 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
   @classmethod
   def Params(cls):
     """Params for SharedSoftmaxLayer."""
-    p = super(SharedSoftmaxLayer, cls).Params()
+    p = super().Params()
     p.Define(
         'scale_sqrt_depth', False, 'If set True, activations are scaled'
         ' with sqrt(input_dim) in EmbLookup.')
@@ -3340,7 +3333,7 @@ class SingleShardFullSoftmax(SoftmaxLayer):
 
   def __init__(self, params):
     """Constructs a SingleShardFullSoftmax layer."""
-    super(SingleShardFullSoftmax, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     with tf.variable_scope(p.name):
@@ -3548,7 +3541,7 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
   @classmethod
   def Params(cls):
     """Params for SoftmaxLayer."""
-    p = super(ConvSoftmax, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input.')
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
     p.Define('num_classes', 0, 'Total number of target classes.')
@@ -3556,7 +3549,7 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
 
   def __init__(self, params):
     """Constructs a SimpleFullSoftmax layer."""
-    super(ConvSoftmax, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       if p.hidden_dim:
@@ -3602,7 +3595,7 @@ class DropoutLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(DropoutLayer, cls).Params()
+    p = super().Params()
     p.Define('keep_prob', 1.0, 'Keep probability.')
     # noise_shape is unknown when building layer params.
     p.Define(
@@ -3689,14 +3682,14 @@ class LayerNorm(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(LayerNorm, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('epsilon', 1e-6, 'Tiny value to guard rsqrt.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     return p
 
   def __init__(self, params):
-    super(LayerNorm, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim > 0
@@ -3770,7 +3763,7 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(ConvSetLayer, cls).Params()
+    p = super().Params()
     p.Define('cnn_tpl',
              ConvLayer.Params().Set(filter_stride=(1, 1)),
              'Conv layer template for the set of conv layers.')
@@ -3781,7 +3774,7 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(ConvSetLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 
@@ -3875,7 +3868,7 @@ class LocalizedLabelSmoother(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(LocalizedLabelSmoother, cls).Params()
+    p = super().Params()
     p.Define('num_classes', 0, 'Number of classes')
     p.Define(
         'offsets', [], 'Offset (over time) for smoothing. At time T the '
@@ -3884,7 +3877,7 @@ class LocalizedLabelSmoother(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(LocalizedLabelSmoother, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.num_classes > 0
     assert len(p.offsets) == len(p.weights)
@@ -3950,7 +3943,7 @@ class UniformLabelSmoother(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(UniformLabelSmoother, cls).Params()
+    p = super().Params()
     p.Define('num_classes', 0, 'Number of classes')
     p.Define('uncertainty', 0.1, 'Uncertainty of correct label, eps.')
     p.Define(
@@ -3962,7 +3955,7 @@ class UniformLabelSmoother(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(UniformLabelSmoother, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.num_classes > 0
     assert 0.0 <= p.uncertainty < 1.0
@@ -4030,7 +4023,7 @@ class HighwaySkipLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(HighwaySkipLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input to the network.')
     p.Define(
         'batch_norm', False,
@@ -4042,7 +4035,7 @@ class HighwaySkipLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(HighwaySkipLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       carry_gate_params = ProjectionLayer.Params().Set(
@@ -4106,14 +4099,14 @@ class GatingLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GatingLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input to the network.')
     p.Define('has_bias', False, 'Whether carry has a bias term.')
     p.Define('carry_bias_init', 0.0, 'carry gates bias initialization')
     return p
 
   def __init__(self, params):
-    super(GatingLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       carry_gate_params = ProjectionLayer.Params().Set(
@@ -4154,7 +4147,7 @@ class GradNormTracker(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GradNormTracker, cls).Params()
+    p = super().Params()
     p.Define('decay', 0.995,
              'Decay in updating the moving avgs in grad norm stats')
     p.Define('grad_norm_lower_cap', 1e-2, 'The minimal gradient norm value.')
@@ -4172,7 +4165,7 @@ class GradNormTracker(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(GradNormTracker, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 
@@ -4265,7 +4258,7 @@ class WeightedSumLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for this MergerLayer class."""
-    p = super(WeightedSumLayer, cls).Params()
+    p = super().Params()
     p.Define('num_sources', 0, 'Number of input sources to combine.')
     p.Define('weighted_merger_dropout_prob', 0.1,
              'Applies dropout to the weights.')
@@ -4279,7 +4272,7 @@ class WeightedSumLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(WeightedSumLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not p.name:
       raise ValueError('Layer must have a specified name!')
@@ -4353,14 +4346,14 @@ class GatedAverageLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GatedAverageLayer, cls).Params()
+    p = super().Params()
     p.Define('num_nodes', 0, 'Number of nodes in each input vector.')
     p.Define('num_inputs', 0, 'Number of input vectors to combine.')
     return p
 
   def __init__(self, params):
     """Initializes GatedAverageLayer."""
-    super(GatedAverageLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.num_nodes > 0, 'Number of dimensions should be greater than 0.'
@@ -4422,12 +4415,12 @@ class LHUCLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(LHUCLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input and output.')
     return p
 
   def __init__(self, params):
-    super(LHUCLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim > 0
@@ -4460,14 +4453,14 @@ class ResidualAdapterLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(ResidualAdapterLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the input to the adapter.')
     p.Define('bottleneck_dim', 0, 'Dimension of the feedforward inner layer.')
     p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
     return p
 
   def __init__(self, params):
-    super(ResidualAdapterLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 
@@ -4541,7 +4534,7 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(Conv2DLayerNoPadding, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_shape', (0, 0, 0, 0),
         'Filter shape. Must be a sequence of length 4. Elements are in'
@@ -4562,7 +4555,7 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(Conv2DLayerNoPadding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.padding in ['SAME', 'VALID']
@@ -4634,7 +4627,7 @@ class FetchLayer(base_layer.BaseLayer):
   """A layer facilitating fetching activations and their gradients."""
 
   def __init__(self, params):
-    super(FetchLayer, self).__init__(params)
+    super().__init__(params)
     assert self.params.name
     self._activations = None
     self._gradients = None
@@ -4689,7 +4682,7 @@ class GluLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(GluLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Dimension of the layer input.')
     p.Define('output_dim', 0, 'Dimension of the layer output.')
     p.Define('ln_tpl', LayerNorm.Params(), 'Layer norm default params.')
@@ -4702,7 +4695,7 @@ class GluLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(GluLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     assert p.input_dim
@@ -4773,7 +4766,7 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MultitaskAdapterLayer, cls).Params()
+    p = super().Params()
     p.Define('num_tasks', 0, 'Number of tasks.')
     p.Define('input_dim', 0, 'Dimension of the input to the adapter.')
     p.Define('bottleneck_dim', 0, 'Dimension of the bottleneck.')
@@ -4790,7 +4783,7 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(MultitaskAdapterLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
     # Data format is either 'TBC' (time-major) or 'BTC' (batch-major).
@@ -4925,7 +4918,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CCTGatingNetwork, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Depth of the input to the network.')
     p.Define('hidden_layer_dim', 0, 'Depth of the hidden layer outputs.')
     p.Define('num_outputs', 0, 'Number of scalar gate outputs.')
@@ -4934,7 +4927,7 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
     return p
 
   def __init__(self, params):
-    super(CCTGatingNetwork, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       params = schedule.PolynomialSchedule.Params()
@@ -4989,7 +4982,7 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(CondScaleShiftFFNLayer, cls).Params()
+    p = super().Params()
     p.Define('input_dim', 0, 'Depth of the input.')
     p.Define('output_dim', 0, 'Depth of the output.')
     p.Define('ffn', FeedForwardNet.Params(), 'Projection layer params')
@@ -5000,7 +4993,7 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(CondScaleShiftFFNLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 

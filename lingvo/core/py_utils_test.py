@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for py_utils."""
 
-
 import collections
 import copy
 import itertools
@@ -37,9 +36,6 @@ from lingvo.tasks.image.params import mnist  # pylint: disable=unused-import
 
 import mock
 import numpy as np
-import six
-from six.moves import range
-from six.moves import zip
 
 from tensorflow.python.ops import functional_ops  # pylint:disable=g-direct-tensorflow-import
 
@@ -296,7 +292,7 @@ class PyUtilsTest(test_utils.TestCase):
       # w0_val, w1_val should be sufficient different.
       w0_val, w1_val = self.evaluate([w0, w1])
       print(['diff = ', w0_val - w1_val])
-      self.assertTrue(np.max(np.abs(w0_val - w1_val)) > 0.1)
+      self.assertGreater(np.max(np.abs(w0_val - w1_val)), 0.1)
 
   def testXavier(self):
     with self.session(use_gpu=False, graph=tf.Graph()):
@@ -584,9 +580,9 @@ class PyUtilsTest(test_utils.TestCase):
         _, v2 = py_utils.CreateVariable('v2', pc)
       _, v3 = py_utils.CreateVariable('v3', pc)
 
-    self.assertTrue(v1.name == 'model/v1/var:0')
-    self.assertTrue(v2.name == 'data/v2/var:0')
-    self.assertTrue(v3.name == 'model/v3/var:0')
+    self.assertEqual(v1.name, 'model/v1/var:0')
+    self.assertEqual(v2.name, 'data/v2/var:0')
+    self.assertEqual(v3.name, 'model/v3/var:0')
 
   def testOpportunisticReuse(self):
     pc = py_utils.WeightParams([3, 3])
@@ -711,8 +707,7 @@ class PyUtilsTest(test_utils.TestCase):
       grad_mask['d:0'] = select
       grad_onehot = tf.one_hot(1, 3, dtype=tf.float32)
       grad_mask = {
-          k: tf.tensordot(v, grad_onehot, 1)
-          for k, v in six.iteritems(grad_mask)
+          k: tf.tensordot(v, grad_onehot, 1) for k, v in grad_mask.items()
       }
       var_grads = py_utils.ComputeGradients(l, vmap)
       var_grads_mask = py_utils.MaskGradients(var_grads, grad_mask)
@@ -938,7 +933,7 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testFindNeeded(self):
     phs = [
-        tf.placeholder('float32', shape=(), name='p%d' % (i + 1,))
+        tf.placeholder('float32', shape=(), name='p%d' % (i + 1))
         for i in range(4)
     ]
     p1, p2, p3, p4 = phs
@@ -950,9 +945,9 @@ class PyUtilsTest(test_utils.TestCase):
     z2_needed = set(py_utils.FindNeededInList(phs, [z2]))
     z2_p4_needed = set(py_utils.FindNeededInList(phs, [z2, p4]))
 
-    self.assertTrue(set([p1, p2]) == z1_needed)
-    self.assertTrue(set([p1, p2, p3]) == z2_needed)
-    self.assertTrue(set([p1, p2, p3, p4]) == z2_p4_needed)
+    self.assertEqual(set([p1, p2]), z1_needed)
+    self.assertEqual(set([p1, p2, p3]), z2_needed)
+    self.assertEqual(set([p1, p2, p3, p4]), z2_p4_needed)
 
   def testArgMax(self):
 
@@ -1627,7 +1622,7 @@ foo[2][0]     32"""
 
   def testDeepCopy(self):
 
-    class SomeObj(object):
+    class SomeObj:
 
       def __init__(self):
         self.foo = 'foo'

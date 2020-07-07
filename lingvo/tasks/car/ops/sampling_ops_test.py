@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo.tasks.car.ops.sampling_ops."""
 
-
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import test_utils

@@ -22,6 +22,7 @@ py_test(
         "//lingvo/tools/testdata:audio_data",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":frontend",
         # Additional FFT kernels dependency.
@@ -42,7 +43,6 @@ py_library(
         "//lingvo/core:base_input_generator",
         "//lingvo/core:generic_input",
         "//lingvo/core:py_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -50,12 +50,12 @@ py_test(
     name = "input_generator_test",
     srcs = ["input_generator_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -74,7 +74,6 @@ py_library(
         "//lingvo/core:rnn_layers",
         "//lingvo/core:spectrum_augmenter",
         "//lingvo/core:summary_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -82,6 +81,7 @@ py_test(
     name = "encoder_test",
     srcs = ["encoder_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":encoder",
         "//lingvo:compat",
@@ -120,6 +120,7 @@ py_test(
     name = "decoder_utils_test",
     srcs = ["decoder_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":decoder_utils",
@@ -159,7 +160,6 @@ py_library(
         "//lingvo/core:summary_utils",
         "//lingvo/core:symbolic",
         # Implicit matplotlib dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -169,6 +169,7 @@ py_test(
     srcs = ["decoder_test.py"],
     python_version = "PY3",
     shard_count = 10,
+    srcs_version = "PY3",
     deps = [
         ":decoder",
         # Implicit python proto dependency.
@@ -180,7 +181,6 @@ py_test(
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -210,7 +210,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
         "//lingvo/tools:audio_lib",
-        # Implicit six dependency.
     ],
 )
 
@@ -220,6 +219,7 @@ py_test(
     data = ["//lingvo/tools/testdata:audio_data"],
     python_version = "PY3",
     shard_count = 15,
+    srcs_version = "PY3",
     deps = [
         ":decoder",
         ":input_generator",

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Average precision metric interface."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 from lingvo import compat as tf
 from lingvo.core import hyperparams
@@ -26,13 +22,11 @@ from lingvo.core import py_utils
 from lingvo.core.metrics import BaseMetric
 from lingvo.tasks.car import breakdown_metric
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 # TODO(shlens): Consider making this internal data structure a list of NestedMap
 # to simplify the implementation.
-class Boxes3D(object):
+class Boxes3D:
   """A container for a list of 7-DOF 3D boxes.
 
   Each 3D box is represented by the 7-tuple [x, y, z, dx, dy, dz, phi],

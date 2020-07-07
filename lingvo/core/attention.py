@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Attention models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -28,7 +24,6 @@ from lingvo.core import quant_utils
 from lingvo.core import symbolic
 
 import numpy as np
-from six.moves import zip
 
 from tensorflow.python.ops import inplace_ops  # pylint:disable=g-direct-tensorflow-import
 
@@ -196,7 +191,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseAttentionLayer, cls).Params()
+    p = super().Params()
     p.Define('atten_dropout_prob', 0.0,
              'Probability at which we apply dropout to the attention weights.')
     p.Define(
@@ -217,7 +212,7 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     """Constructs a BaseAttentionLayer object."""
     if not params.name:
       raise ValueError('params.name is not set.')
-    super(BaseAttentionLayer, self).__init__(params)
+    super().__init__(params)
 
     self._source_init_done = False
     self.TrackQTensor('logits', domain='fullyconnected')
@@ -457,7 +452,7 @@ class AdditiveAttention(BaseAttentionLayer):
   @classmethod
   def Params(cls):
     """Params for this `AdditiveAttention` class."""
-    p = super(AdditiveAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
@@ -470,7 +465,7 @@ class AdditiveAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs an `AdditiveAttention` object."""
-    super(AdditiveAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       pc = py_utils.WeightParams(
@@ -826,7 +821,7 @@ class DotProductAttention(BaseAttentionLayer):
   @classmethod
   def Params(cls):
     """Params for `DotProductAttention`."""
-    p = super(DotProductAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
@@ -834,7 +829,7 @@ class DotProductAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs a DotProductAttention object."""
-    super(DotProductAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     # TODO(yonghui): relax these constraints.
     assert p.source_dim == p.query_dim
@@ -1144,7 +1139,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
   @classmethod
   def Params(cls):
     """Params for MultiHeadedAttention."""
-    p = super(MultiHeadedAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('context_dim', 0, 'Number of context nodes.')
@@ -1196,7 +1191,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
 
   def __init__(self, params):
     """Constructs a MultiHeadedAttention object."""
-    super(MultiHeadedAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert symbolic.ToStatic(p.hidden_dim) % p.num_attention_heads == 0
 
@@ -1790,7 +1785,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
   @classmethod
   def Params(cls):
     """Params for this LocationSensitiveAttention class."""
-    p = super(LocationSensitiveAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('location_filter_size', 0,
              'Location filter size, should be an odd number e.g. 31.')
@@ -1818,7 +1813,7 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs an LocationSensitiveAttention object."""
-    super(LocationSensitiveAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     name = p.name
     self._is_quantized = p.qdomain.default is not None
@@ -2299,7 +2294,7 @@ class MonotonicAttention(BaseAttentionLayer):
   @classmethod
   def Params(cls):
     """Params for this MonotonicAttention class."""
-    p = super(MonotonicAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
@@ -2312,7 +2307,7 @@ class MonotonicAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs an MonotonicAttention object."""
-    super(MonotonicAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert not p.packed_input, ('Packed input not supported for Monotonic '
                                 'Attention.')
@@ -2586,7 +2581,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
   @classmethod
   def Params(cls):
     """Params for this MonotonicAttention class."""
-    p = super(GmmMonotonicAttention, cls).Params()
+    p = super().Params()
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 128,
@@ -2607,7 +2602,7 @@ class GmmMonotonicAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs a GMM-based monotonic attention module."""
-    super(GmmMonotonicAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported.')
@@ -2887,7 +2882,7 @@ class MergerLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Params for this MergerLayer class."""
-    p = super(MergerLayer, cls).Params()
+    p = super().Params()
     p.Define('merger_op', None, 'How to merge input tensors.')
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
@@ -2919,7 +2914,7 @@ class MergerLayer(base_layer.BaseLayer):
   MERGER_OPS = ['mean', 'atten', 'concat', 'sum', 'weighted_sum', 'gated_avg']
 
   def __init__(self, params):
-    super(MergerLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not p.name:
       raise ValueError('Layer must have a specified name!')
@@ -3086,7 +3081,7 @@ class MultiSourceAttention(BaseAttentionLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MultiSourceAttention, cls).Params()
+    p = super().Params()
     p.Define('source_atten_tpls', None,
              'A list of (source_key, attention_param) '
              'pairs.')
@@ -3106,7 +3101,7 @@ class MultiSourceAttention(BaseAttentionLayer):
 
   def __init__(self, params):
     """Constructs an MultiSourceAttention object."""
-    super(MultiSourceAttention, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       for source_key, atten_p in p.source_atten_tpls:

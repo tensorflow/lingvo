@@ -29,8 +29,6 @@ from lingvo.core import py_utils
 from lingvo.core import task_scheduler
 from lingvo.core import test_utils
 import numpy as np
-import six
-from six.moves import range
 
 
 FLAGS = tf.flags.FLAGS
@@ -41,7 +39,7 @@ _NUMPY_RANDOM_SEED = 9885784
 class TestTask(base_model.BaseTask):
 
   def __init__(self, params):
-    super(TestTask, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateVariable(
@@ -184,7 +182,7 @@ class BaseTaskTest(test_utils.TestCase):
 class TeacherTask(base_model.BaseTask):
 
   def __init__(self, params):
-    super(TeacherTask, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateVariable('x',
@@ -198,7 +196,7 @@ class TeacherTask(base_model.BaseTask):
 class StudentTask(base_model.BaseTask):
 
   def __init__(self, params):
-    super(StudentTask, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateVariable('x',
@@ -223,7 +221,7 @@ class DistillationTestTask(base_model.DistillationTask):
 
   @classmethod
   def Params(cls):
-    p = super(DistillationTestTask, cls).Params()
+    p = super().Params()
     p.name = 'distillation_test'
     p.teacher = TeacherTask.Params()
     p.student = StudentTask.Params()
@@ -236,7 +234,7 @@ class DistillationTestTask(base_model.DistillationTask):
     return p
 
   def __init__(self, params):
-    super(DistillationTestTask, self).__init__(params)
+    super().__init__(params)
 
   def ComputeLoss(self, theta, predictions, input_batch):
     return {'loss': (predictions.teacher - predictions.student, 1)}, {}
@@ -279,7 +277,7 @@ class DistillationTaskTest(test_utils.TestCase):
     values_before_training, values_after_training = (
         self._GetVarValuesBeforeAndAfter(DistillationTestTask.Params()))
     for child in ('teacher', 'student'):
-      for k, v in six.iteritems(values_after_training[child]):
+      for k, v in values_after_training[child].items():
         print('Comparing variable %s' % k)
         if child == 'teacher':
           # Teacher vars should not change after training.
@@ -295,7 +293,7 @@ class DistillationTaskTest(test_utils.TestCase):
     values_before_training, values_after_training = (
         self._GetVarValuesBeforeAndAfter(params))
     for child in ('teacher', 'student'):
-      for k, v in six.iteritems(values_after_training[child]):
+      for k, v in values_after_training[child].items():
         print('Comparing variable %s' % k)
         if child == 'teacher':
           # Teacher vars should change after training.

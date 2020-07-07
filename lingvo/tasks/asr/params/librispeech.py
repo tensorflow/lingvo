@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Models for Librispeech dataset."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 from lingvo import model_registry
 from lingvo.core import base_model_params
@@ -189,27 +185,27 @@ class Librispeech960Grapheme(Librispeech960Base):
     return params
 
   def Train(self):
-    p = super(Librispeech960Grapheme, self).Train()
+    p = super().Train()
     return self.InitializeTokenizer(params=p)
 
   def Dev(self):
-    p = super(Librispeech960Grapheme, self).Dev()
+    p = super().Dev()
     return self.InitializeTokenizer(params=p)
 
   def Devother(self):
-    p = super(Librispeech960Grapheme, self).Devother()
+    p = super().Devother()
     return self.InitializeTokenizer(params=p)
 
   def Test(self):
-    p = super(Librispeech960Grapheme, self).Test()
+    p = super().Test()
     return self.InitializeTokenizer(params=p)
 
   def Testother(self):
-    p = super(Librispeech960Grapheme, self).Testother()
+    p = super().Testother()
     return self.InitializeTokenizer(params=p)
 
   def Task(self):
-    p = super(Librispeech960Grapheme, self).Task()
+    p = super().Task()
     dp = p.decoder
     dp.target_seq_len = self.GRAPHEME_TARGET_SEQUENCE_LENGTH
     dp.emb_dim = self.GRAPHEME_VOCAB_SIZE
@@ -223,7 +219,7 @@ class Librispeech960GraphemeTpuV2(Librispeech960Grapheme):
   """Librispeech 960 grapheme model for training on TPU V2."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(Librispeech960GraphemeTpuV2, self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     if py_utils.use_tpu():
       p.pad_to_max_seq_length = True
@@ -233,7 +229,7 @@ class Librispeech960GraphemeTpuV2(Librispeech960Grapheme):
     return p
 
   def Task(self):
-    p = super(Librispeech960GraphemeTpuV2, self).Task()
+    p = super().Task()
 
     p.encoder.pad_steps = 0
 
@@ -280,27 +276,27 @@ class Librispeech960Wpm(Librispeech960Base):
     return params
 
   def Train(self):
-    p = super(Librispeech960Wpm, self).Train()
+    p = super().Train()
     return self.InitializeTokenizer(params=p)
 
   def Dev(self):
-    p = super(Librispeech960Wpm, self).Dev()
+    p = super().Dev()
     return self.InitializeTokenizer(params=p)
 
   def Devother(self):
-    p = super(Librispeech960Wpm, self).Devother()
+    p = super().Devother()
     return self.InitializeTokenizer(params=p)
 
   def Test(self):
-    p = super(Librispeech960Wpm, self).Test()
+    p = super().Test()
     return self.InitializeTokenizer(params=p)
 
   def Testother(self):
-    p = super(Librispeech960Wpm, self).Testother()
+    p = super().Testother()
     return self.InitializeTokenizer(params=p)
 
   def Task(self):
-    p = super(Librispeech960Wpm, self).Task()
+    p = super().Task()
     dp = p.decoder
     dp.target_seq_len = self.WPM_TARGET_SEQUENCE_LENGTH
     dp.emb_dim = self.EMBEDDING_DIMENSION
@@ -316,7 +312,7 @@ class Librispeech960WpmTpuV2(Librispeech960Wpm):
   """Librispeech 960 WPM model for training on TPU V2."""
 
   def _CommonInputParams(self, is_eval):
-    p = super(Librispeech960WpmTpuV2, self)._CommonInputParams(is_eval)
+    p = super()._CommonInputParams(is_eval)
 
     if py_utils.use_tpu():
       p.pad_to_max_seq_length = True
@@ -326,7 +322,7 @@ class Librispeech960WpmTpuV2(Librispeech960Wpm):
     return p
 
   def Task(self):
-    p = super(Librispeech960WpmTpuV2, self).Task()
+    p = super().Task()
 
     p.encoder.pad_steps = 0
     p.decoder.emb.max_num_shards = 1

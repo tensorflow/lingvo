@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,9 +25,6 @@ To run on TPU, set:
   --inference_threads=num_tpu_cores
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 import concurrent.futures
 import itertools
 import os
@@ -40,7 +37,6 @@ from lingvo import compat as tf
 from lingvo.core import predictor
 from lingvo.core import py_utils
 import six
-from six.moves import range
 
 flags.DEFINE_string(
     'checkpoint', None, 'Either a checkpoint file to load,'
@@ -80,7 +76,7 @@ FLAGS = flags.FLAGS
 _RETRY_SLEEP_SECONDS = 10
 
 
-class PredictorRunnerBase(object):
+class PredictorRunnerBase:
   """Manages state for running predictor.
 
   Abstract class. Subclasses should override `InputGenerator` and `RunBatch`.

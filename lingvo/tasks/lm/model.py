@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,11 @@
 # ==============================================================================
 """LM models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import py_utils
 from lingvo.core import schedule
 from lingvo.tasks.lm import layers
-from six.moves import zip
 
 
 class LanguageModel(base_model.BaseTask):
@@ -32,7 +27,7 @@ class LanguageModel(base_model.BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(LanguageModel, cls).Params()
+    p = super().Params()
     p.Define('lm', layers.RnnLm.Params(), 'LM layer.')
 
     tp = p.train
@@ -56,7 +51,7 @@ class LanguageModel(base_model.BaseTask):
     return p
 
   def __init__(self, params):
-    super(LanguageModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.lm.vocab_size == p.input.tokenizer.vocab_size, (

@@ -543,7 +543,7 @@ class TransformerBatchMajorEncoderTest(test_utils.TestCase):
 
       batch.paddings = tf.zeros([packed_bs, packed_sl])
       batch.segment_pos = [
-          [i for i in range(sl)] + [i for i in range(sl)],
+          list(range(sl)) + list(range(sl)),
       ]
       batch.segment_ids = [
           [0 for i in range(sl)] + [1 for i in range(sl)],

@@ -19,7 +19,6 @@ py_library(
         "//lingvo/core:base_layer",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
-        # Implicit six dependency.
     ],
 )
 
@@ -28,10 +27,8 @@ py_test(
     srcs = ["layers_test.py"],
     python_version = "PY3",
     shard_count = 2,
-    deps = [
-        ":layers_test_lib",
-        # Implicit six dependency.
-    ],
+    srcs_version = "PY3",
+    deps = [":layers_test_lib"],
 )
 
 py_library(
@@ -46,7 +43,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -64,7 +60,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:summary_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -73,6 +68,7 @@ py_test(
     srcs = ["encoder_test.py"],
     python_version = "PY3",
     shard_count = 12,
+    srcs_version = "PY3",
     deps = [
         ":encoder",
         "//lingvo:compat",
@@ -101,7 +97,6 @@ py_library(
         "//lingvo/core:rnn_cell",
         "//lingvo/core:rnn_layers",
         "//lingvo/core:summary_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -110,10 +105,8 @@ py_test(
     srcs = ["decoder_test.py"],
     python_version = "PY3",
     shard_count = 20,
-    deps = [
-        ":decoder_test_lib",
-        # Implicit six dependency.
-    ],
+    srcs_version = "PY3",
+    deps = [":decoder_test_lib"],
 )
 
 py_library(
@@ -133,7 +126,6 @@ py_library(
         "//lingvo/core:test_utils",
         "//lingvo/core/ops:hyps_py_pb2",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -154,6 +146,7 @@ py_test(
     name = "data_augmenter_test",
     srcs = ["data_augmenter_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":data_augmenter",
         "//lingvo:compat",
@@ -177,7 +170,6 @@ py_library(
         "//lingvo/core:summary_utils",
         "//lingvo/core:tokenizers",
         "//lingvo/core/ops",
-        # Implicit six dependency.
     ],
 )
 
@@ -191,6 +183,7 @@ py_test(
         "//lingvo/tasks/mt/testdata:wmt14_ende_tfexample",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":data_augmenter",
         ":input_generator",
@@ -200,7 +193,6 @@ py_test(
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -216,7 +208,6 @@ py_library(
         "//lingvo/core:insertion",
         "//lingvo/core:metrics",
         "//lingvo/core:py_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -226,10 +217,8 @@ py_test(
     srcs = ["model_test.py"],
     python_version = "PY3",
     shard_count = 20,
-    deps = [
-        ":model_test_lib",
-        # Implicit six dependency.
-    ],
+    srcs_version = "PY3",
+    deps = [":model_test_lib"],
 )
 
 py_library(
@@ -255,7 +244,6 @@ py_library(
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 

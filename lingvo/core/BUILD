@@ -40,7 +40,6 @@ lingvo_cuda_py_test(
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -74,7 +73,6 @@ py_library(
         ":symbolic",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -112,7 +110,6 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
-        # Implicit six dependency.
     ],
 )
 
@@ -120,6 +117,7 @@ py_test(
     name = "beam_search_helper_test",
     srcs = ["beam_search_helper_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":beam_search_helper",
         ":py_utils",
@@ -142,6 +140,7 @@ py_test(
     name = "bfloat16_variables_test",
     srcs = ["bfloat16_variables_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":bfloat16_variables",
         ":test_utils",
@@ -173,6 +172,7 @@ py_test(
     name = "target_sequence_sampler_test",
     srcs = ["target_sequence_sampler_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":target_sequence_sampler",
@@ -197,7 +197,6 @@ py_library(
         ":tokenizers",
         "//lingvo:compat",
         "//lingvo/core/ops",
-        # Implicit six dependency.
     ],
 )
 
@@ -205,6 +204,7 @@ py_test(
     name = "base_input_generator_test",
     srcs = ["base_input_generator_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":cluster_factory",
@@ -214,7 +214,6 @@ py_test(
         "//lingvo:compat",
         # Implicit mock dependency.
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -222,6 +221,7 @@ py_test(
     name = "batch_major_attention_test",
     srcs = ["batch_major_attention_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":batch_major_attention",
         ":py_utils",
@@ -229,7 +229,6 @@ py_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -242,7 +241,6 @@ py_library(
         ":hyperparams",
         ":py_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -255,7 +253,6 @@ py_library(
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -264,6 +261,7 @@ py_test(
     size = "small",
     srcs = ["base_layer_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":hyperparams",
@@ -281,7 +279,6 @@ py_library(
         ":base_layer",
         ":py_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -289,6 +286,7 @@ py_test(
     name = "reversible_layers_test",
     srcs = ["reversible_layers_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":layers",
         ":py_utils",
@@ -326,7 +324,6 @@ py_library(
         "//lingvo/core:decoder_lib",
         # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -334,6 +331,7 @@ py_test(
     name = "base_model_test",
     srcs = ["base_model_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -349,7 +347,6 @@ py_test(
         # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -369,6 +366,7 @@ py_test(
     name = "base_model_params_test",
     srcs = ["base_model_params_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_model_params",
         ":test_utils",
@@ -397,7 +395,6 @@ py_library(
         ":py_utils",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -414,7 +411,6 @@ py_library(
         ":symbolic",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -422,6 +418,7 @@ py_test(
     name = "builder_layers_test",
     srcs = ["builder_layers_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":builder_layers",
         ":layers",
@@ -430,7 +427,6 @@ py_test(
         ":tshape",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -438,6 +434,7 @@ py_test(
     name = "builder_test",
     srcs = ["builder_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":builder",
         ":cluster_factory",
@@ -447,7 +444,6 @@ py_test(
         ":tshape",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit sympy dependency.
     ],
 )
@@ -461,7 +457,6 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -479,12 +474,12 @@ py_test(
     size = "small",
     srcs = ["cluster_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -496,7 +491,6 @@ py_library(
         ":base_layer",
         ":py_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -505,6 +499,7 @@ py_test(
     size = "small",
     srcs = ["datasource_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":datasource",
         ":py_utils",
@@ -521,7 +516,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -530,6 +524,7 @@ py_test(
     size = "small",
     srcs = ["matrix_functions_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -546,7 +541,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -555,6 +549,7 @@ py_test(
     size = "small",
     srcs = ["distributed_shampoo_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":distributed_shampoo",
         ":test_utils",
@@ -581,6 +576,7 @@ py_test(
         "//lingvo/core/ops/testdata:best_step_testdata",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":early_stop",
         ":hyperparams",
@@ -604,13 +600,12 @@ lingvo_proto_py(
 py_library(
     name = "hyperparams",
     srcs = ["hyperparams.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         ":hyperparams_py_pb2",
         ":symbolic",
         # Implicit python proto dependency.
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -629,13 +624,13 @@ py_test(
     name = "hyperparams_test",
     srcs = ["hyperparams_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         ":hyperparams_py_pb2",
         ":symbolic",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -658,6 +653,7 @@ py_test(
     name = "inference_graph_exporter_test",
     srcs = ["inference_graph_exporter_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -679,7 +675,6 @@ py_library(
     deps = [
         ":py_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -687,12 +682,12 @@ py_test(
     name = "input_generator_helper_test",
     srcs = ["input_generator_helper_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator_helper",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -706,6 +701,7 @@ py_test(
     name = "inspect_utils_test",
     srcs = ["inspect_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         ":inspect_utils",
@@ -733,7 +729,6 @@ py_library(
         ":tshape",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit sympy dependency.
     ],
 )
@@ -756,6 +751,7 @@ py_test(
     name = "learner_test",
     srcs = ["learner_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":learner",
@@ -800,10 +796,7 @@ lingvo_cuda_py_test(
     srcs = ["layers_test.py"],
     python_version = "PY3",
     shard_count = 20,
-    deps = [
-        ":layers_test_lib",
-        # Implicit six dependency.
-    ],
+    deps = [":layers_test_lib"],
 )
 
 lingvo_cuda_py_test(
@@ -819,7 +812,6 @@ lingvo_cuda_py_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -827,10 +819,7 @@ lingvo_cuda_py_test(
     name = "conv_layers_with_time_padding_test",
     srcs = ["conv_layers_with_time_padding_test.py"],
     python_version = "PY3",
-    deps = [
-        ":layers_test_lib",
-        # Implicit six dependency.
-    ],
+    deps = [":layers_test_lib"],
 )
 
 py_library(
@@ -849,7 +838,6 @@ py_library(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -875,7 +863,6 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         "//lingvo/core/ops",
-        # Implicit six dependency.
     ],
 )
 
@@ -883,6 +870,7 @@ py_test(
     name = "saver_test",
     srcs = ["saver_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":py_utils",
@@ -891,7 +879,6 @@ py_test(
         "//lingvo:compat",
         "//lingvo/tasks/image/params:mnist",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -901,13 +888,13 @@ py_test(
     timeout = "moderate",
     srcs = ["schedule_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":early_stop",
         ":schedule",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -921,7 +908,6 @@ py_library(
         ":scorers",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ] + select({
         "//lingvo:py3_mode": [
             # Implicit sklearn dependency.
@@ -946,11 +932,11 @@ py_test(
     name = "ml_perf_bleu_metric_test",
     srcs = ["ml_perf_bleu_metric_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ml_perf_bleu_metric",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -958,11 +944,11 @@ py_test(
     name = "metrics_test",
     srcs = ["metrics_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":metrics",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -980,6 +966,7 @@ py_test(
     name = "multitask_model_test",
     srcs = ["multitask_model_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_layer",
@@ -1003,7 +990,6 @@ py_library(
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1012,6 +998,7 @@ py_test(
     size = "small",
     srcs = ["adagraft_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":adagraft",
         ":test_utils",
@@ -1038,6 +1025,7 @@ py_test(
     size = "small",
     srcs = ["optimizer_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":layers",
         ":optimizer",
@@ -1066,6 +1054,7 @@ py_test(
     name = "plot_test",
     srcs = ["plot_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":plot",
         ":test_utils",
@@ -1077,7 +1066,7 @@ py_test(
 py_library(
     name = "predictor_lib",
     srcs = ["predictor.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         ":inference_graph_py_pb2",
         ":py_utils",
@@ -1085,7 +1074,6 @@ py_library(
         # Implicit IPython dependency.
         "//lingvo:compat",
         "//lingvo:model_imports_no_params",
-        # Implicit six dependency.
     ],
 )
 
@@ -1100,7 +1088,6 @@ lingvo_py_binary(
         # Implicit python proto dependency.
         "//lingvo:compat",
         "//lingvo:model_imports_no_params",
-        # Implicit six dependency.
     ],
 )
 
@@ -1109,6 +1096,7 @@ py_test(
     size = "medium",
     srcs = ["predictor_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1137,7 +1125,7 @@ py_library(
 py_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         ":hyperparams",
         ":retry",
@@ -1160,6 +1148,7 @@ py_test(
         "//lingvo/core/testdata:lenet_test_model",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":builder_layers",
@@ -1175,7 +1164,6 @@ py_test(
         "//lingvo/tasks/image/params:mnist",
         # Implicit mock dependency.
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1198,6 +1186,7 @@ py_test(
     size = "small",
     srcs = ["quant_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":quant_utils",
@@ -1219,7 +1208,6 @@ py_library(
         ":py_utils",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1229,6 +1217,7 @@ py_test(
     srcs = ["layers_with_gpipe_test.py"],
     python_version = "PY3",
     shard_count = 15,
+    srcs_version = "PY3",
     deps = [
         ":layers_with_gpipe",
         ":py_utils",
@@ -1236,7 +1225,6 @@ py_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1256,12 +1244,12 @@ py_test(
     srcs = ["spectrum_augmenter_test.py"],
     python_version = "PY3",
     shard_count = 1,
+    srcs_version = "PY3",
     deps = [
         ":spectrum_augmenter",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1282,13 +1270,13 @@ py_test(
     srcs = ["spectrum_augmenter_on_device_test.py"],
     python_version = "PY3",
     shard_count = 1,
+    srcs_version = "PY3",
     deps = [
         ":spectrum_augmenter",
         ":spectrum_augmenter_on_device",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1308,6 +1296,7 @@ py_test(
     name = "generic_input_test",
     srcs = ["generic_input_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":generic_input",
         ":py_utils",
@@ -1315,7 +1304,6 @@ py_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -1331,7 +1319,6 @@ py_library(
         ":recurrent",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1339,6 +1326,7 @@ py_test(
     name = "gpipe_test",
     srcs = ["gpipe_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_layer",
         ":gpipe",
@@ -1347,7 +1335,6 @@ py_test(
         ":test_utils",
         ":tshape",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1362,7 +1349,6 @@ py_library(
         ":sendrecv",
         ":symbolic",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1371,10 +1357,8 @@ py_test(
     srcs = ["recurrent_test.py"],
     python_version = "PY3",
     shard_count = 6,
-    deps = [
-        ":recurrent_test_lib",
-        # Implicit six dependency.
-    ],
+    srcs_version = "PY3",
+    deps = [":recurrent_test_lib"],
 )
 
 py_library(
@@ -1390,7 +1374,6 @@ py_library(
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1420,7 +1403,7 @@ py_library(
 py_library(
     name = "retry",
     srcs = ["retry.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         # Implicit retry dependency.
     ],
@@ -1430,6 +1413,7 @@ py_test(
     name = "relative_atten_util_test",
     srcs = ["relative_atten_util_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":py_utils",
         ":relative_atten_util",
@@ -1444,6 +1428,7 @@ py_test(
     name = "retry_test",
     srcs = ["retry_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":retry",
         ":test_utils",
@@ -1455,16 +1440,13 @@ py_library(
     name = "self_attention_layer",
     srcs = ["self_attention_layer.py"],
     srcs_version = "PY3",
-    deps = [
-        ":batch_major_attention",
-        # Implicit six dependency.
-    ],
+    deps = [":batch_major_attention"],
 )
 
 py_library(
     name = "sendrecv",
     srcs = ["sendrecv.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
     ],
@@ -1475,6 +1457,7 @@ py_test(
     timeout = "long",
     srcs = ["self_attention_layer_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":batch_major_attention",
         ":py_utils",
@@ -1490,6 +1473,7 @@ py_test(
     name = "sendrecv_test",
     srcs = ["sendrecv_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":sendrecv",
         ":test_utils",
@@ -1527,13 +1511,13 @@ py_test(
     name = "task_scheduler_test",
     srcs = ["task_scheduler_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":early_stop",
         ":task_scheduler",
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1555,7 +1539,6 @@ py_library(
         ":py_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1563,6 +1546,7 @@ py_test(
     name = "test_utils_test",
     srcs = ["test_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":test_utils",
         "//lingvo:compat",
@@ -1610,6 +1594,7 @@ py_test(
     name = "wpm_encoder_test",
     srcs = ["wpm_encoder_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":test_utils",
         ":wpm_encoder",
@@ -1638,6 +1623,7 @@ py_test(
         "//lingvo/tasks/mt:wpm_ende",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":test_helper",
         ":test_utils",
@@ -1657,7 +1643,6 @@ py_library(
         ":quant_utils",
         ":summary_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1687,7 +1672,6 @@ py_library(
         ":py_utils",
         ":symbolic",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1696,6 +1680,7 @@ py_test(
     size = "large",
     srcs = ["layers_with_attention_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":attention",
         ":layers",
@@ -1704,7 +1689,6 @@ py_test(
         ":test_utils",
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1721,7 +1705,6 @@ py_library(
         ":recurrent",
         ":rnn_cell",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1731,10 +1714,7 @@ lingvo_cuda_py_test(
     srcs = ["rnn_layers_test.py"],
     python_version = "PY3",
     shard_count = 15,
-    deps = [
-        ":rnn_layers_test_lib",
-        # Implicit six dependency.
-    ],
+    deps = [":rnn_layers_test_lib"],
 )
 
 py_library(
@@ -1754,7 +1734,6 @@ py_library(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -1763,12 +1742,12 @@ py_library(
     srcs = ["lstm_frnn_layer.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
+        ":recurrent",
+        ":rnn_cell",
+        ":rnn_layers",
         # Implicit absl.flags dependency.
         "//lingvo:compat",
-        "//lingvo/core:base_layer",
-        "//lingvo/core:recurrent",
-        "//lingvo/core:rnn_cell",
-        "//lingvo/core:rnn_layers",
     ],
 )
 
@@ -1800,6 +1779,7 @@ py_test(
     srcs = ["scorers_test.py"],
     data = ["//lingvo/core/ops/testdata:wmt"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":scorers",
         ":test_helper",
@@ -1821,10 +1801,9 @@ py_library(
 py_library(
     name = "tshape",
     srcs = ["tshape.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
         "//lingvo:compat",
-        # Implicit six dependency.
         # Implicit sympy dependency.
     ],
 )
@@ -1833,6 +1812,7 @@ py_test(
     name = "tshape_test",
     srcs = ["tshape_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":test_utils",
         ":tshape",
@@ -1843,9 +1823,8 @@ py_test(
 py_library(
     name = "symbolic",
     srcs = ["symbolic.py"],
-    srcs_version = "PY2AND3",  # ALLOW_PY2: b/160070970.
+    srcs_version = "PY3",
     deps = [
-        # Implicit six dependency.
         # Implicit sympy dependency.
     ],
 )
@@ -1854,6 +1833,7 @@ py_test(
     name = "symbolic_test",
     srcs = ["symbolic_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":symbolic",
         ":test_utils",
@@ -1880,7 +1860,6 @@ lingvo_cuda_py_test(
     deps = [
         ":insertion",
         ":test_utils",
-        # Implicit six dependency.
     ],
 )
 
@@ -1920,7 +1899,6 @@ py_library(
         ":py_utils",
         ":summary_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
         # Implicit tensorflow grpc dependency.
     ],
 )
@@ -1935,7 +1913,6 @@ py_library(
         ":py_utils",
         ":recurrent",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1944,13 +1921,13 @@ py_test(
     size = "small",
     srcs = ["step_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":builder_layers",
         ":py_utils",
         ":step",
         ":test_utils",
         "//lingvo:compat",
-        # Implicit six dependency.
     ],
 )
 
@@ -1958,6 +1935,7 @@ py_test(
     name = "summary_utils_test",
     srcs = ["summary_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":cluster_factory",
         ":summary_utils",
@@ -1970,6 +1948,7 @@ py_test(
     name = "checkpointer_test",
     srcs = ["checkpointer_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_input_generator",
         ":base_model",
@@ -1984,6 +1963,7 @@ py_test(
     name = "ema_test",
     srcs = ["ema_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":base_decoder",
         ":base_input_generator",
@@ -2020,6 +2000,7 @@ py_test(
     name = "ml_perf_log_test",
     srcs = ["ml_perf_log_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":ml_perf_log",
         "//lingvo:compat",
@@ -2034,7 +2015,6 @@ py_library(
     srcs_version = "PY3",
     deps = [
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )
@@ -2048,7 +2028,6 @@ py_test(
     deps = [
         ":egdd",
         # Implicit numpy dependency.
-        # Implicit six dependency.
         # Implicit tensorflow dependency.
     ],
 )

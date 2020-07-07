@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +19,6 @@ import lingvo.compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.image import input_generator
 import numpy as np
-from six.moves import range
 
 
 class InputGeneratorTest(test_utils.TestCase):

@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo recurrent on gpu."""
 
-
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import recurrent

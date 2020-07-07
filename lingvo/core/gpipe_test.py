@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo gpipe."""
 
-
 import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import py_utils
@@ -26,7 +25,6 @@ from lingvo.core.gpipe import PartitionSequentialLayers
 from lingvo.core.gpipe import PipeliningLayer
 from lingvo.core.layers import Conv2DLayerNoPadding
 from lingvo.core.layers import FetchLayer
-from six.moves import range
 
 
 class _TimestepAccumulator(base_layer.Accumulator):
@@ -42,13 +40,8 @@ class _TimestepAccumulator(base_layer.Accumulator):
 class _SimpyLayer(base_layer.BaseLayer):
   """Simpy Layer with accumulator that counts time step."""
 
-  @classmethod
-  def Params(cls):
-    p = super(_SimpyLayer, cls).Params()
-    return p
-
   def __init__(self, params):
-    super(_SimpyLayer, self).__init__(params)
+    super().__init__(params)
     p = self.params
     conv = Conv2DLayerNoPadding.Params().Set(
         name='conv',

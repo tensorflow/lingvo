@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for summary_utils."""
 
-
 from lingvo import compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import summary_utils

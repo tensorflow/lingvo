@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Multi-task task sampling schedules."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -37,12 +33,12 @@ class TaskScheduler(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     """Parameters for this task scheduler."""
-    p = super(TaskScheduler, cls).Params()
+    p = super().Params()
     p.name = 'task_scheduler'
     return p
 
   def __init__(self, params):
-    super(TaskScheduler, self).__init__(params)
+    super().__init__(params)
     self.cur_probs = None
 
   def Sample(self, current_step):
@@ -56,7 +52,7 @@ class AdaptiveScheduler(TaskScheduler):
 
   @classmethod
   def Params(cls):
-    p = super(AdaptiveScheduler, cls).Params()
+    p = super().Params()
     p.Define('tasks', [], 'List of tasks')
     p.Define('expected', [], 'List of final expected scores')
     p.Define('mh_a', early_stop.MetricHistory.Params(), '')
@@ -68,7 +64,7 @@ class AdaptiveScheduler(TaskScheduler):
     return p
 
   def __init__(self, params):
-    super(AdaptiveScheduler, self).__init__(params)
+    super().__init__(params)
     if len(self.params.tasks) != 2 or len(self.params.expected) != 2:
       raise ValueError('Only two tasks are supported by this scheduler.')
 
@@ -182,7 +178,7 @@ class ShiftedExponentialScheduler(TaskScheduler):
 
   @classmethod
   def Params(cls):
-    p = super(ShiftedExponentialScheduler, cls).Params()
+    p = super().Params()
     p.Define(
         'alpha', 0, 'Controls the rate at which the schedule changes. '
         'A large alpha will lead to fast convergence toward final values.')
@@ -192,7 +188,7 @@ class ShiftedExponentialScheduler(TaskScheduler):
     return p
 
   def __init__(self, params):
-    super(ShiftedExponentialScheduler, self).__init__(params)
+    super().__init__(params)
     assert isinstance(self.params.task_probs, list)
     self.tasks = []
     self._descriptors = []
@@ -224,7 +220,7 @@ class ConstantScheduler(ShiftedExponentialScheduler):
   """
 
   def __init__(self, params):
-    super(ConstantScheduler, self).__init__(params)
+    super().__init__(params)
 
     for key, value in self.params.task_probs:
       self.tasks.append(key)
@@ -240,7 +236,7 @@ class ExponentialScheduler(ShiftedExponentialScheduler):
   """
 
   def __init__(self, params):
-    super(ExponentialScheduler, self).__init__(params)
+    super().__init__(params)
 
     for key, value in self.params.task_probs:
       self.tasks.append(key)
@@ -256,7 +252,7 @@ class SigmoidScheduler(ShiftedExponentialScheduler):
   """
 
   def __init__(self, params):
-    super(SigmoidScheduler, self).__init__(params)
+    super().__init__(params)
 
     for key, value in self.params.task_probs:
       self.tasks.append(key)
@@ -268,12 +264,12 @@ class RoundRobinScheduler(TaskScheduler):
 
   @classmethod
   def Params(cls):
-    p = super(RoundRobinScheduler, cls).Params()
+    p = super().Params()
     p.Define('tasks', [], 'List of task names. No repetitions allowed.')
     return p
 
   def __init__(self, params):
-    super(RoundRobinScheduler, self).__init__(params)
+    super().__init__(params)
     assert isinstance(self.params.tasks, list)
     self.tasks = sorted(self.params.tasks)
     self.n_tasks = len(self.tasks)
@@ -292,7 +288,7 @@ class SequentialScheduler(TaskScheduler):
 
   @classmethod
   def Params(cls):
-    p = super(SequentialScheduler, cls).Params()
+    p = super().Params()
     p.Define(
         'task_steps', [], 'List of tuples of (task_name, steps_for_task). Goes '
         'through list sequentially in the specified order, staying '
@@ -302,7 +298,7 @@ class SequentialScheduler(TaskScheduler):
     return p
 
   def __init__(self, params):
-    super(SequentialScheduler, self).__init__(params)
+    super().__init__(params)
     assert isinstance(self.params.task_steps, list)
     assert self.params.task_steps
     self.task_steps = []

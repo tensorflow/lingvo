@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,17 +15,11 @@
 # ==============================================================================
 """Helper classes for computing performance metrics."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import scorers
 import numpy as np
-from six.moves import range
-from six.moves import zip
 try:
   import sklearn.metrics  # pylint: disable=g-import-not-at-top
   HAS_SKLEARN = True
@@ -43,7 +37,7 @@ def CreateScalarSummary(name, simple_value):
       value=[tf.Summary.Value(tag=name, simple_value=simple_value)])
 
 
-class BaseMetric(object):
+class BaseMetric:
   """Base class for aggregating statistics to compute a performance metric."""
 
   def Update(self, *args, **kwargs):
@@ -155,7 +149,7 @@ class CorpusBleuMetric(BaseMetric):
     return self._scorer.ComputeOverallScore()
 
 
-class TpuEvalMetrics(object):
+class TpuEvalMetrics:
   """Manages computation of metrics during TPU execution.
 
   TPU execution runs a training loop on device. To get eval metrics out of this,

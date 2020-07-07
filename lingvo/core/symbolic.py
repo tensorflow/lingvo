@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,12 +15,7 @@
 # ==============================================================================
 """Utilities for symbolic computation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import threading
-from six.moves import zip
 import sympy
 
 
@@ -45,13 +40,13 @@ class _LocalSymbolToValueStack(threading.local):
   """A thread-local stack of symbol-to-value dicts."""
 
   def __init__(self):
-    super(_LocalSymbolToValueStack, self).__init__()
+    super().__init__()
     self.stack = {}
     for value_type in VALUE_TYPES:
       self.stack[value_type] = [{}]
 
 
-class SymbolToValueMap(object):
+class SymbolToValueMap:
   """A symbol-to-value mapping.
 
   Usage:

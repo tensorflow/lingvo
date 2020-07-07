@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for calibration_processing."""
 
-
 from lingvo import compat as tf
 from lingvo.core import test_utils
 from lingvo.tasks.car import calibration_processing

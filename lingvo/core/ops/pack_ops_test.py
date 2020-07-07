@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for pack_ops."""
 
-
 import collections
 
 from lingvo import compat as tf

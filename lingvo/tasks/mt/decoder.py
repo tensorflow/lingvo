@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
 # limitations under the License.
 """Machine translation decoder.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import math
 import lingvo.compat as tf
@@ -33,8 +30,6 @@ from lingvo.core import quant_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import summary_utils
-import six
-from six.moves import zip
 
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
 
@@ -52,7 +47,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(MTBaseDecoder, cls).Params()
+    p = super().Params()
     p.Define('label_smoothing', None, 'Label smoothing class.')
     p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax params.')
     p.Define(
@@ -72,7 +67,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
     return p
 
   def __init__(self, params):
-    super(MTBaseDecoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.label_smoothing is not None:
       p.label_smoothing.name = 'smoother'
@@ -413,7 +408,7 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
 
   @classmethod
   def Params(cls):
-    p = super(MTDecoderV1, cls).Params()
+    p = super().Params()
     # Shared embedding.
     p.Define('emb', layers.EmbeddingLayer.Params(), 'Embedding layer params.')
     p.Define('source_dim', 1024, 'Dimension of the source encoding.')
@@ -494,12 +489,12 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     Returns:
       Model params updated with the vocab size and wpm model.
     """
-    p = super(MTDecoderV1, cls).UpdateTargetVocabSize(p, vocab_size)
+    p = super().UpdateTargetVocabSize(p, vocab_size)
     p.emb.vocab_size = vocab_size
     return p
 
   def __init__(self, params):
-    super(MTDecoderV1, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.emb.vocab_size == p.softmax.num_classes
 
@@ -962,7 +957,7 @@ class TransformerDecoder(MTBaseDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerDecoder, cls).Params()
+    p = super().Params()
     p.Define('token_emb', layers.EmbeddingLayer.Params(),
              'Token embedding layer params.')
     p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
@@ -1026,7 +1021,7 @@ class TransformerDecoder(MTBaseDecoder):
     return p
 
   def __init__(self, params):
-    super(TransformerDecoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if p.softmax.cls == layers.SharedSoftmaxLayer:
@@ -1824,8 +1819,7 @@ class TransformerDecoder(MTBaseDecoder):
       atten_probs: a list of attention probs, each element is of shape [tgt_len,
         tgt_batch, src_len].
     """
-    super(TransformerDecoder,
-          self)._AddAttenProbsSummary(source_paddings, targets, atten_probs)
+    super()._AddAttenProbsSummary(source_paddings, targets, atten_probs)
     if self.cluster.add_summary and self.params.add_multiheaded_attention_scalar_summary:
       self._AddAttenProbsScalarSummary(source_paddings, targets, atten_probs)
 
@@ -1840,7 +1834,7 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(InsertionDecoder, cls).Params()
+    p = super().Params()
     p.Define('token_emb', layers.EmbeddingLayer.Params(),
              'Token embedding layer params.')
     p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
@@ -1896,7 +1890,7 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
     return p
 
   def __init__(self, params):
-    super(InsertionDecoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.token_emb.vocab_size % p.softmax.num_classes == 0
     assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
@@ -2041,7 +2035,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerBatchMajorDecoder, cls).Params()
+    p = super().Params()
     p.Define('token_emb', layers.EmbeddingLayer.Params(),
              'Token embedding layer params.')
     p.Define('shared_emb', None, 'Embedding shared with softmax.')
@@ -2102,7 +2096,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     return p
 
   def __init__(self, params):
-    super(TransformerBatchMajorDecoder, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if p.shared_emb:
@@ -2310,7 +2304,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
       # [1, 1, dim]
       if isinstance(time_step, tf.Tensor):
         time_step_t = tf.reshape(time_step, [1, 1])
-      elif isinstance(time_step, six.integer_types):
+      elif isinstance(time_step, int):
         time_step_t = tf.constant([[time_step]], dtype=tf.int32)
       else:
         raise ValueError('Unexpected input type `%s` for `time_step`.' %

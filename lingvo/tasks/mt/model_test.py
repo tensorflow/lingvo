@@ -1,5 +1,4 @@
 # Lint as: python3
-# -*- coding: utf-8 -*-
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,7 +15,6 @@
 # ==============================================================================
 """Tests for MT Models."""
 
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import base_layer
@@ -32,7 +30,6 @@ from lingvo.tasks.mt import input_generator
 from lingvo.tasks.mt import model
 import numpy as np
 
-from six.moves import range
 
 FLAGS = tf.flags.FLAGS
 
@@ -43,12 +40,12 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
   @classmethod
   def Params(cls):
-    p = super(TestInputGenerator, cls).Params()
+    p = super().Params()
     p.Define('split', True, '')
     return p
 
   def __init__(self, params):
-    super(TestInputGenerator, self).__init__(params)
+    super().__init__(params)
     self._step = 0
 
   def InfeedBatchSize(self):

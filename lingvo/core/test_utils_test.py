@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for test_utils."""
 
-
 import lingvo.compat as tf
 from lingvo.core import test_utils
 

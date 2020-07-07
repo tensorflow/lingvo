@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +15,12 @@
 # ==============================================================================
 """Tests for lingvo.core.tshape."""
 
-
 import json
 import lingvo.compat as tf
 from lingvo.core import ml_perf_log as mlp_log
 
 
-class TestMLPerfLog(object):
+class TestMLPerfLog:
   """Test mlperf log."""
 
   def testFormat(self):

@@ -15,13 +15,11 @@
 # ==============================================================================
 """Tests for beam_search_op."""
 
-
 from lingvo import compat as tf
 from lingvo.core import ops
 from lingvo.core import test_utils
 from lingvo.core.ops import hyps_pb2
 import numpy as np
-from six.moves import zip
 
 from google.protobuf import text_format
 
@@ -31,7 +29,7 @@ _MIN_SCORE = -1e36
 class BeamSearchOpTest(test_utils.TestCase):
 
   def setUp(self):
-    super(BeamSearchOpTest, self).setUp()
+    super().setUp()
     np.random.seed(12345)
     tf.random.set_seed(398849988)
 
@@ -529,7 +527,7 @@ class BeamSearchOpTest(test_utils.TestCase):
 
   def _SameHyp(self, expected_hyp_str, real_serialized_hyp):
     hyp1 = hyps_pb2.Hypothesis()
-    text_format.Merge(expected_hyp_str, hyp1)
+    text_format.Parse(expected_hyp_str, hyp1)
     hyp2 = hyps_pb2.Hypothesis()
     hyp2.ParseFromString(real_serialized_hyp)
 

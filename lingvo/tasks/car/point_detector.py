@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,9 +15,6 @@
 # ==============================================================================
 """Base models for point-cloud based detection."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import py_utils
@@ -26,8 +23,6 @@ from lingvo.tasks.car import detection_decoder
 
 from lingvo.tasks.car import kitti_decoder
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 class PointDetectorBase(base_model.BaseTask):
@@ -40,7 +35,7 @@ class PointDetectorBase(base_model.BaseTask):
 
   @classmethod
   def Params(cls, num_classes):
-    p = super(PointDetectorBase, cls).Params()
+    p = super().Params()
     # We choose a high number of boxes per example by default to bound overall
     # runtime but not so low that we end up missing real boxes from complicated
     # scenes.
@@ -80,7 +75,7 @@ class PointDetectorBase(base_model.BaseTask):
     return p
 
   def __init__(self, params):
-    super(PointDetectorBase, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self._utils_3d = detection_3d_lib.Utils3D()
     with tf.variable_scope(p.name):

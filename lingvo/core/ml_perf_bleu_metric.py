@@ -164,7 +164,7 @@ def bleu_score(predictions, labels, **unused_kwargs):
   return bleu, tf.constant(1.0)
 
 
-class UnicodeRegex(object):
+class UnicodeRegex:
   """Ad-hoc hack to recognize all punctuation and symbols."""
 
   def __init__(self):

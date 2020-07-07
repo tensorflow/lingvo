@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2020 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Exponentiated Gradient Delta-Delta optimizer."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.framework import ops
@@ -87,7 +84,7 @@ class EGDD(optimizer.Optimizer):
       ValueError: If the `initial_accumulator_value` is invalid.
 
     """
-    super(EGDD, self).__init__(False, name)
+    super().__init__(False, name)
     self._learning_rate = learning_rate
     self._momentum = momentum
     self._beta = beta

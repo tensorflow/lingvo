@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Base class for all layers."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import abc
 import collections
 import itertools
@@ -27,14 +23,12 @@ import lingvo.compat as tf
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
-import six
-from six.moves import zip
 
 
 _LAYER_STACK = py_utils.ThreadLocalStack()
 
 
-class Accumulator(object):
+class Accumulator:
   """Layers can register accumulators to persist step-level state.
 
   Accumulators must be represented by a Tensor of a fixed shape. The default
@@ -171,7 +165,7 @@ class BaseLayerMeta(type):
   # pylint: enable=bad-mcs-classmethod-argument
 
   def __call__(cls, *args, **kwargs):
-    self = super(BaseLayerMeta, cls).__call__(*args, **kwargs)
+    self = super().__call__(*args, **kwargs)
     # This happens after self.__init__()
     # pylint: disable=protected-access
     self._disable_create_child = True
@@ -194,8 +188,7 @@ CreateVariableMeta = collections.namedtuple(
 LAYER_WT = 'layer_weight_variable'
 
 
-@six.add_metaclass(BaseLayerMeta)
-class BaseLayer(tf.Module):
+class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   """Base class for all the layer object.
 
   As this BaseLayer is a proper sub-class of tf.Module, it supports proper
@@ -299,7 +292,7 @@ class BaseLayer(tf.Module):
     py_utils.NestedMap.CheckKey(tf_module_name)
 
     # initialize the base class.
-    super(BaseLayer, self).__init__(tf_module_name)
+    super().__init__(tf_module_name)
 
     # Note AutoTracking doesn't work properly due to its inability to walk
     # through py_utils.NestedMap data structures which are used widely
@@ -525,7 +518,7 @@ class BaseLayer(tf.Module):
   def accumulators(self):
     """Returns `.NestedMap` of `Accumulator` instances for this and children."""
     ret = self._private_children.Transform(lambda x: x.accumulators)
-    for k, acc in six.iteritems(self._private_accumulators):
+    for k, acc in self._private_accumulators.items():
       ret[k] = acc
     return ret
 

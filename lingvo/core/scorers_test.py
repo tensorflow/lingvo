@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for scorers."""
 
-
 import math
 import lingvo.compat as tf
 from lingvo.core import scorers

@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for transform_util."""
 
-
 import lingvo.compat as tf
 from lingvo.tasks.car import transform_util
 import numpy as np

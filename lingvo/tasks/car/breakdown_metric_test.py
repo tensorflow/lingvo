@@ -22,7 +22,6 @@ from lingvo.tasks.car import breakdown_metric
 from lingvo.tasks.car import kitti_ap_metric
 from lingvo.tasks.car import kitti_metadata
 import numpy as np
-from six.moves import range
 
 FLAGS = tf.flags.FLAGS
 

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,17 +14,11 @@
 # limitations under the License.
 """Common utilities for ASR decoders."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import copy
 import lingvo.compat as tf
 from lingvo.core import py_utils
 from lingvo.core import symbolic
 import six
-
-from six.moves import range
 
 
 def _IsSymbolOrPositive(dim):
@@ -43,7 +37,7 @@ def SetRnnCellNodes(decoder_params, rnn_cell_params):
 
 def Tokenize(string):
   """Returns a list containing non-empty tokens from the given string."""
-  if not isinstance(string, six.text_type):
+  if not isinstance(string, str):
     string = six.ensure_text(string, 'utf-8')
   return string.split()
 
@@ -106,10 +100,8 @@ def EditDistance(ref_str, hyp_str):
     - total:       total difference length.
   """
 
-  class ErrorStats(object):
-    """Class to keep track of error counts.
-
-    """
+  class ErrorStats:
+    """Class to keep track of error counts."""
 
     def __init__(self, ins, dels, subs, tot):
       self.ins, self.dels, self.subs, self.total_cost = ins, dels, subs, tot

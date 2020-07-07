@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for model_registry."""
 
-
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_input_generator

@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for rnn_layers."""
 
-
 import types
 from absl.testing import parameterized
 import lingvo.compat as tf
@@ -26,8 +25,6 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 from tensorflow.python.ops import inplace_ops
 

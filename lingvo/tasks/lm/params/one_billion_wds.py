@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Train word-level LMs on 1 Billion Words benchmark data."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 
 from lingvo import model_registry
@@ -31,7 +27,6 @@ from lingvo.core import tokenizers
 from lingvo.tasks.lm import input_generator as lm_inp
 from lingvo.tasks.lm import layers as lm_layers
 from lingvo.tasks.lm import model
-from six.moves import range
 
 
 class WordLevelOneBwdsBase(base_model_params.SingleTaskModelParams):
@@ -145,7 +140,7 @@ class WordLevelOneBwdsSimpleSampledSoftmax(WordLevelOneBwdsBase):
   """Use sampled soft-max in training."""
 
   def Task(self):
-    p = super(WordLevelOneBwdsSimpleSampledSoftmax, self).Task()
+    p = super().Task()
     num_input_dim = p.lm.softmax.input_dim
     p.lm.softmax = layers.SimpleFullSoftmax.Params()
     p.lm.softmax.input_dim = num_input_dim
@@ -203,7 +198,7 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
   NUM_MICRO_BATCHES = 32
 
   def Train(self):
-    p = super(OneBWdsGPipeTransformerWPM, self).Train()
+    p = super().Train()
     # Replace it with your own wordpiece tokenizer.
     p.tokenizer = tokenizers.AsciiTokenizer.Params()
     p.target_max_length = self.MAX_TOKENS

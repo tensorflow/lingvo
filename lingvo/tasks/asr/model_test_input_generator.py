@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 """Simple input generator used for ASR model tests."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import py_utils
@@ -28,7 +24,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
 
   @classmethod
   def Params(cls):
-    p = super(TestInputGenerator, cls).Params()
+    p = super().Params()
     p.random_seed = 20349582
     p.Define('feature_dims', 240, 'Feature dims')
     p.Define('num_channels', 3, 'Data are preprocessed into these many '
@@ -85,7 +81,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     return p
 
   def __init__(self, params):
-    super(TestInputGenerator, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self._bprop_variable_filters = ['']
     self._bprop_onehot = tf.constant([1], dtype=tf.float32)

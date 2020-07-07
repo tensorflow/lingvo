@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for optimizer."""
 
-
 import lingvo.compat as tf
 from lingvo.core import layers
 from lingvo.core import optimizer
@@ -69,7 +68,7 @@ class OptimizerTest(test_utils.TestCase):
                   adam_rmsprop_opt.Apply(1e-1, var_grads).name)
     self.assertIn('composite_optimizer_train_op',
                   unspecified_comp_opt.Apply(1e-1, var_grads).name)
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         Exception,
         'Variable fc/w/var:0 is matched 2 times by regex',
     ):

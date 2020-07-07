@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +15,6 @@
 # ==============================================================================
 """Multitask models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 from lingvo.core import base_model
 from lingvo.core import py_utils
 
@@ -26,13 +24,13 @@ class SharedEncoderModel(base_model.MultiTaskModel):
 
   @classmethod
   def Params(cls):
-    p = super(SharedEncoderModel, cls).Params()
+    p = super().Params()
     p.Define('encoder_to_share', None,
              'The task name whose encoder should be shared.')
     return p
 
   def __init__(self, params):
-    super(SharedEncoderModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.encoder_to_share in self.task_names
 
@@ -55,7 +53,7 @@ class SharedEncoderDecoderModel(base_model.MultiTaskModel):
 
   @classmethod
   def Params(cls):
-    p = super(SharedEncoderDecoderModel, cls).Params()
+    p = super().Params()
     p.Define('encoder_to_share', None,
              'The task name whose encoder should be shared.')
     p.Define('decoder_to_share', None,
@@ -63,7 +61,7 @@ class SharedEncoderDecoderModel(base_model.MultiTaskModel):
     return p
 
   def __init__(self, params):
-    super(SharedEncoderDecoderModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.encoder_to_share in self.task_names
     assert p.decoder_to_share in self.task_names
@@ -94,7 +92,7 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
 
   @classmethod
   def Params(cls):
-    p = super(RegExSharedVariableModel, cls).Params()
+    p = super().Params()
     p.Define(
         'variable_renaming_rules', None,
         'A list/tuple of variable renaming rules. Each element in the'
@@ -107,7 +105,7 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
     p = params
     with py_utils.OpportunisticVariableReuseScope():
       with py_utils.VariableRenameScope(p.variable_renaming_rules):
-        super(RegExSharedVariableModel, self).__init__(params)
+        super().__init__(params)
 
   def ConstructFPropBPropGraph(self):
     # We need to override this since constructing the BPropGraph
@@ -115,4 +113,4 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
     p = self._params
     with py_utils.OpportunisticVariableReuseScope():
       with py_utils.VariableRenameScope(p.variable_renaming_rules):
-        super(RegExSharedVariableModel, self).ConstructFPropBPropGraph()
+        super().ConstructFPropBPropGraph()

@@ -16,11 +16,9 @@
 # Lint as: python3
 """Tests for AdaGraft."""
 
-
 import lingvo.compat as tf
 from lingvo.core import adagraft
 from lingvo.core import test_utils
-from six.moves import range
 
 
 class AdagraftTest(test_utils.TestCase):

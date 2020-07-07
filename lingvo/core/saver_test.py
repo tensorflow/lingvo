@@ -23,7 +23,6 @@ from lingvo.core import saver
 from lingvo.core import test_utils
 from lingvo.tasks.image.params import mnist
 import numpy as np
-from six.moves import range
 
 
 class SaverTest(test_utils.TestCase):

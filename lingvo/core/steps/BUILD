@@ -22,6 +22,7 @@ py_test(
     size = "small",
     srcs = ["attention_steps_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":attention_steps",
         "//lingvo:compat",
@@ -47,6 +48,7 @@ py_test(
     size = "small",
     srcs = ["embedding_steps_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":embedding_steps",
         "//lingvo:compat",
@@ -64,7 +66,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:step",
-        # Implicit six dependency.
     ],
 )
 
@@ -73,6 +74,7 @@ py_test(
     size = "small",
     srcs = ["rnn_steps_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":rnn_steps",
         "//lingvo:compat",

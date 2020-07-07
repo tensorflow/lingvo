@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -29,9 +29,6 @@ To use GPU, add `--config=cuda` to build command and set `--run_locally=gpu`.
 """
 # pylint: enable=line-too-long
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 import re
@@ -55,9 +52,6 @@ from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
 import numpy as np
-import six
-from six.moves import range
-from six.moves import zip
 
 from lingvo import base_runner
 # pylint:disable=g-direct-tensorflow-import
@@ -216,7 +210,8 @@ def _StartShell(local_ns=None):
 def _ModelAnalysis(model):
   """Returns a text showing variable sizes and their total size."""
 
-  class Analyzer(object):
+  class Analyzer:
+    """Helper class."""
 
     def __init__(self):
       self._seen_var = {}
@@ -243,7 +238,7 @@ def _ModelAnalysis(model):
   output += model.vars.Transform(analyzer).DebugString()
   output += '\n'
   output += '=' * 100
-  output += '\ntotal #params: %10d\n' % (analyzer.total)
+  output += '\ntotal #params: %10d\n' % analyzer.total
   return output, analyzer.total
 
 
@@ -251,7 +246,7 @@ class Controller(base_runner.BaseRunner):
   """Controller for a training cluster."""
 
   def __init__(self, *args, **kwargs):
-    super(Controller, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._job_name = 'controller'
     assert not self._model_task_name, 'Controller needs all tasks!'
     self._control_dir = os.path.join(self._logdir, 'control')
@@ -364,7 +359,7 @@ class Trainer(base_runner.BaseRunner):
   """Trainer on non-TPU."""
 
   def __init__(self, *args, **kwargs):
-    super(Trainer, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._job_name = 'trainer'
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.GetPlacer()):
@@ -423,7 +418,7 @@ class Trainer(base_runner.BaseRunner):
     if self._trial.ShouldStop():
       tf.logging.info('Training skipped (trial requested to stop).')
       return
-    return super(Trainer, self)._LoopEnqueue(op)
+    return super()._LoopEnqueue(op)
 
   def _Loop(self):
     # Evaler/Controller jobs may find that the trial is infeasible and report
@@ -494,7 +489,7 @@ class Trainer(base_runner.BaseRunner):
 
         msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
             global_step, step_rate, example_rate)
-        for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+        for key, (val, _) in sorted(eval_metrics.items()):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val)
         if global_step >= next_status_step:
@@ -514,7 +509,7 @@ class TrainerTpu(base_runner.BaseRunner):
   """Trainer on TPU."""
 
   def __init__(self, *args, **kwargs):
-    super(TrainerTpu, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._job_name = 'trainer_tpu'
 
     # Multiple TPU trainer tasks not tested/implemented.
@@ -670,8 +665,7 @@ class TrainerTpu(base_runner.BaseRunner):
                      'trainer_params.txt')
 
   def _GetSession(self, **kwargs):
-    return super(TrainerTpu, self)._GetSession(
-        cluster_def=self._cluster_def, **kwargs)
+    return super()._GetSession(cluster_def=self._cluster_def, **kwargs)
 
   def _OutfeedEnqueue(self, per_example_tensors):
     if not per_example_tensors:
@@ -792,7 +786,7 @@ class TrainerTpu(base_runner.BaseRunner):
     if FLAGS.checkpoint_in_trainer_tpu:
       self.checkpointer.RestoreGlobalStepIfNeeded(sess)
 
-    return super(TrainerTpu, self)._LoopEnqueue(op, sess)
+    return super()._LoopEnqueue(op, sess)
 
   def _Loop(self):
     # Evaler/Controller jobs may find that the trial is infeasible and report
@@ -882,7 +876,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
         msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
             global_step, step_rate, example_rate)
-        for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+        for key, (val, _) in sorted(eval_metrics.items()):
           msg += ' %s:%.8g' % (key, val)
           self._SummarizeValue(global_step, key, val)
 
@@ -934,7 +928,7 @@ class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
   def __init__(self, eval_type, *args, **kwargs):
-    super(Evaler, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._job_name = 'evaler_' + eval_type
     self._output_name = 'eval_' + eval_type
     self.params.cluster.do_eval = True
@@ -1067,7 +1061,7 @@ class Evaler(base_runner.BaseRunner):
       # summaries at the same step is often confusing. Instead, models should
       # update eval_metrics and generate aggregate summaries.
       ans = sess.run(self._task.eval_metrics)
-      for name, (value, weight) in six.iteritems(ans):
+      for name, (value, weight) in ans.items():
         metrics_dict[name].Update(value, weight)
       tf.logging.info('Total examples done: %d/%d',
                       num_samples_metric.total_value,
@@ -1083,7 +1077,7 @@ class Evaler(base_runner.BaseRunner):
     self._WriteSummaries(
         self._summary_writer,
         os.path.basename(self._eval_dir),
-        global_step, {k: v.Summary(k) for k, v in six.iteritems(metrics_dict)},
+        global_step, {k: v.Summary(k) for k, v in metrics_dict.items()},
         text_filename=os.path.join(self._eval_dir,
                                    'score-{:08d}.txt'.format(global_step)))
 
@@ -1132,7 +1126,7 @@ class Decoder(base_runner.BaseRunner):
   """Decoder."""
 
   def __init__(self, decoder_type, *args, **kwargs):
-    super(Decoder, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._job_name = 'decoder_' + decoder_type
     self.params.cluster.do_eval = True
     self._cluster = cluster_factory.Cluster(self.params.cluster)
@@ -1265,7 +1259,7 @@ class Decoder(base_runner.BaseRunner):
           time.time() - post_process_start)
     tf.logging.info('Done decoding ckpt: %s', checkpoint_path)
 
-    summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
+    summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     elapsed_secs = time.time() - start_time
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = metrics.CreateScalarSummary(
@@ -1332,7 +1326,7 @@ def _GetClusterSpecDict():
   return cluster_spec_dict
 
 
-class RunnerManager(object):
+class RunnerManager:
   """Helper class for managing runners."""
 
   # This is a hack so these classes can be overridded with internal
@@ -1481,9 +1475,8 @@ class RunnerManager(object):
     FLAGS.ps_job = FLAGS.worker_job
     FLAGS.ps_replicas = FLAGS.worker_replicas
 
-    FLAGS.cluster_spec = ('@'.join(
-        '{}={}'.format(job, ','.join(hosts))
-        for job, hosts in six.iteritems(cluster_spec_dict)))
+    FLAGS.cluster_spec = ('@'.join('{}={}'.format(job, ','.join(hosts))
+                                   for job, hosts in cluster_spec_dict.items()))
 
     FLAGS.xla_device = 'tpu'
     FLAGS.enable_asserts = False

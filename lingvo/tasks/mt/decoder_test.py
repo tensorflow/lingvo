@@ -14,7 +14,6 @@
 # limitations under the License.
 """Tests for mt.decoder."""
 
-
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -27,8 +26,6 @@ from lingvo.core.ops.hyps_pb2 import Hypothesis
 from lingvo.core.test_utils import CompareToGoldenSingleFloat
 from lingvo.tasks.mt import decoder
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 FLAGS = tf.flags.FLAGS
 

@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +15,9 @@
 # ==============================================================================
 """Tool for comparing two models / hyperparams."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl import flags
 from lingvo import compat as tf
-# pylint:disable=unused-import
-from lingvo.tasks.car.params import kitti
-# pylint:enable=unused-import
+from lingvo.tasks.car.params import kitti  # pylint:disable=unused-import
 from lingvo.tools import compare_params
 
 FLAGS = flags.FLAGS

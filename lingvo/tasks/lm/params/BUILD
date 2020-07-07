@@ -19,7 +19,6 @@ py_library(
         "//lingvo/tasks/lm:input_generator",
         "//lingvo/tasks/lm:layers",
         "//lingvo/tasks/lm:model",
-        # Implicit six dependency.
     ],
 )
 

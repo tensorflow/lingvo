@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,13 +15,10 @@
 # ==============================================================================
 """Tests for models."""
 
-
 from lingvo import model_imports  # pylint: disable=unused-import
 from lingvo import model_registry
-# pylint: disable=unused-import
 # Import DummyModel
-from lingvo import model_registry_test
-# pylint: enable=unused-import
+from lingvo import model_registry_test  # pylint: disable=unused-import
 from lingvo import models_test_helper
 import lingvo.compat as tf
 from lingvo.core import base_model

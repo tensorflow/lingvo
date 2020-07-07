@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,11 +15,9 @@
 # ==============================================================================
 """Tests for metrics."""
 
-
 import lingvo.compat as tf
 from lingvo.core import metrics
 from lingvo.core import test_utils
-from six.moves import range
 
 
 class MetricsTest(test_utils.TestCase):

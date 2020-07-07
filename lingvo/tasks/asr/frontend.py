@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Layers to construct an ASR frontend."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import math
@@ -150,7 +146,7 @@ class MelAsrFrontend(BaseAsrFrontend):
 
   @classmethod
   def Params(cls):
-    p = super(MelAsrFrontend, cls).Params()
+    p = super().Params()
     p.name = 'frontend'
     p.Define('sample_rate', 16000.0, 'Sample rate in Hz')
     p.Define('channel_count', 1, 'Number of channels.')
@@ -201,7 +197,7 @@ class MelAsrFrontend(BaseAsrFrontend):
         input_frame_ratio=frame_step * subsample_factor)
 
   def __init__(self, params):
-    super(MelAsrFrontend, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.frame_stride < 1:
       raise ValueError('frame_stride must be positive.')
@@ -242,7 +238,7 @@ class MelAsrFrontend(BaseAsrFrontend):
 
       self._window_fn = _HanningWindow
     else:
-      raise ValueError('Illegal value %r for window_fn param' % (p.window_fn,))
+      raise ValueError('Illegal value %r for window_fn param' % p.window_fn)
 
   @property
   def window_frame_size(self):

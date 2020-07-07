@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -32,10 +32,6 @@ at each anchor_bbox (offset) location instead. Note that anchor_bboxes at the
 same offset, but with different rotation/dimension priors will have the same
 featurization.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import enum
 import functools
@@ -196,7 +192,7 @@ class ModelBase(point_detector.PointDetectorBase):
              num_classes,
              num_anchor_bboxes_per_center,
              num_laser_features=1):
-    p = super(ModelBase, cls).Params(num_classes=num_classes)
+    p = super().Params(num_classes=num_classes)
     p.Define(
         'num_anchor_bboxes_per_center', num_anchor_bboxes_per_center,
         'The number of anchor bboxes per center. This should match that '
@@ -251,7 +247,7 @@ class ModelBase(point_detector.PointDetectorBase):
     return p
 
   def __init__(self, params):
-    super(ModelBase, self).__init__(params)
+    super().__init__(params)
     p = self.params
     self._utils = detection_3d_lib.Utils3D()
 
@@ -537,7 +533,7 @@ class ModelV1(ModelBase):
              num_anchor_bboxes_per_center,
              num_laser_features=1):
 
-    p = super(ModelV1, cls).Params(
+    p = super().Params(
         num_classes=num_classes,
         num_anchor_bboxes_per_center=num_anchor_bboxes_per_center,
         num_laser_features=num_laser_features)
@@ -569,7 +565,7 @@ class ModelV1(ModelBase):
     return p
 
   def __init__(self, params):
-    super(ModelV1, self).__init__(params)
+    super().__init__(params)
     p = self.params
     with tf.variable_scope(p.name):
       self.CreateChild('cell_featurizer', p.cell_featurizer)
@@ -691,8 +687,8 @@ class ModelV2(ModelBase):
     num_anchor_bboxes_per_center = (
         num_anchor_bboxes_offsets * num_anchor_bboxes_rotations *
         num_anchor_bboxes_dimensions)
-    p = super(ModelV2, cls).Params(num_classes, num_anchor_bboxes_per_center,
-                                   num_laser_features)
+    p = super().Params(num_classes, num_anchor_bboxes_per_center,
+                       num_laser_features)
 
     # Good defaults from V1 tuning.
     p.loss_norm_type = LossNormType.NORM_BY_NUM_POS_PER_CENTER
@@ -760,7 +756,7 @@ class ModelV2(ModelBase):
     return p
 
   def __init__(self, params):
-    super(ModelV2, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     builder = Builder()

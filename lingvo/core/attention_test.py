@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for attention."""
 
-
 import math
 from absl.testing import parameterized
 import lingvo.compat as tf
@@ -24,8 +23,6 @@ from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 class AttentionTest(test_utils.TestCase, parameterized.TestCase):

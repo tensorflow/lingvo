@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,7 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Test model imports."""
-
 
 from lingvo import model_imports
 import lingvo.compat as tf

@@ -30,6 +30,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:lm1b_100",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         "//lingvo:compat",
@@ -51,7 +52,6 @@ py_library(
         "//lingvo/core:py_utils",
         "//lingvo/core:rnn_cell",
         "//lingvo/core:rnn_layers",
-        # Implicit six dependency.
     ],
 )
 
@@ -67,7 +67,6 @@ lingvo_cuda_py_test(
         "//lingvo/core:py_utils",
         "//lingvo/core:test_utils",
         # Implicit numpy dependency.
-        # Implicit six dependency.
     ],
 )
 
@@ -81,7 +80,6 @@ py_library(
         "//lingvo/core:base_model",
         "//lingvo/core:py_utils",
         "//lingvo/core:schedule",
-        # Implicit six dependency.
     ],
 )
 
@@ -93,6 +91,7 @@ py_test(
         "//lingvo/tasks/lm/testdata:small_word_vocab",
     ],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":input_generator",
         ":model",
@@ -100,6 +99,5 @@ py_test(
         "//lingvo/core:test_helper",
         "//lingvo/core:test_utils",
         "//lingvo/core:tokenizers",
-        # Implicit six dependency.
     ],
 )

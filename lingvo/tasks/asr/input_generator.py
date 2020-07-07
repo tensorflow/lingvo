@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +14,10 @@
 # limitations under the License.
 """Speech recognition input generator."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import generic_input
 from lingvo.core import py_utils
-import six
 
 from tensorflow.python.ops import inplace_ops  # pylint:disable=g-direct-tensorflow-import
 
@@ -33,7 +28,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
   @classmethod
   def Params(cls):
     """Defaults params for AsrInput."""
-    p = super(AsrInput, cls).Params()
+    p = super().Params()
     p.Define('frame_size', 40, 'The number of coefficients in each frame.')
     p.Define('append_eos_frame', True, 'Append an all-zero frame.')
     p.source_max_length = 3000
@@ -49,7 +44,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
           ('frames', tf.io.VarLenFeature(tf.float32)),
       ]
       example = tf.io.parse_single_example(record, dict(features))
-      fval = {k: v.values for k, v in six.iteritems(example)}
+      fval = {k: v.values for k, v in example.items()}
       # Reshape the flattened vector into its original time-major
       # representation.
       fval['frames'] = tf.reshape(
@@ -95,7 +90,7 @@ class AsrInput(base_input_generator.BaseSequenceInputGenerator):
     return src_inputs, src_paddings
 
   def __init__(self, params):
-    super(AsrInput, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     (utt_ids, tgt_ids, tgt_labels, tgt_paddings, src_frames,

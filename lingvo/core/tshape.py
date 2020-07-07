@@ -1,3 +1,4 @@
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,16 +15,11 @@
 # ==============================================================================
 """Symbolic representation of tensor shapes."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
-import six
 import sympy
 
 
-class Shape(object):
+class Shape:
   """Shape represents a tensor's symbolic shape."""
 
   def __init__(self, dims):
@@ -44,7 +40,7 @@ class Shape(object):
     self._shape = []
     for x in dims:
       assert x is not None, str(dims)
-      if isinstance(x, six.string_types):
+      if isinstance(x, str):
         # NOTE: Dummy(x) creates a unique symbol. I.e., the value of x has no
         # meaning except for printing, etc.
         self._shape.append(sympy.Dummy(x, integer=True))

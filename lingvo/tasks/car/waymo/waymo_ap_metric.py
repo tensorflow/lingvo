@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -22,10 +22,6 @@ Waymo breakdown API.  Should you want other breakdowns, consider using the
 standard AP metrics implementation with our custom breakdowns.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from lingvo import compat as tf
 from lingvo.core import plot
 from lingvo.core import py_utils
@@ -33,7 +29,6 @@ from lingvo.tasks.car import ap_metric
 from lingvo.tasks.car import breakdown_metric
 
 import numpy as np
-from six.moves import range
 from waymo_open_dataset import label_pb2
 from waymo_open_dataset.metrics.ops import py_metrics_ops
 from waymo_open_dataset.metrics.python import config_util_py as config_util
@@ -82,7 +77,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
   @classmethod
   def Params(cls, metadata):
     """Params builder for APMetrics."""
-    p = super(WaymoAPMetrics, cls).Params(metadata)
+    p = super().Params(metadata)
     p.Define(
         'waymo_breakdown_metrics', [],
         'List of extra waymo breakdown metrics when computing AP. These '
@@ -91,7 +86,7 @@ class WaymoAPMetrics(ap_metric.APMetrics):
     return p
 
   def __init__(self, params):
-    super(WaymoAPMetrics, self).__init__(params)
+    super().__init__(params)
     self._waymo_metric_config = _BuildWaymoMetricConfig(
         self.metadata, self.params.box_type,
         self.params.waymo_breakdown_metrics)
@@ -368,7 +363,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
 
   @classmethod
   def Params(cls):
-    p = super(WaymoBreakdownMetric, cls).Params()
+    p = super().Params()
     p.Define(
         'breakdown_list', [],
         'A list of breakdown names corresponding to the breakdown '
@@ -376,7 +371,7 @@ class WaymoBreakdownMetric(breakdown_metric.BreakdownMetric):
     return p
 
   def __init__(self, p):
-    super(WaymoBreakdownMetric, self).__init__(p)
+    super().__init__(p)
     self._average_precision_headings = {}
     self._precision_recall_headings = {}
 

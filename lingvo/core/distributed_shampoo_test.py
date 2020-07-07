@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for lingvo.distributed_shampoo."""
 
-
 from lingvo.core import distributed_shampoo
 from lingvo.core import test_utils
 

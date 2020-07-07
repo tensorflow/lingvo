@@ -1,5 +1,4 @@
-# Lint as: python2, python3
-# -*- coding: utf-8 -*-
+# Lint as: python3
 # Lint as: python2, python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
@@ -16,9 +15,6 @@
 # limitations under the License.
 # ==============================================================================
 """Programs for interleaving execution on TPU."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import multiprocessing.dummy
 import os
@@ -33,9 +29,6 @@ from lingvo.core import metrics
 from lingvo.core import ml_perf_log as mlp_log
 from lingvo.core import py_utils
 from lingvo.core import summary_utils
-import six
-from six.moves import range
-from six.moves import zip
 
 # pylint:disable=g-direct-tensorflow-import
 from tensorflow.core.protobuf.tpu import compilation_result_pb2 as tpu_compilation_result
@@ -46,7 +39,7 @@ from tensorflow.python.tpu.ops import tpu_ops
 # pylint:enable=g-direct-tensorflow-import
 
 
-class BaseProgram(object):
+class BaseProgram:
   """A Program associated with a Task.
 
   This is inspired by the "program" multi-tenancy that TPUs
@@ -204,14 +197,8 @@ class BaseProgram(object):
 class TrainProgram(BaseProgram):
   """TrainProgram trains a single task and handles checkpoints."""
 
-  @classmethod
-  def Params(cls):
-    """Parameters for TrainProgram."""
-    p = super(TrainProgram, cls).Params()
-    return p
-
   def __init__(self, params):
-    super(TrainProgram, self).__init__(params)
+    super().__init__(params)
     self._step_rate_tracker = summary_utils.StepRateTracker()
     self._program_name = 'TrainProgram'
 
@@ -376,7 +363,7 @@ class TrainProgram(BaseProgram):
     self._SummarizeValue(global_step, 'examples/sec', example_rate)
     self._SummarizeValue(global_step, 'total_samples', total_examples)
 
-    for key, (val, _) in sorted(six.iteritems(eval_metrics)):
+    for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
 
     task_global_step = sess.run(self._task.global_step)
@@ -397,7 +384,7 @@ class EvalProgram(BaseProgram):
   """
 
   def __init__(self, params):
-    super(EvalProgram, self).__init__(params)
+    super().__init__(params)
     self._program_name = 'EvalProgram'
 
   def BuildTpuSubgraph(self):
@@ -461,7 +448,7 @@ class EvalProgram(BaseProgram):
     infeed_future.wait()
     values = ary[0]
     self._eval_metrics.PackMetricsValues(values)
-    for key, (val, _) in sorted(six.iteritems(self._eval_metrics.metrics)):
+    for key, (val, _) in sorted(self._eval_metrics.metrics.items()):
       self._SummarizeValue(global_step, key, val)
     return False
 
@@ -476,7 +463,7 @@ class DecodeProgram(BaseProgram):
   """
 
   def __init__(self, params):
-    super(DecodeProgram, self).__init__(params)
+    super().__init__(params)
     self._program_name = 'DecodeProgram'
 
   def BuildTpuSubgraph(self):
@@ -527,7 +514,7 @@ class DecodeProgram(BaseProgram):
     infeed_future.wait()
 
     num_examples_metric = dec_metrics['num_samples_in_batch']
-    summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
+    summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     elapsed_secs = time.time() - start_time
     example_rate = num_examples_metric.total_value / elapsed_secs
     summaries['examples/sec'] = tf.Summary(
@@ -551,7 +538,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
 
   @classmethod
   def Params(cls):
-    p = super(ExperimentalDecodeProgram, cls).Params()
+    p = super().Params()
     p.num_threads = 2
     return p
 
@@ -629,7 +616,7 @@ class ExperimentalDecodeProgram(DecodeProgram):
       self._task.PostProcessDecodeOut(metrics_values, dec_metrics)
     decode_future.wait()
     infeed_future.wait()
-    summaries = {k: v.Summary(k) for k, v in six.iteritems(dec_metrics)}
+    summaries = {k: v.Summary(k) for k, v in dec_metrics.items()}
     elapsed_secs = time.time() - start_time
     num_examples_metric = dec_metrics['num_samples_in_batch']
     example_rate = num_examples_metric.total_value / elapsed_secs
@@ -647,7 +634,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
   @classmethod
   def Params(cls):
     """"Defaults parameters for Programs."""
-    p = super(MLPerfTrainDecodeProgram, cls).Params()
+    p = super().Params()
     p.Define('train_task', None, 'Underlying task')
     p.Define('decode_task', None, 'Underlying task')
     p.Define('train_dataset_name', None, '')
@@ -658,7 +645,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     return p
 
   def __init__(self, params):
-    super(MLPerfTrainDecodeProgram, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if p.ml_perf is not None and p.ml_perf.benchmark_name is not None:
       self._ml_perf_log = True
@@ -835,7 +822,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     return False
 
 
-class MultiTaskProgramSchedule(object):
+class MultiTaskProgramSchedule:
   """Container for ProgramSchedules for a MultiTask model."""
 
   @classmethod
@@ -846,7 +833,7 @@ class MultiTaskProgramSchedule(object):
     return p
 
 
-class SimpleProgramSchedule(object):
+class SimpleProgramSchedule:
   """A schedule of programs associated with a single task.
 
   Simple sequence is:
@@ -966,7 +953,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   return program_schedule_params
 
 
-class MLPerfProgramSchedule(object):
+class MLPerfProgramSchedule:
   """Program schedule for ML Perf benchmark."""
 
   @classmethod

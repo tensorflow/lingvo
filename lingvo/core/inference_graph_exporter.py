@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Utility for exporting an InferenceGraph proto from model params."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import collections
 import contextlib
@@ -133,16 +129,14 @@ def ConvertSubgraphDictToProto(subgraphs_dict):
   """
   # Build the output inference graph.
   inference_graph_proto = inference_graph_pb2.InferenceGraph()
-  for subgraph_name, tensors in six.iteritems(subgraphs_dict):
+  for subgraph_name, tensors in subgraphs_dict.items():
     fetches = tensors[0]
     feeds = tensors[1]
 
     # Rewrite fetches and feeds to map to their tensor name instead of
     # Tensor instance.
-    named_fetches = {
-        k: v.name for k, v in six.iteritems(fetches) if v is not None
-    }
-    named_feeds = {k: v.name for k, v in six.iteritems(feeds)}
+    named_fetches = {k: v.name for k, v in fetches.items() if v is not None}
+    named_feeds = {k: v.name for k, v in feeds.items()}
 
     # Export as subgraph.
     inference_graph_proto.subgraphs[subgraph_name].fetches.update(named_fetches)
@@ -191,7 +185,7 @@ def GetOutputOpNames(graph,
       op = graph.get_operation_by_name(tensor_or_op_name)
       return op.name
 
-  for subgraph_name, subgraph in six.iteritems(inference_graph_proto.subgraphs):
+  for subgraph_name, subgraph in inference_graph_proto.subgraphs.items():
     if subgraphs and subgraph_name not in subgraphs:
       tf.logging.info('Skip subgraph %s.', subgraph_name)
       continue
@@ -292,7 +286,7 @@ def _FreezeDefaults(graph, output_op_names):
                                                         output_op_names)
 
 
-class InferenceGraphExporter(object):
+class InferenceGraphExporter:
   """Class for exporting inference graphs."""
 
   @classmethod

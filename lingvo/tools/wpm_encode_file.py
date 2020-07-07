@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,11 @@
 # ==============================================================================
 """Encode file using the wpm_encoder."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import wpm_encoder
 import numpy as np
 import six
 from six import text_type
-from six.moves import zip
 
 tf.flags.DEFINE_string(
     'source_filepaths', '',

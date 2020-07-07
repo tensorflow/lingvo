@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for retry."""
 
-
 import lingvo.compat as tf
 from lingvo.core import retry
 from lingvo.core import test_utils

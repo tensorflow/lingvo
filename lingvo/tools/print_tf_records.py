@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Debug print tf records in text format."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import lingvo.compat as tf
 import six
@@ -48,7 +44,7 @@ def _ListDebugString(values, to_string=str):
 
 def _CustomShortDebugString(tf_example):
   text = []
-  for name, value in sorted(six.iteritems(tf_example.features.feature)):
+  for name, value in sorted(tf_example.features.feature.items()):
     if value.HasField('bytes_list'):
       if FLAGS.bytes_as_utf8:
         utf8_values = [
@@ -69,7 +65,7 @@ def _PrintHeader(tf_example):
   """Prints table of contents."""
   # Typically, tf.Examples have the same features.
   tf.logging.info('==== FEATURES ====')
-  for name, value in sorted(six.iteritems(tf_example.features.feature)):
+  for name, value in sorted(tf_example.features.feature.items()):
     type_string = '<empty>'
     if value.HasField('bytes_list'):
       type_string = 'bytes'

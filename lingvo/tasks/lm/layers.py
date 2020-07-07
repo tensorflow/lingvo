@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,9 +14,6 @@
 # limitations under the License.
 # ==============================================================================
 """Common layers for language models."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import math
 import lingvo.compat as tf
@@ -27,8 +24,6 @@ from lingvo.core import layers_with_gpipe
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
-from six.moves import range
-from six.moves import zip
 
 
 class BaseLanguageModel(base_layer.BaseLayer):
@@ -36,7 +31,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
 
   @classmethod
   def Params(cls):
-    p = super(BaseLanguageModel, cls).Params()
+    p = super().Params()
     p.Define('vocab_size', 0, 'Number of vocabulary tokens.')
     return p
 
@@ -56,7 +51,7 @@ class BaseLanguageModel(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(BaseLanguageModel, self).__init__(params)
+    super().__init__(params)
 
   def zero_state(self, theta, batch_size):
     raise NotImplementedError('Abstract method')
@@ -283,7 +278,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
 
   @classmethod
   def Params(cls):
-    p = super(RnnLmNoEmbedding, cls).Params()
+    p = super().Params()
     p.Define('rnns', rnn_layers.StackedFRNNLayerByLayer.Params(),
              'The stacked-RNNs layer params.')
     p.Define('softmax', layers.SimpleFullSoftmax.Params(),
@@ -296,7 +291,7 @@ class RnnLmNoEmbedding(BaseLanguageModel):
     return p
 
   def __init__(self, params):
-    super(RnnLmNoEmbedding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not isinstance(p.rnns.cell_tpl, (list, tuple)):
       p.rnns.cell_tpl = [p.rnns.cell_tpl]
@@ -482,7 +477,7 @@ class RnnLm(RnnLmNoEmbedding):
 
   @classmethod
   def Params(cls):
-    p = super(RnnLm, cls).Params()
+    p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(),
              'The embedding layer params.')
     p.Define('embedding_dropout_keep_prob', 1.0, 'Embedding dropout keep prob.')
@@ -559,7 +554,7 @@ class RnnLm(RnnLmNoEmbedding):
     return p
 
   def __init__(self, params, verify_sizes=True):
-    super(RnnLm, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     if verify_sizes:
@@ -616,8 +611,8 @@ class RnnLm(RnnLmNoEmbedding):
           activation,
           rate=1 - p.embedding_dropout_keep_prob,
           seed=p.embedding_dropout_seed)
-    return super(RnnLm, self).FProp(theta, activation, paddings, state0, labels,
-                                    direct_features)
+    return super().FProp(theta, activation, paddings, state0, labels,
+                         direct_features)
 
 
 class ConditionalRnnLm(RnnLmNoEmbedding):
@@ -625,7 +620,7 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
 
   @classmethod
   def Params(cls):
-    p = super(ConditionalRnnLm, cls).Params()
+    p = super().Params()
     p.Define('condition_dim', 128, 'The size of the condition vector.')
     p.Define('emb', layers.EmbeddingLayer.Params(),
              'The embedding layer params.')
@@ -637,7 +632,7 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
     return p
 
   def __init__(self, params):
-    super(ConditionalRnnLm, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
@@ -700,8 +695,8 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
           activation,
           rate=1 - p.embedding_dropout_keep_prob,
           seed=p.embedding_dropout_seed)
-    return super(ConditionalRnnLm, self).FProp(theta, activation, paddings,
-                                               state0, labels, direct_features)
+    return super().FProp(theta, activation, paddings, state0, labels,
+                         direct_features)
 
 
 class MoeLm(BaseLanguageModel):
@@ -709,7 +704,7 @@ class MoeLm(BaseLanguageModel):
 
   @classmethod
   def Params(cls):
-    p = super(MoeLm, cls).Params()
+    p = super().Params()
     p.Define(
         'emb',
         layers.EmbeddingLayer.Params().Set(max_num_shards=1),
@@ -726,7 +721,7 @@ class MoeLm(BaseLanguageModel):
     return p
 
   def __init__(self, params):
-    super(MoeLm, self).__init__(params)
+    super().__init__(params)
     p = self.params
     if not isinstance(p.rnns.cell_tpl, (list, tuple)):
       p.rnns.cell_tpl = [p.rnns.cell_tpl]
@@ -858,7 +853,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLmNoEmbedding, cls).Params()
+    p = super().Params()
     p.Define('position_emb', layers.PositionalEmbeddingLayer.Params(),
              'Position embedding layer params.')
     p.Define(
@@ -892,7 +887,7 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
     return p
 
   def __init__(self, params):
-    super(TransformerLmNoEmbedding, self).__init__(params)
+    super().__init__(params)
     p = self.params
     p.trans_tpl.tr_atten_tpl.residual_dropout_prob = p.residual_dropout_prob
     p.trans_tpl.tr_atten_tpl.atten_dropout_prob = p.atten_dropout_prob
@@ -1054,7 +1049,7 @@ class TransformerLm(TransformerLmNoEmbedding):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerLm, cls).Params()
+    p = super().Params()
     p.Define('emb', layers.EmbeddingLayer.Params(),
              'The embedding layer params.')
     p.emb.max_num_shards = 1
@@ -1143,7 +1138,7 @@ class TransformerLm(TransformerLmNoEmbedding):
     return p
 
   def __init__(self, params):
-    super(TransformerLm, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     assert p.emb.vocab_size == p.vocab_size, ('{} vs. {}'.format(
@@ -1183,8 +1178,7 @@ class TransformerLm(TransformerLmNoEmbedding):
     ids = py_utils.HasRank(inputs, 2)
     paddings = py_utils.HasShape(paddings, tf.shape(ids))
     activation = self.emb.EmbLookup(theta.emb, ids)
-    return super(TransformerLm, self).FProp(
-        theta, activation, paddings, labels=labels)
+    return super().FProp(theta, activation, paddings, labels=labels)
 
 
 class GPipeTransformerLm(BaseLanguageModel):
@@ -1192,7 +1186,7 @@ class GPipeTransformerLm(BaseLanguageModel):
 
   @classmethod
   def Params(cls):
-    p = super(GPipeTransformerLm, cls).Params()
+    p = super().Params()
     p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
              'GPipeTransformerStack Layer params.')
 
@@ -1291,7 +1285,7 @@ class GPipeTransformerLm(BaseLanguageModel):
     return p
 
   def __init__(self, params):
-    super(GPipeTransformerLm, self).__init__(params)
+    super().__init__(params)
     p = self.params
     p.stack.name = p.name
 

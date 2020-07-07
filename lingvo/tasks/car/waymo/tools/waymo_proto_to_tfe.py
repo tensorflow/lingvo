@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -157,10 +157,6 @@ that the tracked object is of LEVEL_2 difficulty.
 nlz_proto_strs: string - Vector of NoLabelZone polygon protos.  Currently
 unused.
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import zlib
 

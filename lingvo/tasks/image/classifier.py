@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """Image classification models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import layers
@@ -27,8 +23,6 @@ from lingvo.core import plot
 from lingvo.core import py_utils
 from lingvo.core import schedule
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
 class BaseClassifier(base_model.BaseTask):
@@ -36,7 +30,7 @@ class BaseClassifier(base_model.BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(BaseClassifier, cls).Params()
+    p = super().Params()
     p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax layer.')
     return p
 
@@ -91,7 +85,7 @@ class ModelV1(BaseClassifier):
 
   @classmethod
   def Params(cls):
-    p = super(ModelV1, cls).Params()
+    p = super().Params()
     p.Define(
         'filter_shapes', [(0, 0, 0, 0)],
         'Conv filter shapes. Must be a list of sequences of 4. '
@@ -112,7 +106,7 @@ class ModelV1(BaseClassifier):
     return p
 
   def __init__(self, params):
-    super(ModelV1, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 
@@ -212,7 +206,7 @@ class ModelV2(BaseClassifier):
 
   @classmethod
   def Params(cls):
-    p = super(ModelV2, cls).Params()
+    p = super().Params()
     p.Define('extract', None, 'Param for the layer to extract image features.')
     p.Define('label_smoothing', 0., 'Smooth the labels towards 1/num_classes.')
     p.Define('compute_accuracy_for_training', False,
@@ -220,7 +214,7 @@ class ModelV2(BaseClassifier):
     return p
 
   def __init__(self, params):
-    super(ModelV2, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.name
 

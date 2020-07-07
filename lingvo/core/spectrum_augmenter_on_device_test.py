@@ -15,13 +15,11 @@
 # ==============================================================================
 """Tests for spectrum augmenter layer."""
 
-
 import lingvo.compat as tf
 from lingvo.core import spectrum_augmenter
 from lingvo.core import spectrum_augmenter_on_device
 from lingvo.core import test_utils
 import numpy as np
-from six.moves import range
 
 
 class SpectrumAugmenterTest(test_utils.TestCase):

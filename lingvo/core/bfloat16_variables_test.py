@@ -15,7 +15,6 @@
 # ==============================================================================
 """Tests for bfloat16_variables."""
 
-
 import os
 import lingvo.compat as tf
 from lingvo.core import bfloat16_variables

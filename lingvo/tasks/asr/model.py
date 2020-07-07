@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,10 +14,6 @@
 # limitations under the License.
 """Speech model."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import collections
 import lingvo.compat as tf
 from lingvo.core import base_model
@@ -29,8 +25,6 @@ from lingvo.tasks.asr import decoder_utils
 from lingvo.tasks.asr import encoder
 from lingvo.tasks.asr import frontend as asr_frontend
 from lingvo.tools import audio_lib
-from six.moves import range
-from six.moves import zip
 
 
 # hyps: [num_beams, num_hyps_per_beam] of serialized Hypothesis protos.
@@ -47,7 +41,7 @@ class AsrModel(base_model.BaseTask):
 
   @classmethod
   def Params(cls):
-    p = super(AsrModel, cls).Params()
+    p = super().Params()
     p.encoder = encoder.AsrEncoder.Params()
     p.decoder = decoder.AsrDecoder.Params()
     p.Define(
@@ -78,7 +72,7 @@ class AsrModel(base_model.BaseTask):
   def __init__(self, params):
     if not params.name:
       raise ValueError('params.name not set.')
-    super(AsrModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):

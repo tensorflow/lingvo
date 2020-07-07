@@ -1,5 +1,4 @@
-# Lint as: python2, python3
-# -*- coding: utf-8 -*-
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,12 +24,6 @@ Speech and Signal Processing, 2012
 
 https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/37842.pdf
 """
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import sys
 import lingvo.compat as tf
 from lingvo.core import ops
 from lingvo.core import py_utils
@@ -46,7 +39,8 @@ SENTENCE_END_STRING = '</s>'
 BOW_STR = '▁'
 
 
-class WpmEncoder(object):
+class WpmEncoder:
+  """WPM encoder."""
 
   def __init__(self, wpm_filepath, merge_prob=1.):
     """Create a WPM encoder.
@@ -60,7 +54,7 @@ class WpmEncoder(object):
 
     self._pieces = []
     for line in lines:
-      if isinstance(line, six.binary_type):
+      if isinstance(line, bytes):
         line = six.ensure_text(line, 'utf-8')
       piece = line.strip().split('\t')[0]
       self._pieces.append(piece)

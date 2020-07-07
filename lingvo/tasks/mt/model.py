@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2018 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,10 +15,6 @@
 # ==============================================================================
 """MT models."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import lingvo.compat as tf
 from lingvo.core import base_model
 from lingvo.core import insertion
@@ -26,8 +22,6 @@ from lingvo.core import metrics
 from lingvo.core import py_utils
 from lingvo.tasks.mt import decoder
 from lingvo.tasks.mt import encoder
-from six.moves import range
-from six.moves import zip
 
 
 class MTBaseModel(base_model.BaseTask):
@@ -48,7 +42,7 @@ class MTBaseModel(base_model.BaseTask):
       return tf.device('')
 
   def __init__(self, params):
-    super(MTBaseModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -185,13 +179,13 @@ class TransformerModel(MTBaseModel):
 
   @classmethod
   def Params(cls):
-    p = super(TransformerModel, cls).Params()
+    p = super().Params()
     p.encoder = encoder.TransformerEncoder.Params()
     p.decoder = decoder.TransformerDecoder.Params()
     return p
 
   def __init__(self, params):
-    super(TransformerModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert p.encoder.model_dim == p.decoder.source_dim
 
@@ -205,7 +199,7 @@ class RNMTModel(MTBaseModel):
 
   @classmethod
   def Params(cls):
-    p = super(RNMTModel, cls).Params()
+    p = super().Params()
     p.encoder = encoder.MTEncoderBiRNN.Params()
     p.decoder = decoder.MTDecoderV1.Params()
     return p
@@ -221,14 +215,14 @@ class InsertionModel(MTBaseModel):
 
   @classmethod
   def Params(cls):
-    p = super(InsertionModel, cls).Params()
+    p = super().Params()
     p.decoder = decoder.InsertionDecoder.Params()
     p.Define('insertion', insertion.SymbolInsertionLayer.Params(),
              'Insertion specifications (i.e., rollin and oracle policy).')
     return p
 
   def __init__(self, params):
-    super(InsertionModel, self).__init__(params)
+    super().__init__(params)
     p = self.params
 
     with tf.variable_scope(p.name):
@@ -375,7 +369,7 @@ class InsertionModel(MTBaseModel):
             ids=canvas_and_targets.canvas,
             paddings=canvas_and_targets.canvas_paddings))
 
-    predictions = super(InsertionModel, self).ComputePredictions(theta, batch)
+    predictions = super().ComputePredictions(theta, batch)
 
     if not self.do_eval:
       predictions.tgt = py_utils.NestedMap(

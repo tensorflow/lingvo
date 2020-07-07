@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright 2019 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,16 +15,10 @@
 # ==============================================================================
 """Base class specifying metadata used in evaluation."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
-from six.moves import range
-from six.moves import zip
 
 
-class EvaluationMetadata(object):
+class EvaluationMetadata:
   """Interface for defining metadata of dataset."""
 
   def __init__(self, name):
