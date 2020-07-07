@@ -222,9 +222,14 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(0.0, sig1.eval(), atol=1e-4)
       self.assertAllClose(2039.398681, sig2.eval())
 
-  @parameterized.parameters(True, False)
-  def testBatchNormLayerFPropForConvWithFusedEval(
-      self, use_fused_batch_norm_for_eval):
+  @parameterized.named_parameters(
+      ('FuseEvalNoFreeze', True, True, False),
+      ('NoFuseEvalNoFreeze', False, True, False),
+      ('FuseTrainingFreeze', True, False, True),
+      ('NoFuseTrainingFreeze', False, False, True),
+  )
+  def testBatchNormLayerFPropForConvWithFusedEvalWithFreezeBNStats(
+      self, use_fused_batch_norm_for_eval, do_eval, freeze_bn_stats):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
@@ -233,6 +238,7 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.dim = 32
       params.params_init = py_utils.WeightInit.Gaussian(0.1)
       params.use_fused_batch_norm_for_eval = use_fused_batch_norm_for_eval
+      params.freeze_bn_stats = freeze_bn_stats
       with cluster_factory.ForTestingWorker(
           mode='sync', job='trainer_client', do_eval=True):
         bn_layer = params.Instantiate()
@@ -244,14 +250,25 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
         self.evaluate(tf.global_variables_initializer())
         # Moving mean and variance are set to defaults, we set gamma and beta
         # through assignment such that the outputs are inputs * 2 + 1.
+        moving_mean_init = np.zeros(bn_layer.vars.moving_mean.shape.as_list())
+        moving_variance_init = np.ones(
+            bn_layer.vars.moving_variance.shape.as_list())
         self.evaluate([
             tf.assign(bn_layer.vars.gamma,
                       np.ones(bn_layer.vars.gamma.shape.as_list())),
             tf.assign(bn_layer.vars.beta,
-                      np.ones(bn_layer.vars.beta.shape.as_list()))
+                      np.ones(bn_layer.vars.beta.shape.as_list())),
+            tf.assign(bn_layer.vars.moving_mean, moving_mean_init),
+            tf.assign(bn_layer.vars.moving_variance, moving_variance_init),
         ])
         self.assertAllClose(
             np_in1 * 2. + 1., bn_out.eval(), atol=1e-5, rtol=1e-5)
+        # check moving stats modified or not
+        moving_mean = self.evaluate(bn_layer.vars.moving_mean)
+        moving_variance = self.evaluate(bn_layer.vars.moving_variance)
+        if do_eval or freeze_bn_stats:
+          self.assertAllClose(moving_mean, moving_mean_init)
+          self.assertAllClose(moving_variance, moving_variance_init)
 
 
 class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):

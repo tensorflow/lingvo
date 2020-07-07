@@ -119,6 +119,13 @@ class BatchNormLayer(base_layer.BaseLayer):
         ' to avoid mismatch between train and eval, which then'
         ' essentially acts as an adaptive normalization step.')
     p.Define(
+        'freeze_bn_stats', False,
+        'If True, uses moving avg (mean, variance) during both training and '
+        'inference. It behaves like force_eval but the gamma/beta are still '
+        'trained when do_eval is False. The moving mean/var can be set by '
+        'loading pretrained checkpoints. A use case is training detectors '
+        'based on an pretrained checkpoint while BN stats are frozen.')
+    p.Define(
         'gamma_zero_init', False,
         'If True, initialize gamma to zeros according to the technique '
         'introduced in the tech report: https://arxiv.org/abs/1706.02677')
@@ -267,7 +274,7 @@ class BatchNormLayer(base_layer.BaseLayer):
         py_utils.assert_shape_match([tf.shape(paddings)[-1]], [1]),
     ], inputs)
     with tf.name_scope(p.name):
-      if self.do_eval:
+      if self.do_eval or p.freeze_bn_stats:
         # The mean and variance used for normalization.
         norm_mean, norm_variance = (self.vars.moving_mean,
                                     self.vars.moving_variance)
@@ -329,7 +336,8 @@ class BatchNormLayer(base_layer.BaseLayer):
         py_utils.assert_shape_match([tf.shape(inputs)[-1]],
                                     tf.shape(norm_variance)),
     ]):
-      if p.use_fused_batch_norm_for_eval and self.do_eval:
+      if p.use_fused_batch_norm_for_eval and (self.do_eval or
+                                              p.freeze_bn_stats):
         bn_output, _, _ = nn.fused_batch_norm(
             inputs,
             gamma,
