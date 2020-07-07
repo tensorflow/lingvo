@@ -595,18 +595,37 @@ class LinearRampupCosineSchedule(BaseSchedule):
     p.Define('initial_value', 1.0, 'Initial decay value.')
     p.Define('final_value', 0., 'Final decay value.')
     p.Define('total_steps', 0, 'Number of steps to reach full decay.')
+    p.Define(
+        'num_splits', 1, 'Specifies the intended number of splits for the '
+        'LR. Overrides num_splits_per_client if non-zero. Uses '
+        'num_splits_per_client as num_splits if zero or negative.')
     return p
 
   def __init__(self, params):
     super(LinearRampupCosineSchedule, self).__init__(params)
     p = self.params
+
+    # We always compute lr schedule from the trainer's perspective.
+    # Also note that this schedule makes sense to sync training only.
+    if p.num_splits > 0:
+      splits = p.num_splits
+    else:
+      # Infer num_splits from cluster.
+      cluster_params = self.cluster.params.Copy()
+      cluster_params.task = 0
+      assert cluster_params.mode == 'sync'
+      cluster_params.job = 'trainer_client'
+      my_cluster = cluster_params.Instantiate()
+      splits = my_cluster.num_splits_per_client
+
     schedules = [
         LinearSchedule.Params().Set(
-            start=(0., p.warmup_init), limit=(p.warmup_steps, p.initial_value)),
+            start=(0., p.warmup_init * splits),
+            limit=(p.warmup_steps // splits, p.initial_value * splits)),
         CosineSchedule.Params().Set(
-            initial_value=p.initial_value,
-            final_value=p.final_value,
-            total_steps=p.total_steps),
+            initial_value=p.initial_value * splits,
+            final_value=p.final_value * splits,
+            total_steps=p.total_steps // splits),
     ]
     self.CreateChild('combine',
                      CombinedMinimumSchedule.Params().Set(schedules=schedules))
