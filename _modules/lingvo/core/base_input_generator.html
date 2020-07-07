@@ -187,6 +187,7 @@
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">batch_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">input_generator_helper</span> <span class="k">as</span> <span class="n">ig_helper</span>
@@ -279,31 +280,17 @@
 
 <div class="viewcode-block" id="BaseInputGenerator.GlobalBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.GlobalBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">GlobalBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the total batch size (for stats), int or dynamic int tensor.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">global_batch_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">()</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Scaling to TPU hosts without TPUs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-            <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span><span class="p">))</span>
-      <span class="n">global_batch_size</span> <span class="o">*=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
+    <span class="c1"># Uses `InfeedBatchSize()` instead of calculating it from `p.batch_size`</span>
+    <span class="c1"># because the behavior would be overridden by subclasses.</span>
+    <span class="n">global_batch_size</span> <span class="o">=</span> <span class="n">batch_utils</span><span class="o">.</span><span class="n">scale_infeed_to_global</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">InfeedBatchSize</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;GlobalBatchSize </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_batch_size</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">global_batch_size</span></div>
 
-<div class="viewcode-block" id="BaseInputGenerator._ScaleBatchSizeToBatchPerInput"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator._ScaleBatchSizeToBatchPerInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ScaleBatchSizeToBatchPerInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Scales a batch_size parameter to the batch size of the infeed.&quot;&quot;&quot;</span>
-    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
-    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="n">batch_size</span> <span class="o">*</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
-    <span class="c1"># If use_per_host_infeed, each input op is only responsible</span>
-    <span class="c1"># for generating a subset of the whole batch.</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="ow">and</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">batch_per_input</span> <span class="o">//=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
-    <span class="k">return</span> <span class="n">batch_per_input</span></div>
-
 <div class="viewcode-block" id="BaseInputGenerator.InfeedBatchSize"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.InfeedBatchSize">[docs]</a>  <span class="k">def</span> <span class="nf">InfeedBatchSize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the batch size of the input batch: int or dynamic int tensor.&quot;&quot;&quot;</span>
-    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ScaleBatchSizeToBatchPerInput</span><span class="p">(</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">)</span>
+    <span class="n">batch_per_input</span> <span class="o">=</span> <span class="n">batch_utils</span><span class="o">.</span><span class="n">scale_split_to_infeed</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;batch_per_input: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">batch_per_input</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">batch_per_input</span></div>
 
@@ -908,7 +895,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">infeed_bucket_batch_limit</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_ScaleBatchSizeToBatchPerInput</span><span class="p">(</span><span class="n">b</span><span class="p">)</span> <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span>
+        <span class="n">batch_utils</span><span class="o">.</span><span class="n">scale_split_to_infeed</span><span class="p">(</span><span class="n">b</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_batch_limit</span>
     <span class="p">]</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
         <span class="s1">&#39;infeed_bucket_batch_limit=</span><span class="si">{}</span><span class="s1"> num_splits_per_client=</span><span class="si">{}</span><span class="s1"> bucket_batch_limit=</span><span class="si">{}</span><span class="s1">&#39;</span>
