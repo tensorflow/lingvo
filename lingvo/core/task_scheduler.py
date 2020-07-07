@@ -40,6 +40,7 @@ class TaskScheduler(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     self.cur_probs = None
+    self.SetVariableFree()
 
   def Sample(self, current_step):
     raise NotImplementedError('Abstract method')

@@ -29,6 +29,10 @@ class DataSource(base_layer.BaseLayer):
   def Params(cls):
     return super().Params().Set(name='datasource')
 
+  def __init__(self, params):
+    super().__init__(params)
+    self.SetVariableFree()
+
   def BuildDataSource(self, data_source_from_file_pattern_fn):
     """Builds a data source.
 

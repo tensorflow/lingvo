@@ -334,9 +334,26 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     # symbolic expressions, one for each dimension of the variable.
     self._var_symbolic_shape_map = {}
 
-    self.AddExtraTheta('global_step', py_utils.GetGlobalStep())
+    self._is_variable_free = False
     self._variables_to_create = {}
     self._create_variables_called = False
+
+  def SetVariableFree(self, value=True):
+    """Marks this layer as having no variables.
+
+    Note that this status affects sublayers and child layers too.
+
+    Args:
+      value: True to set layer as variable free.
+    """
+    if self._create_variables_called:
+      raise ValueError(
+          'Variable free status for %s must be set before CreateVariables().' %
+          self.params.cls)
+    if self._variables_to_create:
+      raise ValueError('Cannot set layer %s with variables as variable free.' %
+                       self.params.cls)
+    self._is_variable_free = value
 
   def FPropDefaultTheta(self, *args, **kwargs):
     """Calls `FProp`."""
@@ -446,6 +463,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Returns children layers of this layer in a `.NestedMap`."""
     return self._private_children
 
+  @property
+  def global_step(self):
+    return self._global_step
+
   def __getattr__(self, name):
     """Returns the child layer of the given name."""
     if name == '_private_children':
@@ -488,6 +509,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def vars(self):
     """Returns variables of this layer and its children in a `.NestedMap`."""
+    if self._is_variable_free:
+      return self._private_children.Transform(lambda _: py_utils.NestedMap())
     ret = self._private_children.Transform(lambda x: x.vars)
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
@@ -496,6 +519,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
   @property
   def theta(self):
     """Returns theta of this layer and its children in a `.NestedMap`."""
+    if self._is_variable_free:
+      return self._private_children.Transform(lambda _: py_utils.NestedMap())
     ret = self._private_children.Transform(lambda x: x.theta)
 
     private_theta = self._private_theta
@@ -674,6 +699,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         (tf.Tensor) -> (tf.Tensor).
       **kwargs: Keyword args passed to `.py_utils.CreateVariable`.
     """
+    if self._is_variable_free:
+      raise ValueError('Cannot create variable in variable free layer.')
     self._CheckName(name)
     if (self.params.skip_lp_regularization and
         py_utils.SKIP_LP_REGULARIZATION not in var_params.collections):
@@ -724,13 +751,24 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       return
     self._create_variables_called = True
 
-    self._CreateChildrenVariables()
-    with tf.variable_scope(
-        py_utils.SanitizeScopeKey(self.params.name),
-        auxiliary_name_scope=False):
-      for name, meta in list(self._variables_to_create.items()):
-        self._CreateVariable(name, meta)
-      self._CreateVariables()
+    self._global_step = py_utils.GetGlobalStep()
+
+    if self._is_variable_free:
+      for child in self._children_list:
+        if not child._is_variable_free:  # pylint: disable=protected-access
+          raise ValueError(
+              'Variable free layer %s(%s) child %s(%s) has variables.' %
+              (self.params.name, self.params.cls, child.params.name,
+               child.params.cls))
+    else:
+      self.AddExtraTheta('global_step', self._global_step)
+      self._CreateChildrenVariables()
+      with tf.variable_scope(
+          py_utils.SanitizeScopeKey(self.params.name),
+          auxiliary_name_scope=False):
+        for name, meta in list(self._variables_to_create.items()):
+          self._CreateVariable(name, meta)
+        self._CreateVariables()
     self._VerifyVarsAndTheta()
 
   def _CreateChildrenVariables(self):

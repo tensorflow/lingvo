@@ -32,6 +32,10 @@ class BaseSchedule(base_layer.BaseLayer):
     p.name = 'LRSched'
     return p
 
+  def __init__(self, params):
+    super(BaseSchedule, self).__init__(params)
+    self.SetVariableFree()
+
   def Value(self, current_step=None):
     """Returns the current learning rate schedule value.
 
@@ -45,8 +49,8 @@ class BaseSchedule(base_layer.BaseLayer):
       effective learning rate.
     """
     if current_step is None:
-      current_step = self.theta.global_step
-    return self.FProp(self.theta, current_step)
+      current_step = self.global_step
+    return self.FPropDefaultTheta(current_step)
 
 
 class Constant(BaseSchedule):

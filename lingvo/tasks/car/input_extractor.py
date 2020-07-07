@@ -81,6 +81,10 @@ class FieldsExtractor(base_layer.BaseLayer):
     p.name = cls.__name__
     return p
 
+  def __init__(self, params):
+    super().__init__(params)
+    self.SetVariableFree()
+
   def FeatureMap(self):
     """Return a dictionary from tf.Example feature names to Features."""
     raise NotImplementedError()

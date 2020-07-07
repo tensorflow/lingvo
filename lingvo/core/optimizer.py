@@ -424,7 +424,7 @@ class Accumulator(Base):
 
     return tf.cond(
         tf.equal(
-            tf.math.floormod(self.theta.global_step, p.accum_steps),
+            tf.math.floormod(self.global_step, p.accum_steps),
             p.accum_steps - 1), _ApplyAndReset, lambda: tf.group(tf.no_op()))
 
   def GetOptimizer(self, lr):
@@ -486,7 +486,7 @@ class DistributedShampoo(Base):
         second_moment_averaging=params.second_moment_averaging,
         max_any_dim=params.max_any_dim,
         block_size=params.block_size,
-        global_step=self.theta.global_step)
+        global_step=self.global_step)
 
   def Apply(self, lr, var_grad):
     """Applies the gradient to the variable.

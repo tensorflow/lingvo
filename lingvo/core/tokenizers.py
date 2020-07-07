@@ -52,6 +52,8 @@ class BaseTokenizer(base_layer.BaseLayer):
     self.eos_id = p.target_eos_id  # </S>
     self.unk_id = p.target_unk_id  # <UNK>
 
+    self.SetVariableFree()
+
   def StringsToIds(self,
                    strs,
                    max_length,
