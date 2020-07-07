@@ -31,6 +31,7 @@ if '--project_name' in sys.argv:
   sys.argv.pop(project_name_idx)
 
 REQUIRED_PACKAGES = [
+    'dataclasses',
     'ipykernel',
     'jupyter',
     'jupyter_http_over_ws',

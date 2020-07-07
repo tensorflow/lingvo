@@ -605,6 +605,7 @@ py_library(
         ":hyperparams_py_pb2",
         ":symbolic",
         # Implicit python proto dependency.
+        # Implicit dataclasses dependency.
         "//lingvo:compat",
     ],
 )

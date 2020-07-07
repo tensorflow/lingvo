@@ -24,6 +24,7 @@ RUN for python in python3.6 python3.7 python3.8; do \
       $python get-pip.py && \
       $python -m pip install --upgrade pip setuptools auditwheel && \
       $python -m pip install --upgrade \
+        dataclasses \
         grpcio>=1.24.3 \
         matplotlib \
         mock \

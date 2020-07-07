@@ -23,6 +23,7 @@ import inspect
 import re
 import sys
 
+import dataclasses
 import lingvo.compat as tf
 from lingvo.core import hyperparams_pb2
 from lingvo.core import symbolic
@@ -446,11 +447,13 @@ class Params:
       elif isinstance(val, list) or isinstance(val, range):
         # The range function is serialized by explicitely calling it.
         param_pb.list_val.items.extend([_ToParamValue(v) for v in val])
-      elif _IsNamedTuple(val):
+      elif dataclasses.is_dataclass(val) or _IsNamedTuple(val):
         val_cls = type(val)
+        vals = val.__dict__.values() if dataclasses.is_dataclass(
+            val) else val._asdict().values()
         param_pb.named_tuple_val.type = inspect.getmodule(
             val_cls).__name__ + '/' + val_cls.__name__
-        param_pb.named_tuple_val.items.extend([_ToParamValue(v) for v in val])
+        param_pb.named_tuple_val.items.extend([_ToParamValue(v) for v in vals])
       elif isinstance(val, tuple):
         param_pb.tuple_val.items.extend([_ToParamValue(v) for v in val])
       elif isinstance(val, dict):
@@ -516,7 +519,8 @@ class Params:
         return [_FromParamValue(val) for val in param_pb.list_val.items]
       elif which_oneof == 'named_tuple_val':
         named_tuple_cls = _LoadClass(param_pb.named_tuple_val.type)
-        if not issubclass(named_tuple_cls, tuple):
+        if not dataclasses.is_dataclass(named_tuple_cls) and not issubclass(
+            named_tuple_cls, tuple):
           return None
         return named_tuple_cls(
             *[_FromParamValue(val) for val in param_pb.named_tuple_val.items])
@@ -600,6 +604,8 @@ class Params:
         return _SortedDict({k: GetRepr(v) for k, v in val.IterParams()})
       if isinstance(val, dict):
         return _SortedDict({k: GetRepr(v) for k, v in val.items()})
+      if dataclasses.is_dataclass(val):
+        return _SortedDict({k: GetRepr(v) for k, v in val.__dict__.items()})
       if _IsNamedTuple(val):
         return _SortedDict({k: GetRepr(v) for k, v in val._asdict().items()})
       if isinstance(val, (list, tuple)):
@@ -711,11 +717,13 @@ class Params:
         return float(val)
       elif val_type == 'DType':
         return tf.as_dtype(val)
-      elif _IsNamedTuple(old_val):
+      elif dataclasses.is_dataclass(old_val) or _IsNamedTuple(old_val):
         # Maps field name to new value (or its string repr, if non-POD).
         name_to_new_value = ast.literal_eval(val)
         contents = {}
-        for k, old_field_value in old_val._asdict().items():
+        items = old_val.__dict__.items() if dataclasses.is_dataclass(
+            old_val) else old_val._asdict().items()
+        for k, old_field_value in items:
           new_field_value = name_to_new_value[k]
           # Recurse to parse any non-POD contents not converted by
           # literal_eval().

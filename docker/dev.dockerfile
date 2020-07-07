@@ -70,6 +70,7 @@ RUN mkdir /bazel && \
 ARG pip_dependencies=' \
       apache-beam[gcp]>=2.8 \
       contextlib2 \
+      dataclasses \
       google-api-python-client \
       h5py \
       ipykernel \

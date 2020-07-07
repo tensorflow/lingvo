@@ -18,6 +18,7 @@
 import collections
 import enum
 
+import dataclasses
 import lingvo.compat as tf
 from lingvo.core import hyperparams as _params
 from lingvo.core import hyperparams_pb2
@@ -41,6 +42,13 @@ class TestEnum(enum.Enum):
   """Test enum class."""
   A = 1
   B = 2
+
+
+@dataclasses.dataclass
+class TestDataClass:
+  """Test dataclasses.dataclass."""
+  a: str
+  b: tf.DType
 
 
 class TestNamedTuple(collections.namedtuple('TestNamedTuple', ['a', 'b'])):
@@ -298,6 +306,7 @@ class ParamsTest(test_utils.TestCase):
     outer.Define('some_class', complex(0, 1), '')
     outer.Define('optional_bool', None, '')
     outer.Define('enum', TestEnum.B, '')
+    outer.Define('dataclass', TestDataClass(a=[42], b=tf.float32), '')
     outer.Define('namedtuple', TestNamedTuple([42], tf.float32), '')
     outer.Define('namedtuple2', tf.io.FixedLenSequenceFeature([42], tf.float32),
                  '')
@@ -309,6 +318,7 @@ class ParamsTest(test_utils.TestCase):
 class : type/__main__/TestClass1
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'hello'}}
 complex_dict_escape : {'a': 'abc"\'\ndef'}
+dataclass : {'a': [42], 'b': 'float32'}
 dtype : float32
 dtype2 : int32
 enum : TestEnum.B
@@ -329,6 +339,7 @@ tuple : (1, 'NoneType')
 """)
 
     outer.FromText("""
+        dataclass : {'a': 27, 'b': 'int32'}
         dtype2 : float32
         inner.baz : 'world'
         # foo : 123
@@ -352,6 +363,7 @@ tuple : (1, 'NoneType')
 class : type/__main__/TestClass2
 complex_dict : {'a': 10, 'b': {'bar': 2.71, 'baz': 'world'}}
 complex_dict_escape : {'a': 'abc"\'\ndef'}
+dataclass : {'a': 27, 'b': 'int32'}
 dtype : float32
 dtype2 : float32
 enum : TestEnum.A
@@ -370,6 +382,7 @@ some_class : complex
 tau : True
 tuple : (2, 3)
 """)
+    self.assertEqual(outer.dataclass.b, tf.int32)
     self.assertEqual(outer.namedtuple.b, tf.int32)
     self.assertEqual(outer.namedtuple2.dtype, tf.int32)
     self.assertIsNone(outer.namedtuple2.default_value, tf.int32)
@@ -390,6 +403,7 @@ tuple : (2, 3)
     outer.Define('empty_dict', {}, '')
     outer.Define('enum', TestEnum.B, '')
     outer.Define('proto', hyperparams_pb2.HyperparamValue(int_val=42), '')
+    outer.Define('dataclass', TestDataClass(a=[42], b=tf.float32), '')
     outer.Define('namedtuple', tf.io.FixedLenSequenceFeature([42], tf.float32),
                  '')
 
@@ -409,6 +423,7 @@ tuple : (2, 3)
     self.assertEqual(outer.empty_dict, rebuilt_outer.empty_dict)
     self.assertEqual(outer.enum, rebuilt_outer.enum)
     self.assertEqual(outer.proto, rebuilt_outer.proto)
+    self.assertEqual(outer.dataclass, rebuilt_outer.dataclass)
     self.assertEqual(outer.namedtuple, rebuilt_outer.namedtuple)
 
   def testStringEscaping(self):
