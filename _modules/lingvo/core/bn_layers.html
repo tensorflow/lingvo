@@ -267,6 +267,13 @@
         <span class="s1">&#39; to avoid mismatch between train and eval, which then&#39;</span>
         <span class="s1">&#39; essentially acts as an adaptive normalization step.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;freeze_bn_stats&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;If True, uses moving avg (mean, variance) during both training and &#39;</span>
+        <span class="s1">&#39;inference. It behaves like force_eval but the gamma/beta are still &#39;</span>
+        <span class="s1">&#39;trained when do_eval is False. The moving mean/var can be set by &#39;</span>
+        <span class="s1">&#39;loading pretrained checkpoints. A use case is training detectors &#39;</span>
+        <span class="s1">&#39;based on an pretrained checkpoint while BN stats are frozen.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;gamma_zero_init&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;If True, initialize gamma to zeros according to the technique &#39;</span>
         <span class="s1">&#39;introduced in the tech report: https://arxiv.org/abs/1706.02677&#39;</span><span class="p">)</span>
@@ -415,7 +422,7 @@
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span>
     <span class="p">],</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">freeze_bn_stats</span><span class="p">:</span>
         <span class="c1"># The mean and variance used for normalization.</span>
         <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_mean</span><span class="p">,</span>
                                     <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">moving_variance</span><span class="p">)</span>
@@ -477,7 +484,8 @@
         <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span>
                                     <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
     <span class="p">]):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_batch_norm_for_eval</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_batch_norm_for_eval</span> <span class="ow">and</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span>
+                                              <span class="n">p</span><span class="o">.</span><span class="n">freeze_bn_stats</span><span class="p">):</span>
         <span class="n">bn_output</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">nn</span><span class="o">.</span><span class="n">fused_batch_norm</span><span class="p">(</span>
             <span class="n">inputs</span><span class="p">,</span>
             <span class="n">gamma</span><span class="p">,</span>
