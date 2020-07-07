@@ -1573,14 +1573,12 @@ def CreateVariable(name,
     a var, var pair.
   """
   p = params.Copy()
-  assert isinstance(p, hyperparams.Params)
-  dtype = p.dtype
   shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
-  p.Set(shape=shape)
-  dim0 = 1
   if shape:
     assert all([dim_size > 0 for dim_size in shape]), shape
     dim0 = shape[0]
+  else:
+    dim0 = 1
   assert p.init.method == 'constant' or np.all(np.asarray(p.init.scale) >= 0)
   method = p.init.method
   scale = p.init.scale
@@ -1591,6 +1589,9 @@ def CreateVariable(name,
         'WARNING!!! var %s is using the default xavier initializer.'
         ' Make sure this is intended.', name)
 
+  with tf.variable_scope(name) as scope:
+    var_name = GetVariableName(scope.name)
+
   if tf.get_default_graph().seed is not None:
     # We are in a program/test which need determistic randomization.
     if seed is None:
@@ -1599,8 +1600,6 @@ def CreateVariable(name,
       else:
         # We are not given a per-variable random seed. We use hash of
         # variable name as a stable random seed.
-        with tf.variable_scope(name) as scope:
-          var_name = GetVariableName(scope.name)
         seed = GenerateSeedFromName(var_name)
 
   if (method in [
@@ -1623,7 +1622,7 @@ def CreateVariable(name,
     if fan_out is not None:
       scale *= 1.0 / math.sqrt(fan_out)
 
-  init_dtype = dtype.real_dtype
+  init_dtype = p.dtype.real_dtype
   if method in [
       'gaussian', 'gaussian_sqrt_dim', 'gaussian_sqrt_fanin',
       'gaussian_sqrt_fanout'
@@ -1679,7 +1678,7 @@ def CreateVariable(name,
   else:
     assert False, 'init_type not supported.'
 
-  if dtype == tf.complex64:
+  if p.dtype == tf.complex64:
 
     def ComplexWrapper(init):
 
@@ -1694,59 +1693,64 @@ def CreateVariable(name,
 
     v_init = ComplexWrapper(v_init)
 
+  # Variable creators.
   def MaybePinVarsToCpu(next_creator, **kwargs):
     if _FromGlobal('pin_vars_to_cpu'):
       with tf.device('/cpu:0'):
         return next_creator(**kwargs)
     return next_creator(**kwargs)
 
-  # TODO(yonghui): Possibly get away from variable_scope and implement our own
-  # variable sharing mechanism.
-  def GetVar(reuse=reuse):
-    """reuse: Whether to reuse the variables."""
-    var_shape = GetVariableShapePrefixes() + list(shape)
+  def MaybeOpportunisticVariableReuse(next_creator, **kwargs):
+    try:
+      return next_creator(**kwargs)
+    except ValueError:  # Possibly the variable already exists
+      if GetOpportunisticVariableReuse():
+        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+          return next_creator(**kwargs)
+      else:
+        raise
+
+  def LingvoVariableCreator(next_creator, **kwargs):
+    """Lingvo variable creator."""
+    # TODO(yonghui): Possibly get away from variable_scope and implement our own
+    # variable sharing mechanism.
     with tf.variable_scope(name) as scope:
-      var_name = GetVariableName(scope.name)
       var_scope = tf.VariableScope(
           scope.reuse,
           custom_getter=scope.custom_getter,
           caching_device=scope.caching_device,
           use_resource=scope.use_resource or use_resource_variables())
-    with tf.variable_scope(var_scope), \
-        tf.variable_scope(var_name, reuse=reuse) as scope:
+    with tf.variable_scope(var_scope), tf.variable_scope(var_name, reuse=reuse):
+      var = next_creator(**kwargs)
+
+    var_ref = var.experimental_ref()  # For key in dict/set.
+    all_vars = _get_all_vars()
+    if var_ref in all_vars:
+      tf.logging.info('Reusing var %s', var.name)
+      cached = all_vars[var_ref]
+      assert cached == p.ToText(), ('Cached config:\n %s vs new config:\n %s' %
+                                    (cached, p.ToText()))
+    else:
+      tf.logging.info('Creating var %s shape=%s on device %s', var.name,
+                      var.shape, var.device)
+      all_vars[var_ref] = p.ToText()
+      for col in p.collections:
+        tf.add_to_collection(col, var)
+    return var
+
+  with VariableCreatorScope(LingvoVariableCreator):
+    with VariableCreatorScope(MaybeOpportunisticVariableReuse):
       with VariableCreatorScope(MaybePinVarsToCpu):
-        return _GetVariableCreator()(
+        var = _GetVariableCreator()(
             name='var',
-            shape=var_shape,
-            dtype=dtype,
+            shape=GetVariableShapePrefixes() + list(shape),
+            dtype=p.dtype,
             initializer=v_init,
             collections=collections,
             trainable=trainable,
-            validate_shape=True if var_shape is not None else False,
+            validate_shape=True,
             synchronization=synchronization,
             aggregation=aggregation)
-
-  if GetOpportunisticVariableReuse():
-    try:
-      var = GetVar()
-    except ValueError:  # Possibly the variable already exists
-      var = GetVar(reuse=True)
-  else:
-    var = GetVar()
-
-  var_ref = var.experimental_ref()  # For key in dict/set.
-  all_vars = _get_all_vars()
-  if var_ref in all_vars:
-    tf.logging.info('Reusing var %s', var.name)
-    cached = all_vars[var_ref]
-    assert cached == p, ('Cached config:\n %s vs new config:\n %s' %
-                         (cached.ToText(), p.ToText()))
-  else:
-    tf.logging.info('Creating var %s shape=%s on device %s', var.name,
-                    var.shape, var.device)
-    all_vars[var_ref] = p.Copy()
-    for col in p.collections:
-      tf.add_to_collection(col, var)
 
   if _FromGlobal('no_identity_on_vars'):
     with tf.device(var.device):
