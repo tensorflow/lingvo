@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.tokenizers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Tokenizers.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
@@ -180,7 +176,7 @@
 <div class="viewcode-block" id="BaseTokenizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BaseTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params for tokenizers.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;tokenizer&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">64</span><span class="p">,</span> <span class="s1">&#39;The size of the vocabuary.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -197,7 +193,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BaseTokenizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">sos_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_sos_id</span>  <span class="c1"># &lt;S&gt;</span>
@@ -285,7 +281,7 @@
 
 <div class="viewcode-block" id="VocabFileTokenizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.VocabFileTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">VocabFileTokenizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;token_vocab_filepath&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;If set, specifies a filepath to the token vocab file.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ngram_vocab_filepath&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -350,7 +346,7 @@
 
 <div class="viewcode-block" id="BpeTokenizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.BpeTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BpeTokenizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;codes_filepath&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;Specifies a filepath to the list of bpe codes vocab file.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;words_to_ids_filepath&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -378,7 +374,7 @@
 
 <div class="viewcode-block" id="WpmTokenizer.Params"><a class="viewcode-back" href="../../../lingvo.core.tokenizers.html#lingvo.core.tokenizers.WpmTokenizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WpmTokenizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;vocab_filepath&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;Specifies a filepath to the WPM vocab. The vocab is sorted by &#39;</span>
@@ -391,7 +387,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">WpmTokenizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_wpm_encoder</span> <span class="o">=</span> <span class="n">wpm_encoder</span><span class="o">.</span><span class="n">WpmEncoder</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_filepath</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">merge_prob</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">target_unk_id</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_wpm_encoder</span><span class="o">.</span><span class="n">unk_id</span>

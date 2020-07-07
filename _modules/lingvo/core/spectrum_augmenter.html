@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.spectrum_augmenter</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Lingvo layers that used for spectrum augmentation.&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -236,7 +232,7 @@
 
 <div class="viewcode-block" id="SpectrumAugmenter.Params"><a class="viewcode-back" href="../../../lingvo.core.spectrum_augmenter.html#lingvo.core.spectrum_augmenter.SpectrumAugmenter.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SpectrumAugmenter</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freq_mask_max_bins&#39;</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span>
              <span class="s1">&#39;Maximum number of frequency bins of frequency masking.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;freq_mask_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
@@ -294,7 +290,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SpectrumAugmenter</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">num_domains</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">domain_ids</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="n">_SPECAUGMENT_ARGS</span><span class="p">:</span>

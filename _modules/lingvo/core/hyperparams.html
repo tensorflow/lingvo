@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.hyperparams</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Defines Params base class, used for defining class/function parameters.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">ast</span>
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">enum</span>
@@ -178,8 +174,6 @@
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams_pb2</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">message</span>
 <span class="kn">from</span> <span class="nn">google.protobuf</span> <span class="kn">import</span> <span class="n">text_format</span>
@@ -202,7 +196,7 @@
   <span class="n">double_quote_count</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">&#39;&quot;&#39;</span><span class="p">)</span>
   <span class="n">quote_delim</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\&#39;</span><span class="s1">&#39;</span> <span class="k">if</span> <span class="n">single_quote_count</span> <span class="o">&lt;=</span> <span class="n">double_quote_count</span> <span class="k">else</span> <span class="s1">&#39;&quot;&#39;</span>
   <span class="c1"># Apply escaping to the chosen quote character and the backslash.</span>
-  <span class="n">encoded</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([</span><span class="si">%s</span><span class="se">\\</span><span class="s1">])&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">quote_delim</span><span class="p">,),</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">\1&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
+  <span class="n">encoded</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;([</span><span class="si">%s</span><span class="se">\\</span><span class="s1">])&#39;</span> <span class="o">%</span> <span class="n">quote_delim</span><span class="p">,</span> <span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">\1&#39;</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">quote_delim</span> <span class="o">+</span> <span class="n">encoded</span> <span class="o">+</span> <span class="n">quote_delim</span></div>
 
 
@@ -255,7 +249,7 @@
         <span class="s1">&#39;</span><span class="si">%r</span><span class="s1">: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">item</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span> <span class="o">+</span> <span class="s1">&#39;}&#39;</span></div>
 
 
-<div class="viewcode-block" id="_Param"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param">[docs]</a><span class="k">class</span> <span class="nc">_Param</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Param"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams._Param">[docs]</a><span class="k">class</span> <span class="nc">_Param</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a single parameter.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">):</span>
@@ -287,7 +281,7 @@
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()})</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">val</span><span class="p">)})</span>
+        <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">_IsNamedTuple</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
         <span class="c1"># NB: this constructor signature works for tuples, but not namedtuples.</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)([</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
@@ -301,7 +295,7 @@
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
       <span class="c1"># pylint: disable=protected-access</span>
       <span class="n">value_str</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="o">.</span><span class="n">_ToString</span><span class="p">(</span><span class="n">nested_depth</span><span class="p">)</span>
-    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
       <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%s%s</span><span class="s1">: &quot;</span><span class="si">%s</span><span class="s1">&quot;&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">nested_indent</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">value_str</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">GetRepr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_value</span><span class="p">))</span>
@@ -344,7 +338,7 @@
   <span class="k">return</span> <span class="n">to_p</span></div>
 
 
-<div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Params"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params">[docs]</a><span class="k">class</span> <span class="nc">Params</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Stores data for a set of parameters.</span>
 
 <span class="sd">  Provides attribute-based API, e.g. &quot;params.foo = 5&quot;.</span>
@@ -397,8 +391,7 @@
 <div class="viewcode-block" id="Params._ToString"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params._ToString">[docs]</a>  <span class="k">def</span> <span class="nf">_ToString</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nested_depth</span><span class="p">):</span>
     <span class="c1"># Note: We use iteritems() below so as to sort by name.</span>
     <span class="n">sorted_param_strs</span> <span class="o">=</span> <span class="p">[</span>
-        <span class="n">v</span><span class="o">.</span><span class="n">ToString</span><span class="p">(</span><span class="n">nested_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">))</span>
+        <span class="n">v</span><span class="o">.</span><span class="n">ToString</span><span class="p">(</span><span class="n">nested_depth</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
     <span class="p">]</span>
     <span class="n">nested_indent</span> <span class="o">=</span> <span class="s1">&#39;  &#39;</span> <span class="o">*</span> <span class="n">nested_depth</span>
     <span class="k">return</span> <span class="s1">&#39;{</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="si">%s</span><span class="s1">}&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">sorted_param_strs</span><span class="p">),</span> <span class="n">nested_indent</span><span class="p">)</span></div>
@@ -465,8 +458,7 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable.&#39;</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span>
-        <span class="n">name</span><span class="p">,</span>
-        <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">&#39;^[a-z][a-z0-9_]*$&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="n">name</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s1">&#39;^[a-z][a-z0-9_]*$&#39;</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span><span class="s1">&#39;Parameter </span><span class="si">%s</span><span class="s1"> is already defined&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">_Param</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">default_value</span><span class="p">,</span> <span class="n">description</span><span class="p">)</span></div>
@@ -515,7 +507,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_immutable</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;This Params instance is immutable: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="bp">self</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="c1"># Get nested param.</span>
       <span class="n">param</span><span class="p">,</span> <span class="n">key</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetNested</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
       <span class="c1"># Update the value associated with key.</span>
@@ -578,7 +570,7 @@
 
 <div class="viewcode-block" id="Params.IterParams"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.IterParams">[docs]</a>  <span class="k">def</span> <span class="nf">IterParams</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Pythonic dict-like iteration.&quot;&quot;&quot;</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">yield</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">param</span><span class="o">.</span><span class="n">Get</span><span class="p">())</span></div>
 
 <div class="viewcode-block" id="Params.ToProto"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.Params.ToProto">[docs]</a>  <span class="k">def</span> <span class="nf">ToProto</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -621,7 +613,7 @@
         <span class="n">param_pb</span><span class="o">.</span><span class="n">string_val</span> <span class="o">=</span> <span class="n">val</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">bool</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">bool_val</span> <span class="o">=</span> <span class="n">val</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">):</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">int_val</span> <span class="o">=</span> <span class="n">val</span>
       <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
         <span class="n">param_pb</span><span class="o">.</span><span class="n">float_val</span> <span class="o">=</span> <span class="n">val</span>
@@ -755,13 +747,12 @@
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">Params</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">IterParams</span><span class="p">()})</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">val</span><span class="p">)})</span>
+        <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
       <span class="k">if</span> <span class="n">_IsNamedTuple</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">_SortedDict</span><span class="p">({</span><span class="n">k</span><span class="p">:</span> <span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">()})</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
         <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="n">val</span><span class="p">)([</span><span class="n">GetRepr</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">])</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span>
-                          <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">val</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">DType</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">val</span><span class="o">.</span><span class="n">name</span>
@@ -782,7 +773,7 @@
             <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">Params</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="p">)):</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
           <span class="n">Traverse</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">[</span><span class="si">%d</span><span class="s1">]&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">i</span><span class="p">),</span> <span class="n">kv</span><span class="p">)</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">kv</span><span class="p">[</span><span class="n">prefix</span><span class="p">]</span> <span class="o">=</span> <span class="n">_QuoteString</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
         <span class="n">types</span><span class="p">[</span><span class="n">prefix</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
       <span class="k">else</span><span class="p">:</span>
@@ -855,7 +846,7 @@
     <span class="k">def</span> <span class="nf">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">old_val</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns the new param value from its text representation.&quot;&quot;&quot;</span>
       <span class="n">val_type</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">old_val</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">)):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">old_val</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">val_type</span> <span class="o">=</span> <span class="s1">&#39;str&#39;</span>
       <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">type_overrides</span><span class="p">:</span>
         <span class="n">val_type</span> <span class="o">=</span> <span class="n">type_overrides</span><span class="p">[</span><span class="n">key</span><span class="p">]</span>
@@ -876,7 +867,7 @@
           <span class="n">new_field_value</span> <span class="o">=</span> <span class="n">name_to_new_value</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
           <span class="c1"># Recurse to parse any non-POD contents not converted by</span>
           <span class="c1"># literal_eval().</span>
-          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_field_value</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">new_field_value</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">contents</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">_ValueFromText</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">old_field_value</span><span class="p">,</span> <span class="n">new_field_value</span><span class="p">)</span>
           <span class="k">else</span><span class="p">:</span>
             <span class="n">contents</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">new_field_value</span>
@@ -925,7 +916,7 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Failed to read a parameter: </span><span class="si">%r</span><span class="s1"> : </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">))</span>
 
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">kv</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">kv</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="n">old_val</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
       <span class="n">new_val</span> <span class="o">=</span> <span class="n">_ValueFromText</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">old_val</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="o">**</span><span class="p">{</span><span class="n">key</span><span class="p">:</span> <span class="n">new_val</span><span class="p">})</span></div>
@@ -993,7 +984,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="bp">cls</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">InstantiableParams</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
 
 <div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

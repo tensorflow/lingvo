@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.lm.layers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,9 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Common layers for language models.&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -175,8 +172,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_layers</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <div class="viewcode-block" id="BaseLanguageModel"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.BaseLanguageModel">[docs]</a><span class="k">class</span> <span class="nc">BaseLanguageModel</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -184,7 +179,7 @@
 
 <div class="viewcode-block" id="BaseLanguageModel.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.BaseLanguageModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of vocabulary tokens.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -204,7 +199,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BaseLanguageModel.zero_state"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.BaseLanguageModel.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;Abstract method&#39;</span><span class="p">)</span></div>
@@ -431,7 +426,7 @@
 
 <div class="viewcode-block" id="RnnLmNoEmbedding.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.RnnLmNoEmbedding.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnLmNoEmbedding</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnns&#39;</span><span class="p">,</span> <span class="n">rnn_layers</span><span class="o">.</span><span class="n">StackedFRNNLayerByLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;The stacked-RNNs layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">SimpleFullSoftmax</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -444,7 +439,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RnnLmNoEmbedding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">]</span>
@@ -630,7 +625,7 @@
 
 <div class="viewcode-block" id="RnnLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.RnnLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnLm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dropout_keep_prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Embedding dropout keep prob.&#39;</span><span class="p">)</span>
@@ -707,7 +702,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">verify_sizes</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RnnLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">verify_sizes</span><span class="p">:</span>
@@ -764,8 +759,8 @@
           <span class="n">activation</span><span class="p">,</span>
           <span class="n">rate</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_keep_prob</span><span class="p">,</span>
           <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_seed</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
-                                    <span class="n">direct_features</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+                         <span class="n">direct_features</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ConditionalRnnLm"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.ConditionalRnnLm">[docs]</a><span class="k">class</span> <span class="nc">ConditionalRnnLm</span><span class="p">(</span><span class="n">RnnLmNoEmbedding</span><span class="p">):</span>
@@ -773,7 +768,7 @@
 
 <div class="viewcode-block" id="ConditionalRnnLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.ConditionalRnnLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ConditionalRnnLm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;condition_dim&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;The size of the condition vector.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
@@ -785,7 +780,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ConditionalRnnLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -848,8 +843,8 @@
           <span class="n">activation</span><span class="p">,</span>
           <span class="n">rate</span><span class="o">=</span><span class="mi">1</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_keep_prob</span><span class="p">,</span>
           <span class="n">seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dropout_seed</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">ConditionalRnnLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
-                                               <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">direct_features</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span>
+                         <span class="n">direct_features</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="MoeLm"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.MoeLm">[docs]</a><span class="k">class</span> <span class="nc">MoeLm</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">):</span>
@@ -857,7 +852,7 @@
 
 <div class="viewcode-block" id="MoeLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.MoeLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MoeLm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;emb&#39;</span><span class="p">,</span>
         <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span>
@@ -874,7 +869,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">MoeLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">rnns</span><span class="o">.</span><span class="n">cell_tpl</span><span class="p">]</span>
@@ -1006,7 +1001,7 @@
 
 <div class="viewcode-block" id="TransformerLmNoEmbedding.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.TransformerLmNoEmbedding.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLmNoEmbedding</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Position embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -1040,7 +1035,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLmNoEmbedding</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">residual_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span>
     <span class="n">p</span><span class="o">.</span><span class="n">trans_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span>
@@ -1202,7 +1197,7 @@
 
 <div class="viewcode-block" id="TransformerLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.TransformerLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;The embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
@@ -1291,7 +1286,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> vs. </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1331,8 +1326,7 @@
     <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
     <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">ids</span><span class="p">))</span>
     <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">EmbLookup</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">emb</span><span class="p">,</span> <span class="n">ids</span><span class="p">)</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
-        <span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">labels</span><span class="o">=</span><span class="n">labels</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="GPipeTransformerLm"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.GPipeTransformerLm">[docs]</a><span class="k">class</span> <span class="nc">GPipeTransformerLm</span><span class="p">(</span><span class="n">BaseLanguageModel</span><span class="p">):</span>
@@ -1340,7 +1334,7 @@
 
 <div class="viewcode-block" id="GPipeTransformerLm.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.lm.layers.html#lingvo.tasks.lm.layers.GPipeTransformerLm.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GPipeTransformerLm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;stack&#39;</span><span class="p">,</span> <span class="n">layers_with_gpipe</span><span class="o">.</span><span class="n">GPipeTransformerStack</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;GPipeTransformerStack Layer params.&#39;</span><span class="p">)</span>
 
@@ -1439,7 +1433,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">GPipeTransformerLm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">p</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 

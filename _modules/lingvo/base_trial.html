@@ -146,7 +146,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.base_trial</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -162,16 +163,12 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Defines trials for parameter exploration.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">time</span>
 
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 
 
-<div class="viewcode-block" id="Trial"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial">[docs]</a><span class="k">class</span> <span class="nc">Trial</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Trial"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial">[docs]</a><span class="k">class</span> <span class="nc">Trial</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Base class for a trial.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="Trial.Params"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.Trial.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -254,7 +251,7 @@
   <span class="sd">&quot;&quot;&quot;A Trial implementation that does nothing.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">NoOpTrial</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Trial</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">Trial</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
 
 <div class="viewcode-block" id="NoOpTrial.Name"><a class="viewcode-back" href="../../lingvo.base_trial.html#lingvo.base_trial.NoOpTrial.Name">[docs]</a>  <span class="k">def</span> <span class="nf">Name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="s1">&#39;&#39;</span></div>

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.asr.input_generator</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,15 +162,10 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Speech recognition input generator.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_input_generator</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">generic_input</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 
@@ -181,7 +176,7 @@
 <div class="viewcode-block" id="AsrInput.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.input_generator.html#lingvo.tasks.asr.input_generator.AsrInput.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params for AsrInput.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AsrInput</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frame_size&#39;</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="s1">&#39;The number of coefficients in each frame.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;append_eos_frame&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Append an all-zero frame.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="mi">3000</span>
@@ -197,7 +192,7 @@
           <span class="p">(</span><span class="s1">&#39;frames&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">VarLenFeature</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)),</span>
       <span class="p">]</span>
       <span class="n">example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parse_single_example</span><span class="p">(</span><span class="n">record</span><span class="p">,</span> <span class="nb">dict</span><span class="p">(</span><span class="n">features</span><span class="p">))</span>
-      <span class="n">fval</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">example</span><span class="p">)}</span>
+      <span class="n">fval</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">values</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">example</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
       <span class="c1"># Reshape the flattened vector into its original time-major</span>
       <span class="c1"># representation.</span>
       <span class="n">fval</span><span class="p">[</span><span class="s1">&#39;frames&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
@@ -243,7 +238,7 @@
     <span class="k">return</span> <span class="n">src_inputs</span><span class="p">,</span> <span class="n">src_paddings</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">AsrInput</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="p">(</span><span class="n">utt_ids</span><span class="p">,</span> <span class="n">tgt_ids</span><span class="p">,</span> <span class="n">tgt_labels</span><span class="p">,</span> <span class="n">tgt_paddings</span><span class="p">,</span> <span class="n">src_frames</span><span class="p">,</span>

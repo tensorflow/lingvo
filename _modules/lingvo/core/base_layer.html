@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.base_layer</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Base class for all layers.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">abc</span>
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
@@ -175,14 +171,12 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <span class="n">_LAYER_STACK</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
 
 
-<div class="viewcode-block" id="Accumulator"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator">[docs]</a><span class="k">class</span> <span class="nc">Accumulator</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Accumulator"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.Accumulator">[docs]</a><span class="k">class</span> <span class="nc">Accumulator</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Layers can register accumulators to persist step-level state.</span>
 
 <span class="sd">  Accumulators must be represented by a Tensor of a fixed shape. The default</span>
@@ -319,7 +313,7 @@
   <span class="c1"># pylint: enable=bad-mcs-classmethod-argument</span>
 
   <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="bp">self</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__call__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="c1"># This happens after self.__init__()</span>
     <span class="c1"># pylint: disable=protected-access</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_disable_create_child</span> <span class="o">=</span> <span class="kc">True</span>
@@ -342,8 +336,7 @@
 <span class="n">LAYER_WT</span> <span class="o">=</span> <span class="s1">&#39;layer_weight_variable&#39;</span>
 
 
-<div class="viewcode-block" id="BaseLayer"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer">[docs]</a><span class="nd">@six</span><span class="o">.</span><span class="n">add_metaclass</span><span class="p">(</span><span class="n">BaseLayerMeta</span><span class="p">)</span>
-<span class="k">class</span> <span class="nc">BaseLayer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Module</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer">[docs]</a><span class="k">class</span> <span class="nc">BaseLayer</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">Module</span><span class="p">,</span> <span class="n">metaclass</span><span class="o">=</span><span class="n">BaseLayerMeta</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for all the layer object.</span>
 
 <span class="sd">  As this BaseLayer is a proper sub-class of tf.Module, it supports proper</span>
@@ -447,7 +440,7 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">tf_module_name</span><span class="p">)</span>
 
     <span class="c1"># initialize the base class.</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BaseLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">tf_module_name</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">tf_module_name</span><span class="p">)</span>
 
     <span class="c1"># Note AutoTracking doesn&#39;t work properly due to its inability to walk</span>
     <span class="c1"># through py_utils.NestedMap data structures which are used widely</span>
@@ -673,7 +666,7 @@
   <span class="k">def</span> <span class="nf">accumulators</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns `.NestedMap` of `Accumulator` instances for this and children.&quot;&quot;&quot;</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">accumulators</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">acc</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">acc</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_accumulators</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">acc</span>
     <span class="k">return</span> <span class="n">ret</span>
 

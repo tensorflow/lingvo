@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.builder_lib</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;A collection of helper functions to build lingvo layer params.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">math</span>
 
@@ -177,8 +173,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">car_layers</span>
 
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="c1"># Keys for NestedMap for points: points, features, and padding.</span>
 <span class="n">POINTS_KEY</span> <span class="o">=</span> <span class="s1">&#39;points&#39;</span>
@@ -208,7 +202,7 @@
 <span class="c1"># Lingvo Layer Builders</span>
 <span class="c1">################################################################################</span>
 <span class="c1"># pyformat: disable</span>
-<div class="viewcode-block" id="ModelBuilderBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase">[docs]</a><span class="k">class</span> <span class="nc">ModelBuilderBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelBuilderBase"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase">[docs]</a><span class="k">class</span> <span class="nc">ModelBuilderBase</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Model builder with commonly used layers.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -675,7 +669,7 @@
   <span class="c1">#     1 representing a padded point, and 0 representing a real point.</span>
   <span class="c1">#</span>
   <span class="c1">##########################################</span>
-<div class="viewcode-block" id="ModelBuilderBase._Decorators"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._Decorators">[docs]</a>  <span class="k">class</span> <span class="nc">_Decorators</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="ModelBuilderBase._Decorators"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._Decorators">[docs]</a>  <span class="k">class</span> <span class="nc">_Decorators</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Internal decorators for builder functions.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="ModelBuilderBase._Decorators.ExpectsNestedMapTensor"><a class="viewcode-back" href="../../../../lingvo.tasks.car.builder_lib.html#lingvo.tasks.car.builder_lib.ModelBuilderBase._Decorators.ExpectsNestedMapTensor">[docs]</a>    <span class="nd">@classmethod</span>
@@ -690,7 +684,7 @@
 <span class="sd">        A decorator function that can be applied on builder functions.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
 
-      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_keys</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_keys</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
         <span class="n">expected_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">expected_keys</span><span class="p">]</span>
       <span class="n">expected_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">expected_keys</span><span class="p">)</span>
 
@@ -709,7 +703,7 @@
         <span class="k">def</span> <span class="nf">_DecoratedFn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
           <span class="n">p</span> <span class="o">=</span> <span class="n">builder_fn</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
           <span class="c1"># pylint: disable=protected-access</span>
-          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;validated_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;validated_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                            <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyFn</span><span class="p">(</span><span class="s1">&#39;validate&#39;</span><span class="p">,</span> <span class="n">fn</span><span class="o">=</span><span class="n">_ValidateFn</span><span class="p">),</span> <span class="n">p</span><span class="p">)</span>
           <span class="c1"># pylint: enable=protected-access</span>
         <span class="k">return</span> <span class="n">_DecoratedFn</span>

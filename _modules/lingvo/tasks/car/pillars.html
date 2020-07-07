@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.pillars</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -165,10 +165,6 @@
 
 <span class="sd">[1] PointPillars. https://arxiv.org/abs/1812.05784</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">functools</span>
@@ -211,7 +207,7 @@
 
 <div class="viewcode-block" id="PointsToGridFeaturizer.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.pillars.html#lingvo.tasks.car.pillars.PointsToGridFeaturizer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span> <span class="n">num_output_features</span><span class="o">=</span><span class="mi">64</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PointsToGridFeaturizer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_laser_features&#39;</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span>
              <span class="s1">&#39;The number of (non-xyz) laser features of the input.&#39;</span><span class="p">)</span>
 
@@ -225,7 +221,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">PointsToGridFeaturizer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">featurizer</span><span class="p">)</span>
@@ -301,7 +297,7 @@
   <span class="sd">&quot;&quot;&quot;Builder for the Pillars model.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">Builder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">conv_init_method</span> <span class="o">=</span> <span class="n">builder_lib</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">linear_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">KaimingUniformFanInRelu</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">bn_params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">UniformPositive</span><span class="p">()</span>
@@ -425,7 +421,7 @@
              <span class="n">num_anchors</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
              <span class="n">num_classes</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
              <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size_z&#39;</span><span class="p">,</span> <span class="n">grid_size_z</span><span class="p">,</span> <span class="s1">&#39;The grid size along the z-axis.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_anchors&#39;</span><span class="p">,</span> <span class="n">num_anchors</span><span class="p">,</span> <span class="s1">&#39;The number of anchor boxes.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_laser_features&#39;</span><span class="p">,</span> <span class="n">num_laser_features</span><span class="p">,</span>
@@ -509,7 +505,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
 

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.kitti_input_generator</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,9 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Input generator for KITTI data.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
@@ -216,8 +213,7 @@
 
 <div class="viewcode-block" id="KITTILaserExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILaserExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="KITTILaserExtractor.FeatureMap"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILaserExtractor.FeatureMap">[docs]</a>  <span class="k">def</span> <span class="nf">FeatureMap</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -273,7 +269,7 @@
 
 <div class="viewcode-block" id="KITTIImageExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decode_image&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to decode and produce image.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -432,7 +428,7 @@
 
 <div class="viewcode-block" id="KITTILabelExtractor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTILabelExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILabelExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_objects&#39;</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="s1">&#39;The number of objects per example.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;filter_labels&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, specifies a list of label &#39;</span>
              <span class="s1">&#39;indices to keep.&#39;</span><span class="p">)</span>
@@ -633,7 +629,7 @@
 
 <div class="viewcode-block" id="KITTIBase.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.kitti_input_generator.html#lingvo.tasks.car.kitti_input_generator.KITTIBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="c1"># Subclasses should set the following in file_datasource:</span>
     <span class="c1"># - file_pattern_prefix: path to data directory (may be overridden at</span>
@@ -676,7 +672,7 @@
         <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">max_num_points</span><span class="o">=</span><span class="mi">128500</span><span class="p">))</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTILaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">preprocessors</span><span class="o">=</span><span class="n">_NestedMapToParams</span><span class="p">(</span><span class="n">preprocessors</span><span class="p">),</span>
         <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span> <span class="s1">&#39;count_points&#39;</span><span class="p">,</span> <span class="s1">&#39;pad_lasers&#39;</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -728,7 +724,7 @@
         <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
     <span class="p">)</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTISparseLaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">preprocessors</span><span class="o">=</span><span class="n">_NestedMapToParams</span><span class="p">(</span><span class="n">preprocessors</span><span class="p">),</span>
         <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
             <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>
@@ -785,7 +781,7 @@
         <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">max_num_points</span><span class="o">=</span><span class="mi">128500</span><span class="p">),</span>
     <span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">KITTIGrid</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">preprocessors</span><span class="o">=</span><span class="n">_NestedMapToParams</span><span class="p">(</span><span class="n">preprocessors</span><span class="p">),</span>
         <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
             <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>

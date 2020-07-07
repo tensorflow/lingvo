@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tools.compute_stats</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,13 +163,8 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Compute stats from tfrecords files.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span><span class="s1">&#39;input_filepattern&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
                        <span class="s1">&#39;File pattern of binary tfrecord files.&#39;</span><span class="p">)</span>
@@ -180,7 +175,8 @@
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
-<div class="viewcode-block" id="StatsCollector"><a class="viewcode-back" href="../../../lingvo.tools.compute_stats.html#lingvo.tools.compute_stats.StatsCollector">[docs]</a><span class="k">class</span> <span class="nc">StatsCollector</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="StatsCollector"><a class="viewcode-back" href="../../../lingvo.tools.compute_stats.html#lingvo.tools.compute_stats.StatsCollector">[docs]</a><span class="k">class</span> <span class="nc">StatsCollector</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Collect stats.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_num_examples</span> <span class="o">=</span> <span class="mi">0</span>

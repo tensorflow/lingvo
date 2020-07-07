@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.executor</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;An experimental new unified TPU executor.&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 
@@ -288,8 +284,7 @@
 <span class="sd">      tf_master: String path to the master job, e.g. &#39;local&#39;.</span>
 <span class="sd">      **kwargs: keyword args to pass through to BaseRunner.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ExecutorTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span>
-                                      <span class="n">tf_master</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">train_cfg</span><span class="p">,</span> <span class="n">model_task_name</span><span class="p">,</span> <span class="n">logdir</span><span class="p">,</span> <span class="n">tf_master</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_def</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">worker_cluster_def</span>
 

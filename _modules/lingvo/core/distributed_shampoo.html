@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.distributed_shampoo</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,9 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Implementation for distributed Shampoo optimizer.&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -181,7 +178,7 @@
 <span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
-<div class="viewcode-block" id="PartitionConfig"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionConfig">[docs]</a><span class="k">class</span> <span class="nc">PartitionConfig</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="PartitionConfig"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionConfig">[docs]</a><span class="k">class</span> <span class="nc">PartitionConfig</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Config for tensor partitioning.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_dim_size</span><span class="p">,</span> <span class="n">partition_size</span><span class="p">):</span>
@@ -195,7 +192,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">partition_size</span> <span class="o">=</span> <span class="n">partition_size</span></div>
 
 
-<div class="viewcode-block" id="PartitionMetadata"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionMetadata">[docs]</a><span class="k">class</span> <span class="nc">PartitionMetadata</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="PartitionMetadata"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.PartitionMetadata">[docs]</a><span class="k">class</span> <span class="nc">PartitionMetadata</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Metadata for partitioning.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">split_sizes_per_dim</span><span class="p">,</span> <span class="n">num_splits_per_dim</span><span class="p">):</span>
@@ -210,7 +207,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_dim</span> <span class="o">=</span> <span class="n">num_splits_per_dim</span></div>
 
 
-<div class="viewcode-block" id="TensorPartitioner"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner">[docs]</a><span class="k">class</span> <span class="nc">TensorPartitioner</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="TensorPartitioner"><a class="viewcode-back" href="../../../lingvo.core.distributed_shampoo.html#lingvo.core.distributed_shampoo.TensorPartitioner">[docs]</a><span class="k">class</span> <span class="nc">TensorPartitioner</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Shards Tensor&#39;s across its axis.</span>
 
 <span class="sd">  In cases of TPUs, these partitions are zero cost, and does not involve data</span>
@@ -344,7 +341,7 @@
 <span class="sd">      name: Optional name prefix for the operations created when applying</span>
 <span class="sd">        gradients.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">DistributedShampoo</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_learning_rate</span> <span class="o">=</span> <span class="n">learning_rate</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_momentum</span> <span class="o">=</span> <span class="n">momentum</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_initial_accumulator_value</span> <span class="o">=</span> <span class="n">initial_accumulator_value</span>

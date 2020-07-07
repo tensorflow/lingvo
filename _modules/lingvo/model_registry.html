@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.model_registry</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -166,10 +166,6 @@
 <span class="sd">Typical usage will be to define and register a subclass of ModelParams</span>
 <span class="sd">for each dataset.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">model_imports</span>
@@ -215,7 +211,9 @@
     <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">:</span>
+  <span class="sd">&quot;&quot;&quot;Helper class.&quot;&quot;&quot;</span>
+
   <span class="n">_MODEL_PARAMS_ALLOW_REDEF</span> <span class="o">=</span> <span class="kc">False</span>
 
   <span class="c1"># Global dictionary mapping subclass name to registered ModelParam subclass.</span>
@@ -300,7 +298,7 @@
       <span class="c1"># Extend model to annotate source information.</span>
       <span class="k">def</span> <span class="nf">Model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Wraps BaseTask params into SingleTaskModel params.&quot;&quot;&quot;</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Registered</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
         <span class="n">p</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_registered_source_info</span>
         <span class="k">return</span> <span class="n">p</span>
 

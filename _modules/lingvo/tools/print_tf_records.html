@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tools.print_tf_records</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Debug print tf records in text format.&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">import</span> <span class="nn">six</span>
@@ -196,7 +192,7 @@
 
 <div class="viewcode-block" id="_CustomShortDebugString"><a class="viewcode-back" href="../../../lingvo.tools.print_tf_records.html#lingvo.tools.print_tf_records._CustomShortDebugString">[docs]</a><span class="k">def</span> <span class="nf">_CustomShortDebugString</span><span class="p">(</span><span class="n">tf_example</span><span class="p">):</span>
   <span class="n">text</span> <span class="o">=</span> <span class="p">[]</span>
-  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">)):</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
     <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;bytes_list&#39;</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">bytes_as_utf8</span><span class="p">:</span>
         <span class="n">utf8_values</span> <span class="o">=</span> <span class="p">[</span>
@@ -217,7 +213,7 @@
   <span class="sd">&quot;&quot;&quot;Prints table of contents.&quot;&quot;&quot;</span>
   <span class="c1"># Typically, tf.Examples have the same features.</span>
   <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;==== FEATURES ====&#39;</span><span class="p">)</span>
-  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="p">)):</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">tf_example</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">feature</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
     <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;&lt;empty&gt;&#39;</span>
     <span class="k">if</span> <span class="n">value</span><span class="o">.</span><span class="n">HasField</span><span class="p">(</span><span class="s1">&#39;bytes_list&#39;</span><span class="p">):</span>
       <span class="n">type_string</span> <span class="o">=</span> <span class="s1">&#39;bytes&#39;</span>

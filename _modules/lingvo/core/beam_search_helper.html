@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.beam_search_helper</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -166,16 +166,11 @@
 <span class="sd">Individual models just need to provide a few callback functions.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
-<span class="kn">import</span> <span class="nn">six</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
 
@@ -319,7 +314,7 @@
 
 <div class="viewcode-block" id="BeamSearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.BeamSearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BeamSearchHelper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_hyps_per_beam&#39;</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span>
              <span class="s1">&#39;Num of hyps to keep per beam during decoding.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -406,7 +401,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BeamSearchHelper</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model_uses_eoc_id</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eoc_id</span> <span class="o">&gt;=</span> <span class="mi">0</span>
 
@@ -716,7 +711,7 @@
                               <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">topk_hyps</span><span class="p">)[</span><span class="mi">0</span><span class="p">]),</span>
     <span class="p">],</span>
                                                <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">topk_hyps</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">output</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()):</span>
+    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">output</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">if</span> <span class="n">v</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">continue</span>
       <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;done_hyps&#39;</span><span class="p">:</span>
@@ -727,7 +722,7 @@
 
   <span class="c1"># Concatenate the tensors along the &#39;num_hyps_per_beam&#39; dimension.</span>
   <span class="n">concatenated</span> <span class="o">=</span> <span class="p">{}</span>
-  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">value_dict</span><span class="p">):</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">value_dict</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">beam_search_outputs</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Incomplete values for </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                        <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">beam_search_outputs</span><span class="p">))</span>
@@ -749,7 +744,7 @@
   <span class="c1"># Gather the merged top hyps according to &#39;gather_indices&#39;.</span>
   <span class="n">top</span> <span class="o">=</span> <span class="n">beam_search_outputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">_asdict</span><span class="p">()</span>
   <span class="n">total_hyps</span> <span class="o">=</span> <span class="n">source_batch</span> <span class="o">*</span> <span class="n">max_hyps_per_beam</span>
-  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">concatenated</span><span class="p">):</span>
+  <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">concatenated</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
     <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">gather_indices</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="s1">&#39;done_hyps&#39;</span><span class="p">:</span>
       <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">[</span><span class="n">total_hyps</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
@@ -774,7 +769,7 @@
 
 <div class="viewcode-block" id="GreedySearchHelper.Params"><a class="viewcode-back" href="../../../lingvo.core.beam_search_helper.html#lingvo.core.beam_search_helper.GreedySearchHelper.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GreedySearchHelper</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_sos_id&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Id of the start of sentence token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_eos_id&#39;</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;Id of the end of sentence token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>

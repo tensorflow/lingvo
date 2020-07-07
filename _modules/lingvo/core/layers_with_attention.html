@@ -146,7 +146,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.layers_with_attention</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -161,17 +162,12 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Lingvo layers that depend on attention layers but are not recurrent.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="TransformerAttentionLayer"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer">[docs]</a><span class="k">class</span> <span class="nc">TransformerAttentionLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -223,7 +219,7 @@
 
 <div class="viewcode-block" id="TransformerAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;context_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention contexts.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;atten_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the attention hidden dim.&#39;</span><span class="p">)</span>
@@ -269,7 +265,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerAttentionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
@@ -561,7 +557,7 @@
 
 <div class="viewcode-block" id="TransformerMultiSourceAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_source&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of sources to attend to.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;primary_source_index&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Index of the primary source whose &#39;</span>
@@ -573,7 +569,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerMultiSourceAttentionLayer._InitAttention"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerMultiSourceAttentionLayer._InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">atten_tpl</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -582,8 +578,7 @@
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_source</span><span class="p">):</span>
       <span class="n">src_key</span> <span class="o">=</span> <span class="s1">&#39;source_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="n">src_atten</span> <span class="o">=</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">src_atten</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerMultiSourceAttentionLayer</span><span class="p">,</span>
-                        <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_InitAttention</span><span class="p">(</span><span class="n">src_atten</span><span class="p">)</span>
+      <span class="n">src_atten</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_InitAttention</span><span class="p">(</span><span class="n">src_atten</span><span class="p">)</span>
       <span class="n">src_atten</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;multihead_atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">src_key</span>
       <span class="n">source_atten_tpls</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">src_key</span><span class="p">,</span> <span class="n">src_atten</span><span class="p">))</span>
 
@@ -612,7 +607,7 @@
 
 <div class="viewcode-block" id="TransformerFeedForwardLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerFeedForwardLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerFeedForwardLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the hidden layer.&#39;</span><span class="p">)</span>
@@ -643,7 +638,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerFeedForwardLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
@@ -731,7 +726,7 @@
 
 <div class="viewcode-block" id="TransformerLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tr_atten_tpl&#39;</span><span class="p">,</span>
@@ -760,7 +755,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
@@ -960,7 +955,7 @@
 
 <div class="viewcode-block" id="EvolvedTransformerEncoderBranchedConvsLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerEncoderBranchedConvsLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerEncoderBranchedConvsLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
@@ -976,7 +971,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerEncoderBranchedConvsLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
@@ -1073,7 +1068,7 @@
 
 <div class="viewcode-block" id="EvolvedTransformerDecoderBranchedConvsLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerDecoderBranchedConvsLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerDecoderBranchedConvsLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span>
@@ -1086,7 +1081,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerDecoderBranchedConvsLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
@@ -1174,7 +1169,7 @@
 
 <div class="viewcode-block" id="EvolvedTransformerBaseLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerBaseLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerBaseLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;has_aux_atten&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -1194,7 +1189,7 @@
 
 <div class="viewcode-block" id="EvolvedTransformerEncoderLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerEncoderLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerEncoderLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;glu_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">GluLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Glu layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;branched_convs_tpl&#39;</span><span class="p">,</span>
              <span class="n">EvolvedTransformerEncoderBranchedConvsLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -1203,7 +1198,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerEncoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
@@ -1273,7 +1268,7 @@
 
 <div class="viewcode-block" id="EvolvedTransformerDecoderLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.EvolvedTransformerDecoderLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerDecoderLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tr_atten_tpl&#39;</span><span class="p">,</span>
              <span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">num_attention_heads</span><span class="o">=</span><span class="mi">8</span><span class="p">),</span>
              <span class="s1">&#39;Transformer attention layer params.&#39;</span><span class="p">)</span>
@@ -1290,7 +1285,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">EvolvedTransformerDecoderLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
@@ -1471,7 +1466,7 @@
 
 <div class="viewcode-block" id="StyleLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.StyleLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StyleLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_styles&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Num of styles.&#39;</span><span class="p">)</span>
@@ -1483,7 +1478,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StyleLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_styles</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
@@ -1578,13 +1573,13 @@
 
 <div class="viewcode-block" id="TransformerLayerWithMultitaskAdapters.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerLayerWithMultitaskAdapters.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;adapter_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">MultitaskAdapterLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Template to use for multitask adapters.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
@@ -1624,10 +1619,9 @@
 <span class="sd">      aux_time].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">hidden</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerLayerWithMultitaskAdapters</span><span class="p">,</span>
-                               <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
-                                           <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span>
-                                           <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">)</span>
+    <span class="n">hidden</span><span class="p">,</span> <span class="n">atten_prob</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
+                                       <span class="n">aux_vecs</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span>
+                                       <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">aux_segment_id</span><span class="p">)</span>
     <span class="c1"># Assumes the same task_id for the entire sequence during eval or when</span>
     <span class="c1"># not using packed_input.</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">:</span>
@@ -1708,7 +1702,7 @@
 
 <div class="viewcode-block" id="CCTAttentionLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.CCTAttentionLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CCTAttentionLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
 
     <span class="c1"># Transformer Attention params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
@@ -1748,7 +1742,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">CCTAttentionLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
@@ -2032,7 +2026,7 @@
 
 <div class="viewcode-block" id="CCTFeedForwardLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.CCTFeedForwardLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CCTFeedForwardLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># Transformer Feedforward params.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the layer output.&#39;</span><span class="p">)</span>  <span class="c1"># Deprecated.</span>
@@ -2065,7 +2059,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">CCTFeedForwardLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
@@ -2168,7 +2162,7 @@
 
 <div class="viewcode-block" id="TransformerWithContextLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.layers_with_attention.html#lingvo.core.layers_with_attention.TransformerWithContextLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerWithContextLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the transformer block output.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -2192,7 +2186,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerWithContextLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span>

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.rnn_layers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Lingvo RNN layers.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">attention</span>
@@ -175,8 +171,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_cell</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <div class="viewcode-block" id="GeneratePackedInputResetMask"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.GeneratePackedInputResetMask">[docs]</a><span class="k">def</span> <span class="nf">GeneratePackedInputResetMask</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="n">is_reverse</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -210,13 +204,8 @@
 <div class="viewcode-block" id="IdentitySeqLayer"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.IdentitySeqLayer">[docs]</a><span class="k">class</span> <span class="nc">IdentitySeqLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;A no-op sequence layer.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="IdentitySeqLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.IdentitySeqLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">IdentitySeqLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">IdentitySeqLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="IdentitySeqLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.IdentitySeqLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span></div>
@@ -230,7 +219,7 @@
 
 <div class="viewcode-block" id="RNN.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.RNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -244,7 +233,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are currently not supported by &#39;</span>
                                 <span class="s1">&#39;Static RNN&#39;</span><span class="p">)</span>
@@ -312,7 +301,7 @@
 
 <div class="viewcode-block" id="StackedRNNBase.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedRNNBase.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StackedRNNBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_layers&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The number of RNN layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_input_nodes&#39;</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
@@ -333,7 +322,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StackedRNNBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are currently not supported by &#39;</span>
                                 <span class="s1">&#39;Static RNN Base&#39;</span><span class="p">)</span>
@@ -358,12 +347,12 @@
 
 <div class="viewcode-block" id="StackedFRNNLayerByLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StackedFRNNLayerByLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rnn_tpl&#39;</span><span class="p">,</span> <span class="n">FRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Rnn cell default params.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StackedFRNNLayerByLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">rnn_params</span> <span class="o">=</span> <span class="p">[]</span>
@@ -441,12 +430,12 @@
 
 <div class="viewcode-block" id="StackedBiFRNNLayerByLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">StackedBiFRNNLayerByLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;frnn_tpl&#39;</span><span class="p">,</span> <span class="n">BidirectionalFRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Rnn cell default params.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">StackedBiFRNNLayerByLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">rnn_params</span> <span class="o">=</span> <span class="p">[]</span>
@@ -504,7 +493,7 @@
 
 <div class="viewcode-block" id="FRNN.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.FRNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FRNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;reverse&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
@@ -513,7 +502,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">FRNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
@@ -600,7 +589,7 @@
 
 <div class="viewcode-block" id="BidirectionalFRNN.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalFRNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fwd&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the forward RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bak&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -610,7 +599,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalFRNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
       <span class="n">fwd_device</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
@@ -704,7 +693,7 @@
 
 <div class="viewcode-block" id="BidirectionalRNN.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNN.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalRNN</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fwd&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the forward RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bak&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -715,7 +704,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalRNN</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input is currently not supported by &#39;</span>
                                 <span class="s1">&#39;BiDirectionalRNN&#39;</span><span class="p">)</span>
@@ -765,7 +754,7 @@
 
 <div class="viewcode-block" id="BidirectionalRNNV2.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNNV2.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalRNNV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fwd&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the forward RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bak&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -775,7 +764,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalRNNV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed input is currently not &#39;</span>
                                           <span class="s1">&#39;supported by BiDirectionalRNNV2&#39;</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">BidirectionalRNN</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
@@ -859,7 +848,7 @@
 
 <div class="viewcode-block" id="FRNNWithAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.FRNNWithAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FRNNWithAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention&#39;</span><span class="p">,</span> <span class="n">attention</span><span class="o">.</span><span class="n">AdditiveAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -882,7 +871,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">FRNNWithAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_zero_atten_state</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_context_dim</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span>
@@ -1211,7 +1200,7 @@
 <div class="viewcode-block" id="MultiSourceFRNNWithAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Params for this MultiSourceFRNNWithAttention class.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceFRNNWithAttention</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;cell&#39;</span><span class="p">,</span>
         <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
@@ -1247,7 +1236,7 @@
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs a MultiSourceFRNNWithAttention layer with params.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">MultiSourceFRNNWithAttention</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;packed input is not supported for &#39;</span>
                                 <span class="s1">&#39;MultiSourceFRNNWithAttention&#39;</span><span class="p">)</span>
@@ -1273,7 +1262,7 @@
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">share_attention</span><span class="p">:</span>
           <span class="n">att_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_shared&#39;</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">att_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">src_name</span><span class="p">)</span>
+          <span class="n">att_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">src_name</span>
       <span class="k">if</span> <span class="n">att_params</span><span class="o">.</span><span class="n">params_init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="n">att_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(</span>
             <span class="mf">1.</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">att_params</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">+</span> <span class="n">att_params</span><span class="o">.</span><span class="n">query_dim</span><span class="p">),</span>
@@ -1450,7 +1439,7 @@
 
 <div class="viewcode-block" id="BidirectionalFRNNQuasi.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNNQuasi.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalFRNNQuasi</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fwd&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">QRNNPoolingCell</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs for the forward RNN cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bak&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">QRNNPoolingCell</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -1459,7 +1448,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BidirectionalFRNNQuasi</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;packed input is not supported for &#39;</span>
                                 <span class="s1">&#39;BidirectionalFRNNQuasi&#39;</span><span class="p">)</span>

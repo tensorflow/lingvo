@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.input_preprocessors</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Input preprocessors.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -175,7 +171,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">geometry</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
@@ -240,7 +235,7 @@
 <div class="viewcode-block" id="Preprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.Preprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Default params.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -322,7 +317,7 @@
 
 <div class="viewcode-block" id="EntryPreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.EntryPreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">EntryPreprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;prefixes&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;pseudo_ri&#39;</span><span class="p">],</span> <span class="s1">&#39;List of keys to apply to.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -402,7 +397,7 @@
 
 <div class="viewcode-block" id="CreateDecoderCopy.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.CreateDecoderCopy.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CreateDecoderCopy</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keys&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;lasers&#39;</span><span class="p">,</span> <span class="s1">&#39;labels&#39;</span><span class="p">,</span> <span class="s1">&#39;images&#39;</span><span class="p">],</span>
              <span class="s1">&#39;Keys to look for and copy if exists.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;parent_key&#39;</span><span class="p">,</span> <span class="s1">&#39;decoder_copy&#39;</span><span class="p">,</span> <span class="s1">&#39;The key to nest the copies under.&#39;</span><span class="p">)</span>
@@ -412,7 +407,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">CreateDecoderCopy</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_lasers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -463,7 +458,7 @@
 
 <div class="viewcode-block" id="FilterByKey.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterByKey.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FilterByKey</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;keep_key_prefixes&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">],</span> <span class="s1">&#39;Prefixes of keys to keep. If this &#39;</span>
         <span class="s1">&#39;contains the empty string, then it will keep all the keys.&#39;</span><span class="p">)</span>
@@ -510,7 +505,7 @@
 
 <div class="viewcode-block" id="FilterGroundTruthByNumPoints.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByNumPoints.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FilterGroundTruthByNumPoints</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;min_num_points&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;The minimum number of points allowed before &#39;</span>
         <span class="s1">&#39;the associated ground truth box is turned off. Defaults to 1.&#39;</span><span class="p">)</span>
@@ -551,7 +546,7 @@
 
 <div class="viewcode-block" id="FilterGroundTruthByDifficulty.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FilterGroundTruthByDifficulty.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FilterGroundTruthByDifficulty</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;background_id&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The ID of the background class we set &#39;</span>
         <span class="s1">&#39;filtered boxes to. Defaults to 0.&#39;</span><span class="p">)</span>
@@ -648,7 +643,7 @@
 
 <div class="viewcode-block" id="AddPerPointLabels.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.AddPerPointLabels.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AddPerPointLabels</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;per_dimension_adjustment&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;A list of len 3 of floats with the amount (in meters) to add to &#39;</span>
@@ -751,7 +746,7 @@
 
 <div class="viewcode-block" id="PointsToGrid.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.PointsToGrid.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PointsToGrid</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_points_per_cell&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
              <span class="s1">&#39;The maximum number of points per cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;grid_size&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">40</span><span class="p">,</span> <span class="mi">40</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Grid size along x,y,z axis.&#39;</span><span class="p">)</span>
@@ -838,7 +833,7 @@
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
-<div class="viewcode-block" id="_PointPillarGridSettings"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors._PointPillarGridSettings">[docs]</a><span class="k">class</span> <span class="nc">_PointPillarGridSettings</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_PointPillarGridSettings"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors._PointPillarGridSettings">[docs]</a><span class="k">class</span> <span class="nc">_PointPillarGridSettings</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Settings for PointPillars model defined in paper.</span>
 
 <span class="sd">  https://arxiv.org/abs/1812.05784</span>
@@ -932,7 +927,7 @@
 
 <div class="viewcode-block" id="GridToPillars.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GridToPillars.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GridToPillars</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_points_per_cell&#39;</span><span class="p">,</span> <span class="mi">100</span><span class="p">,</span>
              <span class="s1">&#39;The maximum number of points per cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_pillars&#39;</span><span class="p">,</span> <span class="mi">12000</span><span class="p">,</span> <span class="s1">&#39;The maximum number of pillars to produce.&#39;</span><span class="p">)</span>
@@ -1077,7 +1072,7 @@
 
 <div class="viewcode-block" id="GridAnchorCenters.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GridAnchorCenters.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GridAnchorCenters</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;grid_size&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;Grid size along x,y,z axis. This will &#39;</span>
         <span class="s1">&#39;be used to generate the anchor center locations. Note that this &#39;</span>
@@ -1163,7 +1158,7 @@
 
 <div class="viewcode-block" id="SparseCenterSelector.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SparseCenterSelector</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_cell_centers&#39;</span><span class="p">,</span> <span class="mi">256</span><span class="p">,</span> <span class="s1">&#39;Number of centers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span> <span class="p">[],</span>
@@ -1181,7 +1176,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SparseCenterSelector</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sampling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SAMPLING_METHODS</span><span class="p">:</span>
@@ -1330,7 +1325,7 @@
 
 <div class="viewcode-block" id="SparseCellGatherFeatures.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCellGatherFeatures.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SparseCellGatherFeatures</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_points_per_cell&#39;</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="s1">&#39;The number of points per cell.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_distance&#39;</span><span class="p">,</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;Max distance of point to cell center.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -1426,7 +1421,7 @@
 
 <div class="viewcode-block" id="SparseCellCentersTopK.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCellCentersTopK.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SparseCellCentersTopK</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_cell_centers&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span> <span class="s1">&#39;The number of centers after filtering.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;sort_by&#39;</span><span class="p">,</span> <span class="s1">&#39;distance&#39;</span><span class="p">,</span> <span class="s1">&#39;A string specifying which sort function &#39;</span>
@@ -1438,7 +1433,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SparseCellCentersTopK</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sort_by</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_REGISTERED_SORT_FUNCTIONS</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> not supported. We only support </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -1494,7 +1489,7 @@
 
 <div class="viewcode-block" id="TileAnchorBBoxes.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.TileAnchorBBoxes.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TileAnchorBBoxes</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;anchor_box_dimensions&#39;</span><span class="p">,</span> <span class="p">[],</span>
              <span class="s1">&#39;List of anchor box sizes per center.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;anchor_box_offsets&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;List of anchor box offsets per center.&#39;</span><span class="p">)</span>
@@ -1534,7 +1529,7 @@
     <span class="k">return</span> <span class="n">dtypes</span></div></div>
 
 
-<div class="viewcode-block" id="_AnchorBoxSettings"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors._AnchorBoxSettings">[docs]</a><span class="k">class</span> <span class="nc">_AnchorBoxSettings</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_AnchorBoxSettings"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors._AnchorBoxSettings">[docs]</a><span class="k">class</span> <span class="nc">_AnchorBoxSettings</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Helper class to parameterize and update anchor box settings.&quot;&quot;&quot;</span>
   <span class="c1"># Implementations should fill out the following class members.</span>
   <span class="n">DIMENSION_PRIORS</span> <span class="o">=</span> <span class="p">[]</span>
@@ -1704,7 +1699,7 @@
 
 <div class="viewcode-block" id="AnchorAssignment.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.AnchorAssignment.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AnchorAssignment</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;foreground_assignment_threshold&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span>
         <span class="s1">&#39;Score (usually IOU) threshold for assigning a box as foreground.&#39;</span><span class="p">)</span>
@@ -1793,7 +1788,7 @@
 
 <div class="viewcode-block" id="DropLaserPointsOutOfRange.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.DropLaserPointsOutOfRange.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DropLaserPointsOutOfRange</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_x_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
              <span class="s1">&#39;Only points that have x coordinates within this range are kept.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_y_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
@@ -1933,7 +1928,7 @@
 
 <div class="viewcode-block" id="RandomWorldRotationAboutZAxis.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomWorldRotationAboutZAxis.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomWorldRotationAboutZAxis</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;max_rotation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;The rotation amount will be randomly picked from &#39;</span>
@@ -1947,7 +1942,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RandomWorldRotationAboutZAxis</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_rotation needs to be specified, instead of None.&#39;</span><span class="p">)</span>
@@ -2014,7 +2009,7 @@
 
 <div class="viewcode-block" id="DropPointsOutOfFrustum.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.DropPointsOutOfFrustum.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DropPointsOutOfFrustum</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_theta_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">),</span>
              <span class="s1">&#39;Only points that have theta coordinates within this range.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_phi_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">2.</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">),</span>
@@ -2105,7 +2100,7 @@
 
 <div class="viewcode-block" id="DropBoxesOutOfRange.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.DropBoxesOutOfRange.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">DropBoxesOutOfRange</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_x_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
              <span class="s1">&#39;Only boxes that have x coordinates within this range are kept.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_y_range&#39;</span><span class="p">,</span> <span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">),</span>
@@ -2179,7 +2174,7 @@
 
 <div class="viewcode-block" id="PadLaserFeatures.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.PadLaserFeatures.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PadLaserFeatures</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_points&#39;</span><span class="p">,</span> <span class="mi">128500</span><span class="p">,</span>
              <span class="s1">&#39;Max number of points to pad the points to.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -2237,12 +2232,12 @@
 
 <div class="viewcode-block" id="WorldScaling.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.WorldScaling.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WorldScaling</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;scaling&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;The scaling range.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">WorldScaling</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">scaling</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;scaling needs to be specified, instead of None.&#39;</span><span class="p">)</span>
@@ -2291,7 +2286,7 @@
 
 <div class="viewcode-block" id="RandomDropLaserPoints.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomDropLaserPoints.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomDropLaserPoints</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;keep_prob&#39;</span><span class="p">,</span> <span class="mf">0.95</span><span class="p">,</span> <span class="s1">&#39;Probability for keeping points.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -2336,7 +2331,7 @@
 
 <div class="viewcode-block" id="RandomFlipY.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomFlipY.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomFlipY</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;flip_probability&#39;</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;Probability of flipping.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -2387,7 +2382,7 @@
 
 <div class="viewcode-block" id="GlobalTranslateNoise.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GlobalTranslateNoise.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GlobalTranslateNoise</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;noise_std&#39;</span><span class="p">,</span> <span class="p">[</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">],</span>
              <span class="s1">&#39;Standard deviation of translation noise per axis.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
@@ -2454,7 +2449,7 @@
 
 <div class="viewcode-block" id="RandomBBoxTransform.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomBBoxTransform.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomBBoxTransform</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;max_rotation&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;The rotation amount will be randomly picked from &#39;</span>
@@ -2482,7 +2477,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RandomBBoxTransform</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">max_rotation</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;max_rotation needs to be specified, instead of None.&#39;</span><span class="p">)</span>
@@ -2806,7 +2801,7 @@
 
 <div class="viewcode-block" id="GroundTruthAugmentor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.GroundTruthAugmentor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">GroundTruthAugmentor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;groundtruth_database&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;If not None, loads groundtruths from this database and adds &#39;</span>
@@ -3165,7 +3160,7 @@
 
 <div class="viewcode-block" id="FrustumDropout.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.FrustumDropout.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FrustumDropout</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;theta_width&#39;</span><span class="p">,</span> <span class="mf">0.03</span><span class="p">,</span> <span class="s1">&#39;Theta angle width for dropping points.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;phi_width&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s1">&#39;Phi angle width for dropping points.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -3180,7 +3175,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">FrustumDropout</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">phi_width</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;phi_width must be &gt;= 0, phi_width=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
@@ -3303,7 +3298,7 @@
 
 <div class="viewcode-block" id="RepeatPreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RepeatPreprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;repeat_count&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of times the subprocessor is applied to&#39;</span>
              <span class="s1">&#39; features.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;One of the input preprocessors.&#39;</span><span class="p">)</span>
@@ -3311,7 +3306,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RepeatPreprocessor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No subprocessor was specified for RepeatPreprocessor.&#39;</span><span class="p">)</span>
@@ -3354,13 +3349,13 @@
 
 <div class="viewcode-block" id="RandomApplyPreprocessor.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RandomApplyPreprocessor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;prob&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;The probability the subprocessor being executed.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Params for an input preprocessor.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RandomApplyPreprocessor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;No subprocessor was specified for RepeatPreprocessor.&#39;</span><span class="p">)</span>
@@ -3445,7 +3440,7 @@
 
 <div class="viewcode-block" id="SparseSampler.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseSampler.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SparseSampler</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;center_selector&#39;</span><span class="p">,</span> <span class="s1">&#39;farthest&#39;</span><span class="p">,</span> <span class="s1">&#39;Method to sample centers. &#39;</span>
              <span class="s1">&#39;Valid options - uniform, farthest.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;neighbor_sampler&#39;</span><span class="p">,</span> <span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;Method to select neighbors. &#39;</span>
@@ -3472,7 +3467,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SparseSampler</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>

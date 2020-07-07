@@ -146,8 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.py_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
-<span class="c1"># -*- coding: utf-8 -*-</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Common utilities.&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
@@ -189,8 +184,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
@@ -297,7 +290,7 @@
 <div class="viewcode-block" id="ThreadLocalStack"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ThreadLocalStack">[docs]</a><span class="k">class</span> <span class="nc">ThreadLocalStack</span><span class="p">(</span><span class="n">threading</span><span class="o">.</span><span class="n">local</span><span class="p">):</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ThreadLocalStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">[]</span></div>
 
 
@@ -873,14 +866,14 @@
   <span class="c1"># Disable pytype attribute checking.</span>
   <span class="n">_HAS_DYNAMIC_ATTRIBUTES</span> <span class="o">=</span> <span class="kc">True</span>
   <span class="c1"># keys in this list are not allowed in a NestedMap.</span>
-  <span class="n">_RESERVED_KEYS</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="nb">dict</span><span class="p">))</span>
+  <span class="n">_RESERVED_KEYS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">(</span><span class="nb">dir</span><span class="p">(</span><span class="nb">dict</span><span class="p">))</span>
   <span class="c1"># sentinel value for deleting keys used in Filter.</span>
   <span class="n">_DELETE</span> <span class="o">=</span> <span class="nb">object</span><span class="p">()</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="p">(</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span>
           <span class="s1">&#39;Key in a NestedMap has to be a six.string_types. Currently type: </span><span class="si">%s</span><span class="s1">,&#39;</span>
           <span class="s1">&#39; value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
       <span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
@@ -889,12 +882,12 @@
   <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="c1"># Make sure key is a valid expression and is not one of the reserved</span>
     <span class="c1"># attributes.</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">),</span> <span class="p">(</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">),</span> <span class="p">(</span>
         <span class="s1">&#39;Key in a NestedMap has to be a six.string_types. Currently type: </span><span class="si">%s</span><span class="s1">, &#39;</span>
         <span class="s1">&#39;value: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)),</span> <span class="nb">str</span><span class="p">(</span><span class="n">key</span><span class="p">)))</span>
     <span class="n">NestedMap</span><span class="o">.</span><span class="n">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">NestedMap</span><span class="o">.</span><span class="n">_RESERVED_KEYS</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> is a reserved key&#39;</span> <span class="o">%</span> <span class="n">key</span><span class="p">)</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">NestedMap</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
 
   <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="fm">__setitem__</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
@@ -929,7 +922,7 @@
     <span class="sd">&quot;&quot;&quot;Converts every dict in nested structure &#39;x&#39; to a NestedMap.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
       <span class="n">res</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
-      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
         <span class="n">res</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="o">.</span><span class="n">FromNestedDict</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">res</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
@@ -940,7 +933,7 @@
 <div class="viewcode-block" id="NestedMap.CheckKey"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.CheckKey">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">CheckKey</span><span class="p">(</span><span class="n">key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Asserts that key is valid NestedMap key.&quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">and</span> <span class="n">_NAME_PATTERN</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="n">key</span><span class="p">)):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid NestedMap key </span><span class="se">\&#39;</span><span class="si">{}</span><span class="se">\&#39;</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span></div>
 
 <div class="viewcode-block" id="NestedMap.GetItem"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap.GetItem">[docs]</a>  <span class="k">def</span> <span class="nf">GetItem</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
@@ -1152,7 +1145,7 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">vlog</span><span class="p">(</span><span class="n">level</span><span class="p">,</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">l</span><span class="p">)</span></div></div>
 
 
-<div class="viewcode-block" id="_Unique"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Unique">[docs]</a><span class="k">class</span> <span class="nc">_Unique</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_Unique"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._Unique">[docs]</a><span class="k">class</span> <span class="nc">_Unique</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A helper to uniqify variables in a NestedMap.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1183,7 +1176,7 @@
 <span class="sd">    Read-only Mapping that can be accessed by index ([&#39;foo&#39;]) or attr (d.foo).</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">class</span> <span class="nc">Wrapper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="k">class</span> <span class="nc">Wrapper</span><span class="p">:</span>
     <span class="sd">&quot;&quot;&quot;Wrapper object.&quot;&quot;&quot;</span>
 
     <span class="c1"># Disable pytype attribute checking.</span>
@@ -1234,7 +1227,7 @@
   <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">ToStaticShape</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="UniformSampler"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler">[docs]</a><span class="k">class</span> <span class="nc">UniformSampler</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="UniformSampler"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.UniformSampler">[docs]</a><span class="k">class</span> <span class="nc">UniformSampler</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A reservoir sampler.</span>
 
 <span class="sd">  This class implements reservoir sampling: Given a limit of `num_samples` total</span>
@@ -1268,7 +1261,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_samples</span></div>
 
 
-<div class="viewcode-block" id="RNNCellStateInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RNNCellStateInit">[docs]</a><span class="k">class</span> <span class="nc">RNNCellStateInit</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="RNNCellStateInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RNNCellStateInit">[docs]</a><span class="k">class</span> <span class="nc">RNNCellStateInit</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;State initialization functions for RNN cell init state.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="RNNCellStateInit._Params"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.RNNCellStateInit._Params">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -1329,7 +1322,7 @@
   <span class="k">return</span> <span class="n">init_state</span></div>
 
 
-<div class="viewcode-block" id="WeightInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit">[docs]</a><span class="k">class</span> <span class="nc">WeightInit</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="WeightInit"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit">[docs]</a><span class="k">class</span> <span class="nc">WeightInit</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Static class providing weight initialization config params.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WeightInit._Params"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit._Params">[docs]</a>  <span class="nd">@staticmethod</span>
@@ -1491,7 +1484,7 @@
   <span class="k">return</span> <span class="p">[</span><span class="n">t</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">tensor_list</span> <span class="k">if</span> <span class="n">t</span><span class="o">.</span><span class="n">name</span> <span class="ow">in</span> <span class="n">all_needed</span><span class="p">]</span></div>
 
 
-<div class="viewcode-block" id="_CollectionGetter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CollectionGetter">[docs]</a><span class="k">class</span> <span class="nc">_CollectionGetter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="_CollectionGetter"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CollectionGetter">[docs]</a><span class="k">class</span> <span class="nc">_CollectionGetter</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Get graph local value from a defined collection.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default_factory</span><span class="p">):</span>
@@ -2006,7 +1999,8 @@
 <span class="sd">    A `.NestedMap` of identity() wrapped theta</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">class</span> <span class="nc">AddIdentity</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+  <span class="k">class</span> <span class="nc">AddIdentity</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Helper class.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device_list</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_list</span> <span class="o">=</span> <span class="n">device_list</span> <span class="k">if</span> <span class="n">device_list</span> <span class="k">else</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span>
@@ -2244,7 +2238,7 @@
   <span class="k">return</span> <span class="n">aggregated_grads</span></div>
 
 
-<div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="VarGrad"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.VarGrad">[docs]</a><span class="k">class</span> <span class="nc">VarGrad</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A class that holds a variable and a gradient.&quot;&quot;&quot;</span>
 
   <span class="n">_VAR_GRAD</span> <span class="o">=</span> <span class="n">py_collections</span><span class="o">.</span><span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;VarGradNamedTuple&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var&#39;</span><span class="p">,</span> <span class="s1">&#39;grad&#39;</span><span class="p">])</span>
@@ -2625,7 +2619,7 @@
     <span class="k">return</span> <span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">splits</span><span class="p">]</span>
   <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">):</span>
     <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="n">NestedMap</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_splits</span><span class="p">)]</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span> <span class="ow">in</span> <span class="n">x</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="n">val_splits</span> <span class="o">=</span> <span class="n">SplitRecursively</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">num_splits</span><span class="p">,</span> <span class="n">axis</span><span class="p">)</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_splits</span><span class="p">):</span>
         <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">val_splits</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
@@ -2754,12 +2748,12 @@
   <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="n">lists_of_metrics</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">metrics</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lists_of_metrics</span><span class="p">:</span>
         <span class="n">lists_of_metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">lists_of_metrics</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">))</span>
 
-  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values_and_weights</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">lists_of_metrics</span><span class="p">)):</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values_and_weights</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lists_of_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
     <span class="n">values</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">values_and_weights</span><span class="p">])</span>
     <span class="n">weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">([</span><span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">values_and_weights</span><span class="p">])</span>
     <span class="n">ret_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
@@ -2779,12 +2773,12 @@
   <span class="n">ret_dict</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="n">lists_of_per_example</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="n">per_example</span><span class="p">:</span>
-    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">m</span><span class="p">):</span>
+    <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">if</span> <span class="n">name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">lists_of_per_example</span><span class="p">:</span>
         <span class="n">lists_of_per_example</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="n">lists_of_per_example</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
 
-  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">lists_of_per_example</span><span class="p">)):</span>
+  <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">lists_of_per_example</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
     <span class="n">ret_dict</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
 
   <span class="k">return</span> <span class="n">ret_dict</span></div>
@@ -2809,10 +2803,8 @@
 <span class="sd">    ValueError: if there exists a metric that exists in more than one element</span>
 <span class="sd">      of `loss_metric_weight_pairs` but not in all of them.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">all_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">([</span>
-      <span class="n">k</span> <span class="k">for</span> <span class="n">loss_metrics</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">loss_metric_weight_pairs</span>
-      <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iterkeys</span><span class="p">(</span><span class="n">loss_metrics</span><span class="p">)</span>
-  <span class="p">])</span>
+  <span class="n">all_keys</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+      <span class="p">[</span><span class="n">k</span> <span class="k">for</span> <span class="n">loss_metrics</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">loss_metric_weight_pairs</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">loss_metrics</span><span class="p">])</span>  <span class="c1"># pylint: disable=g-complex-comprehension</span>
   <span class="n">result</span> <span class="o">=</span> <span class="p">{}</span>
   <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">all_keys</span><span class="p">:</span>
     <span class="n">count</span> <span class="o">=</span> <span class="mi">0</span>
@@ -3873,7 +3865,7 @@
 
 <span class="c1"># A set of names of stateful random number generator ops.</span>
 <span class="c1"># See tensorflow/core/ops/random_ops.cc</span>
-<span class="n">_STATEFUL_RANDOM_OPS</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">_STATEFUL_RANDOM_OPS</span> <span class="o">=</span> <span class="nb">frozenset</span><span class="p">({</span>
     <span class="c1"># pyformat: disable</span>
     <span class="s1">&#39;RandomUniform&#39;</span><span class="p">,</span>
     <span class="s1">&#39;RandomUniformInt&#39;</span><span class="p">,</span>
@@ -3886,7 +3878,7 @@
     <span class="s1">&#39;RandomPoisson&#39;</span><span class="p">,</span>
     <span class="s1">&#39;RandomPoissonV2&#39;</span><span class="p">,</span>
     <span class="c1"># pyformat: enable</span>
-<span class="p">}</span>
+<span class="p">})</span>
 
 
 <div class="viewcode-block" id="StatefulRandomOpsInDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.StatefulRandomOpsInDefun">[docs]</a><span class="k">def</span> <span class="nf">StatefulRandomOpsInDefun</span><span class="p">(</span><span class="n">func</span><span class="p">,</span> <span class="n">graph</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>

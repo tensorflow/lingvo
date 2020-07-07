@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.ap_metric</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Average precision metric interface.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
@@ -174,13 +170,11 @@
 <span class="kn">from</span> <span class="nn">lingvo.core.metrics</span> <span class="kn">import</span> <span class="n">BaseMetric</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car</span> <span class="kn">import</span> <span class="n">breakdown_metric</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <span class="c1"># TODO(shlens): Consider making this internal data structure a list of NestedMap</span>
 <span class="c1"># to simplify the implementation.</span>
-<div class="viewcode-block" id="Boxes3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D">[docs]</a><span class="k">class</span> <span class="nc">Boxes3D</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Boxes3D"><a class="viewcode-back" href="../../../../lingvo.tasks.car.ap_metric.html#lingvo.tasks.car.ap_metric.Boxes3D">[docs]</a><span class="k">class</span> <span class="nc">Boxes3D</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A container for a list of 7-DOF 3D boxes.</span>
 
 <span class="sd">  Each 3D box is represented by the 7-tuple [x, y, z, dx, dy, dz, phi],</span>

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.datasource</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,18 +163,11 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;DataSources describe how files should be used to provide data.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">os</span>
 
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
-
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="DataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource">[docs]</a><span class="k">class</span> <span class="nc">DataSource</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
@@ -182,7 +175,7 @@
 
 <div class="viewcode-block" id="DataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">DataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;datasource&#39;</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;datasource&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DataSource.BuildDataSource"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.DataSource.BuildDataSource">[docs]</a>  <span class="k">def</span> <span class="nf">BuildDataSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Builds a data source.</span>
@@ -214,7 +207,7 @@
 
 <div class="viewcode-block" id="SimpleDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.SimpleDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SimpleDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># TODO(b/139345706): move filetype prefix (eg tfrecord:) into its own param</span>
     <span class="c1"># and clean up existing usages.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -240,7 +233,7 @@
 <span class="sd">      `.NestedMap` of tf.Tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_pattern</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;SimpleDataSource expects p.file_pattern to be a string.&#39;</span>
                        <span class="s1">&#39; To use multiple files use a comma separated string, &#39;</span>
                        <span class="s1">&#39;e.g. </span><span class="se">\&#39;</span><span class="s1">, </span><span class="se">\&#39;</span><span class="s1">.join(list_of_file_patterns)&#39;</span><span class="p">)</span>
@@ -261,7 +254,7 @@
 
 <div class="viewcode-block" id="ChainingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.ChainingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ChainingDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># TODO(b/139345706): This can probably be a list of DataSource params</span>
     <span class="c1"># instead of a list of file_patterns to be more generic.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -285,18 +278,17 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
       <span class="c1"># Chaining doesn&#39;t work with weights or backprop filters, i.e. when</span>
       <span class="c1"># file_pattern param contains a list of</span>
       <span class="c1"># &lt;file_pattern, weight, [bprop_variable_filter]&gt; tuples.</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of strings, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                       <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,))</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list of strings, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
 
     <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">:</span>
       <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when chaining &#39;</span>
-                         <span class="s1">&#39;is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">((</span><span class="s1">&#39;Can not use commas in file_pattern when chaining &#39;</span>
+                          <span class="s1">&#39;is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">file_pattern</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">))</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
@@ -308,7 +300,7 @@
 
 <div class="viewcode-block" id="WithinBatchMixingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.WithinBatchMixingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WithinBatchMixingDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># TODO(b/139345706): This can probably be a list of DataSource params</span>
     <span class="c1"># instead of a list of file_patterns to be more generic.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -337,24 +329,25 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">,))</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">,))</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected a list, got </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;Expected p.file_patterns and p.weights to be the same length. &#39;</span>
           <span class="s1">&#39;Found </span><span class="si">%d</span><span class="s1"> file_patterns, and </span><span class="si">%d</span><span class="s1"> weights&#39;</span> <span class="o">%</span>
           <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)))</span>
     <span class="c1"># TODO(rosenberg) confirm that weights are numeric</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected all elements of p.file_patterns to be strings&#39;</span><span class="p">)</span>
 
     <span class="n">file_patterns</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span>
     <span class="n">weights</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span>
     <span class="k">for</span> <span class="n">file_pattern</span> <span class="ow">in</span> <span class="n">file_patterns</span><span class="p">:</span>
       <span class="k">if</span> <span class="s1">&#39;,&#39;</span> <span class="ow">in</span> <span class="n">file_pattern</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when within-batch &#39;</span>
-                         <span class="s1">&#39;mixing is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">file_pattern</span><span class="p">,))</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+            <span class="p">(</span><span class="s1">&#39;Can not use commas in file_pattern when within-batch &#39;</span>
+             <span class="s1">&#39;mixing is used. file_pattern: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">)</span> <span class="o">%</span> <span class="n">file_pattern</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">ret</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data_source_from_file_pattern_fn</span><span class="p">(</span>
         <span class="s1">&#39;,&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">file_patterns</span><span class="p">),</span> <span class="n">input_source_weights</span><span class="o">=</span><span class="n">weights</span><span class="p">)</span>
@@ -367,7 +360,7 @@
 
 <div class="viewcode-block" id="CrossBatchMixingDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CrossBatchMixingDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CrossBatchMixingDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># TODO(b/139345706): This can probably be a list of DataSource params</span>
     <span class="c1"># instead of a list of file_patterns to be more generic.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -417,7 +410,7 @@
           <span class="s1">&#39;Expected p.file_patterns and p.weights to be the same length. &#39;</span>
           <span class="s1">&#39;Found </span><span class="si">%d</span><span class="s1"> file_patterns, and </span><span class="si">%d</span><span class="s1"> weights&#39;</span> <span class="o">%</span>
           <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">)))</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">string_types</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">file_patterns</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Expected all elements of p.file_patterns to be strings&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(rosenberg) replace this with functools.partial</span>
@@ -464,7 +457,7 @@
 
 <div class="viewcode-block" id="CurriculumDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.CurriculumDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CurriculumDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;datasource_params&#39;</span><span class="p">,</span> <span class="p">[],</span> <span class="s1">&#39;A list of DataSource Params which define &#39;</span>
         <span class="s1">&#39;the DataSource curriculum.&#39;</span><span class="p">)</span>
@@ -542,7 +535,7 @@
 
 <div class="viewcode-block" id="PrefixedDataSource.Params"><a class="viewcode-back" href="../../../lingvo.core.datasource.html#lingvo.core.datasource.PrefixedDataSource.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSource</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;file_pattern_prefix&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
         <span class="s1">&#39;Prefix to add to file_pattern, eg. a base directory that contains &#39;</span>
@@ -551,7 +544,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">PrefixedDataSource</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 

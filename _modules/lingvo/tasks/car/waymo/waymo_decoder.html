@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.waymo.waymo_decoder</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,9 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Base models for point-cloud based detection.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">metrics</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
@@ -175,7 +172,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car.waymo</span> <span class="kn">import</span> <span class="n">waymo_ap_metric</span>
 <span class="kn">from</span> <span class="nn">lingvo.tasks.car.waymo</span> <span class="kn">import</span> <span class="n">waymo_metadata</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="WaymoOpenDatasetDecoder"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder">[docs]</a><span class="k">class</span> <span class="nc">WaymoOpenDatasetDecoder</span><span class="p">(</span><span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseDecoder</span><span class="p">):</span>
@@ -183,7 +179,7 @@
 
 <div class="viewcode-block" id="WaymoOpenDatasetDecoder.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_decoder.html#lingvo.tasks.car.waymo.waymo_decoder.WaymoOpenDatasetDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoOpenDatasetDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;draw_visualizations&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Boolean for whether to draw &#39;</span>
         <span class="s1">&#39;visualizations. This is independent of laser_sampling_rate.&#39;</span><span class="p">)</span>

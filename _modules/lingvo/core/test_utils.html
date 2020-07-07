@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.test_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helpers for unittests.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">inspect</span>
 <span class="kn">import</span> <span class="nn">re</span>
 
@@ -174,7 +170,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">cluster_factory</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 <span class="c1"># Disable eager execution for all tests.</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">disable_eager_execution</span><span class="p">()</span>
@@ -190,12 +185,12 @@
   <span class="sd">&quot;&quot;&quot;TestCase that performs Lingvo-specific setup.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="TestCase.setUp"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase.setUp">[docs]</a>  <span class="k">def</span> <span class="nf">setUp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TestCase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">setUp</span><span class="p">()</span>
     <span class="c1"># Ensure the global_step variable is created in the default graph.</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="TestCase._create_session"><a class="viewcode-back" href="../../../lingvo.core.test_utils.html#lingvo.core.test_utils.TestCase._create_session">[docs]</a>  <span class="k">def</span> <span class="nf">_create_session</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-    <span class="n">sess</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TestCase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_create_session</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">sess</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_create_session</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">sess</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">():</span>
       <span class="c1"># Ensure the global_step variable is created in every new session.</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>

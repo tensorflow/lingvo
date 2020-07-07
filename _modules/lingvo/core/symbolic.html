@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.symbolic</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,12 +163,7 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Utilities for symbolic computation.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">threading</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 <span class="kn">import</span> <span class="nn">sympy</span>
 
 
@@ -193,13 +188,13 @@
   <span class="sd">&quot;&quot;&quot;A thread-local stack of symbol-to-value dicts.&quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">_LocalSymbolToValueStack</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">stack</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="k">for</span> <span class="n">value_type</span> <span class="ow">in</span> <span class="n">VALUE_TYPES</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="n">value_type</span><span class="p">]</span> <span class="o">=</span> <span class="p">[{}]</span></div>
 
 
-<div class="viewcode-block" id="SymbolToValueMap"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.SymbolToValueMap">[docs]</a><span class="k">class</span> <span class="nc">SymbolToValueMap</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="SymbolToValueMap"><a class="viewcode-back" href="../../../lingvo.core.symbolic.html#lingvo.core.symbolic.SymbolToValueMap">[docs]</a><span class="k">class</span> <span class="nc">SymbolToValueMap</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A symbol-to-value mapping.</span>
 
 <span class="sd">  Usage:</span>

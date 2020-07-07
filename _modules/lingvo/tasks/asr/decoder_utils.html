@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.asr.decoder_utils</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,17 +162,11 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Common utilities for ASR decoders.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">import</span> <span class="nn">six</span>
-
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="_IsSymbolOrPositive"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils._IsSymbolOrPositive">[docs]</a><span class="k">def</span> <span class="nf">_IsSymbolOrPositive</span><span class="p">(</span><span class="n">dim</span><span class="p">):</span>
@@ -191,7 +185,7 @@
 
 <div class="viewcode-block" id="Tokenize"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.decoder_utils.html#lingvo.tasks.asr.decoder_utils.Tokenize">[docs]</a><span class="k">def</span> <span class="nf">Tokenize</span><span class="p">(</span><span class="n">string</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns a list containing non-empty tokens from the given string.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
     <span class="n">string</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">string</span><span class="p">,</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">()</span></div>
 
@@ -254,10 +248,8 @@
 <span class="sd">    - total:       total difference length.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">class</span> <span class="nc">ErrorStats</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Class to keep track of error counts.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
+  <span class="k">class</span> <span class="nc">ErrorStats</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Class to keep track of error counts.&quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">tot</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">ins</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">dels</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">subs</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">total_cost</span> <span class="o">=</span> <span class="n">ins</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span> <span class="n">tot</span>

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.starnet</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -180,10 +180,6 @@
 <span class="sd">same offset, but with different rotation/dimension priors will have the same</span>
 <span class="sd">featurization.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">enum</span>
 <span class="kn">import</span> <span class="nn">functools</span>
@@ -344,7 +340,7 @@
              <span class="n">num_classes</span><span class="p">,</span>
              <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
              <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;num_anchor_bboxes_per_center&#39;</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
         <span class="s1">&#39;The number of anchor bboxes per center. This should match that &#39;</span>
@@ -399,7 +395,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ModelBase</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_utils</span> <span class="o">=</span> <span class="n">detection_3d_lib</span><span class="o">.</span><span class="n">Utils3D</span><span class="p">()</span>
 
@@ -685,7 +681,7 @@
              <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
              <span class="n">num_laser_features</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
 
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span>
         <span class="n">num_classes</span><span class="o">=</span><span class="n">num_classes</span><span class="p">,</span>
         <span class="n">num_anchor_bboxes_per_center</span><span class="o">=</span><span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
         <span class="n">num_laser_features</span><span class="o">=</span><span class="n">num_laser_features</span><span class="p">)</span>
@@ -717,7 +713,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell_featurizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_featurizer</span><span class="p">)</span>
@@ -839,8 +835,8 @@
     <span class="n">num_anchor_bboxes_per_center</span> <span class="o">=</span> <span class="p">(</span>
         <span class="n">num_anchor_bboxes_offsets</span> <span class="o">*</span> <span class="n">num_anchor_bboxes_rotations</span> <span class="o">*</span>
         <span class="n">num_anchor_bboxes_dimensions</span><span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
-                                   <span class="n">num_laser_features</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">num_anchor_bboxes_per_center</span><span class="p">,</span>
+                       <span class="n">num_laser_features</span><span class="p">)</span>
 
     <span class="c1"># Good defaults from V1 tuning.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">loss_norm_type</span> <span class="o">=</span> <span class="n">LossNormType</span><span class="o">.</span><span class="n">NORM_BY_NUM_POS_PER_CENTER</span>
@@ -908,7 +904,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">ModelV2</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">builder</span> <span class="o">=</span> <span class="n">Builder</span><span class="p">()</span>

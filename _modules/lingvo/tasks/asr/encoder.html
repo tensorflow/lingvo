@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.asr.encoder</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Encoders for the speech model.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
@@ -176,8 +172,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">spectrum_augmenter</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
 
@@ -190,7 +184,7 @@
 <div class="viewcode-block" id="AsrEncoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.encoder.html#lingvo.tasks.asr.encoder.AsrEncoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Configs for AsrEncoder.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">AsrEncoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;specaugment_network&#39;</span><span class="p">,</span>
              <span class="n">spectrum_augmenter</span><span class="o">.</span><span class="n">SpectrumAugmenter</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Configs template for the augmentation network.&#39;</span><span class="p">)</span>
@@ -295,7 +289,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">AsrEncoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
@@ -310,7 +304,7 @@
       <span class="n">params_conv_layers</span> <span class="o">=</span> <span class="p">[]</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_cnn_layers</span><span class="p">):</span>
         <span class="n">conv_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cnn_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">conv_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">conv_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_filter_shapes</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_stride</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_filter_strides</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
         <span class="n">params_conv_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
@@ -328,18 +322,18 @@
         <span class="c1"># shape as its input.</span>
         <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">in_channel</span> <span class="o">=</span> <span class="n">conv_output_shape</span>
         <span class="n">f_conv_lstm_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">f_conv_lstm_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;f_conv_lstm_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">f_conv_lstm_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;f_conv_lstm_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">f_conv_lstm_p</span><span class="o">.</span><span class="n">inputs_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">in_channel</span><span class="p">]</span>
         <span class="n">f_conv_lstm_p</span><span class="o">.</span><span class="n">cell_shape</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">in_channel</span><span class="p">]</span>
         <span class="n">b_conv_lstm_p</span> <span class="o">=</span> <span class="n">f_conv_lstm_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">b_conv_lstm_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;b_conv_lstm_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">b_conv_lstm_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;b_conv_lstm_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">conv_lstm_rnn_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CreateConvLstmLayerParams</span><span class="p">()</span>
         <span class="n">conv_lstm_rnn_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_lstm_rnn&#39;</span>
         <span class="n">conv_lstm_rnn_p</span><span class="o">.</span><span class="n">fwd</span> <span class="o">=</span> <span class="n">f_conv_lstm_p</span>
         <span class="n">conv_lstm_rnn_p</span><span class="o">.</span><span class="n">bak</span> <span class="o">=</span> <span class="n">b_conv_lstm_p</span>
         <span class="n">params_conv_lstm_rnn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_lstm_rnn_p</span><span class="p">)</span>
         <span class="n">cnn_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">after_conv_lstm_cnn_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">cnn_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_lstm_cnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">cnn_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;conv_lstm_cnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">cnn_p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">in_channel</span>
         <span class="n">cnn_p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="n">in_channel</span>
         <span class="n">params_conv_lstm_cnn</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cnn_p</span><span class="p">)</span>
@@ -360,13 +354,13 @@
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
         <span class="n">input_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
         <span class="n">forward_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">forward_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;fwd_rnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">forward_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;fwd_rnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">forward_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_dim</span>
         <span class="n">forward_p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
         <span class="n">backward_p</span> <span class="o">=</span> <span class="n">forward_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">backward_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bak_rnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">backward_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;bak_rnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">rnn_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">CreateBidirectionalRNNParams</span><span class="p">(</span><span class="n">forward_p</span><span class="p">,</span> <span class="n">backward_p</span><span class="p">)</span>
-        <span class="n">rnn_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;brnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">rnn_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;brnn_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
         <span class="n">params_rnn_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">rnn_p</span><span class="p">)</span>
         <span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
 
@@ -374,7 +368,7 @@
           <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
           <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
           <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;proj_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+          <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;proj_L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
           <span class="n">params_proj_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">proj_p</span><span class="p">)</span>
 
         <span class="c1"># add the skip layers</span>
@@ -387,7 +381,7 @@
         <span class="c1"># Adds the stacking layer.</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_index_before_stacking</span> <span class="o">==</span> <span class="n">i</span><span class="p">:</span>
           <span class="n">stacking_layer</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">stacking_layer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-          <span class="n">stacking_layer</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;stacking_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+          <span class="n">stacking_layer</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;stacking_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;stacking&#39;</span><span class="p">,</span> <span class="n">stacking_layer</span><span class="p">)</span>
           <span class="n">stacking_window_len</span> <span class="o">=</span> <span class="p">(</span>
               <span class="n">p</span><span class="o">.</span><span class="n">stacking_layer_tpl</span><span class="o">.</span><span class="n">left_context</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span>

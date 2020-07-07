@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.steps.rnn_steps</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,15 +162,10 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Step APIs for RNN layers.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">step</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="RnnStep"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep">[docs]</a><span class="k">class</span> <span class="nc">RnnStep</span><span class="p">(</span><span class="n">step</span><span class="o">.</span><span class="n">Step</span><span class="p">):</span>
@@ -178,13 +173,13 @@
 
 <div class="viewcode-block" id="RnnStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params for the RNN cell.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RnnStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
@@ -271,7 +266,7 @@
 <div class="viewcode-block" id="RnnStackStep.Params"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs Params for an RnnStackStep.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RnnStackStep</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;rnn_cell_tpl&#39;</span><span class="p">,</span> <span class="n">rnn_cell</span><span class="o">.</span><span class="n">LSTMCellSimple</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="s1">&#39;RNNCell params template. &#39;</span>
@@ -309,7 +304,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">RnnStackStep</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="n">sub</span> <span class="o">=</span> <span class="p">[]</span>
 
@@ -334,7 +329,7 @@
     <span class="n">input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">step_input_dim</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">rnn_layers</span><span class="p">):</span>
       <span class="n">step_i</span> <span class="o">=</span> <span class="n">RnnStep</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">step_i</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">)</span>
+      <span class="n">step_i</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;rnn_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span> <span class="o">=</span> <span class="n">rnn_cell_tpls</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_nodes</span> <span class="o">+</span> <span class="n">extra_dim</span>
       <span class="n">step_i</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">inputs_arity</span> <span class="o">=</span> <span class="n">arity</span>

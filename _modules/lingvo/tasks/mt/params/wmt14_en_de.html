@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.mt.params.wmt14_en_de</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Train NMT Models on WMT&#39;14 English-German machine translation task.&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">os</span>
 
@@ -275,7 +271,7 @@
   <span class="sd">&quot;&quot;&quot;Small Transformer Params for WMT&#39;14 En-&gt;De on TPU.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WmtEnDeTransformerSmallCloudTpu._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeTransformerSmallCloudTpu._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtEnDeTransformerSmallCloudTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -283,7 +279,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WmtEnDeTransformerSmallCloudTpu.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeTransformerSmallCloudTpu.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtEnDeTransformerSmallCloudTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
@@ -295,7 +291,7 @@
   <span class="sd">&quot;&quot;&quot;Params for WMT&#39;14 En-&gt;De in sync training.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WmtEnDeRNMT._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeRNMT._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtEnDeRNMT</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">is_eval</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span> <span class="o">=</span> <span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">14</span><span class="p">,</span> <span class="mi">19</span><span class="p">,</span> <span class="mi">26</span><span class="p">,</span> <span class="mi">36</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">70</span><span class="p">,</span> <span class="mi">98</span><span class="p">,</span> <span class="mi">200</span><span class="p">]</span>
@@ -337,7 +333,7 @@
   <span class="sd">&quot;&quot;&quot;Params for WMT&#39;14 En-&gt;De in sync training on TPU.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="WmtEnDeRNMTCloudTpu._CommonInputParams"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeRNMTCloudTpu._CommonInputParams">[docs]</a>  <span class="k">def</span> <span class="nf">_CommonInputParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_eval</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtEnDeRNMTCloudTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CommonInputParams</span><span class="p">(</span><span class="n">is_eval</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">pad_to_max_seq_length</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">p</span><span class="o">.</span><span class="n">source_max_length</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bucket_upper_bound</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
@@ -346,7 +342,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="WmtEnDeRNMTCloudTpu.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.mt.params.wmt14_en_de.html#lingvo.tasks.mt.params.wmt14_en_de.WmtEnDeRNMTCloudTpu.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WmtEnDeRNMTCloudTpu</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Task</span><span class="p">()</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">encoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>
     <span class="n">p</span><span class="o">.</span><span class="n">decoder</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">max_num_shards</span> <span class="o">=</span> <span class="mi">1</span>

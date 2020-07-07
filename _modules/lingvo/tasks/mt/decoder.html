@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.mt.decoder</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,9 +163,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="sd">&quot;&quot;&quot;Machine translation decoder.</span>
 <span class="sd">&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
@@ -181,8 +178,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_cell</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
@@ -200,7 +195,7 @@
 
 <div class="viewcode-block" id="MTBaseDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Label smoothing class.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">SimpleFullSoftmax</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Softmax params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -220,7 +215,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">MTBaseDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;smoother&#39;</span>
@@ -561,7 +556,7 @@
 
 <div class="viewcode-block" id="MTDecoderV1.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTDecoderV1.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTDecoderV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="c1"># Shared embedding.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;source_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the source encoding.&#39;</span><span class="p">)</span>
@@ -642,12 +637,12 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      Model params updated with the vocab size and wpm model.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MTDecoderV1</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">UpdateTargetVocabSize</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">vocab_size</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">=</span> <span class="n">vocab_size</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">MTDecoderV1</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span>
 
@@ -1110,7 +1105,7 @@
 
 <div class="viewcode-block" id="TransformerDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Token embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -1174,7 +1169,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">layers</span><span class="o">.</span><span class="n">SharedSoftmaxLayer</span><span class="p">:</span>
@@ -1972,8 +1967,7 @@
 <span class="sd">      atten_probs: a list of attention probs, each element is of shape [tgt_len,</span>
 <span class="sd">        tgt_batch, src_len].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerDecoder</span><span class="p">,</span>
-          <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_AddAttenProbsSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">add_summary</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_multiheaded_attention_scalar_summary</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_AddAttenProbsScalarSummary</span><span class="p">(</span><span class="n">source_paddings</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">)</span></div></div>
 
@@ -1988,7 +1982,7 @@
 
 <div class="viewcode-block" id="InsertionDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.InsertionDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">InsertionDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Token embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
@@ -2044,7 +2038,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">InsertionDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">softmax</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
@@ -2189,7 +2183,7 @@
 
 <div class="viewcode-block" id="TransformerBatchMajorDecoder.Params"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TransformerBatchMajorDecoder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Token embedding layer params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shared_emb&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Embedding shared with softmax.&#39;</span><span class="p">)</span>
@@ -2250,7 +2244,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TransformerBatchMajorDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
@@ -2458,7 +2452,7 @@
       <span class="c1"># [1, 1, dim]</span>
       <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
         <span class="n">time_step_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
-      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">integer_types</span><span class="p">):</span>
+      <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">time_step</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
         <span class="n">time_step_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">([[</span><span class="n">time_step</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unexpected input type `</span><span class="si">%s</span><span class="s1">` for `time_step`.&#39;</span> <span class="o">%</span>

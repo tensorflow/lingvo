@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.metrics</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,17 +163,11 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helper classes for computing performance metrics.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">plot</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">scorers</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 <span class="k">try</span><span class="p">:</span>
   <span class="kn">import</span> <span class="nn">sklearn.metrics</span>  <span class="c1"># pylint: disable=g-import-not-at-top</span>
   <span class="n">HAS_SKLEARN</span> <span class="o">=</span> <span class="kc">True</span>
@@ -191,7 +185,7 @@
       <span class="n">value</span><span class="o">=</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">tag</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="n">simple_value</span><span class="o">=</span><span class="n">simple_value</span><span class="p">)])</span></div>
 
 
-<div class="viewcode-block" id="BaseMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric">[docs]</a><span class="k">class</span> <span class="nc">BaseMetric</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseMetric"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric">[docs]</a><span class="k">class</span> <span class="nc">BaseMetric</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Base class for aggregating statistics to compute a performance metric.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="BaseMetric.Update"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.BaseMetric.Update">[docs]</a>  <span class="k">def</span> <span class="nf">Update</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -303,7 +297,7 @@
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_scorer</span><span class="o">.</span><span class="n">ComputeOverallScore</span><span class="p">()</span></div>
 
 
-<div class="viewcode-block" id="TpuEvalMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics">[docs]</a><span class="k">class</span> <span class="nc">TpuEvalMetrics</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="TpuEvalMetrics"><a class="viewcode-back" href="../../../lingvo.core.metrics.html#lingvo.core.metrics.TpuEvalMetrics">[docs]</a><span class="k">class</span> <span class="nc">TpuEvalMetrics</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Manages computation of metrics during TPU execution.</span>
 
 <span class="sd">  TPU execution runs a training loop on device. To get eval metrics out of this,</span>

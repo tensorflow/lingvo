@@ -146,8 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.program</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
-<span class="c1"># -*- coding: utf-8 -*-</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Lint as: python2, python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
@@ -164,9 +163,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Programs for interleaving execution on TPU.&quot;&quot;&quot;</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">import</span> <span class="nn">multiprocessing.dummy</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -181,9 +177,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">ml_perf_log</span> <span class="k">as</span> <span class="n">mlp_log</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
-<span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 <span class="c1"># pylint:disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf.tpu</span> <span class="kn">import</span> <span class="n">compilation_result_pb2</span> <span class="k">as</span> <span class="n">tpu_compilation_result</span>
@@ -194,7 +187,7 @@
 <span class="c1"># pylint:enable=g-direct-tensorflow-import</span>
 
 
-<div class="viewcode-block" id="BaseProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram">[docs]</a><span class="k">class</span> <span class="nc">BaseProgram</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram">[docs]</a><span class="k">class</span> <span class="nc">BaseProgram</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A Program associated with a Task.</span>
 
 <span class="sd">  This is inspired by the &quot;program&quot; multi-tenancy that TPUs</span>
@@ -352,14 +345,8 @@
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;TrainProgram trains a single task and handles checkpoints.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="TrainProgram.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.Params">[docs]</a>  <span class="nd">@classmethod</span>
-  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Parameters for TrainProgram.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">TrainProgram</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">return</span> <span class="n">p</span></div>
-
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">TrainProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_step_rate_tracker</span> <span class="o">=</span> <span class="n">summary_utils</span><span class="o">.</span><span class="n">StepRateTracker</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;TrainProgram&#39;</span>
 
@@ -524,7 +511,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;examples/sec&#39;</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="s1">&#39;total_samples&#39;</span><span class="p">,</span> <span class="n">total_examples</span><span class="p">)</span>
 
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">eval_metrics</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
     <span class="n">task_global_step</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
@@ -545,7 +532,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">EvalProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;EvalProgram&#39;</span>
 
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -609,7 +596,7 @@
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="n">values</span> <span class="o">=</span> <span class="n">ary</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">metrics</span><span class="p">)):</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
@@ -624,7 +611,7 @@
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">DecodeProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_program_name</span> <span class="o">=</span> <span class="s1">&#39;DecodeProgram&#39;</span>
 
 <div class="viewcode-block" id="DecodeProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.DecodeProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -675,7 +662,7 @@
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
 
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
-    <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)}</span>
+    <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
     <span class="n">example_rate</span> <span class="o">=</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">/</span> <span class="n">elapsed_secs</span>
     <span class="n">summaries</span><span class="p">[</span><span class="s1">&#39;examples/sec&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span>
@@ -699,7 +686,7 @@
 
 <div class="viewcode-block" id="ExperimentalDecodeProgram.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.ExperimentalDecodeProgram.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">ExperimentalDecodeProgram</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">num_threads</span> <span class="o">=</span> <span class="mi">2</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -777,7 +764,7 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">PostProcessDecodeOut</span><span class="p">(</span><span class="n">metrics_values</span><span class="p">,</span> <span class="n">dec_metrics</span><span class="p">)</span>
     <span class="n">decode_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
     <span class="n">infeed_future</span><span class="o">.</span><span class="n">wait</span><span class="p">()</span>
-    <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">six</span><span class="o">.</span><span class="n">iteritems</span><span class="p">(</span><span class="n">dec_metrics</span><span class="p">)}</span>
+    <span class="n">summaries</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">Summary</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">dec_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
     <span class="n">elapsed_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start_time</span>
     <span class="n">num_examples_metric</span> <span class="o">=</span> <span class="n">dec_metrics</span><span class="p">[</span><span class="s1">&#39;num_samples_in_batch&#39;</span><span class="p">]</span>
     <span class="n">example_rate</span> <span class="o">=</span> <span class="n">num_examples_metric</span><span class="o">.</span><span class="n">total_value</span> <span class="o">/</span> <span class="n">elapsed_secs</span>
@@ -795,7 +782,7 @@
 <div class="viewcode-block" id="MLPerfTrainDecodeProgram.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfTrainDecodeProgram.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;&quot;Defaults parameters for Programs.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">MLPerfTrainDecodeProgram</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train_task&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Underlying task&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decode_task&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Underlying task&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train_dataset_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
@@ -806,7 +793,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">MLPerfTrainDecodeProgram</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">ml_perf</span><span class="o">.</span><span class="n">benchmark_name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf_log</span> <span class="o">=</span> <span class="kc">True</span>
@@ -983,7 +970,7 @@
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
 
-<div class="viewcode-block" id="MultiTaskProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiTaskProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskProgramSchedule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MultiTaskProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiTaskProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">MultiTaskProgramSchedule</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Container for ProgramSchedules for a MultiTask model.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MultiTaskProgramSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MultiTaskProgramSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>
@@ -994,7 +981,7 @@
     <span class="k">return</span> <span class="n">p</span></div></div>
 
 
-<div class="viewcode-block" id="SimpleProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">SimpleProgramSchedule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="SimpleProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">SimpleProgramSchedule</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;A schedule of programs associated with a single task.</span>
 
 <span class="sd">  Simple sequence is:</span>
@@ -1114,7 +1101,7 @@
   <span class="k">return</span> <span class="n">program_schedule_params</span></div>
 
 
-<div class="viewcode-block" id="MLPerfProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">MLPerfProgramSchedule</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MLPerfProgramSchedule"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule">[docs]</a><span class="k">class</span> <span class="nc">MLPerfProgramSchedule</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Program schedule for ML Perf benchmark.&quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="MLPerfProgramSchedule.Params"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.MLPerfProgramSchedule.Params">[docs]</a>  <span class="nd">@classmethod</span>

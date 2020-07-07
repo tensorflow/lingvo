@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.scorers</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,14 +163,9 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Helper classes for computing scores.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 
 <div class="viewcode-block" id="_ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers._ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">_ToUnicode</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
@@ -186,7 +181,7 @@
   <span class="k">return</span> <span class="p">(</span><span class="n">lst</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="n">order</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">lst</span><span class="p">)</span> <span class="o">-</span> <span class="n">order</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span></div>
 
 
-<div class="viewcode-block" id="Unsegmenter"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter">[docs]</a><span class="k">class</span> <span class="nc">Unsegmenter</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Unsegmenter"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.Unsegmenter">[docs]</a><span class="k">class</span> <span class="nc">Unsegmenter</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Un-segments (merges) segmented strings.</span>
 
 <span class="sd">  Used to retain back the original surface form of strings that are encoded</span>
@@ -216,7 +211,7 @@
       <span class="k">return</span> <span class="n">line</span></div>
 
 
-<div class="viewcode-block" id="BleuScorer"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer">[docs]</a><span class="k">class</span> <span class="nc">BleuScorer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="BleuScorer"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer">[docs]</a><span class="k">class</span> <span class="nc">BleuScorer</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Scorer to compute BLEU scores to measure translation quality.</span>
 
 <span class="sd">  The BLEU score is the geometric average precision of all token n-grams of</span>
@@ -262,7 +257,7 @@
           <span class="c1"># Clip hyp_matches so ngrams that are repeated more frequently in hyp</span>
           <span class="c1"># than ref are not double counted.</span>
           <span class="n">hyp_matches</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">hyp_matches</span><span class="p">[</span><span class="n">x</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">count</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">six</span><span class="o">.</span><span class="n">itervalues</span><span class="p">(</span><span class="n">hyp_matches</span><span class="p">))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_matches</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">hyp_matches</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_hyp_ngram_counts</span><span class="p">[</span><span class="n">order_idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">hyp_count</span></div>
 
 <div class="viewcode-block" id="BleuScorer.ComputeOverallScore"><a class="viewcode-back" href="../../../lingvo.core.scorers.html#lingvo.core.scorers.BleuScorer.ComputeOverallScore">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeOverallScore</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

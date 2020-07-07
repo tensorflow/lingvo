@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.checkpointer</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Checkpointing utilities for save/restore.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">time</span>
 
@@ -176,7 +172,7 @@
 <span class="kn">import</span> <span class="nn">six</span>
 
 
-<div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="Checkpointer"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer">[docs]</a><span class="k">class</span> <span class="nc">Checkpointer</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Checkpointing utility class.</span>
 
 <span class="sd">  Needs to be created within a graph context.</span>
@@ -277,7 +273,7 @@
     <span class="n">uninitialized_var_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_uninitialized_vars</span><span class="p">)))</span>
     <span class="c1"># uninitialized_var_names is a list of strings without &quot;:0&quot; suffix.</span>
     <span class="c1"># tf.report_uninitialized_variables returns binary strings.</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">binary_type</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">uninitialized_var_names</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">uninitialized_var_names</span></div>
 
 <div class="viewcode-block" id="Checkpointer.Restore"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Restore">[docs]</a>  <span class="k">def</span> <span class="nf">Restore</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">force_reinitialize</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>

@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.tasks.car.waymo.waymo_open_input_generator</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -162,10 +162,6 @@
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Input generator for waymo open dataset (WaymoOD).&quot;&quot;&quot;</span>
-
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">datasource</span>
@@ -228,7 +224,7 @@
 
 <div class="viewcode-block" id="WaymoFrameMetadataExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoFrameMetadataExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoFrameMetadataExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;equality_filters&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;A list of tuples(str, list) &#39;</span>
         <span class="s1">&#39;where each first value is a metadata key (e.g. `weather`) &#39;</span>
@@ -264,7 +260,7 @@
                   <span class="n">filter_key</span><span class="p">,</span> <span class="n">filter_value</span><span class="p">,</span> <span class="n">valid_options</span><span class="p">))</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">WaymoFrameMetadataExtractor</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">equality_filters</span><span class="p">:</span>
@@ -364,7 +360,7 @@
 
 <div class="viewcode-block" id="WaymoImageExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;camera_names&#39;</span><span class="p">,</span>
              <span class="p">[</span><span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT_RIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">],</span>
              <span class="s1">&#39;The names of the cameras from which images will be extracted.&#39;</span><span class="p">)</span>
@@ -493,8 +489,7 @@
 
 <div class="viewcode-block" id="WaymoLaserExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLaserExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoLaserExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-        <span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">max_num_points</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_features</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lidar_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;TOP&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAR&#39;</span><span class="p">],</span>
              <span class="s1">&#39;The names of the lidars from which lasers will be extracted.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -595,7 +590,7 @@
 
 <div class="viewcode-block" id="WaymoLabelExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.WaymoLabelExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoLabelExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_num_objects&#39;</span><span class="p">,</span> <span class="mi">512</span><span class="p">,</span>
              <span class="s1">&#39;Each frame may contain up to these many bbox.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
@@ -791,7 +786,7 @@
 
 <div class="viewcode-block" id="RangeImageExtractor.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.RangeImageExtractor.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RangeImageExtractor</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;cbr_laser_names&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;SIDE_LEFT&#39;</span><span class="p">,</span> <span class="s1">&#39;FRONT&#39;</span><span class="p">,</span> <span class="s1">&#39;REAR&#39;</span><span class="p">,</span> <span class="s1">&#39;SIDE_RIGHT&#39;</span><span class="p">],</span>
         <span class="s1">&#39;The names of the CBR sensors from which range images &#39;</span>
@@ -1084,7 +1079,7 @@
 
 <div class="viewcode-block" id="FilterNLZPoints.Params"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">FilterNLZPoints</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="FilterNLZPoints.TransformFeatures"><a class="viewcode-back" href="../../../../../lingvo.tasks.car.waymo.waymo_open_input_generator.html#lingvo.tasks.car.waymo.waymo_open_input_generator.FilterNLZPoints.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
@@ -1132,7 +1127,7 @@
         <span class="n">assign_anchors</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">AnchorAssignment</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
         <span class="n">pad_lasers</span><span class="o">=</span><span class="n">input_preprocessors</span><span class="o">.</span><span class="n">PadLaserFeatures</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(),</span>
     <span class="p">)</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">WaymoSparseLaser</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">(</span><span class="n">extractors</span><span class="p">)</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">preprocessors</span><span class="o">=</span><span class="n">_NestedMapToParams</span><span class="p">(</span><span class="n">preprocessors</span><span class="p">),</span>
         <span class="n">preprocessors_order</span><span class="o">=</span><span class="p">[</span>
             <span class="s1">&#39;viz_copy&#39;</span><span class="p">,</span>

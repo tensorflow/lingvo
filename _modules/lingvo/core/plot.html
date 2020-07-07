@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.plot</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -163,10 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Utilities for generating image summaries using matplotlib.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
-
 <span class="kn">import</span> <span class="nn">collections</span>
 <span class="kn">import</span> <span class="nn">functools</span>
 <span class="kn">import</span> <span class="nn">traceback</span>
@@ -178,12 +174,10 @@
 <span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">zip</span>
 
 
 <div class="viewcode-block" id="ToUnicode"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.ToUnicode">[docs]</a><span class="k">def</span> <span class="nf">ToUnicode</span><span class="p">(</span><span class="n">text</span><span class="p">):</span>
-  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="n">six</span><span class="o">.</span><span class="n">text_type</span><span class="p">):</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
     <span class="n">text</span> <span class="o">=</span> <span class="n">six</span><span class="o">.</span><span class="n">ensure_text</span><span class="p">(</span><span class="n">text</span><span class="p">,</span> <span class="s1">&#39;utf-8&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">text</span></div>
 
@@ -290,7 +284,7 @@
                                           <span class="p">[</span><span class="s1">&#39;tensor_list&#39;</span><span class="p">,</span> <span class="s1">&#39;plot_func&#39;</span><span class="p">])</span>
 
 
-<div class="viewcode-block" id="MatplotlibFigureSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary">[docs]</a><span class="k">class</span> <span class="nc">MatplotlibFigureSummary</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="MatplotlibFigureSummary"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary">[docs]</a><span class="k">class</span> <span class="nc">MatplotlibFigureSummary</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Helper to minimize boilerplate in creating a summary with several subplots.</span>
 
 <span class="sd">  Typical usage::</span>

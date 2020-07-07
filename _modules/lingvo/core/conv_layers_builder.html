@@ -191,7 +191,7 @@
 <div class="viewcode-block" id="BiasLayer"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.BiasLayer">[docs]</a><span class="k">class</span> <span class="nc">BiasLayer</span><span class="p">(</span><span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="p">):</span>
 
 <div class="viewcode-block" id="BiasLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.BiasLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
-    <span class="n">bias_added</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">BiasLayer</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="n">bias_added</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">bias_added</span><span class="p">,</span> <span class="n">paddings</span></div></div>
 
 
@@ -200,7 +200,7 @@
 
 <div class="viewcode-block" id="CausalPoolingLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.CausalPoolingLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CausalPoolingLayer</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pooling_type&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">,</span> <span class="s1">&#39;Pooling type: MAX|AVG&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;left_context&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of frames to the left in the pooling&#39;</span>
@@ -277,7 +277,7 @@
 
 <div class="viewcode-block" id="Builder.Params"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">Builder</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span>
              <span class="n">ConvBatchNormLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">decay</span><span class="o">=</span><span class="mf">0.999</span><span class="p">),</span>
              <span class="s1">&#39;If specified, the normalization layer template.&#39;</span><span class="p">)</span>
@@ -285,7 +285,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="Builder._BiasNoPadding"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._BiasNoPadding">[docs]</a>  <span class="k">def</span> <span class="nf">_BiasNoPadding</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
-    <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">Builder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Builder._Bias"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_builder.html#lingvo.core.conv_layers_builder.Builder._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dims</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Bias layer. The bias is added to the last dimension of the input.&quot;&quot;&quot;</span>

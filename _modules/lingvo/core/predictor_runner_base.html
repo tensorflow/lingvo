@@ -146,7 +146,7 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.predictor_runner_base</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Lint as: python2, python3</span>
+<span></span><span class="c1"># Lint as: python3</span>
 <span class="c1"># Copyright 2019 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
@@ -173,9 +173,6 @@
 <span class="sd">  --inference_threads=num_tpu_cores</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">import</span> <span class="nn">concurrent.futures</span>
 <span class="kn">import</span> <span class="nn">itertools</span>
 <span class="kn">import</span> <span class="nn">os</span>
@@ -188,7 +185,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">predictor</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">import</span> <span class="nn">six</span>
-<span class="kn">from</span> <span class="nn">six.moves</span> <span class="kn">import</span> <span class="nb">range</span>
 
 <span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_string</span><span class="p">(</span>
     <span class="s1">&#39;checkpoint&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Either a checkpoint file to load,&#39;</span>
@@ -228,7 +224,7 @@
 <span class="n">_RETRY_SLEEP_SECONDS</span> <span class="o">=</span> <span class="mi">10</span>
 
 
-<div class="viewcode-block" id="PredictorRunnerBase"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase">[docs]</a><span class="k">class</span> <span class="nc">PredictorRunnerBase</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="PredictorRunnerBase"><a class="viewcode-back" href="../../../lingvo.core.predictor_runner_base.html#lingvo.core.predictor_runner_base.PredictorRunnerBase">[docs]</a><span class="k">class</span> <span class="nc">PredictorRunnerBase</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Manages state for running predictor.</span>
 
 <span class="sd">  Abstract class. Subclasses should override `InputGenerator` and `RunBatch`.</span>

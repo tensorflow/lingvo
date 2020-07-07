@@ -146,7 +146,8 @@
            <div itemprop="articleBody">
             
   <h1>Source code for lingvo.core.multitask_model</h1><div class="highlight"><pre>
-<span></span><span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2018 The TensorFlow Authors. All Rights Reserved.</span>
 <span class="c1">#</span>
 <span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
 <span class="c1"># you may not use this file except in compliance with the License.</span>
@@ -162,9 +163,6 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Multitask models.&quot;&quot;&quot;</span>
 
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">absolute_import</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">division</span>
-<span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">print_function</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_model</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
@@ -174,13 +172,13 @@
 
 <div class="viewcode-block" id="SharedEncoderModel.Params"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.SharedEncoderModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SharedEncoderModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder_to_share&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The task name whose encoder should be shared.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SharedEncoderModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_to_share</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span>
 
@@ -203,7 +201,7 @@
 
 <div class="viewcode-block" id="SharedEncoderDecoderModel.Params"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.SharedEncoderDecoderModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">SharedEncoderDecoderModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;encoder_to_share&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
              <span class="s1">&#39;The task name whose encoder should be shared.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decoder_to_share&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -211,7 +209,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">SharedEncoderDecoderModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_to_share</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">decoder_to_share</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span>
@@ -242,7 +240,7 @@
 
 <div class="viewcode-block" id="RegExSharedVariableModel.Params"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.RegExSharedVariableModel.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;variable_renaming_rules&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;A list/tuple of variable renaming rules. Each element in the&#39;</span>
@@ -255,7 +253,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RegExSharedVariableModel.ConstructFPropBPropGraph"><a class="viewcode-back" href="../../../lingvo.core.multitask_model.html#lingvo.core.multitask_model.RegExSharedVariableModel.ConstructFPropBPropGraph">[docs]</a>  <span class="k">def</span> <span class="nf">ConstructFPropBPropGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># We need to override this since constructing the BPropGraph</span>
@@ -263,7 +261,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">():</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableRenameScope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">variable_renaming_rules</span><span class="p">):</span>
-        <span class="nb">super</span><span class="p">(</span><span class="n">RegExSharedVariableModel</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span></div></div>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span></div></div>
 </pre></div>
 
            </div>
