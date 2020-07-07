@@ -2616,6 +2616,8 @@
              <span class="s1">&#39;Whether using per_dim_scale or scaling by a constant factor.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias for projection layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;If specified, the normalization layer template.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -2742,6 +2744,8 @@
     <span class="sd">&quot;&quot;&quot;A depthwise convolution block for lightweight conv.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">conv_builder_params</span> <span class="o">=</span> <span class="n">conv_layers</span><span class="o">.</span><span class="n">Builder</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span><span class="p">:</span>
+      <span class="n">conv_builder_params</span><span class="o">.</span><span class="n">norm_layer_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span>
     <span class="n">conv_builder</span> <span class="o">=</span> <span class="n">conv_builder_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">conv_builder</span><span class="o">.</span><span class="n">DepthwiseConv2D</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
