@@ -482,9 +482,26 @@
     <span class="c1"># symbolic expressions, one for each dimension of the variable.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_var_symbolic_shape_map</span> <span class="o">=</span> <span class="p">{}</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="BaseLayer.SetVariableFree"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.SetVariableFree">[docs]</a>  <span class="k">def</span> <span class="nf">SetVariableFree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Marks this layer as having no variables.</span>
+
+<span class="sd">    Note that this status affects sublayers and child layers too.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      value: True to set layer as variable free.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Variable free status for </span><span class="si">%s</span><span class="s1"> must be set before CreateVariables().&#39;</span> <span class="o">%</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot set layer </span><span class="si">%s</span><span class="s1"> with variables as variable free.&#39;</span> <span class="o">%</span>
+                       <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span> <span class="o">=</span> <span class="n">value</span></div>
 
 <div class="viewcode-block" id="BaseLayer.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calls `FProp`.&quot;&quot;&quot;</span>
@@ -594,6 +611,10 @@
     <span class="sd">&quot;&quot;&quot;Returns children layers of this layer in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span>
 
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
+
   <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the child layer of the given name.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;_private_children&#39;</span><span class="p">:</span>
@@ -636,6 +657,8 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">vars</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
       <span class="n">ret</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
@@ -644,6 +667,8 @@
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">theta</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns theta of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
 
     <span class="n">private_theta</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span>
@@ -822,6 +847,8 @@
 <span class="sd">        (tf.Tensor) -&gt; (tf.Tensor).</span>
 <span class="sd">      **kwargs: Keyword args passed to `.py_utils.CreateVariable`.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot create variable in variable free layer.&#39;</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">skip_lp_regularization</span> <span class="ow">and</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var_params</span><span class="o">.</span><span class="n">collections</span><span class="p">):</span>
@@ -872,13 +899,24 @@
       <span class="k">return</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_called</span> <span class="o">=</span> <span class="kc">True</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
-        <span class="n">auxiliary_name_scope</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalStep</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
+      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_children_list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">child</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>  <span class="c1"># pylint: disable=protected-access</span>
+          <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+              <span class="s1">&#39;Variable free layer </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) child </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) has variables.&#39;</span> <span class="o">%</span>
+              <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+               <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;global_step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
+          <span class="n">auxiliary_name_scope</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

@@ -572,7 +572,7 @@
 
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">floormod</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span><span class="p">),</span>
             <span class="n">p</span><span class="o">.</span><span class="n">accum_steps</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span> <span class="n">_ApplyAndReset</span><span class="p">,</span> <span class="k">lambda</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">no_op</span><span class="p">()))</span></div>
 
 <div class="viewcode-block" id="Accumulator.GetOptimizer"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.Accumulator.GetOptimizer">[docs]</a>  <span class="k">def</span> <span class="nf">GetOptimizer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">):</span>
@@ -634,7 +634,7 @@
         <span class="n">second_moment_averaging</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">second_moment_averaging</span><span class="p">,</span>
         <span class="n">max_any_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">max_any_dim</span><span class="p">,</span>
         <span class="n">block_size</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">block_size</span><span class="p">,</span>
-        <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div>
+        <span class="n">global_step</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="DistributedShampoo.Apply"><a class="viewcode-back" href="../../../lingvo.core.optimizer.html#lingvo.core.optimizer.DistributedShampoo.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lr</span><span class="p">,</span> <span class="n">var_grad</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the gradient to the variable.</span>

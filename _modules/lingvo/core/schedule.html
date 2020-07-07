@@ -180,6 +180,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;LRSched&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
+
 <div class="viewcode-block" id="BaseSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the current learning rate schedule value.</span>
 
@@ -193,8 +197,8 @@
 <span class="sd">      effective learning rate.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">current_step</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">current_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">)</span></div></div>
+      <span class="n">current_step</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">global_step</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropDefaultTheta</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="Constant"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.Constant">[docs]</a><span class="k">class</span> <span class="nc">Constant</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
