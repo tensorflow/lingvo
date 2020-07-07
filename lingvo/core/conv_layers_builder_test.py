@@ -18,7 +18,9 @@
 
 from absl.testing import parameterized
 from lingvo import compat as tf
+from lingvo.core import bn_layers
 from lingvo.core import conv_layers_builder
+from lingvo.core import conv_layers_with_time_padding
 from lingvo.core import layers
 from lingvo.core import test_utils
 import numpy as np
@@ -42,7 +44,13 @@ class ConvPaddedLayersTest(test_utils.TestCase):
           conv_last=conv_last,
           causal_convolution=causal_conv)
       builder_params = conv_layers_builder.Builder.Params().Set(
-          use_bn=batch_norm, weight_norm=weight_norm)
+          weight_norm=weight_norm)
+      if batch_norm:
+        norm_p = conv_layers_with_time_padding.ConvBatchNormLayer.Params().Set(
+            decay=0.999)
+        builder_params.norm_layer_tpl = norm_p
+      else:
+        builder_params.norm_layer_tpl = None
       p2 = builder_params.Instantiate().Conv2D(
           'conv_2d02',
           in_dim,
@@ -115,6 +123,51 @@ class ConvPaddedLayersTest(test_utils.TestCase):
     self._ConvTestHelper(dilation, stride, activation, batch_norm, weight_norm,
                          in_dim, out_dim, filter_shape, conv_last, causal_conv)
 
+  def testConvGn(self):
+    dilation = [1, 1]
+    stride = [2, 3]
+    activation = 'TANH'
+    in_dim = 3
+    out_dim = 4
+    filter_shape = [2, 2]
+    conv_last = False
+    causal_conv = False
+
+    with self.session(use_gpu=True) as sess:
+      builder_params = conv_layers_builder.Builder.Params().Set(
+          weight_norm=True)
+      builder_params.norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+          num_groups=2)
+      p = builder_params.Instantiate().Conv2D(
+          'conv_2d02',
+          in_dim,
+          out_dim,
+          filter_shape,
+          stride=stride,
+          dilation=dilation,
+          activation=activation,
+          conv_last=conv_last,
+          is_causal=causal_conv)
+
+      l = p.Instantiate()
+
+      conv_in = tf.constant(np.random.normal(size=[4, 5, 6, 3]), tf.float32)
+      conv_pad = np.full([4, 5], 0.0)
+      conv_pad[2, 3] = 1.0
+      conv_pad[2, 4] = 1.0
+      conv_pad = tf.constant(conv_pad, tf.float32)
+      conv_out, _ = l.FProp(l.theta, conv_in, conv_pad)
+      tf.global_variables_initializer().run()
+      v = sess.run(tf.reduce_sum(conv_out, 0))
+
+      expected_out = [[[-0.35070014, -1.7821487, 0.8349923, 1.1709788],
+                       [-0.18872532, 0.9702145, 0.5534694, -1.1386856]],
+                      [[0.34970748, -0.5403709, -0.9809327, -2.0930214],
+                       [0.54232424, 1.1565661, 1.0349312, 1.3458138]],
+                      [[0, 0, 0, 0], [0, 0, 0, 0]]]
+
+      self.assertAllClose(v, expected_out)
+
   def testConvLastWnTanh(self):
     dilation = [1, 1]
     stride = [2, 3]
@@ -159,7 +212,14 @@ class ConvPaddedLayersTest(test_utils.TestCase):
           conv_last=conv_last,
           causal_convolution=causal_conv)
       builder_params = conv_layers_builder.Builder.Params().Set(
-          use_bn=batch_norm, weight_norm=weight_norm)
+          weight_norm=weight_norm)
+      if batch_norm:
+        norm_p = conv_layers_with_time_padding.ConvBatchNormLayer.Params().Set(
+            decay=0.999)
+        builder_params.norm_layer_tpl = norm_p
+      else:
+        builder_params.norm_layer_tpl = None
+
       p2 = builder_params.Instantiate().DepthwiseConv2D(
           'conv_2d02',
           in_dim,
@@ -234,6 +294,52 @@ class ConvPaddedLayersTest(test_utils.TestCase):
                                   weight_norm, in_dim, depth_multiplier,
                                   filter_shape, conv_last, causal_conv)
 
+  def testDepthConvGn(self):
+    dilation = [1, 1]
+    stride = [2, 2]
+    activation = 'TANH'
+    in_dim = 4
+    depth_multiplier = 1
+    filter_shape = [2, 2]
+    conv_last = False
+    causal_conv = False
+
+    with self.session(use_gpu=True) as sess:
+      builder_params = conv_layers_builder.Builder.Params().Set(
+          weight_norm=True)
+      builder_params.norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+          num_groups=2)
+      p = builder_params.Instantiate().DepthwiseConv2D(
+          'conv_2d02',
+          in_dim,
+          depth_multiplier,
+          filter_shape,
+          stride=stride,
+          activation=activation,
+          dilation=dilation,
+          conv_last=conv_last,
+          is_causal=causal_conv)
+      l = p.Instantiate()
+
+      conv_in = tf.constant(np.random.normal(size=[4, 5, 6, 4]), tf.float32)
+      conv_pad = np.full([4, 5], 0.0)
+      conv_pad[2, 3] = 1.0
+      conv_pad[2, 4] = 1.0
+      conv_pad = tf.constant(conv_pad, tf.float32)
+      conv_out, _ = l.FProp(l.theta, conv_in, conv_pad)
+      tf.global_variables_initializer().run()
+      v = sess.run(tf.reduce_sum(conv_out, 0))
+
+      expected_out = [[[-0.77095497, 0.30285388, -0.05714864, 1.0386012],
+                       [0.74034333, 0.04982221, -0.41769135, -2.9531932],
+                       [-0.2647084, -0.1936804, 0.6598473, 0.42537105]],
+                      [[1.3095646, -0.85996866, 2.2734299, -1.8457952],
+                       [-0.9542263, -0.14199251, 0.51472515, 0.91931283],
+                       [0.47267163, 1.4824618, 0.4548889, 0.93488806]],
+                      [[0., 0., 0., 0.], [0., 0., 0., 0.], [0., 0., 0., 0.]]]
+
+      self.assertAllClose(expected_out, v)
+
   def testDepthConvLastWnTanh(self):
     dilation = [1, 1]
     stride = [2, 2]
@@ -282,7 +388,13 @@ class ConvPaddedLayersTest(test_utils.TestCase):
           conv_last=conv_last,
           causal_convolution=causal_conv)
       builder_params = conv_layers_builder.Builder.Params().Set(
-          use_bn=batch_norm, weight_norm=weight_norm)
+          weight_norm=weight_norm)
+      if batch_norm:
+        norm_p = conv_layers_with_time_padding.ConvBatchNormLayer.Params().Set(
+            decay=0.999)
+        builder_params.norm_layer_tpl = norm_p
+      else:
+        builder_params.norm_layer_tpl = None
       p2 = builder_params.Instantiate().SeparableConv2D(
           'conv_2d02',
           in_dim,
@@ -383,6 +495,52 @@ class ConvPaddedLayersTest(test_utils.TestCase):
                                   weight_norm, in_dim, depth_multiplier,
                                   out_dim, filter_shape, conv_last, causal_conv,
                                   assert_equality=False)
+
+  def testSeparableConvGn(self):
+    dilation = [1, 1]
+    stride = [2, 2]
+    activation = 'TANH'
+    in_dim = 4
+    depth_multiplier = 1
+    out_dim = 2
+    filter_shape = [2, 1]
+    conv_last = True
+    causal_conv = True
+
+    with self.session(use_gpu=True) as sess:
+      builder_params = conv_layers_builder.Builder.Params().Set(
+          weight_norm=True)
+      builder_params.norm_layer_tpl = bn_layers.GroupNormLayer.Params().Set(
+          num_groups=2)
+      p = builder_params.Instantiate().SeparableConv2D(
+          'conv_2d02',
+          in_dim,
+          out_dim,
+          depth_multiplier,
+          filter_shape,
+          stride=stride,
+          activation=activation,
+          dilation=dilation,
+          conv_last=conv_last,
+          is_causal=causal_conv)
+
+      l = p.Instantiate()
+
+      conv_in = tf.constant(np.random.normal(size=[4, 5, 6, 4]), tf.float32)
+      conv_pad = np.full([4, 5], 0.0)
+      conv_pad[2, 3] = 1.0
+      conv_pad[2, 4] = 1.0
+      conv_pad = tf.constant(conv_pad, tf.float32)
+      conv_out, _ = l.FProp(l.theta, conv_in, conv_pad)
+      tf.global_variables_initializer().run()
+      v = sess.run(tf.reduce_sum(conv_out, 0))
+
+      expected_out = [[[0.00963847, -0.04019006], [0.36265337, -0.06592329],
+                       [0.65582913, -0.1533944]],
+                      [[0.7512939, -0.7282307], [0.96100605, -1.9509676],
+                       [0.4639647, 0.2485837]], [[0., 0.], [0., 0.], [0., 0.]]]
+
+      self.assertAllClose(expected_out, v)
 
 
 class CausalPoolingLayerTest(test_utils.TestCase, parameterized.TestCase):

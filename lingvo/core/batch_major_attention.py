@@ -2468,6 +2468,8 @@ class Builder(builder.Base):
              'Whether using per_dim_scale or scaling by a constant factor.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
     p.Define('use_bias', True, 'Whether to use bias for projection layer.')
+    p.Define('norm_layer_tpl', None,
+             'If specified, the normalization layer template.')
     return p
 
   def __init__(self, params):
@@ -2594,6 +2596,8 @@ class Builder(builder.Base):
     """A depthwise convolution block for lightweight conv."""
     p = self.params
     conv_builder_params = conv_layers.Builder.Params()
+    if p.norm_layer_tpl:
+      conv_builder_params.norm_layer_tpl = p.norm_layer_tpl
     conv_builder = conv_builder_params.Instantiate()
     return conv_builder.DepthwiseConv2D(
         name=name,

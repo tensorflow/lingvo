@@ -130,7 +130,9 @@ class Builder(builder.Base):
   @classmethod
   def Params(cls):
     p = super(Builder, cls).Params()
-    p.Define('use_bn', True, 'Add additional bn layers to conv layers or not.')
+    p.Define('norm_layer_tpl',
+             ConvBatchNormLayer.Params().Set(decay=0.999),
+             'If specified, the normalization layer template.')
     p.Define('weight_norm', False, 'Add weight norm for kernel weights or not.')
     return p
 
@@ -141,18 +143,18 @@ class Builder(builder.Base):
     """Bias layer. The bias is added to the last dimension of the input."""
     return BiasLayer.Params().Set(name=name, dims=dims)
 
-  def _BN(self, name, dims, decay=0.999):
-    return ConvBatchNormLayer.Params().Set(name=name, dim=dims, decay=decay)
+  def _Norm(self, name, dims):
+    return self.params.norm_layer_tpl.Copy().Set(name=name, dim=dims)
 
-  def _BiasOrBN(self, name, dims):
-    if self.params.use_bn:
-      return self._BN(name, dims)
+  def _NormOrBias(self, name, dims):
+    if self.params.norm_layer_tpl:
+      return self._Norm(name, dims)
     else:
       return self._Bias(name, dims)
 
-  def _MaybeBN(self, name, dims):
-    if self.params.use_bn:
-      return self._BN(name, dims)
+  def _MaybeNorm(self, name, dims):
+    if self.params.norm_layer_tpl:
+      return self._Norm(name, dims)
     else:
       return self._Id(name)
 
@@ -219,7 +221,7 @@ class Builder(builder.Base):
       dilation = [1, 1]
     if conv_last:
       layers_in_sequence = [
-          self._MaybeBN('bn', in_dim),
+          self._MaybeNorm('bn', in_dim),
           self._Activation('act', activation),
           self._RawConv2D('conv_2d', in_dim, out_dim, filter_shape, stride,
                           dilation, is_causal),
@@ -230,7 +232,7 @@ class Builder(builder.Base):
       layers_in_sequence = [
           self._RawConv2D('conv_2d', in_dim, out_dim, filter_shape, stride,
                           dilation, is_causal),
-          self._BiasOrBN('bn_or_bias', out_dim),
+          self._NormOrBias('bn_or_bias', out_dim),
           self._Activation('act', activation),
           self._Padding('pad')
       ]
@@ -252,7 +254,7 @@ class Builder(builder.Base):
       dilation = [1, 1]
     if conv_last:
       layers_in_sequence = [
-          self._MaybeBN('bn', in_dim),
+          self._MaybeNorm('bn', in_dim),
           self._Activation('act', activation),
           self._RawDepthwiseConv2D('conv_2d', in_dim, depth_multiplier,
                                    filter_shape, stride, dilation, is_causal),
@@ -263,7 +265,7 @@ class Builder(builder.Base):
       layers_in_sequence = [
           self._RawDepthwiseConv2D('conv_2d', in_dim, depth_multiplier,
                                    filter_shape, stride, dilation, is_causal),
-          self._BiasOrBN('bn_or_bias', in_dim * depth_multiplier),
+          self._NormOrBias('bn_or_bias', in_dim * depth_multiplier),
           self._Activation('act', activation),
           self._Padding('pad')
       ]
@@ -286,7 +288,7 @@ class Builder(builder.Base):
       dilation = [1, 1]
     if conv_last:
       layers_in_sequence = [
-          self._MaybeBN('bn', in_dim),
+          self._MaybeNorm('bn', in_dim),
           self._Activation('act', activation),
           self._RawDepthwiseConv2D('conv_2d', in_dim, depth_multiplier,
                                    filter_shape, stride, dilation, is_causal),
@@ -317,7 +319,7 @@ class Builder(builder.Base):
               stride=[1, 1],
               dilation=[1, 1],
               is_causal=False),
-          self._BiasOrBN('bn_or_bias', out_dim),
+          self._NormOrBias('bn_or_bias', out_dim),
           self._Activation('act', activation),
           self._Padding('pad')
       ]
