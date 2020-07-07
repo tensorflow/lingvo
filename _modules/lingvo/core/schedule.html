@@ -743,18 +743,37 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;initial_value&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">,</span> <span class="s1">&#39;Initial decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;final_value&#39;</span><span class="p">,</span> <span class="mf">0.</span><span class="p">,</span> <span class="s1">&#39;Final decay value.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;total_steps&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of steps to reach full decay.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_splits&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Specifies the intended number of splits for the &#39;</span>
+        <span class="s1">&#39;LR. Overrides num_splits_per_client if non-zero. Uses &#39;</span>
+        <span class="s1">&#39;num_splits_per_client as num_splits if zero or negative.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">LinearRampupCosineSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># We always compute lr schedule from the trainer&#39;s perspective.</span>
+    <span class="c1"># Also note that this schedule makes sense to sync training only.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">splits</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_splits</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="c1"># Infer num_splits from cluster.</span>
+      <span class="n">cluster_params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">cluster_params</span><span class="o">.</span><span class="n">task</span> <span class="o">=</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">cluster_params</span><span class="o">.</span><span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;sync&#39;</span>
+      <span class="n">cluster_params</span><span class="o">.</span><span class="n">job</span> <span class="o">=</span> <span class="s1">&#39;trainer_client&#39;</span>
+      <span class="n">my_cluster</span> <span class="o">=</span> <span class="n">cluster_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="n">splits</span> <span class="o">=</span> <span class="n">my_cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
+
     <span class="n">schedules</span> <span class="o">=</span> <span class="p">[</span>
         <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span><span class="p">),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">)),</span>
+            <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">warmup_init</span> <span class="o">*</span> <span class="n">splits</span><span class="p">),</span>
+            <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">warmup_steps</span> <span class="o">//</span> <span class="n">splits</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">*</span> <span class="n">splits</span><span class="p">)),</span>
         <span class="n">CosineSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span><span class="p">,</span>
-            <span class="n">final_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">final_value</span><span class="p">,</span>
-            <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span><span class="p">),</span>
+            <span class="n">initial_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">initial_value</span> <span class="o">*</span> <span class="n">splits</span><span class="p">,</span>
+            <span class="n">final_value</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">final_value</span> <span class="o">*</span> <span class="n">splits</span><span class="p">,</span>
+            <span class="n">total_steps</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">total_steps</span> <span class="o">//</span> <span class="n">splits</span><span class="p">),</span>
     <span class="p">]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;combine&#39;</span><span class="p">,</span>
                      <span class="n">CombinedMinimumSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">schedules</span><span class="o">=</span><span class="n">schedules</span><span class="p">))</span>
