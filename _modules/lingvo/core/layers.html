@@ -2694,11 +2694,10 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;ids should be tf.int32, but is </span><span class="si">%s</span><span class="s1">!&#39;</span><span class="p">,</span> <span class="n">ids</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
       <span class="n">ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
-      <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
-              <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
-      <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
+            <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
+    <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
     <span class="n">flat_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
     <span class="n">embs_result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fprop</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">QWeight</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">wm</span><span class="p">),</span> <span class="n">flat_ids</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">global_vn</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">vn</span><span class="o">.</span><span class="n">per_step_vn</span><span class="p">:</span>
@@ -2769,11 +2768,10 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">del</span> <span class="n">theta</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
-      <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
-              <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
-      <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
+            <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;vocab_id_validation&#39;</span><span class="p">)</span>
+    <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
     <span class="n">low_confidence</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">uncertainty</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">high_confidence</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">uncertainty</span>
     <span class="n">embs_result</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
@@ -3459,11 +3457,14 @@
 
 <div class="viewcode-block" id="SharedSoftmaxLayer.EmbLookup"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SharedSoftmaxLayer.EmbLookup">[docs]</a>  <span class="k">def</span> <span class="nf">EmbLookup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">():</span>
-      <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
-              <span class="n">ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;class_id_validation&#39;</span><span class="p">)</span>
-      <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
+    <span class="n">ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span>
+            <span class="n">ids</span><span class="p">,</span>
+            <span class="mi">0</span><span class="p">,</span>
+            <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span>
+            <span class="n">summarize</span><span class="o">=</span><span class="mi">100000</span><span class="p">,</span>
+            <span class="n">message</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:class_id_validation&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
+    <span class="p">],</span> <span class="n">ids</span><span class="p">)</span>
 
     <span class="n">wm</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ConcatWeights</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span><span class="o">.</span><span class="n">wm</span>
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_transpose_weight_params</span><span class="p">:</span>

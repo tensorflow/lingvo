@@ -1002,6 +1002,28 @@ defined by the init parameters.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.py_utils.WeightInit.UniformUnitScalingFanAvg">
+<em class="property">static </em><code class="sig-name descname">UniformUnitScalingFanAvg</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.UniformUnitScalingFanAvg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.UniformUnitScalingFanAvg" title="Permalink to this definition">¶</a></dt>
+<dd><p>Same as tf.variance_scaling_initializer() …</p>
+<p>Samples are drawn from a uniform distribution within [-limit, limit], with
+limit = sqrt(3 * scale / n)</p>
+<p>where
+n = max(1., (fan_in + fan_out) / 2).
+See tf.keras.initializers.VarianceScaling for details.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>scale</strong> – A Python float.</p></li>
+<li><p><strong>seed</strong> – A Python int or None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A WeightInit param.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">
 <em class="property">static </em><code class="sig-name descname">TruncatedGaussianSqrtDim</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">scale</span><span class="o">=</span><span class="default_value">1.0</span></em>, <em class="sig-param"><span class="n">seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#WeightInit.TruncatedGaussianSqrtDim"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim" title="Permalink to this definition">¶</a></dt>
 <dd><p>scale * tf.random.truncated_normal(0, 1 / sqrt(dim0)).</p>
@@ -1719,7 +1741,8 @@ weight is a float and each metrics is a dict with str keys and
 <dl class="py function">
 <dt id="lingvo.core.py_utils.GenerateStepSeedPair">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GenerateStepSeedPair</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="n">global_step</span></em>, <em class="sig-param"><span class="n">op_seed</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GenerateStepSeedPair"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GenerateStepSeedPair" title="Permalink to this definition">¶</a></dt>
-<dd><p>Generates a seed pair for deterministic random operations in functional loops.</p>
+<dd><p>Generates a seed pair for deterministic random operations in …</p>
+<p>functional loops.</p>
 <p>This function retrieves a unique seed pair on each call, based off the current
 global step and step seed. The step seed ensures this function returns a
 unique seed pair on each call: calling this function automatically increments

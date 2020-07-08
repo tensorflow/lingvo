@@ -337,9 +337,13 @@
 
 
 <div class="viewcode-block" id="assert_between"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_between">[docs]</a><span class="k">def</span> <span class="nf">assert_between</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
-  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>
-      <span class="n">Assert</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">)),</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
-      <span class="n">Assert</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r</span><span class="p">)),</span> <span class="p">[</span><span class="n">x</span><span class="p">],</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">))</span></div>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">l</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">l</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">r</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">([</span>
+      <span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">),</span>
+      <span class="n">assert_less</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+  <span class="p">])</span></div>
 
 
 <div class="viewcode-block" id="assert_shape_match"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.assert_shape_match">[docs]</a><span class="k">def</span> <span class="nf">assert_shape_match</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>  <span class="c1"># pylint: disable=invalid-name</span>
@@ -1403,6 +1407,26 @@
     <span class="sd">&quot;&quot;&quot;scale * sqrt(3) / sqrt(dim0) * tf.uniform(-1, 1).&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="WeightInit.UniformUnitScalingFanAvg"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.UniformUnitScalingFanAvg">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">UniformUnitScalingFanAvg</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Same as tf.variance_scaling_initializer() ...</span>
+
+<span class="sd">    Samples are drawn from a uniform distribution within [-limit, limit], with</span>
+<span class="sd">    limit = sqrt(3 * scale / n)</span>
+
+<span class="sd">    where</span>
+<span class="sd">    n = max(1., (fan_in + fan_out) / 2).</span>
+<span class="sd">    See tf.keras.initializers.VarianceScaling for details.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      scale: A Python float.</span>
+<span class="sd">      seed: A Python int or None.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A WeightInit param.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">WeightInit</span><span class="o">.</span><span class="n">_Params</span><span class="p">(</span><span class="s1">&#39;uniform_unit_scaling_fan_avg&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="WeightInit.TruncatedGaussianSqrtDim"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightInit.TruncatedGaussianSqrtDim">[docs]</a>  <span class="nd">@staticmethod</span>
   <span class="k">def</span> <span class="nf">TruncatedGaussianSqrtDim</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;scale * tf.random.truncated_normal(0, 1 / sqrt(dim0)).&quot;&quot;&quot;</span>
@@ -1779,6 +1803,13 @@
   <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling&#39;</span><span class="p">]:</span>
     <span class="n">v_init</span> <span class="o">=</span> <span class="n">init_ops</span><span class="o">.</span><span class="n">uniform_unit_scaling_initializer</span><span class="p">(</span>
         <span class="n">factor</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
+  <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;uniform_unit_scaling_fan_avg&#39;</span><span class="p">]:</span>
+    <span class="n">v_init</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">variance_scaling_initializer</span><span class="p">(</span>
+        <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span>
+        <span class="n">model</span><span class="o">=</span><span class="s1">&#39;fan_avg&#39;</span><span class="p">,</span>
+        <span class="n">distribution</span><span class="o">=</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">init_dtype</span><span class="p">)</span>
   <span class="k">elif</span> <span class="n">method</span> <span class="ow">in</span> <span class="p">[</span>
       <span class="s1">&#39;truncated_gaussian&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_dim&#39;</span><span class="p">,</span>
       <span class="s1">&#39;truncated_gaussian_sqrt_fanin&#39;</span><span class="p">,</span> <span class="s1">&#39;truncated_gaussian_sqrt_fanout&#39;</span>
@@ -1824,6 +1855,7 @@
     <span class="k">def</span> <span class="nf">ComplexWrapper</span><span class="p">(</span><span class="n">init</span><span class="p">):</span>
 
       <span class="k">def</span> <span class="nf">_Wrapper</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="p">,</span> <span class="n">partition_info</span><span class="p">):</span>
+        <span class="k">del</span> <span class="n">dtype</span>
         <span class="c1"># A more complex alternative may be to use the init function for</span>
         <span class="c1"># magnitudes and uniform random for phases instead.</span>
         <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span>
@@ -2922,7 +2954,9 @@
 
 
 <div class="viewcode-block" id="GenerateStepSeedPair"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GenerateStepSeedPair">[docs]</a><span class="k">def</span> <span class="nf">GenerateStepSeedPair</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">op_seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Generates a seed pair for deterministic random operations in functional loops.</span>
+  <span class="sd">&quot;&quot;&quot;Generates a seed pair for deterministic random operations in ...</span>
+
+<span class="sd">  functional loops.</span>
 
 <span class="sd">  This function retrieves a unique seed pair on each call, based off the current</span>
 <span class="sd">  global step and step seed. The step seed ensures this function returns a</span>
