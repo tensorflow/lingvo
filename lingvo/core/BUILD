@@ -209,6 +209,7 @@ py_test(
         ":base_input_generator",
         ":cluster_factory",
         ":hyperparams",
+        ":py_utils",
         ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
         "//lingvo:compat",

@@ -1002,9 +1002,10 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
   symbol with the same identifier with given `name`.
 
   Example:
-    >>> # A tf.data pipeline function defined externally.
+    >>> # A tf.data pipeline which returns a dict of Tensors.
     >>> def my_dataset(begin=0, end=10):
-    ...   return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+    ...   ds = tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+    ...   return ds.map(lambda x: {'value': x})
 
     >>> # Defines the InputGenerator class for my_dataset.
     >>> MyInput = DefineTFDataInput('MyInput', my_dataset)
@@ -1019,20 +1020,26 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
     >>> assert isinstance(ig, MyInput)
 
     >>> # Obtains the data tensors.
+
+    >>> # In TFv1:
     >>> data = ig.GetPreprocessedInputBatch()
     >>> with tf.Session() as sess:
-    ...   assert sess.run(data) == 0
-    ...   assert sess.run(data) == 1
-    ...   assert sess.run(data) == 2
+    ...   values = sess.run(data)  # {'value': 0}
+    ...   values = sess.run(data)  # {'value': 1}
+    ...   values = sess.run(data)  # {'value': 2}
 
+    >>> # In TFv2:
+    >>> values = ig.GetPreprocessedInputBatch()  # {'value': 0}
+    >>> values = ig.GetPreprocessedInputBatch()  # {'value': 1}
+    >>> values = ig.GetPreprocessedInputBatch()  # {'value': 2}
 
   Args:
     name: A string, representing the name of the new InputGenerator class.
     func: A callable to be analysed to generate the new InputGenerator. The
-      return value of `func` must be a single `tf.data.Dataset` representing the
-      pipeline. The signature (parameter list) of `func` must have all explicit
-      parameters needed to configure the pipeline. `*args` and `**kwargs`
-      parameters would be ignored from defining `Params`.
+      return value of `func` must be a single `tf.data.Dataset` which yields a
+      dict or its subclasses. The signature (parameter list) of `func` must have
+      all explicit parameters needed to configure the pipeline. `*args` and
+      `**kwargs` parameters would be ignored from defining `Params`.
     ignore_args: A collection of strings, representing the set of parameter
       names to be ignored from defining `Params`.
     map_args: A {str: str} dict, representing mappings from existing fields in
@@ -1045,9 +1052,11 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
       to avoid duplicated definitions about the same parameters.
 
   Returns:
-    A new InputGenerator class that invokes `func` internally. The `Params`
+    A new InputGenerator class that invokes `func` internally. The `Params()`
     method of the returned class makes a new Params containing the `args` field
-    representing the parameters of `func`.
+    representing the parameters of `func`. The `GetPreprocessedInputBatch()`
+    method returns a `py_utils.NestedMap` representing the same dict of the
+    obtained data from the dataset.
   """
   ignore_args = set(ignore_args if ignore_args is not None else ())
   map_args = dict(map_args if map_args is not None else {})
@@ -1104,7 +1113,18 @@ def DefineTFDataInput(name, func, ignore_args=None, map_args=None):
 
     # TFv1: Returns Tensors which will be determined by Session.run().
     # TFv2: Returns Tensors with actual values.
-    return self.iterator.get_next()
+    data = self.iterator.get_next()
+
+    # Converts dict to NestedMap to maintain consistency with existing
+    # functionalities in base_input_generator.
+    # TODO(oday): Consider mitigating this restriction.
+    assert isinstance(data, dict), (
+        'DefineTFDataInput accepts only datasets that returns a dict or its '
+        'subclasses.')
+    if not isinstance(data, py_utils.NestedMap):
+      data = py_utils.NestedMap.FromNestedDict(data)
+
+    return data
 
   # Overrides member methods.
   generated_cls.Params = _Params

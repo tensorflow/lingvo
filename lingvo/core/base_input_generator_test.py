@@ -23,6 +23,7 @@ import lingvo.compat as tf
 from lingvo.core import base_input_generator
 from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
+from lingvo.core import py_utils
 from lingvo.core import test_utils
 import mock
 import numpy as np
@@ -159,27 +160,32 @@ class BaseExampleInputGeneratorTest(test_utils.TestCase):
 # Dataset pipelines for TFDataInputTest.
 def _TestDatasetFn(begin=0, end=10):
   """Test tf.data pipeline."""
-  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  return ds.map(lambda x: {'value': x})
 
 
 def _TestDatasetFnWithoutDefault(begin, end=10):
   """Test tf.data pipeline with non-defaulted parameters."""
-  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  return ds.map(lambda x: {'value': x})
 
 
 def _TestDatasetFnWithRepeat(begin=0, end=10):
   """Test tf.data pipeline with repeat."""
-  return tf.data.Dataset.from_tensor_slices(tf.range(begin, end)).repeat()
+  ds = tf.data.Dataset.from_tensor_slices(tf.range(begin, end)).repeat()
+  return ds.map(lambda x: {'value': x})
 
 
 def _TestDatasetFnV1(begin=0, end=10):
   """Similar to _TestDatasetFn but returns TFv1's dataset explicitly."""
-  return tf1.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf1.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  return ds.map(lambda x: {'value': x})
 
 
 def _TestDatasetFnV2(begin=0, end=10):
   """Similar to _TestDatasetFn but returns TFv2's dataset explicitly."""
-  return tf2.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  ds = tf2.data.Dataset.from_tensor_slices(tf.range(begin, end))
+  return ds.map(lambda x: {'value': x})
 
 
 class _TestDatasetClass:
@@ -189,7 +195,8 @@ class _TestDatasetClass:
     self._begin = begin
 
   def DatasetFn(self, end=10):
-    return tf.data.Dataset.from_tensor_slices(tf.range(self._begin, end))
+    ds = tf.data.Dataset.from_tensor_slices(tf.range(self._begin, end))
+    return ds.map(lambda x: {'value': x})
 
 
 # A class object which will be instantiated at importing the module.
@@ -243,13 +250,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -269,13 +277,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -293,13 +302,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -320,13 +330,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.num_samples):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -346,13 +357,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -371,14 +383,15 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Runs the dataset several times: it should not raise OutOfRangeError.
       for _ in range(3):
         for i in range(p.args.begin, p.args.end):
-          self.assertEqual(sess.run(data), i)
+          self.assertEqual(sess.run(data).value, i)
 
   def testWithBoundMethod(self):
     """Tests pipeline defined by a bound method: member function with self."""
@@ -393,13 +406,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -418,13 +432,14 @@ class TFDataInputTest(test_utils.TestCase):
 
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
@@ -445,13 +460,14 @@ class TFDataInputTest(test_utils.TestCase):
     # TODO(oday): write TFv2-specific tests.
     with self.session(graph=tf.get_default_graph()) as sess:
       data = ig.GetPreprocessedInputBatch()
-      self.assertIsInstance(data, tf.Tensor)
-      self.assertAllEqual(data.shape, ())
-      self.assertEqual(data.dtype, tf.int32)
+      self.assertIsInstance(data, py_utils.NestedMap)
+      self.assertIsInstance(data.value, tf.Tensor)
+      self.assertAllEqual(data.value.shape, ())
+      self.assertEqual(data.value.dtype, tf.int32)
 
       # Consumes all data.
       for i in range(p.args.begin, p.args.end):
-        self.assertEqual(sess.run(data), i)
+        self.assertEqual(sess.run(data).value, i)
 
       with self.assertRaises(tf.errors.OutOfRangeError):
         sess.run(data)
