@@ -181,6 +181,53 @@ class CheckpointerTest(test_utils.TestCase):
     self.assertFalse(
         os.path.isfile(os.path.join(train_dir, 'ckpt-00000000.index')))
 
+  def testInitRulesDirectory(self):
+    train_dir = os.path.join(self.get_temp_dir(), 'testInitRulesDirectory')
+    os.mkdir(train_dir)
+    p = base_model.SingleTaskModel.Params(LinearModel.Params())
+    p.input = base_input_generator.BaseInputGenerator.Params()
+    b1 = 1234
+    g1 = 10
+    b2 = 12345
+    g2 = 100
+
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      self.evaluate(tf.global_variables_initializer())
+      saver = checkpointer.Checkpointer(train_dir, model)
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), g1))
+      self.evaluate(tf.assign(model.GetTask().vars.b, b1))
+      saver.Save(sess, model.global_step)
+      self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), g2))
+      self.evaluate(tf.assign(model.GetTask().vars.b, b2))
+      saver.Save(sess, model.global_step)
+
+    train_dir_2 = os.path.join(self.get_temp_dir(), 'testInitRulesDirectory_2')
+
+    # Set init_checkpoint_rules to only restore b from a specific ckpt
+    # the first one, not the latest one.
+    rules = [('(.*)', '%s')]
+    spec_dir = os.path.join(train_dir, 'ckpt-00000010')
+    p.train.init_from_checkpoint_rules = {spec_dir: (rules, [])}
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      saver = checkpointer.Checkpointer(train_dir_2, model)
+      saver.RestoreIfNeeded(sess)
+      new_b = self.evaluate(model.GetTask().vars.b)
+      self.assertEqual(b1, new_b)
+
+    # Set init_checkpoint_rules to restore all from the latest checkpoint
+    # by specifying just the original train directory, not a specific
+    # checkpoint.
+    rules = [('(.*)', '%s')]
+    p.train.init_from_checkpoint_rules = {train_dir: (rules, [])}
+    with self.session(graph=tf.Graph()) as sess:
+      model = p.Instantiate()
+      saver = checkpointer.Checkpointer(train_dir_2, model)
+      saver.RestoreIfNeeded(sess)
+      new_b = self.evaluate(model.GetTask().vars.b)
+      self.assertEqual(b2, new_b)
+
   def testSaveOnly(self):
     train_dir = os.path.join(self.get_temp_dir(), 'testSaveOnly')
     os.mkdir(train_dir)

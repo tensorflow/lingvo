@@ -162,21 +162,24 @@ class Checkpointer:
     sess.run(tf.global_variables_initializer())
     tf.logging.info('Initialized all vars.')
 
+    # TODO(b/160786085): Move this logic into Overriding vars logic itself,
+    # which requires refactoring things out of py_utils to avoid circular deps.
+    def _ResolveCkptPath(ckpt_rules):
+      return {GetSpecificCheckpoint(k): v for k, v in ckpt_rules.items()}
+
     # Restore specific variables based on init_from_checkpoint_rules.
     for task in self._model.tasks:
       tp = task.params.train
       if tp.init_from_checkpoint_rules:
-        tf.logging.info('OverrideVarsFromCheckpoints %s',
-                             tp.init_from_checkpoint_rules)
-        py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
-                                             tp.init_from_checkpoint_rules)
+        rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
+        tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
+        py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(), rules)
 
     if self._params.train.init_from_checkpoint_rules:
       tp = self._params.train
-      tf.logging.info('OverrideVarsFromCheckpoints %s',
-                           tp.init_from_checkpoint_rules)
-      py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(),
-                                           tp.init_from_checkpoint_rules)
+      rules = _ResolveCkptPath(tp.init_from_checkpoint_rules)
+      tf.logging.info('OverrideVarsFromCheckpoints %s', rules)
+      py_utils.OverrideVarsFromCheckpoints(sess, tf.global_variables(), rules)
 
   def RestoreIfNeeded(self, sess):
     """If vars are not initialized, restore from checkpoint."""
@@ -211,3 +214,40 @@ class Checkpointer:
     else:
       tf.logging.info('Initializing global step')
       sess.run(gstep.initializer)
+
+
+def GetSpecificCheckpoint(load_checkpoint_from):
+  """Returns a specific checkpoint given `load_checkpoint_from`.
+
+  When load_checkpoint_from is a directory, we find the latest
+  checkpoint in the directory and use that as the checkpoint
+  to evaluate.
+
+  When load_checkpoint_from is a specific checkpoint, we
+  validate the path and return it.
+
+  Args:
+    load_checkpoint_from: If not None, specifies the directory or specific
+      checkpoint to load.  If a directory, the latest checkpoint in the
+      directory will be used.
+  """
+  if not load_checkpoint_from:
+    return None
+
+  # If load_checkpoint_from is a directory, return the latest
+  # checkpoint in the directory.
+  if tf.io.gfile.isdir(load_checkpoint_from):
+    return tf.train.latest_checkpoint(load_checkpoint_from)
+
+  # We assume that load_checkpoint_from is a specific checkpoint to
+  # evaluate since it is not a directory.
+  #
+  # Check validity of eval path by looking for the index file.
+  if tf.io.gfile.exists(load_checkpoint_from + '.index'):
+    return load_checkpoint_from
+
+  # Fail if we see an unexpected load_checkpoint_from.
+  #
+  # This might happen if load_checkpoint_from refers to a checkpoint
+  # but the index file cannot be found.
+  raise ValueError('Invalid load_checkpoint_from: %s' % load_checkpoint_from)

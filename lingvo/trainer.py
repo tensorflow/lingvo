@@ -904,44 +904,6 @@ class TrainerTpu(base_runner.BaseRunner):
             total_train_steps_secs=train_steps_secs)
 
 
-def _GetSpecificCheckpoint(load_checkpoint_from):
-  """Returns a specific checkpoint given `load_checkpoint_from`.
-
-  When load_checkpoint_from is a directory, we find the latest
-  checkpoint in the directory and use that as the checkpoint
-  to evaluate.
-
-  When load_checkpoint_from is a specific checkpoint, we
-  validate the path and return it.
-
-  Args:
-    load_checkpoint_from: If not None, specifies the directory or specific
-      checkpoint to load.  If a directory, the latest checkpoint in the
-      directory will be used.
-  """
-  if not load_checkpoint_from:
-    # No location specified, use existing train_dir.
-    return None
-
-  # If load_checkpoint_from is a directory, return the latest
-  # checkpoint in the directory.
-  if tf.io.gfile.isdir(load_checkpoint_from):
-    return tf.train.latest_checkpoint(load_checkpoint_from)
-
-  # We assume that load_checkpoint_from is a specific checkpoint to
-  # evaluate since it is not a directory.
-  #
-  # Check validity of eval path by looking for the index file.
-  if tf.io.gfile.exists(load_checkpoint_from + '.index'):
-    return load_checkpoint_from
-
-  # Fail if we see an unexpected load_checkpoint_from.
-  #
-  # This might happen if load_checkpoint_from refers to a checkpoint
-  # but the index file cannot be found.
-  raise ValueError('Invalid load_checkpoint_from: %s' % load_checkpoint_from)
-
-
 class Evaler(base_runner.BaseRunner):
   """Evaler."""
 
@@ -959,7 +921,7 @@ class Evaler(base_runner.BaseRunner):
     self._eval_path = None
     # Multitask params doesn't have 'task'.
     if 'task' in self.params:
-      self._eval_path = _GetSpecificCheckpoint(
+      self._eval_path = checkpointer.GetSpecificCheckpoint(
           self.params.task.eval.load_checkpoint_from)
 
     self._summary_writer = self._CreateSummaryWriter(self._eval_dir)
@@ -1153,7 +1115,7 @@ class Decoder(base_runner.BaseRunner):
     self._decode_path = None
     # Multitask params doesn't have 'task'.
     if 'task' in self.params:
-      self._decode_path = _GetSpecificCheckpoint(
+      self._decode_path = checkpointer.GetSpecificCheckpoint(
           self.params.task.eval.load_checkpoint_from)
 
     self._summary_writer = self._CreateSummaryWriter(self._decoder_dir)
