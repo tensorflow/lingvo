@@ -182,6 +182,20 @@
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.tasks.asr.fusion.FusionBase._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed. eg, if children variables need to
+be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compabilitiy. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateVariables().</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.tasks.asr.fusion.FusionBase.zero_state">
 <code class="sig-name descname">zero_state</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">batch_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/asr/fusion.html#FusionBase.zero_state"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.asr.fusion.FusionBase.zero_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns initial model state for fusion model.</p>
