@@ -1150,9 +1150,10 @@
 <span class="sd">  symbol with the same identifier with given `name`.</span>
 
 <span class="sd">  Example:</span>
-<span class="sd">    &gt;&gt;&gt; # A tf.data pipeline function defined externally.</span>
+<span class="sd">    &gt;&gt;&gt; # A tf.data pipeline which returns a dict of Tensors.</span>
 <span class="sd">    &gt;&gt;&gt; def my_dataset(begin=0, end=10):</span>
-<span class="sd">    ...   return tf.data.Dataset.from_tensor_slices(tf.range(begin, end))</span>
+<span class="sd">    ...   ds = tf.data.Dataset.from_tensor_slices(tf.range(begin, end))</span>
+<span class="sd">    ...   return ds.map(lambda x: {&#39;value&#39;: x})</span>
 
 <span class="sd">    &gt;&gt;&gt; # Defines the InputGenerator class for my_dataset.</span>
 <span class="sd">    &gt;&gt;&gt; MyInput = DefineTFDataInput(&#39;MyInput&#39;, my_dataset)</span>
@@ -1167,20 +1168,26 @@
 <span class="sd">    &gt;&gt;&gt; assert isinstance(ig, MyInput)</span>
 
 <span class="sd">    &gt;&gt;&gt; # Obtains the data tensors.</span>
+
+<span class="sd">    &gt;&gt;&gt; # In TFv1:</span>
 <span class="sd">    &gt;&gt;&gt; data = ig.GetPreprocessedInputBatch()</span>
 <span class="sd">    &gt;&gt;&gt; with tf.Session() as sess:</span>
-<span class="sd">    ...   assert sess.run(data) == 0</span>
-<span class="sd">    ...   assert sess.run(data) == 1</span>
-<span class="sd">    ...   assert sess.run(data) == 2</span>
+<span class="sd">    ...   values = sess.run(data)  # {&#39;value&#39;: 0}</span>
+<span class="sd">    ...   values = sess.run(data)  # {&#39;value&#39;: 1}</span>
+<span class="sd">    ...   values = sess.run(data)  # {&#39;value&#39;: 2}</span>
 
+<span class="sd">    &gt;&gt;&gt; # In TFv2:</span>
+<span class="sd">    &gt;&gt;&gt; values = ig.GetPreprocessedInputBatch()  # {&#39;value&#39;: 0}</span>
+<span class="sd">    &gt;&gt;&gt; values = ig.GetPreprocessedInputBatch()  # {&#39;value&#39;: 1}</span>
+<span class="sd">    &gt;&gt;&gt; values = ig.GetPreprocessedInputBatch()  # {&#39;value&#39;: 2}</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    name: A string, representing the name of the new InputGenerator class.</span>
 <span class="sd">    func: A callable to be analysed to generate the new InputGenerator. The</span>
-<span class="sd">      return value of `func` must be a single `tf.data.Dataset` representing the</span>
-<span class="sd">      pipeline. The signature (parameter list) of `func` must have all explicit</span>
-<span class="sd">      parameters needed to configure the pipeline. `*args` and `**kwargs`</span>
-<span class="sd">      parameters would be ignored from defining `Params`.</span>
+<span class="sd">      return value of `func` must be a single `tf.data.Dataset` which yields a</span>
+<span class="sd">      dict or its subclasses. The signature (parameter list) of `func` must have</span>
+<span class="sd">      all explicit parameters needed to configure the pipeline. `*args` and</span>
+<span class="sd">      `**kwargs` parameters would be ignored from defining `Params`.</span>
 <span class="sd">    ignore_args: A collection of strings, representing the set of parameter</span>
 <span class="sd">      names to be ignored from defining `Params`.</span>
 <span class="sd">    map_args: A {str: str} dict, representing mappings from existing fields in</span>
@@ -1193,9 +1200,11 @@
 <span class="sd">      to avoid duplicated definitions about the same parameters.</span>
 
 <span class="sd">  Returns:</span>
-<span class="sd">    A new InputGenerator class that invokes `func` internally. The `Params`</span>
+<span class="sd">    A new InputGenerator class that invokes `func` internally. The `Params()`</span>
 <span class="sd">    method of the returned class makes a new Params containing the `args` field</span>
-<span class="sd">    representing the parameters of `func`.</span>
+<span class="sd">    representing the parameters of `func`. The `GetPreprocessedInputBatch()`</span>
+<span class="sd">    method returns a `py_utils.NestedMap` representing the same dict of the</span>
+<span class="sd">    obtained data from the dataset.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">ignore_args</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">ignore_args</span> <span class="k">if</span> <span class="n">ignore_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">())</span>
   <span class="n">map_args</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">map_args</span> <span class="k">if</span> <span class="n">map_args</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">{})</span>
@@ -1252,7 +1261,18 @@
 
     <span class="c1"># TFv1: Returns Tensors which will be determined by Session.run().</span>
     <span class="c1"># TFv2: Returns Tensors with actual values.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+    <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iterator</span><span class="o">.</span><span class="n">get_next</span><span class="p">()</span>
+
+    <span class="c1"># Converts dict to NestedMap to maintain consistency with existing</span>
+    <span class="c1"># functionalities in base_input_generator.</span>
+    <span class="c1"># TODO(oday): Consider mitigating this restriction.</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="nb">dict</span><span class="p">),</span> <span class="p">(</span>
+        <span class="s1">&#39;DefineTFDataInput accepts only datasets that returns a dict or its &#39;</span>
+        <span class="s1">&#39;subclasses.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">):</span>
+      <span class="n">data</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="o">.</span><span class="n">FromNestedDict</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">data</span>
 
   <span class="c1"># Overrides member methods.</span>
   <span class="n">generated_cls</span><span class="o">.</span><span class="n">Params</span> <span class="o">=</span> <span class="n">_Params</span>
