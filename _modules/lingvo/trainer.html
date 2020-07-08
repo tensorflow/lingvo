@@ -643,7 +643,8 @@
         <span class="k">if</span> <span class="n">global_step</span> <span class="o">&gt;=</span> <span class="n">next_status_step</span><span class="p">:</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
-              <span class="n">global_step</span><span class="o">=</span><span class="n">global_step</span><span class="p">,</span>
+              <span class="c1"># Metrics expects python int, but global_step is numpy.int64.</span>
+              <span class="n">global_step</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span>
               <span class="n">step_rate</span><span class="o">=</span><span class="n">step_rate</span><span class="p">,</span>
               <span class="n">example_rate</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)</span>
           <span class="n">next_status_step</span> <span class="o">=</span> <span class="n">global_step</span> <span class="o">+</span> <span class="n">status_interval_steps</span>
@@ -968,6 +969,7 @@
 
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span><span class="p">)</span>
       <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">train_steps_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
           <span class="c1"># Init/restore variable if needed.</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
@@ -991,7 +993,9 @@
               <span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_InfeedLoop</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">sess</span><span class="p">,))</span>
           <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
 
+        <span class="n">tpu_train_op_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
         <span class="n">values</span><span class="p">,</span> <span class="n">outfeeds</span> <span class="o">=</span> <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_tpu_train_ops</span><span class="p">)</span>
+        <span class="n">tpu_train_op_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">tpu_train_op_start</span>
 
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span><span class="p">:</span>
           <span class="n">infeed_loop_thread</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
@@ -1030,8 +1034,22 @@
 
         <span class="bp">self</span><span class="o">.</span><span class="n">_SetStatusMessage</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
 
+        <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">checkpoint_in_trainer_tpu</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span></div></div>
+          <span class="n">checkpoint_write_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+          <span class="n">checkpoint_saved</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">checkpointer</span><span class="o">.</span><span class="n">MaybeSave</span><span class="p">(</span>
+              <span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">checkpoint_saved</span><span class="p">:</span>
+            <span class="n">checkpoint_write_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">checkpoint_write_start</span>
+        <span class="n">train_steps_secs</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">train_steps_start</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
+            <span class="c1"># Metrics expects python int, but global_step is numpy.int64.</span>
+            <span class="n">global_step</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span>
+            <span class="n">step_rate</span><span class="o">=</span><span class="n">step_rate</span><span class="p">,</span>
+            <span class="n">example_rate</span><span class="o">=</span><span class="n">example_rate</span><span class="p">,</span>
+            <span class="n">tpu_train_op_secs</span><span class="o">=</span><span class="n">tpu_train_op_secs</span><span class="p">,</span>
+            <span class="n">checkpoint_write_secs</span><span class="o">=</span><span class="n">checkpoint_write_secs</span><span class="p">,</span>
+            <span class="n">total_train_steps_secs</span><span class="o">=</span><span class="n">train_steps_secs</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="_GetSpecificCheckpoint"><a class="viewcode-back" href="../../lingvo.trainer.html#lingvo.trainer._GetSpecificCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">_GetSpecificCheckpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
@@ -1418,7 +1436,8 @@
         <span class="n">text_filename</span><span class="o">=</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decoder_dir</span><span class="p">,</span>
                                    <span class="s1">&#39;score-</span><span class="si">{:08d}</span><span class="s1">.txt&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">global_step</span><span class="p">)))</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_ExportMetrics</span><span class="p">(</span>
-        <span class="n">decode_checkpoint</span><span class="o">=</span><span class="n">global_step</span><span class="p">,</span>
+        <span class="c1"># Metrics expects python int, but global_step is numpy.int64.</span>
+        <span class="n">decode_checkpoint</span><span class="o">=</span><span class="nb">int</span><span class="p">(</span><span class="n">global_step</span><span class="p">),</span>
         <span class="n">dec_metrics</span><span class="o">=</span><span class="n">dec_metrics</span><span class="p">,</span>
         <span class="n">example_rate</span><span class="o">=</span><span class="n">example_rate</span><span class="p">)</span>
     <span class="c1"># global_step and the checkpoint id from the checkpoint file might be</span>

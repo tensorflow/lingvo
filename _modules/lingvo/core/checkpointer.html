@@ -244,11 +244,15 @@
 <span class="sd">    Args:</span>
 <span class="sd">      sess: tf.Session.</span>
 <span class="sd">      gsteps: Current global step.</span>
+<span class="sd">    Returns:</span>
+<span class="sd">      Whether a checkpoint was saved.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">now</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">now</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">Save</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_next_checkpoint_seconds</span> <span class="o">=</span> <span class="n">now</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_save_interval_seconds</span>
+      <span class="k">return</span> <span class="kc">True</span>
+    <span class="k">return</span> <span class="kc">False</span></div>
 
 <div class="viewcode-block" id="Checkpointer.Save"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.Save">[docs]</a>  <span class="k">def</span> <span class="nf">Save</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">,</span> <span class="n">gsteps</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Save the checkpoint.</span>
