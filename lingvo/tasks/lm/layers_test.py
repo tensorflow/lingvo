@@ -896,6 +896,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     trans_tpl.source_dim = dims
     trans_tpl.tr_atten_tpl.num_attention_heads = 2
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
+    p.random_seed = 12345
     return p
 
   def _SetupGraph(self, p, time, batch, vocab, return_grad=False):
@@ -936,7 +937,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
       xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
-      test_utils.CompareToGoldenSingleFloat(self, 3.15886855,
+      test_utils.CompareToGoldenSingleFloat(self, 3.880267,
                                             xent_output_val.avg_xent)
       self.assertAllEqual(xent_output_val.per_example_argmax,
                           np.argmax(xent_output_val.logits, axis=-1))

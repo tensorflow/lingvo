@@ -50,9 +50,6 @@ class BaseLanguageModel(base_layer.BaseLayer):
     p.vocab_size = vocab_size
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
-
   def zero_state(self, theta, batch_size):
     raise NotImplementedError('Abstract method')
 

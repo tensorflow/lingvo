@@ -91,6 +91,7 @@ class BaseModelsTest(test_utils.TestCase):
   """Base model test class which does not define any test methods of its own."""
 
   def setUp(self):
+    super().setUp()
     self._variable_cache = {}
     _StubOutCreateVariable(self._variable_cache)
 
