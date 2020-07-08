@@ -189,9 +189,13 @@ def assert_less(*args, **kwargs):  # pylint: disable=invalid-name
 
 
 def assert_between(x, l, r, *args, **kwargs):  # pylint: disable=invalid-name
-  return tf.group(
-      Assert(tf.reduce_all(tf.greater_equal(x, l)), [x], *args, **kwargs),
-      Assert(tf.reduce_all(tf.less(x, r)), [x], *args, **kwargs))
+  x = tf.convert_to_tensor(x)
+  l = tf.cast(tf.convert_to_tensor(l), x.dtype)
+  r = tf.cast(tf.convert_to_tensor(r), x.dtype)
+  return tf.group([
+      assert_greater_equal(x, l, *args, **kwargs),
+      assert_less(x, r, *args, **kwargs)
+  ])
 
 
 def assert_shape_match(*args, **kwargs):  # pylint: disable=invalid-name
@@ -1256,6 +1260,26 @@ class WeightInit:
     return WeightInit._Params('uniform_unit_scaling', scale, seed)
 
   @staticmethod
+  def UniformUnitScalingFanAvg(scale=1.0, seed=None):
+    """Same as tf.variance_scaling_initializer() ...
+
+    Samples are drawn from a uniform distribution within [-limit, limit], with
+    limit = sqrt(3 * scale / n)
+
+    where
+    n = max(1., (fan_in + fan_out) / 2).
+    See tf.keras.initializers.VarianceScaling for details.
+
+    Args:
+      scale: A Python float.
+      seed: A Python int or None.
+
+    Returns:
+      A WeightInit param.
+    """
+    return WeightInit._Params('uniform_unit_scaling_fan_avg', scale, seed)
+
+  @staticmethod
   def TruncatedGaussianSqrtDim(scale=1.0, seed=None):
     """scale * tf.random.truncated_normal(0, 1 / sqrt(dim0))."""
     return WeightInit._Params('truncated_gaussian_sqrt_dim', scale, seed)
@@ -1631,6 +1655,13 @@ def CreateVariable(name,
   elif method in ['uniform_unit_scaling']:
     v_init = init_ops.uniform_unit_scaling_initializer(
         factor=scale, seed=seed, dtype=init_dtype)
+  elif method in ['uniform_unit_scaling_fan_avg']:
+    v_init = tf.variance_scaling_initializer(
+        scale=scale,
+        model='fan_avg',
+        distribution='uniform',
+        seed=seed,
+        dtype=init_dtype)
   elif method in [
       'truncated_gaussian', 'truncated_gaussian_sqrt_dim',
       'truncated_gaussian_sqrt_fanin', 'truncated_gaussian_sqrt_fanout'
@@ -1676,6 +1707,7 @@ def CreateVariable(name,
     def ComplexWrapper(init):
 
       def _Wrapper(shape, dtype, partition_info):
+        del dtype
         # A more complex alternative may be to use the init function for
         # magnitudes and uniform random for phases instead.
         shape = [2] + shape
@@ -2774,7 +2806,9 @@ def GetIncStepSeed():
 
 
 def GenerateStepSeedPair(p, global_step, op_seed=None):
-  """Generates a seed pair for deterministic random operations in functional loops.
+  """Generates a seed pair for deterministic random operations in ...
+
+  functional loops.
 
   This function retrieves a unique seed pair on each call, based off the current
   global step and step seed. The step seed ensures this function returns a

@@ -222,6 +222,7 @@ trainable_variables = tf1.trainable_variables
 Variable = tf1.Variable
 variables_initializer = tf1.variables_initializer
 VariableScope = tf1.VariableScope
+variance_scaling_initializer = tf1.variance_scaling_initializer
 variable_scope = tf1.variable_scope
 where = tf1.where
 while_loop = tf1.while_loop

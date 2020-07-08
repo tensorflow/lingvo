@@ -2454,14 +2454,14 @@ class SingleShardEmbeddingLayerTest(test_utils.TestCase):
       emb_layer = params.Instantiate()
 
       neg_ids = tf.constant([[-1]])
-      neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
       oov_ids = tf.constant([[params.vocab_size]])
-      oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
       self.evaluate(tf.global_variables_initializer())
 
       with self.assertRaises(tf.errors.InvalidArgumentError):
+        neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
         neg_embs.eval()
       with self.assertRaises(tf.errors.InvalidArgumentError):
+        oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
         oov_embs.eval()
 
   def testEmbeddingLayerScaling(self):
@@ -2543,14 +2543,14 @@ class EmbeddingLayerTest(test_utils.TestCase):
       emb_layer = layers.EmbeddingLayer(params)
 
       neg_ids = tf.constant([[-1]])
-      neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
       oov_ids = tf.constant([[params.vocab_size]])
-      oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
       self.evaluate(tf.global_variables_initializer())
 
       with self.assertRaises(tf.errors.InvalidArgumentError):
+        neg_embs = emb_layer.EmbLookupDefaultTheta(neg_ids)
         neg_embs.eval()
       with self.assertRaises(tf.errors.InvalidArgumentError):
+        oov_embs = emb_layer.EmbLookupDefaultTheta(oov_ids)
         oov_embs.eval()
 
   def testEmbeddingLayerScaling(self):

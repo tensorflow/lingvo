@@ -83,35 +83,37 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
      self._tgt_weights), self._bucket_keys = self._BuildDataSource()
 
     if p.pad_to_max_seq_length:
-      assert p.source_max_length
+      self._PadSequences()
 
-      if min(self.infeed_bucket_batch_limit) == max(
-          self.infeed_bucket_batch_limit):
-        source_shape = [
-            min(self.infeed_bucket_batch_limit), p.source_max_length
-        ]
-        target_shape = [
-            min(self.infeed_bucket_batch_limit), p.target_max_length
-        ]
-      else:
-        source_shape = None
-        target_shape = None
-      self._src_ids = py_utils.PadSequenceDimension(self._src_ids,
-                                                    p.source_max_length, 0,
-                                                    source_shape)
-      self._src_paddings = py_utils.PadSequenceDimension(
-          self._src_paddings, p.source_max_length, 1, source_shape)
-      self._tgt_ids = py_utils.PadSequenceDimension(self._tgt_ids,
-                                                    p.target_max_length, 0,
-                                                    target_shape)
-      self._tgt_paddings = py_utils.PadSequenceDimension(
-          self._tgt_paddings, p.target_max_length, 1, target_shape)
-      self._tgt_labels = py_utils.PadSequenceDimension(self._tgt_labels,
-                                                       p.target_max_length, 0,
+  def _PadSequences(self):
+    p = self.params
+    assert p.source_max_length
+
+    if min(self.infeed_bucket_batch_limit) == max(
+        self.infeed_bucket_batch_limit):
+      source_shape = [min(self.infeed_bucket_batch_limit), p.source_max_length]
+      target_shape = [min(self.infeed_bucket_batch_limit), p.target_max_length]
+    else:
+      source_shape = None
+      target_shape = None
+    self._src_ids = py_utils.PadSequenceDimension(self._src_ids,
+                                                  p.source_max_length, 0,
+                                                  source_shape)
+    self._src_paddings = py_utils.PadSequenceDimension(self._src_paddings,
+                                                       p.source_max_length, 1,
+                                                       source_shape)
+    self._tgt_ids = py_utils.PadSequenceDimension(self._tgt_ids,
+                                                  p.target_max_length, 0,
+                                                  target_shape)
+    self._tgt_paddings = py_utils.PadSequenceDimension(self._tgt_paddings,
+                                                       p.target_max_length, 1,
                                                        target_shape)
-      self._tgt_weights = py_utils.PadSequenceDimension(self._tgt_weights,
-                                                        p.target_max_length, 0,
-                                                        target_shape)
+    self._tgt_labels = py_utils.PadSequenceDimension(self._tgt_labels,
+                                                     p.target_max_length, 0,
+                                                     target_shape)
+    self._tgt_weights = py_utils.PadSequenceDimension(self._tgt_weights,
+                                                      p.target_max_length, 0,
+                                                      target_shape)
 
     # TODO(zhifengc): come up more meaningful training sample ids here.
     self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)

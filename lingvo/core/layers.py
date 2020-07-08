@@ -2546,11 +2546,10 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       tf.logging.warning('ids should be tf.int32, but is %s!', ids.dtype)
       ids = tf.cast(ids, tf.int32)
     p = self.params
-    if not py_utils.use_xla():
-      ids = py_utils.with_dependencies([
-          py_utils.assert_between(
-              ids, 0, p.vocab_size, name='vocab_id_validation')
-      ], ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids, 0, p.vocab_size, name='vocab_id_validation')
+    ], ids)
     flat_ids = tf.reshape(ids, [-1])
     embs_result = self._fprop(self.QWeight(theta.wm), flat_ids)
     if p.vn.global_vn or p.vn.per_step_vn:
@@ -2621,11 +2620,10 @@ class OneHotEmbeddingLayer(base_layer.BaseLayer):
     """
     del theta
     p = self.params
-    if not py_utils.use_xla():
-      ids = py_utils.with_dependencies([
-          py_utils.assert_between(
-              ids, 0, p.vocab_size, name='vocab_id_validation')
-      ], ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids, 0, p.vocab_size, name='vocab_id_validation')
+    ], ids)
     low_confidence = p.uncertainty / tf.cast(p.vocab_size - 1, tf.float32)
     high_confidence = 1.0 - p.uncertainty
     embs_result = tf.one_hot(
@@ -3311,11 +3309,14 @@ class SharedSoftmaxLayer(SimpleFullSoftmax):
 
   def EmbLookup(self, theta, ids):
     p = self.params
-    if not py_utils.use_xla():
-      ids = py_utils.with_dependencies([
-          py_utils.assert_between(
-              ids, 0, p.num_classes, name='class_id_validation')
-      ], ids)
+    ids = py_utils.with_dependencies([
+        py_utils.assert_between(
+            ids,
+            0,
+            p.num_classes,
+            summarize=100000,
+            message='{}:class_id_validation'.format(p.cls))
+    ], ids)
 
     wm = self._ConcatWeights(theta).wm
     if not self._transpose_weight_params:
