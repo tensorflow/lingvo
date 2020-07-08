@@ -495,7 +495,8 @@ class Trainer(base_runner.BaseRunner):
         if global_step >= next_status_step:
           self._SetStatusMessage(msg)
           self._ExportMetrics(
-              global_step=global_step,
+              # Metrics expects python int, but global_step is numpy.int64.
+              global_step=int(global_step),
               step_rate=step_rate,
               example_rate=example_rate)
           next_status_step = global_step + status_interval_steps
@@ -820,6 +821,7 @@ class TrainerTpu(base_runner.BaseRunner):
 
       sess.run(self._load_ops)
       while True:
+        train_steps_start = time.perf_counter()
         if FLAGS.checkpoint_in_trainer_tpu:
           # Init/restore variable if needed.
           self.checkpointer.RestoreIfNeeded(sess)
@@ -843,7 +845,9 @@ class TrainerTpu(base_runner.BaseRunner):
               target=self._InfeedLoop, args=(sess,))
           infeed_loop_thread.start()
 
+        tpu_train_op_start = time.perf_counter()
         values, outfeeds = sess.run(self._tpu_train_ops)
+        tpu_train_op_secs = time.perf_counter() - tpu_train_op_start
 
         if self._retrieve_ops:
           infeed_loop_thread.join()
@@ -882,8 +886,22 @@ class TrainerTpu(base_runner.BaseRunner):
 
         self._SetStatusMessage(msg)
 
+        checkpoint_write_secs = 0.0
         if FLAGS.checkpoint_in_trainer_tpu:
-          self.checkpointer.MaybeSave(sess, self._model.global_step)
+          checkpoint_write_start = time.perf_counter()
+          checkpoint_saved = self.checkpointer.MaybeSave(
+              sess, self._model.global_step)
+          if checkpoint_saved:
+            checkpoint_write_secs = time.perf_counter() - checkpoint_write_start
+        train_steps_secs = time.perf_counter() - train_steps_start
+        self._ExportMetrics(
+            # Metrics expects python int, but global_step is numpy.int64.
+            global_step=int(global_step),
+            step_rate=step_rate,
+            example_rate=example_rate,
+            tpu_train_op_secs=tpu_train_op_secs,
+            checkpoint_write_secs=checkpoint_write_secs,
+            total_train_steps_secs=train_steps_secs)
 
 
 def _GetSpecificCheckpoint(load_checkpoint_from):
@@ -1270,7 +1288,8 @@ class Decoder(base_runner.BaseRunner):
         text_filename=os.path.join(self._decoder_dir,
                                    'score-{:08d}.txt'.format(global_step)))
     self._ExportMetrics(
-        decode_checkpoint=global_step,
+        # Metrics expects python int, but global_step is numpy.int64.
+        decode_checkpoint=int(global_step),
         dec_metrics=dec_metrics,
         example_rate=example_rate)
     # global_step and the checkpoint id from the checkpoint file might be

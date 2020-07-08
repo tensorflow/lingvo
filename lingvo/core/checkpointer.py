@@ -96,11 +96,15 @@ class Checkpointer:
     Args:
       sess: tf.Session.
       gsteps: Current global step.
+    Returns:
+      Whether a checkpoint was saved.
     """
     now = time.time()
     if now >= self._next_checkpoint_seconds:
       self.Save(sess, gsteps)
       self._next_checkpoint_seconds = now + self._save_interval_seconds
+      return True
+    return False
 
   def Save(self, sess, gsteps):
     """Save the checkpoint.
