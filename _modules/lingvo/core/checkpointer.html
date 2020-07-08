@@ -310,21 +310,24 @@
     <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialized all vars.&#39;</span><span class="p">)</span>
 
+    <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
+    <span class="c1"># which requires refactoring things out of py_utils to avoid circular deps.</span>
+    <span class="k">def</span> <span class="nf">_ResolveCkptPath</span><span class="p">(</span><span class="n">ckpt_rules</span><span class="p">):</span>
+      <span class="k">return</span> <span class="p">{</span><span class="n">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">k</span><span class="p">):</span> <span class="n">v</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">ckpt_rules</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+
     <span class="c1"># Restore specific variables based on init_from_checkpoint_rules.</span>
     <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">tasks</span><span class="p">:</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">train</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span>
-                                             <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+        <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">:</span>
       <span class="n">tp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">train</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                           <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span>
-                                           <span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span></div>
+      <span class="n">rules</span> <span class="o">=</span> <span class="n">_ResolveCkptPath</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">init_from_checkpoint_rules</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;OverrideVarsFromCheckpoints </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rules</span><span class="p">)</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">OverrideVarsFromCheckpoints</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables</span><span class="p">(),</span> <span class="n">rules</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Checkpointer.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.Checkpointer.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;If vars are not initialized, restore from checkpoint.&quot;&quot;&quot;</span>
@@ -359,6 +362,43 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initializing global step&#39;</span><span class="p">)</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">gstep</span><span class="o">.</span><span class="n">initializer</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="GetSpecificCheckpoint"><a class="viewcode-back" href="../../../lingvo.core.checkpointer.html#lingvo.core.checkpointer.GetSpecificCheckpoint">[docs]</a><span class="k">def</span> <span class="nf">GetSpecificCheckpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a specific checkpoint given `load_checkpoint_from`.</span>
+
+<span class="sd">  When load_checkpoint_from is a directory, we find the latest</span>
+<span class="sd">  checkpoint in the directory and use that as the checkpoint</span>
+<span class="sd">  to evaluate.</span>
+
+<span class="sd">  When load_checkpoint_from is a specific checkpoint, we</span>
+<span class="sd">  validate the path and return it.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    load_checkpoint_from: If not None, specifies the directory or specific</span>
+<span class="sd">      checkpoint to load.  If a directory, the latest checkpoint in the</span>
+<span class="sd">      directory will be used.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">load_checkpoint_from</span><span class="p">:</span>
+    <span class="k">return</span> <span class="kc">None</span>
+
+  <span class="c1"># If load_checkpoint_from is a directory, return the latest</span>
+  <span class="c1"># checkpoint in the directory.</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">latest_checkpoint</span><span class="p">(</span><span class="n">load_checkpoint_from</span><span class="p">)</span>
+
+  <span class="c1"># We assume that load_checkpoint_from is a specific checkpoint to</span>
+  <span class="c1"># evaluate since it is not a directory.</span>
+  <span class="c1">#</span>
+  <span class="c1"># Check validity of eval path by looking for the index file.</span>
+  <span class="k">if</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">load_checkpoint_from</span> <span class="o">+</span> <span class="s1">&#39;.index&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">load_checkpoint_from</span>
+
+  <span class="c1"># Fail if we see an unexpected load_checkpoint_from.</span>
+  <span class="c1">#</span>
+  <span class="c1"># This might happen if load_checkpoint_from refers to a checkpoint</span>
+  <span class="c1"># but the index file cannot be found.</span>
+  <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid load_checkpoint_from: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">load_checkpoint_from</span><span class="p">)</span></div>
 </pre></div>
 
            </div>
