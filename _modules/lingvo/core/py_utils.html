@@ -237,6 +237,8 @@
 <span class="c1"># TODO(laigd): remove these after the migration.</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;if_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;If True use tf.function for py_utils.If().&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;while_loop_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True use tf.function for py_utils.WhileLoop().&#39;</span><span class="p">)</span>
 
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
@@ -4493,21 +4495,40 @@
 <span class="sd">    The final loop state in the same structure as loop_state.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
   <span class="n">state</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">loop_state</span><span class="o">=</span><span class="n">loop_state</span><span class="p">)</span>
-  <span class="n">dtypes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
-  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cond</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;while_loop_use_tf_function&#39;</span><span class="p">):</span>
 
-  <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
-  <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-    <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-    <span class="n">s</span><span class="o">.</span><span class="n">loop_state</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">cond</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
 
-  <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span><span class="n">input_</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">cond</span><span class="o">=</span><span class="n">LoopCond</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">LoopBody</span><span class="p">))</span><span class="o">.</span><span class="n">loop_state</span></div>
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">loop_state</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
+        <span class="n">input_</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
+        <span class="n">cond</span><span class="o">=</span><span class="n">_GetConcreteFunction</span><span class="p">(</span><span class="n">LoopCond</span><span class="p">,</span> <span class="n">state</span><span class="p">),</span>
+        <span class="n">body</span><span class="o">=</span><span class="n">_GetConcreteFunction</span><span class="p">(</span><span class="n">LoopBody</span><span class="p">,</span> <span class="n">state</span><span class="p">))</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">dtypes</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">cond</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
+
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="o">*</span><span class="n">dtypes</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="n">s</span><span class="o">.</span><span class="n">loop_state</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+
+    <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span><span class="n">input_</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span> <span class="n">cond</span><span class="o">=</span><span class="n">LoopCond</span><span class="p">,</span> <span class="n">body</span><span class="o">=</span><span class="n">LoopBody</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">new_state</span><span class="p">)</span><span class="o">.</span><span class="n">loop_state</span></div>
 
 
 <div class="viewcode-block" id="ForLoop"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ForLoop">[docs]</a><span class="k">def</span> <span class="nf">ForLoop</span><span class="p">(</span><span class="n">body</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">delta</span><span class="p">,</span> <span class="n">loop_state</span><span class="p">):</span>
