@@ -86,6 +86,10 @@ tf.flags.DEFINE_bool(
 tf.flags.DEFINE_bool('disable_py_utils_debug', False,
                      'If True disables all py_utils.Debug() logs.')
 
+# TODO(laigd): remove these after the migration.
+tf.flags.DEFINE_bool('if_use_tf_function', False,
+                     'If True use tf.function for py_utils.If().')
+
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
 # 1) They require app.run() or explicit flag parsing, preventing the use of
@@ -4133,6 +4137,16 @@ def _AssertInputsMatch(op, args, implicit_captures):
                       len(implicit_captures.Flatten()), implicit_captures))
 
 
+def _TensorSpecs(nmap):
+  """Transforms tensors in the input nested structure to TensorSpecs."""
+  return Transform(lambda t: tf.TensorSpec(t.shape, t.dtype), nmap)
+
+
+def _GetConcreteFunction(func, inputs):
+  """Returns a ConcreteFunction with specific input signature."""
+  return func.get_concrete_function(*Flatten(_TensorSpecs(inputs)))
+
+
 def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
   """Wraps fwd in a defun with custom gradient bak.
 
@@ -4271,25 +4285,45 @@ def If(cond, inputs, then_branch, else_branch):
     raise TypeError(
         'Outputs of then_branch and else_branch are not compatible.')
 
-  dtypes = inputs.Transform(lambda x: x.dtype).Flatten()
+  if _FromGlobal('if_use_tf_function'):
 
-  @tf.Defun(*dtypes)
-  def ThenBranch(*args):
-    inp = inputs.Pack(args)
-    out = then_branch(inp)
-    return out.Flatten()
+    @tf.function(autograph=False)
+    def ThenBranch(*args):
+      inp = inputs.Pack(args)
+      out = then_branch(inp)
+      return out.Flatten()
 
-  @tf.Defun(*dtypes)
-  def ElseBranch(*args):
-    inp = inputs.Pack(args)
-    out = else_branch(inp)
-    return out.Flatten()
+    @tf.function(autograph=False)
+    def ElseBranch(*args):
+      inp = inputs.Pack(args)
+      out = else_branch(inp)
+      return out.Flatten()
 
-  ret = tf.If(
-      cond=cond,
-      inputs=inputs.Flatten(),
-      then_branch=ThenBranch,
-      else_branch=ElseBranch)
+    ret = tf.If(
+        cond=cond,
+        inputs=inputs.Flatten(),
+        then_branch=_GetConcreteFunction(ThenBranch, inputs),
+        else_branch=_GetConcreteFunction(ElseBranch, inputs))
+  else:
+    dtypes = inputs.Transform(lambda x: x.dtype).Flatten()
+
+    @tf.Defun(*dtypes)
+    def ThenBranch(*args):
+      inp = inputs.Pack(args)
+      out = then_branch(inp)
+      return out.Flatten()
+
+    @tf.Defun(*dtypes)
+    def ElseBranch(*args):
+      inp = inputs.Pack(args)
+      out = else_branch(inp)
+      return out.Flatten()
+
+    ret = tf.If(
+        cond=cond,
+        inputs=inputs.Flatten(),
+        then_branch=ThenBranch,
+        else_branch=ElseBranch)
   return then_out.Pack(ret)
 
 

@@ -22,6 +22,7 @@ import os
 import sys
 
 from absl.testing import flagsaver
+from absl.testing import parameterized
 from lingvo import model_registry
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -2884,9 +2885,18 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
 
-class IfTest(test_utils.TestCase):
+class IfTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testSimple(self):
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testSimple(self, use_tf_function):
+    # TODO(laigd): remove this check when 313682500 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.if_use_tf_function = use_tf_function
+
     g = tf.Graph()
     with g.as_default():
 
