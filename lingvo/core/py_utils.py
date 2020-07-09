@@ -89,6 +89,8 @@ tf.flags.DEFINE_bool('disable_py_utils_debug', False,
 # TODO(laigd): remove these after the migration.
 tf.flags.DEFINE_bool('if_use_tf_function', False,
                      'If True use tf.function for py_utils.If().')
+tf.flags.DEFINE_bool('while_loop_use_tf_function', False,
+                     'If True use tf.function for py_utils.WhileLoop().')
 
 # NOTE: Using absl flags in libraries are frowned upon for several reasons:
 #
@@ -4345,21 +4347,40 @@ def WhileLoop(cond, body, loop_state):
     The final loop state in the same structure as loop_state.
   """
   state = NestedMap(loop_state=loop_state)
-  dtypes = state.Transform(lambda x: x.dtype).Flatten()
 
-  @tf.Defun(*dtypes)
-  def LoopCond(*args):
-    s = state.Pack(args)
-    return cond(s.loop_state)
+  if _FromGlobal('while_loop_use_tf_function'):
 
-  @tf.Defun(*dtypes)
-  def LoopBody(*args):
-    s = state.Pack(args)
-    s.loop_state = body(s.loop_state)
-    return s.Flatten()
+    @tf.function(autograph=False)
+    def LoopCond(*args):
+      s = state.Pack(args)
+      return cond(s.loop_state)
 
-  return state.Pack(
-      tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)).loop_state
+    @tf.function(autograph=False)
+    def LoopBody(*args):
+      s = state.Pack(args)
+      s.loop_state = body(s.loop_state)
+      return s.Flatten()
+
+    new_state = tf.While(
+        input_=state.Flatten(),
+        cond=_GetConcreteFunction(LoopCond, state),
+        body=_GetConcreteFunction(LoopBody, state))
+  else:
+    dtypes = state.Transform(lambda x: x.dtype).Flatten()
+
+    @tf.Defun(*dtypes)
+    def LoopCond(*args):
+      s = state.Pack(args)
+      return cond(s.loop_state)
+
+    @tf.Defun(*dtypes)
+    def LoopBody(*args):
+      s = state.Pack(args)
+      s.loop_state = body(s.loop_state)
+      return s.Flatten()
+
+    new_state = tf.While(input_=state.Flatten(), cond=LoopCond, body=LoopBody)
+  return state.Pack(new_state).loop_state
 
 
 def ForLoop(body, start, limit, delta, loop_state):
