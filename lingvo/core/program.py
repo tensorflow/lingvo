@@ -922,7 +922,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_dataset_names,
                                  eval_steps_per_loop,
                                  decode_steps_per_loop,
-                                 experimental_decoder=False):
+                                 experimental_decoder=False,
+                                 train_program_cls=TrainProgram):
   """Convenient helper method for common case.
 
   Args:
@@ -933,13 +934,15 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     decode_steps_per_loop: Number of steps to execute the decode program.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
+    train_program_cls: The class of the TrainProgram to use.  Defaults
+      to TrainProgram.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
   """
 
   program_schedule_params = SimpleProgramSchedule.Params()
-  train_program_params = TrainProgram.Params()
+  train_program_params = train_program_cls.Params()
   train_program_params.name = 'train'
   train_program_params.steps_per_loop = train_steps_per_loop
   train_program_params.dataset_name = train_dataset_name
