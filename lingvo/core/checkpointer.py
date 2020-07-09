@@ -30,18 +30,29 @@ class Checkpointer:
   Needs to be created within a graph context.
   """
 
-  def __init__(self, train_dir, model, train_params=None, save_only=False):
+  def __init__(self,
+               train_dir,
+               model,
+               init_op=None,
+               train_params=None,
+               save_only=False):
     """Initialize Checkpointer.
 
     Args:
      train_dir: Training directory for saving checkpoints.
      model: A BaseModel instance or None.
+     init_op: The initialize variables op. If unset, it will call
+       tf.global_variables_initializer().
      train_params: If specified, use these training params instead of those in
        the `model`.
      save_only: This checkpointer is only intended for saving checkpoints.
     """
     self._train_dir = train_dir
     self._save_only = save_only
+    if init_op:
+      self._init_op = init_op
+    else:
+      self._init_op = tf.global_variables_initializer()
 
     self._save_path = os.path.join(self._train_dir, 'ckpt')
 
@@ -159,7 +170,7 @@ class Checkpointer:
 
     # At this point all variables are uninitialized, so it is safe to run a
     # global initializer.
-    sess.run(tf.global_variables_initializer())
+    sess.run(self._init_op)
     tf.logging.info('Initialized all vars.')
 
     # TODO(b/160786085): Move this logic into Overriding vars logic itself,

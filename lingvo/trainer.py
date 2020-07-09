@@ -264,10 +264,13 @@ class Controller(base_runner.BaseRunner):
         self._summary_op = tf.summary.merge_all()
         self._initialize_tables = tf.tables_initializer()
         self._initialize_local_vars = tf.local_variables_initializer()
+        self._initialize_global_vars = tf.global_variables_initializer()
         self.enqueue_ops = tf.get_collection(py_utils.ENQUEUE_OPS)
         if self._checkpoint_in_controller:
-          self.checkpointer = self._CreateCheckpointer(self._train_dir,
-                                                       self._model)
+          self.checkpointer = self._CreateCheckpointer(
+              self._train_dir,
+              self._model,
+              init_op=self._initialize_global_vars)
 
     self._ExportMetrics(params=self.params)
     self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
@@ -278,9 +281,9 @@ class Controller(base_runner.BaseRunner):
     tf.io.write_graph(self._graph.as_graph_def(), self._control_dir,
                       'train.pbtxt')
 
-  def _CreateCheckpointer(self, train_dir, model):
+  def _CreateCheckpointer(self, train_dir, model, init_op=None):
     """Wrapper method for override purposes."""
-    return checkpointer.Checkpointer(train_dir, model)
+    return checkpointer.Checkpointer(train_dir, model, init_op)
 
   def Start(self):
     self._RunLoop('controller', self._Loop)
@@ -645,11 +648,13 @@ class TrainerTpu(base_runner.BaseRunner):
         self._tpu_train_ops = (
             _ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
 
-        if FLAGS.checkpoint_in_trainer_tpu:
-          self.checkpointer = checkpointer.Checkpointer(self._train_dir,
-                                                        self._model)
-      self._initialize_tables = tf.tables_initializer()
       self._initialize_local_vars = tf.local_variables_initializer()
+      self._initialize_global_vars = tf.global_variables_initializer()
+      self._initialize_tables = tf.tables_initializer()
+
+      if FLAGS.checkpoint_in_trainer_tpu:
+        self.checkpointer = checkpointer.Checkpointer(
+            self._train_dir, self._model, init_op=self._initialize_global_vars)
 
       self.enqueue_ops = self._input.tpu_infeed_op
       tf.logging.info('Trainer number of enqueue ops: %d',
@@ -806,8 +811,9 @@ class TrainerTpu(base_runner.BaseRunner):
           tf.tpu.initialize_system(embedding_config=config_proto, job=None))
       sess.run(self._initialize_tables)
       sess.run(self._initialize_local_vars)
+
       if FLAGS.run_locally == 'tpu':
-        sess.run(tf.global_variables_initializer())
+        sess.run(self._initialize_global_vars)
 
       if FLAGS.checkpoint_in_trainer_tpu:
         # For b/134415393 -- better to initialize to a known state than
