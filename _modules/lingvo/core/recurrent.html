@@ -481,7 +481,6 @@
 
     <span class="n">compiled</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_xla</span><span class="p">()</span>
     <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">compiled</span>
-    <span class="n">t_type</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span> <span class="k">if</span> <span class="n">compiled</span> <span class="k">else</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span>
 
     <span class="c1"># state1, extras = cell_fn(theta, state0, inputs)</span>
     <span class="k">def</span> <span class="nf">Fwd</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -664,27 +663,26 @@
 
       <span class="k">return</span> <span class="n">loop_state</span>
 
-    <span class="c1"># Backward calls BackwardLoopBody n times.  Each time computes the backprop</span>
+    <span class="c1"># Backward calls BackwardLoopBody n times. Each time computes the backprop</span>
     <span class="c1"># for one time step of the recurrent net.</span>
-    <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Backward pass for the recurrent net.</span>
 
 <span class="sd">      Args:</span>
-<span class="sd">        args: A NestedMap containing:</span>
-<span class="sd">          - xs: inputs to the forward operation.</span>
-<span class="sd">          - ys: outputs of the forward operation.</span>
-<span class="sd">          - dys: gradients to the outputs of the forward operation.</span>
+<span class="sd">        xs: inputs to the forward operation.</span>
+<span class="sd">        ys: outputs of the forward operation.</span>
+<span class="sd">        dys: gradients to the outputs of the forward operation.</span>
 
 <span class="sd">      Returns:</span>
 <span class="sd">        Gradients to the inputs of the forward operation.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="c1"># Accumulators for gradients.</span>
-      <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
-      <span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">d_theta</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">theta</span><span class="p">)</span>
+      <span class="n">d_inputs</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
       <span class="n">d_captured</span> <span class="o">=</span> <span class="n">_EmptyLike</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">)</span>
 
       <span class="c1"># The sequence length.</span>
-      <span class="n">pad_begin</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_SeqPaddingLength</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="n">pad_begin</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">_SeqPaddingLength</span><span class="p">(</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
       <span class="n">limit</span> <span class="o">=</span> <span class="n">pad_begin</span>
 
       <span class="k">if</span> <span class="n">compiled</span><span class="p">:</span>
@@ -692,8 +690,8 @@
       <span class="k">else</span><span class="p">:</span>
         <span class="n">limit</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">limit</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
 
-      <span class="n">state0</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">state0</span>
-      <span class="n">d_state1</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">dys</span><span class="o">.</span><span class="n">final_state</span>
+      <span class="n">state0</span> <span class="o">=</span> <span class="n">xs</span><span class="o">.</span><span class="n">state0</span>
+      <span class="n">d_state1</span> <span class="o">=</span> <span class="n">dys</span><span class="o">.</span><span class="n">final_state</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
         <span class="c1"># XLA While op requires the same shape for the init and carry on</span>
         <span class="c1"># values.</span>
@@ -705,24 +703,18 @@
             <span class="n">cond</span><span class="o">=</span><span class="n">BackwardLoopCond</span><span class="p">,</span>
             <span class="n">body</span><span class="o">=</span><span class="n">BackwardLoopBody</span><span class="p">,</span>
             <span class="n">loop_state</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-                <span class="n">t</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ys</span><span class="o">.</span><span class="n">limit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="n">t</span><span class="o">=</span><span class="n">ys</span><span class="o">.</span><span class="n">limit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
                 <span class="n">limit</span><span class="o">=</span><span class="n">limit</span><span class="p">,</span>
-                <span class="n">theta</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
+                <span class="n">theta</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span>
                 <span class="n">state0</span><span class="o">=</span><span class="n">state0</span><span class="p">,</span>
-                <span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
-                <span class="n">acc_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ys</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span>
-                <span class="n">acc_extras</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">ys</span><span class="o">.</span><span class="n">acc_extras</span><span class="p">,</span>
+                <span class="n">inputs</span><span class="o">=</span><span class="n">xs</span><span class="o">.</span><span class="n">inputs</span><span class="p">,</span>
+                <span class="n">acc_state</span><span class="o">=</span><span class="n">ys</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span>
+                <span class="n">acc_extras</span><span class="o">=</span><span class="n">ys</span><span class="o">.</span><span class="n">acc_extras</span><span class="p">,</span>
                 <span class="n">d_theta</span><span class="o">=</span><span class="n">d_theta</span><span class="p">,</span>
                 <span class="n">d_state1</span><span class="o">=</span><span class="n">d_state1</span><span class="p">,</span>
                 <span class="n">d_inputs</span><span class="o">=</span><span class="n">d_inputs</span><span class="p">,</span>
-                <span class="n">d_acc_state</span><span class="o">=</span><span class="n">args</span><span class="o">.</span><span class="n">dys</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span>
+                <span class="n">d_acc_state</span><span class="o">=</span><span class="n">dys</span><span class="o">.</span><span class="n">acc_state</span><span class="p">,</span>
                 <span class="n">d_captured</span><span class="o">=</span><span class="n">d_captured</span><span class="p">))</span>
-
-      <span class="c1"># Make sure this function didn&#39;t capture anything different than the</span>
-      <span class="c1"># cell_fn when reflected on at the beginning. Must come after the</span>
-      <span class="c1"># call to BackwardLoopBody, which adds to the captured list.</span>
-      <span class="n">_AssertSameTensors</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetExtraInputs</span><span class="p">(),</span>
-                         <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
 
       <span class="n">d_state0</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">d_state1</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_unused_acc_state</span><span class="p">:</span>
@@ -745,30 +737,18 @@
         <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_inputs</span><span class="p">,</span>
         <span class="n">extras</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="p">)</span>
 
-    <span class="c1"># Forward output signatures.</span>
-    <span class="n">expand_dims</span> <span class="o">=</span> <span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
-    <span class="n">fwd_rets</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
-        <span class="n">limit</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">t_type</span><span class="p">),</span>
-        <span class="n">final_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="p">,</span>
-        <span class="n">acc_state</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_state</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">expand_dims</span><span class="p">),</span>
-        <span class="n">acc_extras</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_extras</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">expand_dims</span><span class="p">))</span>
-
-    <span class="c1"># Define the custom gradient function for Forward. Note that _DefineDefun()</span>
-    <span class="c1"># requires fwd (i.e. Backward here) takes single argument, so we put xs, ys,</span>
-    <span class="c1"># dys in a NestedMap.</span>
     <span class="c1"># pylint: disable=protected-access</span>
-    <span class="n">backward</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">_DefineDefun</span><span class="p">(</span>
-        <span class="n">Backward</span><span class="p">,</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">fwd_rets</span><span class="p">,</span> <span class="n">dys</span><span class="o">=</span><span class="n">fwd_rets</span><span class="p">))</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">_DefineDefun</span><span class="p">(</span>
-        <span class="n">Forward</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">,</span>
-        <span class="k">lambda</span> <span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">:</span> <span class="n">backward</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">xs</span><span class="o">=</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="o">=</span><span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="o">=</span><span class="n">dys</span><span class="p">)),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">)</span>
+    <span class="n">device_funcs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">_device_functions_outer_to_inner</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_caller_device</span> <span class="o">=</span> <span class="n">device_funcs</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">device_funcs</span> <span class="k">else</span> <span class="kc">None</span>
     <span class="c1"># pylint: enable=protected-access</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span> <span class="o">=</span> <span class="n">Forward</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_backward</span> <span class="o">=</span> <span class="n">Backward</span>
 
 <div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run the computation.&quot;&quot;&quot;</span>
-    <span class="n">run</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">)</span>
+    <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward</span><span class="p">,</span>
+                             <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caller_device</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accumulator_layer</span><span class="p">:</span>
       <span class="c1"># Restore the accumulators from the final recurrent state.</span>

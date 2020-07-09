@@ -4297,7 +4297,7 @@
   <span class="k">return</span> <span class="n">func</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">(</span><span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">inputs</span><span class="p">)))</span></div>
 
 
-<div class="viewcode-block" id="_DefineDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineDefun">[docs]</a><span class="k">def</span> <span class="nf">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="_DefineDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineDefun">[docs]</a><span class="k">def</span> <span class="nf">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
 
 <span class="sd">  Args:</span>
@@ -4309,6 +4309,7 @@
 <span class="sd">      must return its gradients in a Nested Structure as the last part of dxs.</span>
 <span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
 <span class="sd">      that are not listed in fwd_sig.</span>
+<span class="sd">    device: the device on which to run fwd and bak.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A function that wraps fwd.</span>
@@ -4353,7 +4354,7 @@
       <span class="c1"># Ensure dys contains no None.</span>
       <span class="n">dys</span> <span class="o">=</span> <span class="n">ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
 
-      <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
         <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
 
@@ -4367,7 +4368,7 @@
     <span class="sd">&quot;&quot;&quot;The forward function.&quot;&quot;&quot;</span>
     <span class="k">for</span> <span class="n">arg</span><span class="p">,</span> <span class="n">shape</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">arg_shapes</span><span class="p">):</span>
       <span class="n">arg</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
       <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">Pack</span><span class="p">(</span><span class="n">arg_dtypes</span><span class="p">,</span> <span class="n">args</span><span class="p">))</span>
     <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">rets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
@@ -4382,7 +4383,7 @@
   <span class="k">return</span> <span class="n">Call</span></div>
 
 
-<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
 <span class="sd">  Args:</span>
@@ -4390,11 +4391,14 @@
 <span class="sd">    args: A Nested Structure of tf.Tensor.</span>
 <span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
 <span class="sd">      custom backprop function for fwd.</span>
+<span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
+<span class="sd">      that are not listed in args.</span>
+<span class="sd">    device: the device on which to run fwd and bak.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">call</span> <span class="o">=</span> <span class="n">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">)</span>
+  <span class="n">call</span> <span class="o">=</span> <span class="n">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 
 
