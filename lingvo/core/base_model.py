@@ -76,7 +76,7 @@ class BaseTask(base_layer.BaseLayer):
         'start_up_delay_steps', 200, 'i-th replica starts training after '
         'i*(i+1)/2*start_up_delay_steps steps')
     tp.Define('max_steps', 4 * 10**6, 'Maximum number of training steps.')
-    tp.Define('tpu_steps_per_loop', 100, 'The number of training steps per '
+    tp.Define('tpu_steps_per_loop', 1000, 'The number of training steps per '
               'training loop for TPUs.')
     tp.Define(
         'vn_start_step', 200000000,
@@ -1022,7 +1022,7 @@ class BaseModel(base_layer.BaseLayer):
         'start_up_delay_steps', 200, 'i-th replica starts training after '
         'i*(i+1)/2*start_up_delay_steps steps')
     tp.Define('max_steps', 4 * 10**6, 'Training max of 4M steps.')
-    tp.Define('tpu_steps_per_loop', 100, 'The number of training steps per '
+    tp.Define('tpu_steps_per_loop', 1000, 'The number of training steps per '
               'training loop for TPUs.')
     tp.Define(
         'ema_decay', 0.0,
