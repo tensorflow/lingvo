@@ -352,12 +352,15 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       segment_mask = py_utils.HasShape(segment_mask, [b, 1, t, s])
 
     with tf.name_scope('logits'):
-      logits = self._AttenLogits(theta, query, key, per_step_padding)
+      # Keep softmax computation in float32 otherwise the low precision can
+      # can lead to worse quality.
+      logits = tf.cast(
+          self._AttenLogits(theta, query, key, per_step_padding), tf.float32)
 
     # Apply segment mask.
     if self.params.packed_input and segment_mask is not None:
       # Paddings have been included in segment_mask.
-      padded_logits = logits + segment_mask
+      padded_logits = logits + tf.cast(segment_mask, tf.float32)
     else:
       # Exclude padding frames.
       paddings = py_utils.HasShape(paddings, [b, s])
@@ -375,7 +378,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     probs = tf.nn.softmax(padded_logits)
 
     probs = py_utils.HasShape(probs, [b, n, t, s])
-    return probs
+    return tf.cast(probs, key.dtype)
 
   def _AttenContext(self, theta, probs, value):
     return tf.einsum('BNTS,BSNH->BTNH', probs, value)
