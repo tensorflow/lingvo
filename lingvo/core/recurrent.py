@@ -333,7 +333,6 @@ class _Recurrent:
 
     compiled = py_utils.use_xla()
     noinline = not compiled
-    t_type = tf.int32 if compiled else tf.int64
 
     # state1, extras = cell_fn(theta, state0, inputs)
     def Fwd(theta, state0, inputs):
@@ -516,27 +515,26 @@ class _Recurrent:
 
       return loop_state
 
-    # Backward calls BackwardLoopBody n times.  Each time computes the backprop
+    # Backward calls BackwardLoopBody n times. Each time computes the backprop
     # for one time step of the recurrent net.
-    def Backward(args):
+    def Backward(xs, ys, dys):
       """Backward pass for the recurrent net.
 
       Args:
-        args: A NestedMap containing:
-          - xs: inputs to the forward operation.
-          - ys: outputs of the forward operation.
-          - dys: gradients to the outputs of the forward operation.
+        xs: inputs to the forward operation.
+        ys: outputs of the forward operation.
+        dys: gradients to the outputs of the forward operation.
 
       Returns:
         Gradients to the inputs of the forward operation.
       """
       # Accumulators for gradients.
-      d_theta = _EmptyLike(args.xs.theta)
-      d_inputs = _EmptyLike(args.xs.inputs)
+      d_theta = _EmptyLike(xs.theta)
+      d_inputs = _EmptyLike(xs.inputs)
       d_captured = _EmptyLike(self._implicit_captures)
 
       # The sequence length.
-      pad_begin, _ = _SeqPaddingLength(args.xs.inputs)
+      pad_begin, _ = _SeqPaddingLength(xs.inputs)
       limit = pad_begin
 
       if compiled:
@@ -544,8 +542,8 @@ class _Recurrent:
       else:
         limit = tf.cast(limit, tf.int64)
 
-      state0 = args.xs.state0
-      d_state1 = args.dys.final_state
+      state0 = xs.state0
+      d_state1 = dys.final_state
       if self._unused_acc_state:
         # XLA While op requires the same shape for the init and carry on
         # values.
@@ -557,24 +555,18 @@ class _Recurrent:
             cond=BackwardLoopCond,
             body=BackwardLoopBody,
             loop_state=py_utils.NestedMap(
-                t=args.ys.limit - 1,
+                t=ys.limit - 1,
                 limit=limit,
-                theta=args.xs.theta,
+                theta=xs.theta,
                 state0=state0,
-                inputs=args.xs.inputs,
-                acc_state=args.ys.acc_state,
-                acc_extras=args.ys.acc_extras,
+                inputs=xs.inputs,
+                acc_state=ys.acc_state,
+                acc_extras=ys.acc_extras,
                 d_theta=d_theta,
                 d_state1=d_state1,
                 d_inputs=d_inputs,
-                d_acc_state=args.dys.acc_state,
+                d_acc_state=dys.acc_state,
                 d_captured=d_captured))
-
-      # Make sure this function didn't capture anything different than the
-      # cell_fn when reflected on at the beginning. Must come after the
-      # call to BackwardLoopBody, which adds to the captured list.
-      _AssertSameTensors(py_utils.GetExtraInputs(),
-                         self._implicit_captures.Flatten())
 
       d_state0 = run.d_state1
       if self._unused_acc_state:
@@ -597,30 +589,18 @@ class _Recurrent:
         inputs=self._inputs,
         extras=self._extras)
 
-    # Forward output signatures.
-    expand_dims = lambda x: tf.expand_dims(x, axis=0)
-    fwd_rets = py_utils.NestedMap(
-        limit=tf.constant(1, dtype=t_type),
-        final_state=self._state,
-        acc_state=self._state.Transform(expand_dims),
-        acc_extras=self._extras.Transform(expand_dims))
-
-    # Define the custom gradient function for Forward. Note that _DefineDefun()
-    # requires fwd (i.e. Backward here) takes single argument, so we put xs, ys,
-    # dys in a NestedMap.
     # pylint: disable=protected-access
-    backward = py_utils._DefineDefun(
-        Backward,
-        py_utils.NestedMap(xs=self._fwd_args, ys=fwd_rets, dys=fwd_rets))
-    self._forward = py_utils._DefineDefun(
-        Forward, self._fwd_args,
-        lambda xs, ys, dys: backward(py_utils.NestedMap(xs=xs, ys=ys, dys=dys)),
-        self._implicit_captures)
+    device_funcs = tf.get_default_graph()._device_functions_outer_to_inner
+    self._caller_device = device_funcs[-1] if device_funcs else None
     # pylint: enable=protected-access
+
+    self._forward = Forward
+    self._backward = Backward
 
   def Compute(self):
     """Run the computation."""
-    run = self._forward(self._fwd_args)
+    run = py_utils.CallDefun(self._forward, self._fwd_args, self._backward,
+                             self._implicit_captures, self._caller_device)
 
     if self._accumulator_layer:
       # Restore the accumulators from the final recurrent state.

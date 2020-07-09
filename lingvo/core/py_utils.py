@@ -4149,7 +4149,7 @@ def _GetConcreteFunction(func, inputs):
   return func.get_concrete_function(*Flatten(_TensorSpecs(inputs)))
 
 
-def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
+def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None, device=None):
   """Wraps fwd in a defun with custom gradient bak.
 
   Args:
@@ -4161,6 +4161,7 @@ def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
       must return its gradients in a Nested Structure as the last part of dxs.
     implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd
       that are not listed in fwd_sig.
+    device: the device on which to run fwd and bak.
 
   Returns:
     A function that wraps fwd.
@@ -4205,7 +4206,7 @@ def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
       # Ensure dys contains no None.
       dys = ConvertNoneGradientToZeros(ys, dys)
 
-      with RemoveAssertContext(remove=noinline):
+      with RemoveAssertContext(remove=noinline), tf.device(device):
         dxs = bak(xs, ys, dys)
       return Flatten(dxs)
 
@@ -4219,7 +4220,7 @@ def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
     """The forward function."""
     for arg, shape in zip(args, arg_shapes):
       arg.set_shape(shape)
-    with RemoveAssertContext(remove=noinline):
+    with RemoveAssertContext(remove=noinline), tf.device(device):
       rets = fwd(Pack(arg_dtypes, args))
     sigs.rets = Transform(get_dtype, rets)
     return Flatten(rets)
@@ -4234,7 +4235,7 @@ def _DefineDefun(fwd, fwd_sig, bak=None, implicit_captures=None):
   return Call
 
 
-def CallDefun(fwd, args, bak=None):
+def CallDefun(fwd, args, bak=None, implicit_captures=None, device=None):
   """Wraps fwd in a defun with custom gradient bak and calls it with args.
 
   Args:
@@ -4242,11 +4243,14 @@ def CallDefun(fwd, args, bak=None):
     args: A Nested Structure of tf.Tensor.
     bak: A callable xs, ys, dys: Nested Structure -> dxs: Nested Structure. The
       custom backprop function for fwd.
+    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd
+      that are not listed in args.
+    device: the device on which to run fwd and bak.
 
   Returns:
     A Nested Structure equivalent to what fwd(args) computes.
   """
-  call = _DefineDefun(fwd, args, bak)
+  call = _DefineDefun(fwd, args, bak, implicit_captures, device)
   return call(args)
 
 
