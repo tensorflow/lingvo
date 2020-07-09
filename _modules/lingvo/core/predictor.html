@@ -385,6 +385,11 @@
 <span class="sd">      KeyError: a feed specified in kwargs is invalid, or a fetch in fetch_keys</span>
 <span class="sd">        is invalid and validate_fetches is True.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+      <span class="n">single_fetch</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">fetch_keys</span> <span class="o">=</span> <span class="p">[</span><span class="n">fetch_keys</span><span class="p">]</span>
+
     <span class="k">if</span> <span class="n">validate_fetches</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">fetch_keys</span><span class="p">:</span>
         <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fetches</span><span class="p">:</span>
@@ -415,6 +420,8 @@
     <span class="n">results</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">fetch_keys</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">fetch</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">valid_fetch_idxs</span><span class="p">,</span> <span class="n">fetched_results</span><span class="p">):</span>
       <span class="n">results</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">fetch</span>
+    <span class="k">if</span> <span class="n">single_fetch</span><span class="p">:</span>
+      <span class="n">results</span> <span class="o">=</span> <span class="n">results</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">results</span></div></div>
 
 
