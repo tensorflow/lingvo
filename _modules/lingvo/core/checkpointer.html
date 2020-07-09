@@ -178,18 +178,29 @@
 <span class="sd">  Needs to be created within a graph context.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">train_dir</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">train_dir</span><span class="p">,</span>
+               <span class="n">model</span><span class="p">,</span>
+               <span class="n">init_op</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">train_params</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">save_only</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Initialize Checkpointer.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">     train_dir: Training directory for saving checkpoints.</span>
 <span class="sd">     model: A BaseModel instance or None.</span>
+<span class="sd">     init_op: The initialize variables op. If unset, it will call</span>
+<span class="sd">       tf.global_variables_initializer().</span>
 <span class="sd">     train_params: If specified, use these training params instead of those in</span>
 <span class="sd">       the `model`.</span>
 <span class="sd">     save_only: This checkpointer is only intended for saving checkpoints.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span> <span class="o">=</span> <span class="n">train_dir</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_only</span> <span class="o">=</span> <span class="n">save_only</span>
+    <span class="k">if</span> <span class="n">init_op</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_init_op</span> <span class="o">=</span> <span class="n">init_op</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_init_op</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_save_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_dir</span><span class="p">,</span> <span class="s1">&#39;ckpt&#39;</span><span class="p">)</span>
 
@@ -307,7 +318,7 @@
 
     <span class="c1"># At this point all variables are uninitialized, so it is safe to run a</span>
     <span class="c1"># global initializer.</span>
-    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">global_variables_initializer</span><span class="p">())</span>
+    <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_init_op</span><span class="p">)</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Initialized all vars.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(b/160786085): Move this logic into Overriding vars logic itself,</span>
