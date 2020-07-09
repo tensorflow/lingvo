@@ -2044,26 +2044,30 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
 
           # Only the Trainer needs these ops.
           if py_utils.use_tpu():
-            tf.logging.info('creating load and retrieve ops.')
-            load_parameters_op = (
-                tpu_embedding_lib.tpu_ops.load_tpu_embedding_adagrad_parameters(
-                    parameters=embedding_var,
-                    accumulators=accumulator_var,
-                    table_name=self._table_name,
-                    num_shards=p.num_tpu_hosts,
-                    shard_id=i))
-            self._load_op_list.append(load_parameters_op)
+            # TPU Embedding load/retrieve ops need to be in the outer graph
+            # scope.
+            with tf.init_scope():
+              tf.logging.info('creating load and retrieve ops.')
+              load_parameters_op = (
+                  tpu_embedding_lib.tpu_ops
+                  .load_tpu_embedding_adagrad_parameters(
+                      parameters=embedding_var,
+                      accumulators=accumulator_var,
+                      table_name=self._table_name,
+                      num_shards=p.num_tpu_hosts,
+                      shard_id=i))
+              self._load_op_list.append(load_parameters_op)
 
-            retrieved_table, retrieved_accumulator = (
-                tpu_embedding_lib.tpu_ops
-                .retrieve_tpu_embedding_adagrad_parameters(
-                    table_name=self._table_name,
-                    num_shards=p.num_tpu_hosts,
-                    shard_id=i))
-            retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
-                tf.assign(embedding_var, retrieved_table),
-                tf.assign(accumulator_var, retrieved_accumulator))
-            self._retrieve_op_list.append(retrieve_parameters_op)
+              retrieved_table, retrieved_accumulator = (
+                  tpu_embedding_lib.tpu_ops
+                  .retrieve_tpu_embedding_adagrad_parameters(
+                      table_name=self._table_name,
+                      num_shards=p.num_tpu_hosts,
+                      shard_id=i))
+              retrieve_parameters_op = tpu_embedding_lib.control_flow_ops.group(
+                  tf.assign(embedding_var, retrieved_table),
+                  tf.assign(accumulator_var, retrieved_accumulator))
+              self._retrieve_op_list.append(retrieve_parameters_op)
 
     self._private_vars['wm'] = embedding_table_vars
     self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
