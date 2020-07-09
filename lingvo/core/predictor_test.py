@@ -55,13 +55,13 @@ class PredictorTest(test_utils.TestCase):
 
   def testPredictor(self):
     pred = predictor.Predictor(self._testInferenceGraph())
-    [fetch1] = pred.Run(['fetch1'], feed1=[12345])
+    fetch1 = pred.Run('fetch1', feed1=[12345])
     self.assertEqual(12345, fetch1)
 
   def testMissingFeedRaisesInvalidArgumentError(self):
     pred = predictor.Predictor(self._testInferenceGraph())
     with self.assertRaisesRegex(tf.errors.InvalidArgumentError, 'feed1'):
-      pred.Run(['fetch1'])
+      pred.Run('fetch1')
 
   def testInvalidFetchRaisesKeyError(self):
     pred = predictor.Predictor(self._testInferenceGraph())

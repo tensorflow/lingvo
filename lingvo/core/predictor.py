@@ -237,6 +237,11 @@ class Predictor:
       KeyError: a feed specified in kwargs is invalid, or a fetch in fetch_keys
         is invalid and validate_fetches is True.
     """
+    single_fetch = False
+    if not isinstance(fetch_keys, list):
+      single_fetch = True
+      fetch_keys = [fetch_keys]
+
     if validate_fetches:
       for x in fetch_keys:
         if x not in self._fetches:
@@ -267,6 +272,8 @@ class Predictor:
     results = [None] * len(fetch_keys)
     for i, fetch in zip(valid_fetch_idxs, fetched_results):
       results[i] = fetch
+    if single_fetch:
+      results = results[0]
     return results
 
 
