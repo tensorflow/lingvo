@@ -32,11 +32,14 @@ class BaseClassifier(base_model.BaseTask):
   def Params(cls):
     p = super().Params()
     p.Define('softmax', layers.SimpleFullSoftmax.Params(), 'Softmax layer.')
+    p.Define('add_image_summary', True, 'If True, adds image summary in '
+             'evaler/decoder jobs.')
     return p
 
   def _AddSummary(self, batch, prediction):
     """Adds image summaries for the batch."""
-    if not self.do_eval:
+    p = self.params
+    if not self.do_eval or not p.add_image_summary:
       # Image summaries only works in evaler/decoder.
       return
 
@@ -72,7 +75,7 @@ class BaseClassifier(base_model.BaseTask):
       A float scalar. The accuracy at precision k.
     """
     logits = py_utils.HasRank(logits, 2)
-    n, c = tf.unstack(tf.shape(logits), 2)
+    n, _ = tf.unstack(tf.shape(logits), 2)
     labels = py_utils.HasShape(labels, [n])
     weights = py_utils.HasShape(weights, [n])
     correct = tf.nn.in_top_k(targets=labels, predictions=logits, k=k)
