@@ -781,6 +781,12 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;step&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">step</span><span class="p">)</span>
 
+<div class="viewcode-block" id="RecurrentStepWrapper._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
+    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="RecurrentStepWrapper.PrepareExternalInputs"><a class="viewcode-back" href="../../../lingvo.core.step.html#lingvo.core.step.RecurrentStepWrapper.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;See Step.PrepareExternalInputs.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">step</span><span class="o">.</span><span class="n">PrepareExternalInputs</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">step</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">)</span></div>

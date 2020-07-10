@@ -923,6 +923,21 @@ sess.run(train_op), this value will be 1 higher than the value in FProp.</p></li
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.core.base_model.SingleTaskModel._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#SingleTaskModel._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.SingleTaskModel._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed. eg, if children variables need to
+be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -937,6 +952,21 @@ model’s tasks.</p>
 <dt id="lingvo.core.base_model.MultiTaskSubModel.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskSubModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskSubModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_model.MultiTaskSubModel._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskSubModel._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskSubModel._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed. eg, if children variables need to
+be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 </dd></dl>
@@ -956,6 +986,21 @@ model’s tasks.</p>
 <dt id="lingvo.core.base_model.MultiTaskModel.TaskNames">
 <em class="property">static </em><code class="sig-name descname">TaskNames</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel.TaskNames"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel.TaskNames" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.base_model.MultiTaskModel._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_model.html#MultiTaskModel._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_model.MultiTaskModel._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed. eg, if children variables need to
+be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.base_model.MultiTaskModel.task_names">

@@ -180,6 +180,21 @@
 <dd><p>Returns the layer params.</p>
 </dd></dl>
 
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.SharedEncoderModel._CreateChildrenVariables">
+<code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#SharedEncoderModel._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.SharedEncoderModel._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for child layers.</p>
+<p>Should be rarely overridden, only in cases when control over the context of
+children CreateVariables calls are needed. eg, if children variables need to
+be created inside of a specific context manager.</p>
+<p>There are a few cases of this in the codebase marked as for backwards
+compability. This is only to ensure that variable scopes remain compatible
+through the code migration. New layers should not copy that pattern, and
+instead follow the standard pattern of self.CreateChild() in __init__() and
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
+</dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -206,6 +221,13 @@ and you have verified that it indeed achieves what you would have expected.</p>
 <dt id="lingvo.core.multitask_model.RegExSharedVariableModel.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.multitask_model.RegExSharedVariableModel.CreateVariables">
+<code class="sig-name descname">CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/multitask_model.html#RegExSharedVariableModel.CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.multitask_model.RegExSharedVariableModel.CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create variables for this layer and child layers.</p>
+<p>DO NOT OVERRIDE. Override self._CreateVariables instead.</p>
 </dd></dl>
 
 <dl class="py method">

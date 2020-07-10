@@ -181,7 +181,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">SetVariableFree</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseSchedule.Value"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.BaseSchedule.Value">[docs]</a>  <span class="k">def</span> <span class="nf">Value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -818,7 +818,6 @@
           <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int64</span><span class="p">)</span>
       <span class="n">_</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ref_step</span><span class="p">,</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
           <span class="s1">&#39;ref_step&#39;</span><span class="p">,</span> <span class="n">wp</span><span class="p">,</span> <span class="n">trainable</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
-
       <span class="bp">self</span><span class="o">.</span><span class="n">_metric_history</span> <span class="o">=</span> <span class="n">early_stop</span><span class="o">.</span><span class="n">MetricHistory</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">metric_history</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_best_step</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">best_step</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metric_history</span><span class="o">.</span><span class="n">hist_file</span><span class="p">,</span>
                                       <span class="n">p</span><span class="o">.</span><span class="n">tolerance</span><span class="p">)</span>
