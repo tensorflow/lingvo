@@ -125,9 +125,9 @@ def inlined_matrix_inverse_pth_root(mat_g,
     Returns:
       mat_m^p
     """
-    branch_index = tf.cast(p / 2 - 1, tf.int32)
+    log2_p = tf.math.log(p) / tf.math.log(tf.constant(2.0, dtype=p.dtype))
     return tf.switch_case(
-        branch_index, {
+        tf.cast(tf.math.round(log2_p), tf.int32), {
             0: functools.partial(_unrolled_mat_pow_2, mat_m),
             1: functools.partial(_unrolled_mat_pow_4, mat_m),
             2: functools.partial(_unrolled_mat_pow_8, mat_m),
