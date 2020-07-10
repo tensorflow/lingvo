@@ -388,6 +388,13 @@ class TrainProgram(BaseProgram):
                                                eval_metrics, outfeeds)
     self._WriteSummaries(
         os.path.basename(self._program_dir), global_step, summaries)
+
+    # Simpler version of _ShouldStop without early stopping.
+    if task_global_step >= self._task_params.train.max_steps:
+      tf.logging.info('ShouldStop: step:%6d params.train.max_steps:%6d',
+                      task_global_step, self._task_params.train.max_steps)
+      return True
+
     return False
 
 
@@ -467,6 +474,7 @@ class EvalProgram(BaseProgram):
     self._eval_metrics.PackMetricsValues(values)
     for key, (val, _) in sorted(self._eval_metrics.metrics.items()):
       self._SummarizeValue(global_step, key, val)
+    self._summary_writer.flush()
     return False
 
 
@@ -911,7 +919,9 @@ class SimpleProgramSchedule:
   def Run(self, sess):
     p = self.params
     for _ in range(p.train_executions_per_eval):
-      self.train_program.Run(sess)
+      done = self.train_program.Run(sess)
+      if done:
+        break
     for eval_program in self.eval_programs:
       eval_program.Run(sess)
     return False
@@ -923,7 +933,8 @@ def SimpleProgramScheduleForTask(train_dataset_name,
                                  eval_steps_per_loop,
                                  decode_steps_per_loop,
                                  experimental_decoder=False,
-                                 train_program_cls=TrainProgram):
+                                 train_program_cls=TrainProgram,
+                                 eval_program_cls=EvalProgram):
   """Convenient helper method for common case.
 
   Args:
@@ -934,8 +945,10 @@ def SimpleProgramScheduleForTask(train_dataset_name,
     decode_steps_per_loop: Number of steps to execute the decode program.
     experimental_decoder: bool. Whether to use experimental deocder which is
       placed in a tpu loop.
-    train_program_cls: The class of the TrainProgram to use.  Defaults
+    train_program_cls: The class to use for training programs.  Defaults
       to TrainProgram.
+    eval_program_cls: The class to use for eval programs.  Defaults to
+      EvalProgram.
 
   Returns:
     A populated SimpleProgramSchedule.Params()
@@ -953,7 +966,7 @@ def SimpleProgramScheduleForTask(train_dataset_name,
   for dataset_name in eval_dataset_names:
     program_schedule_params.dataset_names.append(dataset_name)
     if eval_steps_per_loop > 0:
-      eval_program_params = EvalProgram.Params()
+      eval_program_params = eval_program_cls.Params()
       eval_program_params.name = 'eval_tpu'
       # TODO(blee): This should be derived from the Dataset size.
       eval_program_params.steps_per_loop = eval_steps_per_loop
