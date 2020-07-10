@@ -311,7 +311,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         break
     self._params = params.Copy()
     tf.logging.debug('Creating layer %s with params: \n %s \n',
-                          self.__class__.__name__, str(params))
+                     self.__class__.__name__, str(params))
     # Vars created by this layer.
     self._private_vars = py_utils.NestedMap()
     # Theta derived from this layer's vars.
@@ -779,10 +779,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     be created inside of a specific context manager.
 
     There are a few cases of this in the codebase marked as for backwards
-    compabilitiy. This is only to ensure that variable scopes remain compatible
+    compability. This is only to ensure that variable scopes remain compatible
     through the code migration. New layers should not copy that pattern, and
     instead follow the standard pattern of self.CreateChild() in __init__() and
-    self.CreateVariable() in _CreateVariables().
+    self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+    old checkpoints, you can go ahead and delete those functions.
     """
     with tf.variable_scope(
         py_utils.SanitizeScopeKey(self.params.name),
@@ -795,6 +796,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Actually create variables for this layer.
 
     Subclasses should override this function.
+
+    Variables are created inside of tf.variable_scope(self.params.name).
     """
     pass
 
