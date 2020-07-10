@@ -24,6 +24,11 @@ from lingvo import base_trial
 from lingvo import model_registry
 from lingvo import trainer
 import lingvo.compat as tf
+from lingvo.core import base_input_generator
+from lingvo.core import base_model
+from lingvo.core import base_model_params
+from lingvo.core import hyperparams
+from lingvo.core import inference_graph_pb2
 from lingvo.core import test_utils
 from lingvo.core import trainer_test_utils
 from lingvo.tasks.image.input_generator import FakeMnistData
@@ -78,6 +83,43 @@ class BaseTrainerTest(test_utils.TestCase):
     with tf.io.gfile.GFile(filename, 'r') as f:
       lines = f.readlines()
     return any(re.search(pattern, _) for _ in lines)
+
+
+class EmptyTask(base_model.BaseTask):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.name = 'empty'
+    return p
+
+  def Inference(self):
+    return inference_graph_pb2.InferenceGraph()
+
+
+class EmptyMultiTaskModel(base_model.MultiTaskModel):
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.name = 'empty'
+    p.task_params.Define('a', EmptyTask.Params(), '')
+    p.task_params.Define('b', EmptyTask.Params(), '')
+    return p
+
+
+@model_registry.RegisterMultiTaskModel
+class EmptyMultiTaskParams(base_model_params.MultiTaskModelParams):
+
+  def Test(self):
+    p = base_input_generator.BaseInputGenerator.Params()
+    inputs = hyperparams.Params()
+    for task_name in ['a', 'b']:
+      inputs.Define(task_name, p.Copy(), '')
+    return inputs
+
+  def Model(self):
+    return EmptyMultiTaskModel.Params()
 
 
 class TrainerTest(BaseTrainerTest):
@@ -198,7 +240,34 @@ class TrainerTest(BaseTrainerTest):
     self.assertTrue(self._HasFile(inference_files, 'inference.pbtxt'))
     self.assertTrue(self._HasFile(inference_files, 'inference_tpu.pbtxt'))
 
+  @flagsaver.flagsaver(model_task_name='a')
+  def testWriteOneOfMultiTaskInferenceGraph(self):
+    random.seed()
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'inference_graphs' + str(random.random()))
+    FLAGS.logdir = logdir
+    cfg = 'test.EmptyMultiTaskParams'
+    trainer.RunnerManager(cfg).WriteInferenceGraph()
+    inference_files = tf.io.gfile.glob(logdir + '/inference_graphs/*')
+    self.assertTrue(self._HasFile(inference_files, 'a_inference.pbtxt'))
+    self.assertTrue(self._HasFile(inference_files, 'a_inference_tpu.pbtxt'))
+    self.assertFalse(self._HasFile(inference_files, 'b_inference.pbtxt'))
+    self.assertFalse(self._HasFile(inference_files, 'b_inference_tpu.pbtxt'))
+
   @flagsaver.flagsaver
+  def testWriteMultiTaskInferenceGraph(self):
+    random.seed()
+    logdir = os.path.join(tf.test.get_temp_dir(),
+                          'inference_graphs' + str(random.random()))
+    FLAGS.logdir = logdir
+    cfg = 'test.EmptyMultiTaskParams'
+    trainer.RunnerManager(cfg).WriteInferenceGraph()
+    inference_files = tf.io.gfile.glob(logdir + '/inference_graphs/*')
+    self.assertTrue(self._HasFile(inference_files, 'a_inference.pbtxt'))
+    self.assertTrue(self._HasFile(inference_files, 'a_inference_tpu.pbtxt'))
+    self.assertTrue(self._HasFile(inference_files, 'b_inference.pbtxt'))
+    self.assertTrue(self._HasFile(inference_files, 'b_inference_tpu.pbtxt'))
+
   def testRunLocally(self):
     logdir = os.path.join(tf.test.get_temp_dir(),
                           'run_locally_test' + str(random.random()))

@@ -1723,40 +1723,41 @@ class RunnerManager:
     tf.logging.info('Writing inference graphs to dir: %s', inference_graph_dir)
 
     cfg = self.model_registry.GetParams(self._model_name, 'Test')
+    task_names = [FLAGS.model_task_name]
     if (issubclass(cfg.cls, base_model.MultiTaskModel) and
         not FLAGS.model_task_name):
-      tf.logging.info('Cannot write inference graphs for multi-task model '
-                      'when model_task_name is not specified.')
-      return
-    try:
-      filename_prefix = 'inference'
-      if FLAGS.model_task_name:
-        filename_prefix = '%s_inference' % FLAGS.model_task_name
-      filename_prefix = os.path.join(inference_graph_dir, filename_prefix)
-      # Standard inference graph.
-      self.inference_graph_exporter.InferenceGraphExporter.Export(
-          model_cfg=cfg,
-          model_task_name=FLAGS.model_task_name,
-          export_path=filename_prefix + '.pbtxt',
-          random_seed=FLAGS.inference_graph_random_seed)
-    except NotImplementedError as e:
-      tf.logging.error('Cannot write inference graph: %s', e)
+      task_names = base_model.MultiTaskModel.TaskNames(cfg)
 
-    # TPU inference graph. Not all models support it so fail silently.
-    try:
-      self.inference_graph_exporter.InferenceGraphExporter.Export(
-          model_cfg=cfg,
-          model_task_name=FLAGS.model_task_name,
-          device_options=self.inference_graph_exporter.InferenceDeviceOptions(
-              device='tpu',
-              retain_device_placement=False,
-              var_options='ON_DEVICE',
-              gen_init_op=True,
-              dtype_override=None),
-          export_path=filename_prefix + '_tpu.pbtxt',
-          random_seed=FLAGS.inference_graph_random_seed)
-    except Exception as e:  # pylint: disable=broad-except
-      tf.logging.error('Error exporting TPU inference graph: %s' % e)
+    for task_name in task_names:
+      try:
+        filename_prefix = 'inference'
+        if task_name:
+          filename_prefix = '%s_inference' % task_name
+        filename_prefix = os.path.join(inference_graph_dir, filename_prefix)
+        # Standard inference graph.
+        self.inference_graph_exporter.InferenceGraphExporter.Export(
+            model_cfg=cfg,
+            model_task_name=task_name,
+            export_path=filename_prefix + '.pbtxt',
+            random_seed=FLAGS.inference_graph_random_seed)
+      except NotImplementedError as e:
+        tf.logging.error('Cannot write inference graph: %s', e)
+
+      # TPU inference graph. Not all models support it so fail silently.
+      try:
+        self.inference_graph_exporter.InferenceGraphExporter.Export(
+            model_cfg=cfg,
+            model_task_name=task_name,
+            device_options=self.inference_graph_exporter.InferenceDeviceOptions(
+                device='tpu',
+                retain_device_placement=False,
+                var_options='ON_DEVICE',
+                gen_init_op=True,
+                dtype_override=None),
+            export_path=filename_prefix + '_tpu.pbtxt',
+            random_seed=FLAGS.inference_graph_random_seed)
+      except Exception as e:  # pylint: disable=broad-except
+        tf.logging.error('Error exporting TPU inference graph: %s' % e)
 
   def RunEvalerOnce(self):
     """Run once evaler."""

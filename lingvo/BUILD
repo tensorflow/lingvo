@@ -222,9 +222,10 @@ py_test(
         ":trainer_lib",
         # Implicit absl.testing.flagsaver dependency.
         "//lingvo/core:base_input_generator",
-        "//lingvo/core:base_layer",
         "//lingvo/core:base_model",
-        "//lingvo/core:py_utils",
+        "//lingvo/core:base_model_params",
+        "//lingvo/core:hyperparams",
+        "//lingvo/core:inference_graph_py_pb2",
         "//lingvo/core:test_utils",
         "//lingvo/core:trainer_test_utils",
         "//lingvo/tasks/image:input_generator",

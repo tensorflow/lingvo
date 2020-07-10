@@ -1269,6 +1269,10 @@ class MultiTaskModel(BaseModel):
         'redundant since the individual tasks scope by their `name`.')
     return p
 
+  @staticmethod
+  def TaskNames(params):
+    return sorted(task_name for task_name, _ in params.task_params.IterParams())
+
   def __init__(self, params):
     assert issubclass(params.cls, MultiTaskModel)
     super().__init__(params)
@@ -1329,9 +1333,7 @@ class MultiTaskModel(BaseModel):
 
   @property
   def task_names(self):
-    sorted_task_names = sorted(
-        task_name for task_name, _ in self.params.task_params.IterParams())
-    return sorted_task_names
+    return MultiTaskModel.TaskNames(self.params)
 
   @property
   def tasks(self):
