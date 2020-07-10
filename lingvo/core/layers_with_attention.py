@@ -1337,17 +1337,6 @@ class StyleLayer(base_layer.BaseLayer):
     assert p.output_dim > 0
 
     with tf.variable_scope(p.name):
-      # The styles table.
-      w_shape = [p.num_styles, 1, p.output_dim]
-      w_init = py_utils.WeightInit.Gaussian(scale=1.0, seed=p.random_seed)
-      w_pc = py_utils.WeightParams(
-          shape=w_shape,
-          init=w_init,
-          dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('styles_w', w_pc)
-
-      # Lastly the attention module.
       atten_p = attention.MultiHeadedAttention.Params().Set(
           source_dim=p.output_dim,
           context_dim=p.output_dim,
@@ -1358,6 +1347,19 @@ class StyleLayer(base_layer.BaseLayer):
           use_source_vec_as_attention_value=False,
           enable_ctx_post_proj=p.enable_ctx_post_proj)
       self.CreateChild('atten', atten_p)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    # The styles table.
+    w_shape = [p.num_styles, 1, p.output_dim]
+    w_init = py_utils.WeightInit.Gaussian(scale=1.0, seed=p.random_seed)
+    w_pc = py_utils.WeightParams(
+        shape=w_shape,
+        init=w_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('styles_w', w_pc)
 
   def EmbLookup(self, theta, ids):
     """Looks up style embedding vectors for ids only for test purpose.

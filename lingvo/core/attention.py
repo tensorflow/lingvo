@@ -467,27 +467,6 @@ class AdditiveAttention(BaseAttentionLayer):
     """Constructs an `AdditiveAttention` object."""
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      pc = py_utils.WeightParams(
-          shape=[p.source_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['AdditiveAttention_vars'])
-      self.CreateVariable('source_var', pc, self.AddGlobalVN)
-
-      pc = py_utils.WeightParams(
-          shape=[p.query_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['AdditiveAttention_vars'])
-      self.CreateVariable('query_var', pc, self.AddGlobalVN)
-
-      pc = py_utils.WeightParams(
-          shape=[p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['AdditiveAttention_vars'])
-      self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
 
     # noinline and compiled cannot be set at the same time
     @tf.Defun(*([py_utils.FPropDtype(p)] * 7), noinline=not py_utils.use_tpu())
@@ -694,6 +673,30 @@ class AdditiveAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    pc = py_utils.WeightParams(
+        shape=[p.source_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['AdditiveAttention_vars'])
+    self.CreateVariable('source_var', pc, self.AddGlobalVN)
+
+    pc = py_utils.WeightParams(
+        shape=[p.query_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['AdditiveAttention_vars'])
+    self.CreateVariable('query_var', pc, self.AddGlobalVN)
+
+    pc = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['AdditiveAttention_vars'])
+    self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
+
   def PackSource(self,
                  theta,
                  source_vecs,
@@ -834,15 +837,6 @@ class DotProductAttention(BaseAttentionLayer):
     # TODO(yonghui): relax these constraints.
     assert p.source_dim == p.query_dim
     assert p.source_dim == p.hidden_dim
-
-    with tf.variable_scope(p.name):
-      pc = py_utils.WeightParams(
-          shape=[p.hidden_dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=['DotProductAttention_vars'])
-
-      self.CreateVariable('per_dim_scale', pc)
 
     @tf.Defun(*[py_utils.FPropDtype(p)] * 7, noinline=not py_utils.use_tpu())
     def AttenProbs(per_dim_scale, source_padding, concated_source_vecs,
@@ -999,6 +993,18 @@ class DotProductAttention(BaseAttentionLayer):
       return context_vector, returned_probs
 
     self._ctx_vec = Atten
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
+    pc = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=['DotProductAttention_vars'])
+
+    self.CreateVariable('per_dim_scale', pc)
 
   def PackSource(self,
                  theta,
@@ -1208,77 +1214,7 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.proj_init not in ('uniform', 'default'):
       raise ValueError('Unknown proj_init: %s!' % p.proj_init)
 
-    def InitProj(layer_dim, bias=False):
-      if p.proj_init == 'uniform':
-        # Note we also initialize bias with uniform distribution here, following
-        # the default Pytorch implementation:
-        # https://pytorch.org/docs/stable/nn.html#linear
-        proj_init = py_utils.WeightInit.Uniform(scale=np.sqrt(1.0 / layer_dim))
-      elif p.proj_init == 'default':
-        proj_init = py_utils.WeightInit.Constant(0.0) if bias else p.params_init
-      return proj_init
-
-    pc_bias = py_utils.WeightParams(
-        shape=[p.hidden_dim],
-        init=InitProj(p.hidden_dim, bias=True),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
     with tf.variable_scope(p.name):
-      if p.enable_source_proj:
-        pc = py_utils.WeightParams(
-            shape=[p.source_dim, p.hidden_dim],
-            init=InitProj(p.source_dim),
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('source_proj', pc)
-        self.CreateVariable('source_proj_b', pc_bias)
-      else:
-        assert p.source_dim == p.hidden_dim
-
-      if p.enable_query_proj:
-        pc = py_utils.WeightParams(
-            shape=[p.query_dim, p.hidden_dim],
-            init=InitProj(p.query_dim),
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('query_proj', pc)
-        self.CreateVariable('query_proj_b', pc_bias)
-      else:
-        assert p.query_dim == p.hidden_dim
-
-      if p.enable_ctx_pre_proj and not p.use_source_vec_as_attention_value:
-        assert p.context_dim
-        pc = py_utils.WeightParams(
-            shape=[p.context_dim, p.hidden_dim],
-            init=InitProj(p.context_dim),
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('ctx_proj', pc)
-        self.CreateVariable('ctx_proj_b', pc_bias)
-
-      if p.enable_ctx_post_proj:
-        assert p.ctx_post_proj_dim
-        if p.num_post_proj == 1:
-          pc_shape = [p.hidden_dim, p.ctx_post_proj_dim]
-          pc_b_shape = [p.ctx_post_proj_dim]
-        elif p.num_post_proj > 1:
-          pc_shape = [p.hidden_dim, p.ctx_post_proj_dim, p.num_post_proj]
-          pc_b_shape = [p.ctx_post_proj_dim, p.num_post_proj]
-        else:
-          raise ValueError('num_post_proj must > 0!')
-        pc = py_utils.WeightParams(
-            shape=pc_shape,
-            init=InitProj(p.hidden_dim),
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('ctx_post_proj', pc)
-        pc_bias_post_proj = py_utils.WeightParams(
-            shape=pc_b_shape,
-            init=InitProj(p.ctx_post_proj_dim, bias=True),
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
-
       att_dim = p.hidden_dim // p.num_attention_heads
 
       att_p = p.inner_atten_params.Set(
@@ -1294,6 +1230,81 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
       self.CreateChild('atten', att_p)
       if p.attention_head_prob_index >= 0:
         assert p.attention_head_prob_index < p.num_attention_heads
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
+    def InitProj(layer_dim, bias=False):
+      if p.proj_init == 'uniform':
+        # Note we also initialize bias with uniform distribution here, following
+        # the default Pytorch implementation:
+        # https://pytorch.org/docs/stable/nn.html#linear
+        proj_init = py_utils.WeightInit.Uniform(scale=np.sqrt(1.0 / layer_dim))
+      elif p.proj_init == 'default':
+        proj_init = py_utils.WeightInit.Constant(0.0) if bias else p.params_init
+      return proj_init
+
+    pc_bias = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=InitProj(p.hidden_dim, bias=True),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+    if p.enable_source_proj:
+      pc = py_utils.WeightParams(
+          shape=[p.source_dim, p.hidden_dim],
+          init=InitProj(p.source_dim),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('source_proj', pc)
+      self.CreateVariable('source_proj_b', pc_bias)
+    else:
+      assert p.source_dim == p.hidden_dim
+
+    if p.enable_query_proj:
+      pc = py_utils.WeightParams(
+          shape=[p.query_dim, p.hidden_dim],
+          init=InitProj(p.query_dim),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('query_proj', pc)
+      self.CreateVariable('query_proj_b', pc_bias)
+    else:
+      assert p.query_dim == p.hidden_dim
+
+    if p.enable_ctx_pre_proj and not p.use_source_vec_as_attention_value:
+      assert p.context_dim
+      pc = py_utils.WeightParams(
+          shape=[p.context_dim, p.hidden_dim],
+          init=InitProj(p.context_dim),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('ctx_proj', pc)
+      self.CreateVariable('ctx_proj_b', pc_bias)
+
+    if p.enable_ctx_post_proj:
+      assert p.ctx_post_proj_dim
+      if p.num_post_proj == 1:
+        pc_shape = [p.hidden_dim, p.ctx_post_proj_dim]
+        pc_b_shape = [p.ctx_post_proj_dim]
+      elif p.num_post_proj > 1:
+        pc_shape = [p.hidden_dim, p.ctx_post_proj_dim, p.num_post_proj]
+        pc_b_shape = [p.ctx_post_proj_dim, p.num_post_proj]
+      else:
+        raise ValueError('num_post_proj must > 0!')
+      pc = py_utils.WeightParams(
+          shape=pc_shape,
+          init=InitProj(p.hidden_dim),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('ctx_post_proj', pc)
+      pc_bias_post_proj = py_utils.WeightParams(
+          shape=pc_b_shape,
+          init=InitProj(p.ctx_post_proj_dim, bias=True),
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+      self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
 
   @classmethod
   def SetOutputContextDim(cls, p, out_dim):
@@ -1815,7 +1826,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     """Constructs an LocationSensitiveAttention object."""
     super().__init__(params)
     p = self.params
-    name = p.name
     self._is_quantized = p.qdomain.default is not None
     assert not p.packed_input, ('Packed input is not supported yet for '
                                 'LocationSensitiveAttention.')
@@ -1832,51 +1842,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         'logits_mul',
         'logits_bias',
         domain='fullyconnected')
-
-    with tf.variable_scope(name):
-      pc = py_utils.WeightParams(
-          shape=[p.source_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['LocationSensitiveAttention_vars'])
-      self.CreateVariable('source_var', pc, self.AddGlobalVN)
-
-      pc = py_utils.WeightParams(
-          shape=[p.query_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['LocationSensitiveAttention_vars'])
-      self.CreateVariable('query_var', pc, self.AddGlobalVN)
-
-      pc = py_utils.WeightParams(
-          shape=[p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['LocationSensitiveAttention_vars'])
-      self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
-
-      assert p.location_filter_size % 2 == 1
-      assert p.location_num_filters > 0
-
-      location_filter_shape = [
-          p.location_filter_size,
-          len(p.location_features), p.location_num_filters
-      ]
-      # TODO(yonghui): Don't hard code how params are initialized.
-      location_filter_pc = py_utils.WeightParams(
-          shape=location_filter_shape,
-          init=py_utils.WeightInit.Uniform(0.05),
-          dtype=p.dtype,
-          collections=['LocationSensitiveAttention_vars'])
-      self.CreateVariable('location_filter_var', location_filter_pc,
-                          self.AddGlobalVN)
-      location_var_shape = [p.location_num_filters, p.hidden_dim]
-      location_pc = py_utils.WeightParams(
-          shape=location_var_shape,
-          init=py_utils.WeightInit.Uniform(0.05),
-          dtype=p.dtype,
-          collections=['LocationSensitiveAttention_vars'])
-      self.CreateVariable('location_var', location_pc, self.AddGlobalVN)
 
     @_ConditionalDefun(
         self._is_quantized, *[p.dtype] * 5, noinline=not py_utils.use_tpu())
@@ -2080,6 +2045,54 @@ class LocationSensitiveAttention(BaseAttentionLayer):
       return transformed_vecs, transposed_ctxs
 
     self._encode_source = EncodeSource
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
+    pc = py_utils.WeightParams(
+        shape=[p.source_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['LocationSensitiveAttention_vars'])
+    self.CreateVariable('source_var', pc, self.AddGlobalVN)
+
+    pc = py_utils.WeightParams(
+        shape=[p.query_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['LocationSensitiveAttention_vars'])
+    self.CreateVariable('query_var', pc, self.AddGlobalVN)
+
+    pc = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['LocationSensitiveAttention_vars'])
+    self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
+
+    assert p.location_filter_size % 2 == 1
+    assert p.location_num_filters > 0
+
+    location_filter_shape = [
+        p.location_filter_size,
+        len(p.location_features), p.location_num_filters
+    ]
+    # TODO(yonghui): Don't hard code how params are initialized.
+    location_filter_pc = py_utils.WeightParams(
+        shape=location_filter_shape,
+        init=py_utils.WeightInit.Uniform(0.05),
+        dtype=p.dtype,
+        collections=['LocationSensitiveAttention_vars'])
+    self.CreateVariable('location_filter_var', location_filter_pc,
+                        self.AddGlobalVN)
+    location_var_shape = [p.location_num_filters, p.hidden_dim]
+    location_pc = py_utils.WeightParams(
+        shape=location_var_shape,
+        init=py_utils.WeightInit.Uniform(0.05),
+        dtype=p.dtype,
+        collections=['LocationSensitiveAttention_vars'])
+    self.CreateVariable('location_var', location_pc, self.AddGlobalVN)
 
   def _ApplyConv(self, attention_state, location_filter_var):
     """Applies the convolution on attention state."""
@@ -2320,58 +2333,6 @@ class MonotonicAttention(BaseAttentionLayer):
       p.pre_sigmoid_noise = 0.
       p.hard_sigmoid = True
 
-    with tf.variable_scope(p.name):
-      # source is the weight matrix for the memory/encoder states
-      pc = py_utils.WeightParams(
-          shape=[p.source_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('source_var', pc, self.AddGlobalVN)
-
-      # query is the weight matrix for the query/decoder RNN state
-      pc = py_utils.WeightParams(
-          shape=[p.query_dim, p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('query_var', pc, self.AddGlobalVN)
-
-      # hidden is the pre-softmax vector which converts from tanh to scalar
-      pc = py_utils.WeightParams(
-          shape=[p.hidden_dim],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
-
-      # energy_bias is the bias vector which appears inside of tanh
-      # Initialize the bias vector to all zeros
-      pc = py_utils.WeightParams(
-          shape=[p.hidden_dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('energy_bias_var', pc)
-
-      # hidden_scale is the weight normalization scale for hidden
-      # Initialize so that the initial scale is 1/sqrt(hidden_dim)
-      pc = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(1 / np.sqrt(p.hidden_dim)),
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('hidden_scale_var', pc)
-
-      # hidden_bias is the bias scalar applied before the sigmoid
-      # Use the hidden_bias_init hyperparam to set the initial value
-      pc = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(p.hidden_bias_init),
-          dtype=p.dtype,
-          collections=['MonotonicAttention_vars'])
-      self.CreateVariable('hidden_bias_var', pc)
-
     def EncodeSource(src_w, vecs, ctxs):
       time, batch = py_utils.GetShape(vecs, 2)
       ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
@@ -2382,6 +2343,61 @@ class MonotonicAttention(BaseAttentionLayer):
       return transformed_vecs, transposed_ctxs
 
     self._encode_source = EncodeSource
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
+    # source is the weight matrix for the memory/encoder states
+    pc = py_utils.WeightParams(
+        shape=[p.source_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('source_var', pc, self.AddGlobalVN)
+
+    # query is the weight matrix for the query/decoder RNN state
+    pc = py_utils.WeightParams(
+        shape=[p.query_dim, p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('query_var', pc, self.AddGlobalVN)
+
+    # hidden is the pre-softmax vector which converts from tanh to scalar
+    pc = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('hidden_var', pc, self.AddGlobalVN)
+
+    # energy_bias is the bias vector which appears inside of tanh
+    # Initialize the bias vector to all zeros
+    pc = py_utils.WeightParams(
+        shape=[p.hidden_dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('energy_bias_var', pc)
+
+    # hidden_scale is the weight normalization scale for hidden
+    # Initialize so that the initial scale is 1/sqrt(hidden_dim)
+    pc = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Constant(1 / np.sqrt(p.hidden_dim)),
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('hidden_scale_var', pc)
+
+    # hidden_bias is the bias scalar applied before the sigmoid
+    # Use the hidden_bias_init hyperparam to set the initial value
+    pc = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Constant(p.hidden_bias_init),
+        dtype=p.dtype,
+        collections=['MonotonicAttention_vars'])
+    self.CreateVariable('hidden_bias_var', pc)
 
   def PackSource(self,
                  theta,
@@ -2951,6 +2967,19 @@ class MergerLayer(base_layer.BaseLayer):
         pre_proj_params.append(proj_p)
       self.CreateChildren('pre_proj', pre_proj_params)
 
+    if p.merger_op == 'gated_avg':
+      assert p.num_sources > 0, ('For merger_op=gated_avg, must specify '
+                                 'num_sources > 0.')
+      params = p.gated_avg_tpl.Copy()
+      params.name = 'g_avg_merger'
+      params.num_nodes = p.source_dim
+      params.num_inputs = p.num_sources
+      self.CreateChild('gated_average', params)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
     if p.merger_op == 'weighted_sum':
       assert p.num_sources > 0, ('For merger_op=weighted_sum, must specify '
                                  'num_sources > 0.')
@@ -2961,17 +2990,19 @@ class MergerLayer(base_layer.BaseLayer):
           init=params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
-      with tf.variable_scope(p.name):
-        _, self._sum_weight = py_utils.CreateVariable('sum_weight', pw)
+      self.CreateVariable('sum_weight', pw)
 
-    if p.merger_op == 'gated_avg':
-      assert p.num_sources > 0, ('For merger_op=gated_avg, must specify '
-                                 'num_sources > 0.')
-      params = p.gated_avg_tpl.Copy()
-      params.name = 'g_avg_merger'
-      params.num_nodes = p.source_dim
-      params.num_inputs = p.num_sources
-      self.CreateChild('gated_average', params)
+  def _CreateChildrenVariables(self):
+    # Backwards compatibility: manually call child.CreateVariables() outside of
+    # tf.variable_scope(p.name).
+    if 'atten' in self.children:
+      self.atten.CreateVariables()
+    if 'gated_average' in self.children:
+      self.gated_average.CreateVariables()
+    if 'pre_proj' in self.children:
+      for proj in self.pre_proj:
+        proj.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def FProp(self, theta, inputs, query_vec=None):
     """Combines the list of input tensors into a single tensor.
@@ -3031,7 +3062,7 @@ class MergerLayer(base_layer.BaseLayer):
           for t1, t2 in tensor_pairs
       ]):
         w = tf.expand_dims(
-            tf.expand_dims(tf.expand_dims(self._sum_weight, 1), 1), 1)
+            tf.expand_dims(tf.expand_dims(theta.sum_weight, 1), 1), 1)
         w = tf.tile(
             w,
             [1,

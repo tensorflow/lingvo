@@ -15,6 +15,7 @@
 # ==============================================================================
 """Multitask models."""
 
+from lingvo import compat as tf
 from lingvo.core import base_model
 from lingvo.core import py_utils
 
@@ -46,6 +47,17 @@ class SharedEncoderModel(base_model.MultiTaskModel):
         task = self.GetTask(name)
         assert 'encoder' not in task.children
         task.AddChild('encoder', encoder)
+
+  def _CreateChildrenVariables(self):
+    # Ensure p.encoder_to_share is created first.
+    task_name = self.params.encoder_to_share
+    with tf.name_scope(self.params.name):
+      if self.params.task_name_var_scope:
+        with tf.variable_scope(task_name):
+          self.GetTask(task_name).CreateVariables()
+      else:
+        self.GetTask(task_name).CreateVariables()
+    super()._CreateChildrenVariables()
 
 
 class SharedEncoderDecoderModel(base_model.MultiTaskModel):
@@ -102,15 +114,19 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
 
   def __init__(self, params):
     # Enable variable sharing.
-    p = params
     with py_utils.OpportunisticVariableReuseScope():
-      with py_utils.VariableRenameScope(p.variable_renaming_rules):
+      with py_utils.VariableRenameScope(params.variable_renaming_rules):
         super().__init__(params)
+
+  def CreateVariables(self):
+    # Enable variable sharing.
+    with py_utils.OpportunisticVariableReuseScope():
+      with py_utils.VariableRenameScope(self.params.variable_renaming_rules):
+        super().CreateVariables()
 
   def ConstructFPropBPropGraph(self):
     # We need to override this since constructing the BPropGraph
     # creates slot variables.
-    p = self._params
     with py_utils.OpportunisticVariableReuseScope():
-      with py_utils.VariableRenameScope(p.variable_renaming_rules):
+      with py_utils.VariableRenameScope(self.params.variable_renaming_rules):
         super().ConstructFPropBPropGraph()

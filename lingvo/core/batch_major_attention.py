@@ -72,18 +72,15 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p.Define('dim', 0, 'Number of individual dims .')
     return p
 
-  def __init__(self, params):
-    """Constructs a PerDimScaleLayer object."""
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    assert p.name
-    with tf.variable_scope(p.name):
-      pc = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('per_dim_scale', pc)
+    pc = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('per_dim_scale', pc)
 
   def FProp(self, theta, inputs):
     """Return theta.scale * inputs.
@@ -131,15 +128,15 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    assert p.name
     pc = py_utils.WeightParams(
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('w', pc)
     if p.use_bias:
       if p.is_output_projection:
         pc_bias = py_utils.WeightParams(
@@ -153,11 +150,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
             init=py_utils.WeightInit.Constant(0.0),
             dtype=p.dtype,
             collections=[self.__class__.__name__ + '_vars'])
-
-    with tf.variable_scope(p.name):
-      self.CreateVariable('w', pc)
-      if p.use_bias:
-        self.CreateVariable('b', pc_bias)
+      self.CreateVariable('b', pc_bias)
 
   def FProp(self, theta, inputs):
     """Computes the multi headed projection for inputs.
@@ -757,19 +750,24 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
           use_bias=False)
       self.CreateChild('pos_proj', pos_proj_tpl)
 
-      u_pc = py_utils.WeightParams(
-          shape=[params.num_heads, dim_per_head],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=params.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      v_pc = py_utils.WeightParams(
-          shape=[params.num_heads, dim_per_head],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=params.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    params = self.params
 
-      self.CreateVariable('u', u_pc)
-      self.CreateVariable('v', v_pc)
+    dim_per_head = params.hidden_dim // params.num_heads
+    u_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    v_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+    self.CreateVariable('u', u_pc)
+    self.CreateVariable('v', v_pc)
 
   def _AttenLogits(self, theta, query, key, per_step_padding):
     b, _, n, h = py_utils.GetShape(key, 4)
@@ -906,6 +904,15 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
         self.CreateChild('value_emb', rel_pos_emb_tpl)
         if pos_proj_tpl is not None:
           self.CreateChild('value_pos_proj', pos_proj_tpl)
+
+  def _CreateChildrenVariables(self):
+    with tf.variable_scope(
+        self.params.name,
+        reuse=tf.AUTO_REUSE if self.params.use_global_emb else False):
+      for child in ['key_emb', 'key_pos_proj', 'value_emb', 'value_pos_proj']:
+        if child in self.children:
+          self.children[child].CreateVariables()
+    super()._CreateChildrenVariables()
 
   def _RelativePositionValueEmb(self, theta, key):
     """Gets relative positional value embedding.
@@ -1300,19 +1307,24 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
           use_bias=False)
       self.CreateChild('pos_proj', pos_proj_tpl)
 
-      u_pc = py_utils.WeightParams(
-          shape=[params.num_heads, dim_per_head],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=params.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
-      v_pc = py_utils.WeightParams(
-          shape=[params.num_heads, dim_per_head],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=params.dtype,
-          collections=[self.__class__.__name__ + '_vars'])
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    params = self.params
 
-      self.CreateVariable('u', u_pc)
-      self.CreateVariable('v', v_pc)
+    dim_per_head = params.hidden_dim // params.num_heads
+    u_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    v_pc = py_utils.WeightParams(
+        shape=[params.num_heads, dim_per_head],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=params.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+
+    self.CreateVariable('u', u_pc)
+    self.CreateVariable('v', v_pc)
 
   def _AttenLogits(self, theta, query, key):
     b, u, w, _, _ = py_utils.GetShape(query)

@@ -25,17 +25,15 @@ from lingvo.core import test_utils
 
 class TestLayer(base_layer.BaseLayer):
 
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    with tf.variable_scope(p.name):
-      pc = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Constant(0),
-          dtype=p.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('hello', pc)
-      self.CreateVariable('world', pc)
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    pc = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Constant(0),
+        dtype=self.params.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('hello', pc)
+    self.CreateVariable('world', pc)
 
   def Loss(self, theta):
     return theta.hello + -2 * theta.world

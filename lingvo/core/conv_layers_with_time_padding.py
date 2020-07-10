@@ -265,34 +265,32 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    assert p.name
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    with tf.variable_scope(p.name):
-      self.CreateVariable('w', w_pc)
-      if p.weight_norm:
-        self.CreateVariable(
-            'g',
-            py_utils.WeightParams(
-                shape=[p.filter_shape[-1]],
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
-      if p.bias:
-        # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
-        self.CreateVariable(
-            'b',
-            py_utils.WeightParams(
-                shape=[self.output_channels],
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
+    self.CreateVariable('w', w_pc)
+    if p.weight_norm:
+      self.CreateVariable(
+          'g',
+          py_utils.WeightParams(
+              shape=[p.filter_shape[-1]],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
+    if p.bias:
+      # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[self.output_channels],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
 
   @classmethod
   def OutputChannels(cls, p):
@@ -381,35 +379,33 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    assert p.name
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
 
-    with tf.variable_scope(p.name):
-      self.CreateVariable('w', w_pc)
-      if p.weight_norm:
-        self.CreateVariable(
-            'g',
-            py_utils.WeightParams(
-                shape=[p.filter_shape[2], p.filter_shape[3]],
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
-      if p.bias:
-        # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
-        self.CreateVariable(
-            'b',
-            py_utils.WeightParams(
-                shape=[self.output_channels],
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
+    self.CreateVariable('w', w_pc)
+    if p.weight_norm:
+      self.CreateVariable(
+          'g',
+          py_utils.WeightParams(
+              shape=[p.filter_shape[2], p.filter_shape[3]],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
+    if p.bias:
+      # NOTE(jiahuiyu): bias is subject to LP regularization in this version.
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[self.output_channels],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
 
   @classmethod
   def OutputChannels(cls, p):

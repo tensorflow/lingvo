@@ -238,6 +238,41 @@ class BaseTask(base_layer.BaseLayer):
 
     p = self.params
 
+    self._encoder = None
+    self._online_encoder = None
+    self._decoder = None
+
+    self._loss = None
+    self._num_predictions = None
+    self._train_op = None
+    self._post_train_ops = []
+    self._eval_metrics = {}
+    self._per_example = {}
+    self._trainer_verbose_tensors = {}
+
+    # Create the gradient mask,
+    self._per_input_gradient_mask = None
+
+    if p.task_global_step:
+      with tf.name_scope(None), tf.variable_scope(
+          py_utils.GetGlobalVariableScope()):
+        var_name = p.name + '_global_step'
+        # Create the variable immediately.
+        self._CreateVariable(
+            var_name,
+            base_layer.CreateVariableMeta(
+                var_scope=tf.get_variable_scope(),
+                var_params=py_utils.WeightParams(
+                    [], py_utils.WeightInit.Constant(0), tf.int64),
+                theta_fn=None,
+                kwargs=dict(
+                    trainable=False,
+                    collections=[tf.GraphKeys.GLOBAL_VARIABLES])))
+        summary_utils.scalar(var_name, self._private_vars[var_name])
+        self._global_step_var = self._private_vars[var_name]
+    else:
+      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
+
     if p.input:
       # TODO(zhifengc): Consider a simpler way to ensure the input
       # generator stops after one epoch.
@@ -268,38 +303,6 @@ class BaseTask(base_layer.BaseLayer):
       # different scope and AddChild it in later.
       if 'skip_create_child' not in p.input:
         self.CreateChild('input', input_params)
-
-    self._encoder = None
-    self._online_encoder = None
-    self._decoder = None
-
-    self._loss = None
-    self._num_predictions = None
-    self._train_op = None
-    self._post_train_ops = []
-    self._eval_metrics = {}
-    self._per_example = {}
-    self._trainer_verbose_tensors = {}
-
-    # Create the gradient mask,
-    self._per_input_gradient_mask = None
-
-    if p.task_global_step:
-      with tf.name_scope(None), tf.variable_scope(
-          py_utils.GetGlobalVariableScope()):
-        var_name = p.name + '_global_step'
-        self.CreateVariable(
-            name=var_name,
-            var_params=py_utils.WeightParams([],
-                                             py_utils.WeightInit.Constant(0),
-                                             tf.int64),
-            trainable=False,
-            collections=[tf.GraphKeys.GLOBAL_VARIABLES])
-        summary_utils.scalar(var_name, self.vars[var_name])
-
-      self._global_step_var = self.vars[var_name]
-    else:
-      self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
 
     tp = p.train
 
@@ -1055,18 +1058,20 @@ class BaseModel(base_layer.BaseLayer):
   def __init__(self, params):
     """Initializes this Model."""
     assert issubclass(params.cls, BaseModel)
+    super().__init__(params)
+    tf.logging.info('Training parameters for %s: %s', params.cls,
+                    self.params.train)
     self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
     self._global_step = tf.identity(
         self._global_step_var, name='global_step_tensor')
-    super().__init__(params)
 
-    self._ema = None
     tp = self.params.train
-    tf.logging.info('Training parameters for %s: %s', params.cls, tp)
     if tp.ema_decay > 0:
       assert tp.ema_decay < 1.0
       self._ema = tf.train.ExponentialMovingAverage(
           decay=tp.ema_decay, num_updates=self.global_step)
+    else:
+      self._ema = None
 
   @property
   def global_step(self):
@@ -1137,10 +1142,6 @@ class SingleTaskBase(BaseModel):
 
   Subclasses must create a Task in self._task by the end of __init__.
   """
-
-  def __init__(self, params):
-    assert issubclass(params.cls, SingleTaskBase)
-    super().__init__(params)
 
   @property
   def tasks(self):
@@ -1216,6 +1217,12 @@ class SingleTaskModel(SingleTaskBase):
     with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_task', self.params.task)
 
+  def _CreateChildrenVariables(self):
+    # Backwards compatibility: manually call child.CreateVariables() outside of
+    # tf.variable_scope(p.name).
+    self._task.CreateVariables()
+    super()._CreateChildrenVariables()
+
 
 class MultiTaskSubModel(SingleTaskBase):
   """'Model' consisting of a task from a multi-task model.
@@ -1240,6 +1247,12 @@ class MultiTaskSubModel(SingleTaskBase):
     with py_utils.GlobalStepContext(self._global_step):
       self.CreateChild('_model', p.model_params)
     self._task = self._model.children.Get(p.task_name)
+
+  def _CreateChildrenVariables(self):
+    # Backwards compatibility: manually call child.CreateVariables() outside of
+    # tf.variable_scope(p.name).
+    self._model.CreateVariables()
+    super()._CreateChildrenVariables()
 
 
 class MultiTaskModel(BaseModel):
@@ -1330,6 +1343,17 @@ class MultiTaskModel(BaseModel):
             self.CreateChild(task_name, task_params)
 
         self.CreateChild('task_schedule', p.task_schedule)
+
+  def _CreateChildrenVariables(self):
+    with tf.name_scope(self.params.name):
+      for task_name, task in zip(self.task_names, self.tasks):
+        if self.params.task_name_var_scope:
+          with tf.variable_scope(task_name):
+            task.CreateVariables()
+        else:
+          task.CreateVariables()
+      self.task_schedule.CreateVariables()
+    super()._CreateChildrenVariables()
 
   @property
   def task_names(self):

@@ -529,7 +529,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         self._params.fprop_dtype != self._params.dtype):
 
       def MaybeCastToFPropDtype(x):
-        if x.dtype == self._params.dtype:
+        if x is not None and x.dtype == self._params.dtype:
           return tf.cast(x, self._params.fprop_dtype)
         else:
           return x

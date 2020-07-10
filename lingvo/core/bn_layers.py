@@ -149,11 +149,20 @@ class BatchNormLayer(base_layer.BaseLayer):
         'support padding.')
     return p
 
-  def _CreateTrainableVars(self):
+  def __init__(self, params):
+    super().__init__(params)
+    p = self.params
+    self._epsilon = 0.001
+    self._decay = p.decay
+
+  def _GetWeightShape(self):
+    return [self.params.dim]
+
+  def _CreateVariables(self):
     p = self.params
 
     pc = py_utils.WeightParams(
-        shape=[p.dim],
+        shape=self._GetWeightShape(),
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
@@ -167,50 +176,40 @@ class BatchNormLayer(base_layer.BaseLayer):
         # Note, The real gamma to use is 1 + gamma.
         self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    assert p.name
+    # Two statistics.
+    moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
+    if p.add_stats_to_moving_average_variables:
+      moving_collections += [tf.GraphKeys.MOVING_AVERAGE_VARIABLES]
+    elif p.add_stats_to_moving_average_variables is None:
+      # TODO(rpang): force all models to set this param explicitly.
+      tf.logging.warning(
+          'BatchNormLayer.add_stats_to_moving_average_variables should be '
+          'set to True for new models, and to False explicitly for '
+          'checkpoint compatibility.')
+    # Add to the MOVING_AVERAGE_VARIABLES collection so that they are returned
+    # by tf.moving_average_variables() and included in EMA variables if
+    # ema_decay is enabled.
+    mva = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=moving_collections)
+    self.CreateVariable(
+        'moving_mean',
+        mva,
+        trainable=False,
+        aggregation=tf.VariableAggregation.MEAN)
 
-    with tf.variable_scope(p.name):
-      self._CreateTrainableVars()
-
-      # Two statistics.
-      moving_collections = ['moving_vars', self.__class__.__name__ + '_vars']
-      if p.add_stats_to_moving_average_variables:
-        moving_collections += [tf.GraphKeys.MOVING_AVERAGE_VARIABLES]
-      elif p.add_stats_to_moving_average_variables is None:
-        # TODO(rpang): force all models to set this param explicitly.
-        tf.logging.warning(
-            'BatchNormLayer.add_stats_to_moving_average_variables should be '
-            'set to True for new models, and to False explicitly for '
-            'checkpoint compatibility.')
-      # Add to the MOVING_AVERAGE_VARIABLES collection so that they are returned
-      # by tf.moving_average_variables() and included in EMA variables if
-      # ema_decay is enabled.
-      mva = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=moving_collections)
-      self.CreateVariable(
-          'moving_mean',
-          mva,
-          trainable=False,
-          aggregation=tf.VariableAggregation.MEAN)
-
-      mvv = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=moving_collections)
-      self.CreateVariable(
-          'moving_variance',
-          mvv,
-          trainable=False,
-          aggregation=tf.VariableAggregation.MEAN)
-    self._epsilon = 0.001
-    self._decay = p.decay
+    mvv = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=p.dtype,
+        collections=moving_collections)
+    self.CreateVariable(
+        'moving_variance',
+        mvv,
+        trainable=False,
+        aggregation=tf.VariableAggregation.MEAN)
 
   @property
   def epsilon(self):
@@ -400,30 +399,15 @@ class CategoricalBN(BatchNormLayer):
     p.add_stats_to_moving_average_variables = True
     return p
 
-  def _CreateTrainableVars(self):
-    p = self.params
-
-    pc = py_utils.WeightParams(
-        shape=[p.class_emb_dim, p.dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
-
-    if not p.use_moving_avg_in_training:
-      self.CreateVariable('beta', pc)
-      if p.gamma_zero_init:
-        # zero initialization to BN gamma
-        self.CreateVariable('gamma', pc)
-      else:
-        # Note, The real gamma to use is 1 + gamma.
-        self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
-
   def __init__(self, params):
     assert params.name
     assert not params.use_moving_avg_in_training
     assert not params.use_fused_batch_norm_for_eval
     assert params.add_stats_to_moving_average_variables
     super().__init__(params)
+
+  def _GetWeightShape(self):
+    return [self.params.class_emb_dim, self.params.dim]
 
   def _GetBetaGamma(self, theta, inputs, **kwargs):
     assert 'class_emb' in kwargs
@@ -510,6 +494,10 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
     p.fprop_dtype = None
 
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+
     # Skip L-P regularization for these variables.
     collections = [
         self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
@@ -520,28 +508,27 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
         dtype=p.dtype,
         collections=collections)
 
-    with tf.variable_scope(p.name):
-      self.CreateVariable('beta', pc)
-      # Note, The real gamma to use is 1 + gamma.
-      self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
+    self.CreateVariable('beta', pc)
+    # Note, The real gamma to use is 1 + gamma.
+    self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
-      moving_collections = [
-          'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
-          self.__class__.__name__ + '_vars'
-      ]
-      mva = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=p.dtype,
-          collections=moving_collections)
-      # Two statistics computed from sufficient stats.
-      self.CreateVariable('moving_mean', mva, trainable=False)
-      mvv = py_utils.WeightParams(
-          shape=[p.dim],
-          init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=moving_collections)
-      self.CreateVariable('moving_variance', mvv, trainable=False)
+    moving_collections = [
+        'moving_vars', tf.GraphKeys.MOVING_AVERAGE_VARIABLES,
+        self.__class__.__name__ + '_vars'
+    ]
+    mva = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=moving_collections)
+    # Two statistics computed from sufficient stats.
+    self.CreateVariable('moving_mean', mva, trainable=False)
+    mvv = py_utils.WeightParams(
+        shape=[p.dim],
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=p.dtype,
+        collections=moving_collections)
+    self.CreateVariable('moving_variance', mvv, trainable=False)
 
     # Accumulate bn sufficient stats over micro-batches.
     dim = self.vars.beta.shape[0]
@@ -693,6 +680,11 @@ class GroupNormLayer(base_layer.BaseLayer):
       assert p.dim % p.num_groups == 0, ('p.dim({0}) is not dividable by '
                                          'p.num_groups({1})').format(
                                              p.dim, p.num_groups)
+    self._epsilon = 0.001
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
 
     collections = [
         self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
@@ -704,12 +696,9 @@ class GroupNormLayer(base_layer.BaseLayer):
         dtype=p.dtype,
         collections=collections)
 
-    with tf.variable_scope(p.name):
-      self.CreateVariable('beta', pc)
-      # Note, The real gamma to use is 1 + gamma.
-      self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
-
-    self._epsilon = 0.001
+    self.CreateVariable('beta', pc)
+    # Note, The real gamma to use is 1 + gamma.
+    self.CreateVariable('gamma', pc, lambda x: 1.0 + x)
 
   def FProp(self, theta, inputs, paddings=None):
     """Apply group normalization.

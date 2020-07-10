@@ -103,8 +103,8 @@ class MultiTaskModelTest(test_utils.TestCase):
       p.name = 'test_task'
       return p
 
-    def __init__(self, params):
-      super().__init__(params)
+    def _CreateVariables(self):
+      super()._CreateVariables()
       pc = py_utils.WeightParams(shape=[10, 10], dtype=tf.float32)
       self.CreateVariable('weight', pc)
 
@@ -130,8 +130,8 @@ class MultiTaskModelTest(test_utils.TestCase):
 
     model = p.Instantiate()
     all_vars = model.vars
-    self.assertEqual('shared/weight/var:0', all_vars.p0.weight.name)
-    self.assertEqual('shared/weight/var:0', all_vars.p1.weight.name)
+    self.assertEqual('shared/test_task/weight/var:0', all_vars.p0.weight.name)
+    self.assertEqual('shared/test_task/weight/var:0', all_vars.p1.weight.name)
 
 
 if __name__ == '__main__':

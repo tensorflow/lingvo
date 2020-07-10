@@ -117,6 +117,12 @@ class RepeatLayer(base_layer.BaseLayer):
       with py_utils.VariableShapePrefixContext(p.repeat):
         self.CreateChild('body', p.body)
 
+  def _CreateChildrenVariables(self):
+    with tf.variable_scope(self.params.name):
+      with py_utils.VariableShapePrefixContext(self.params.repeat):
+        self.body.CreateVariables()
+    super()._CreateChildrenVariables()
+
   def FProp(self, theta, *args):
     p = self.params
     # Collects all variable key and values into sets.
@@ -220,21 +226,32 @@ class SoftCondLayer(base_layer.BaseLayer):
     assert p.name
     assert p.num_experts
     assert p.cond_dim
+
     with tf.variable_scope(p.name):
-      # Create Variables for task weight mapping.
-      collections = [
-          self.__class__.__name__ + '_vars',
-      ]
-      w_p = py_utils.WeightParams(
-          shape=[p.cond_dim, p.num_experts],
-          init=p.params_init,  # TODO(huangyp): try zero init instead.
-          dtype=p.dtype,
-          collections=collections)
-      self.CreateVariable('w', w_p)
       # Prepends p.num_experts to the tensor shape of every variable created
       # by p.body.
       with py_utils.VariableShapePrefixContext(p.num_experts):
         self.CreateChild('body', p.body)
+
+  def _CreateChildrenVariables(self):
+    with tf.variable_scope(self.params.name):
+      with py_utils.VariableShapePrefixContext(self.params.num_experts):
+        self.body.CreateVariables()
+    super()._CreateChildrenVariables()
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    # Create Variables for task weight mapping.
+    collections = [
+        self.__class__.__name__ + '_vars',
+    ]
+    w_p = py_utils.WeightParams(
+        shape=[p.cond_dim, p.num_experts],
+        init=p.params_init,  # TODO(huangyp): try zero init instead.
+        dtype=p.dtype,
+        collections=collections)
+    self.CreateVariable('w', w_p)
 
   def _GetExpertDist(self, theta, inputs, *args):
     """Get the task id from inputs tensors."""
@@ -995,17 +1012,16 @@ class LinearLayer(base_layer.BaseLayer):
     p.Define('output_dims', 0, 'Depth of the output.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable(
-          'w',
-          py_utils.WeightParams(
-              shape=[p.input_dims, p.output_dims],
-              init=p.params_init,
-              dtype=p.dtype,
-              collections=[self.__class__.__name__ + '_vars']))
+    self.CreateVariable(
+        'w',
+        py_utils.WeightParams(
+            shape=[p.input_dims, p.output_dims],
+            init=p.params_init,
+            dtype=p.dtype,
+            collections=[self.__class__.__name__ + '_vars']))
 
   def FProp(self, theta, inputs):
     """Apply projection to inputs.
@@ -1047,17 +1063,16 @@ class BiasLayer(base_layer.BaseLayer):
     p.Define('dims', 0, 'Depth of the input.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable(
-          'b',
-          py_utils.WeightParams(
-              shape=[p.dims],
-              init=py_utils.WeightInit.Constant(0.0),
-              dtype=p.dtype,
-              collections=[self.__class__.__name__ + '_vars']))
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(
+            shape=[p.dims],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=[self.__class__.__name__ + '_vars']))
 
   def FProp(self, theta, inputs):
     """Adds bias to inputs.

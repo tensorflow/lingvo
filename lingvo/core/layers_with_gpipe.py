@@ -928,6 +928,13 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
       raise ValueError('Layer must have a specified name!')
 
     assert p.num_sources > 0, ('Must specify num_sources > 0.')
+
+    p.dropout_tpl.name = 'dropout'
+    self.CreateChild('weighted_merger_dropout', p.dropout_tpl)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
     params_init = py_utils.WeightInit.Constant(0.0)
     # Weights to be learned.
     pw = py_utils.WeightParams(
@@ -935,10 +942,7 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
         init=params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    with tf.variable_scope(p.name):
-      self.CreateVariable('sum_weight', pw)
-    p.dropout_tpl.name = 'dropout'
-    self.CreateChild('weighted_merger_dropout', p.dropout_tpl)
+    self.CreateVariable('sum_weight', pw)
 
   def FProp(self, theta):
     """Combines the list of input tensors into a single tensor.

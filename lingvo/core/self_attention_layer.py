@@ -91,15 +91,11 @@ class StackedTransformerEncoderLayers(base_layer.BaseLayer):
     # Make this class a sub-class of params.base_cls
     self.__class__ = type(self.__class__.__name__, (params.base_cls, object),
                           dict(self.__class__.__dict__))
-    # pylint: disable=bad-super-call
-    super(self.__class__, self).__init__(params)
-    # pylint: enable=bad-super-call
+    super(self.__class__, self).__init__(params)  # pylint: disable=bad-super-call
 
   def FProp(self, theta, vec, paddings, segment_mask=None):
-    # pylint: disable=bad-super-call
-    outputs = super(self.__class__, self).FProp(
+    outputs = super(self.__class__, self).FProp(  # pylint: disable=bad-super-call
         theta,
         py_utils.NestedMap(
             vec=vec, paddings=paddings, segment_mask=segment_mask))
-    # pylint: enable=bad-super-call
     return outputs.vec, outputs.paddings

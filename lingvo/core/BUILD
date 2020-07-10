@@ -21,7 +21,6 @@ py_library(
         ":layers",
         ":py_utils",
         ":quant_utils",
-        ":summary_utils",
         ":symbolic",
         "//lingvo:compat",
         # Implicit numpy dependency.
@@ -38,6 +37,7 @@ lingvo_cuda_py_test(
         ":py_utils",
         ":quant_utils",
         ":test_utils",
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
     ],
@@ -61,11 +61,11 @@ py_library(
     srcs = ["batch_major_attention.py"],
     srcs_version = "PY3",
     deps = [
-        "attention",
         ":base_layer",
         ":builder",
         ":conv_layers_builder",
         ":gpipe",
+        ":hyperparams",
         ":layers",
         ":layers_with_attention",
         ":py_utils",
@@ -90,6 +90,7 @@ py_test(
     name = "batch_utils_test",
     srcs = ["batch_utils_test.py"],
     python_version = "PY3",
+    srcs_version = "PY3",
     deps = [
         ":batch_utils",
         ":cluster_factory",
@@ -961,6 +962,7 @@ py_library(
     deps = [
         ":base_model",
         ":py_utils",
+        "//lingvo:compat",
     ],
 )
 
@@ -1442,7 +1444,11 @@ py_library(
     name = "self_attention_layer",
     srcs = ["self_attention_layer.py"],
     srcs_version = "PY3",
-    deps = [":batch_major_attention"],
+    deps = [
+        ":base_layer",
+        ":batch_major_attention",
+        ":py_utils",
+    ],
 )
 
 py_library(

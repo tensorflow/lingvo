@@ -33,7 +33,7 @@ class BaseSchedule(base_layer.BaseLayer):
     return p
 
   def __init__(self, params):
-    super(BaseSchedule, self).__init__(params)
+    super().__init__(params)
     self.SetVariableFree()
 
   def Value(self, current_step=None):
@@ -670,7 +670,6 @@ class DevBasedSchedule(BaseSchedule):
           dtype=tf.int64)
       _, self._ref_step, = py_utils.CreateVariable(
           'ref_step', wp, trainable=False)
-
       self._metric_history = early_stop.MetricHistory(p.metric_history)
       self._best_step = ops.best_step(self._metric_history.hist_file,
                                       p.tolerance)

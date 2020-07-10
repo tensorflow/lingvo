@@ -40,15 +40,17 @@ class TestTask(base_model.BaseTask):
 
   def __init__(self, params):
     super().__init__(params)
-    p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable(
-          'a',
-          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
-      self.CreateVariable(
-          'b',
-          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+    with tf.variable_scope(self.params.name):
       self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    self.CreateVariable(
+        'a',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
 
 
 class BaseTaskTest(test_utils.TestCase):
@@ -181,13 +183,11 @@ class BaseTaskTest(test_utils.TestCase):
 
 class TeacherTask(base_model.BaseTask):
 
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable('x',
-                          py_utils.WeightParams(
-                              shape=[], init=py_utils.WeightInit.Constant(0)))
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    self.CreateVariable(
+        'x',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
 
   def ComputePredictions(self, theta, input_batch):
     return theta.x
@@ -195,13 +195,11 @@ class TeacherTask(base_model.BaseTask):
 
 class StudentTask(base_model.BaseTask):
 
-  def __init__(self, params):
-    super().__init__(params)
-    p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable('x',
-                          py_utils.WeightParams(
-                              shape=[], init=py_utils.WeightInit.Uniform()))
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    self.CreateVariable(
+        'x',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))
 
   def ComputePredictions(self, theta, input_batch):
     return theta.x

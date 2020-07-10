@@ -305,106 +305,115 @@ class LSTMCellSimple(RNNCell):
         domain='c_state')
     self.TrackQTensor('add_bias', domain='fullyconnected')
 
-    with tf.variable_scope(p.name) as scope:
-      # Define weights.
-      wm_pc = py_utils.WeightParams(
-          shape=[
-              p.num_input_nodes + self.output_size,
-              self.num_gates * self.hidden_size
-          ],
+    self._timestep = -1
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    # Define weights.
+    wm_pc = py_utils.WeightParams(
+        shape=[
+            p.num_input_nodes + self.output_size,
+            self.num_gates * self.hidden_size
+        ],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+    if p.apply_pruning:
+      mask_pc = py_utils.WeightParams(wm_pc.shape,
+                                      py_utils.WeightInit.Constant(1.0),
+                                      p.dtype)
+      threshold_pc = py_utils.WeightParams([],
+                                           py_utils.WeightInit.Constant(0.0),
+                                           tf.float32)
+      self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+      self.CreateVariable(
+          'threshold', threshold_pc, theta_fn=None, trainable=False)
+      # for gradient based pruning
+      # gradient and weight snapshots
+      grad_pc = py_utils.WeightParams(wm_pc.shape,
+                                      py_utils.WeightInit.Constant(0.0),
+                                      p.dtype)
+      if p.gradient_pruning:
+        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_weight', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+
+    if p.num_hidden_nodes:
+      w_proj = py_utils.WeightParams(
+          shape=[self.hidden_size, self.output_size],
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
-      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
-      if p.apply_pruning:
-        mask_pc = py_utils.WeightParams(wm_pc.shape,
-                                        py_utils.WeightInit.Constant(1.0),
-                                        p.dtype)
-        threshold_pc = py_utils.WeightParams([],
-                                             py_utils.WeightInit.Constant(0.0),
-                                             tf.float32)
-        self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+      self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+      if p.apply_pruning_to_projection:
+        proj_mask_pc = py_utils.WeightParams(w_proj.shape,
+                                             py_utils.WeightInit.Constant(1.0),
+                                             p.dtype)
+        proj_threshold_pc = py_utils.WeightParams(
+            [], py_utils.WeightInit.Constant(0.0), tf.float32)
         self.CreateVariable(
-            'threshold', threshold_pc, theta_fn=None, trainable=False)
+            'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'proj_threshold', proj_threshold_pc, trainable=False)
         # for gradient based pruning
         # gradient and weight snapshots
-        grad_pc = py_utils.WeightParams(wm_pc.shape,
-                                        py_utils.WeightInit.Constant(0.0),
-                                        p.dtype)
+        proj_grad_pc = py_utils.WeightParams(w_proj.shape,
+                                             py_utils.WeightInit.Constant(0.0),
+                                             p.dtype)
         if p.gradient_pruning:
+          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
           self.CreateVariable(
-              'gradient', grad_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'old_weight', grad_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+              'proj_old_old_weight', proj_grad_pc, trainable=False)
 
-          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                           self.vars.threshold,
-                                           self.vars.gradient,
-                                           self.vars.old_weight,
-                                           self.vars.old_old_weight)
-        else:
-          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                           self.vars.threshold)
-      if p.num_hidden_nodes:
-        w_proj = py_utils.WeightParams(
-            shape=[self.hidden_size, self.output_size],
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
-        if p.apply_pruning_to_projection:
-          proj_mask_pc = py_utils.WeightParams(
-              w_proj.shape, py_utils.WeightInit.Constant(1.0), p.dtype)
-          proj_threshold_pc = py_utils.WeightParams(
-              [], py_utils.WeightInit.Constant(0.0), tf.float32)
-          self.CreateVariable(
-              'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'proj_threshold', proj_threshold_pc, trainable=False)
-          # for gradient based pruning
-          # gradient and weight snapshots
-          proj_grad_pc = py_utils.WeightParams(
-              w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
-          if p.gradient_pruning:
-            self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
-            self.CreateVariable(
-                'proj_old_weight', proj_grad_pc, trainable=False)
-            self.CreateVariable(
-                'proj_old_old_weight', proj_grad_pc, trainable=False)
-            py_utils.AddToPruningCollections(self.vars.w_proj,
-                                             self.vars.proj_mask,
-                                             self.vars.proj_threshold,
-                                             self.vars.proj_gradient,
-                                             self.vars.proj_old_weight,
-                                             self.vars.proj_old_old_weight)
-          else:
-            py_utils.AddToPruningCollections(self.vars.w_proj,
-                                             self.vars.proj_mask,
-                                             self.vars.proj_threshold)
-      if p.enable_lstm_bias:
-        bias_pc = py_utils.WeightParams(
-            shape=[self.num_gates * self.hidden_size],
-            init=p.bias_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+    if p.enable_lstm_bias:
+      bias_pc = py_utils.WeightParams(
+          shape=[self.num_gates * self.hidden_size],
+          init=p.bias_init,
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('b', bias_pc, self.AddGlobalVN)
 
-      # Collect some stats.
-      w = self.vars.wm
-      if p.couple_input_forget_gates:
-        i_i, f_g, o_g = tf.split(
-            value=w, num_or_size_splits=self.num_gates, axis=1)
+    if p.apply_pruning:
+      if p.gradient_pruning:
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold,
+                                         self.vars.gradient,
+                                         self.vars.old_weight,
+                                         self.vars.old_old_weight)
       else:
-        i_i, i_g, f_g, o_g = tf.split(
-            value=w, num_or_size_splits=self.num_gates, axis=1)
-        _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
-      _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
-      _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
-      _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
-
-      self._timestep = -1
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold)
+    if p.num_hidden_nodes:
+      if p.apply_pruning_to_projection:
+        if p.gradient_pruning:
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold,
+                                           self.vars.proj_gradient,
+                                           self.vars.proj_old_weight,
+                                           self.vars.proj_old_old_weight)
+        else:
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold)
+    # Collect some stats.
+    scope = tf.get_variable_scope()
+    w = self.vars.wm
+    if p.couple_input_forget_gates:
+      i_i, f_g, o_g = tf.split(
+          value=w, num_or_size_splits=self.num_gates, axis=1)
+    else:
+      i_i, i_g, f_g, o_g = tf.split(
+          value=w, num_or_size_splits=self.num_gates, axis=1)
+      _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
+    _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
+    _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
+    _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
 
   @property
   def output_size(self):
@@ -771,22 +780,19 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     p = super().Params()
     return p
 
-  def __init__(self, params):
-    """Initializes LSTMCell."""
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    assert p.name
-    with tf.variable_scope(p.name):
-      self.CreateVariable(
-          name='lstm_step_counter',
-          var_params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
-                                           tf.int64),
-          trainable=False)
-      vname = self.vars.lstm_step_counter.name
-      self._prng_seed = tf.constant(
-          py_utils.GenerateSeedFromName(vname), dtype=tf.int64)
-      if p.random_seed:
-        self._prng_seed += p.random_seed
+    self.CreateVariable(
+        name='lstm_step_counter',
+        var_params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
+                                         tf.int64),
+        trainable=False)
+    vname = self.vars.lstm_step_counter.name
+    self._prng_seed = tf.constant(
+        py_utils.GenerateSeedFromName(vname), dtype=tf.int64)
+    if p.random_seed:
+      self._prng_seed += p.random_seed
 
   def zero_state(self, theta, batch_size):
     p = self.params
@@ -900,28 +906,30 @@ class QuantizedLSTMCell(RNNCell):
     assert isinstance(params, hyperparams.Params)
     p = self.params
 
-    with tf.variable_scope(p.name) as scope:
-      # Define weights.
-      wm_pc = py_utils.WeightParams(
-          shape=[
-              p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes
-          ],
-          init=p.params_init,
-          dtype=p.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+    self.CreateChild('cc_schedule', p.cc_schedule)
 
-      self.CreateChild('cc_schedule', p.cc_schedule)
+    self._timestep = -1
 
-      # Collect some stats
-      i_i, i_g, f_g, o_g = tf.split(
-          value=self.vars.wm, num_or_size_splits=4, axis=1)
-      _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
-      _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
-      _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
-      _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
 
-      self._timestep = -1
+    # Define weights.
+    wm_pc = py_utils.WeightParams(
+        shape=[p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+
+    scope = tf.get_variable_scope()
+    # Collect some stats
+    i_i, i_g, f_g, o_g = tf.split(
+        value=self.vars.wm, num_or_size_splits=4, axis=1)
+    _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
+    _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
+    _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
+    _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
@@ -1020,41 +1028,42 @@ class LayerNormalizedLSTMCell(RNNCell):
     if not isinstance(params.cell_value_cap, (int, float)):
       raise ValueError('Cell value cap must of type int or float!')
 
-    with tf.variable_scope(params.name) as scope:
-      # Define weights.
-      wm_pc = py_utils.WeightParams(
-          shape=[
-              params.num_input_nodes + params.num_output_nodes,
-              4 * params.num_output_nodes
-          ],
-          init=params.params_init,
-          dtype=params.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
-      # This bias variable actually packs the initial lstm bias variables as
-      # well as various layer norm scale and bias variables. We pack multiple
-      # variables into one so that we can still unroll this lstm using the FRNN
-      # layer defined in layers.py.
-      bias_pc = py_utils.WeightParams(
-          shape=[4 * params.num_output_nodes + 4 * params.num_output_nodes],
-          init=py_utils.WeightInit.Constant(0.0),
-          dtype=params.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+    if params.cc_schedule:
+      self.CreateChild('cc_schedule', params.cc_schedule)
 
-      if params.cc_schedule:
-        self.CreateChild('cc_schedule', params.cc_schedule)
+    self._timestep = -1
 
-      # Collect some stats
-      i_i, i_g, f_g, o_g = tf.split(
-          value=self.vars.wm, num_or_size_splits=4, axis=1)
-      _HistogramSummary(params, scope.name + '/wm_i_i', i_i)
-      _HistogramSummary(params, scope.name + '/wm_i_g', i_g)
-      _HistogramSummary(params, scope.name + '/wm_f_g', f_g)
-      _HistogramSummary(params, scope.name + '/wm_o_g', o_g)
-      # TODO(yonghui): Add more summaries here.
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
 
-      self._timestep = -1
+    # Define weights.
+    wm_pc = py_utils.WeightParams(
+        shape=[p.num_input_nodes + p.num_output_nodes, 4 * p.num_output_nodes],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+    # This bias variable actually packs the initial lstm bias variables as
+    # well as various layer norm scale and bias variables. We pack multiple
+    # variables into one so that we can still unroll this lstm using the FRNN
+    # layer defined in layers.py.
+    bias_pc = py_utils.WeightParams(
+        shape=[4 * p.num_output_nodes + 4 * p.num_output_nodes],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+
+    # Collect some stats
+    scope = tf.get_variable_scope()
+    i_i, i_g, f_g, o_g = tf.split(
+        value=self.vars.wm, num_or_size_splits=4, axis=1)
+    _HistogramSummary(p, scope.name + '/wm_i_i', i_i)
+    _HistogramSummary(p, scope.name + '/wm_i_g', i_g)
+    _HistogramSummary(p, scope.name + '/wm_f_g', f_g)
+    _HistogramSummary(p, scope.name + '/wm_o_g', o_g)
+    # TODO(yonghui): Add more summaries here.
 
   def batch_size(self, inputs):
     return tf.shape(inputs.act[0])[0]
@@ -1853,156 +1862,165 @@ class SRUCell(RNNCell):
       p.params_init = py_utils.WeightInit.Uniform(
           scale=(math.sqrt(3.0 / float(self.hidden_size))))
 
-    with tf.variable_scope(p.name) as scope:
-      # Define weights.
-      wm_pc = py_utils.WeightParams(
-          shape=[p.num_input_nodes, self.num_gates * self.hidden_size],
+    self._timestep = -1
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    # Define weights.
+    wm_pc = py_utils.WeightParams(
+        shape=[p.num_input_nodes, self.num_gates * self.hidden_size],
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+
+    self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
+    if p.apply_pruning:
+      mask_pc = py_utils.WeightParams(wm_pc.shape,
+                                      py_utils.WeightInit.Constant(1.0),
+                                      p.dtype)
+      threshold_pc = py_utils.WeightParams([],
+                                           py_utils.WeightInit.Constant(0.0),
+                                           tf.float32)
+      self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+      self.CreateVariable(
+          'threshold', threshold_pc, theta_fn=None, trainable=False)
+
+      # for gradient based pruning
+      # gradient and weight snapshots
+      grad_pc = py_utils.WeightParams(wm_pc.shape,
+                                      py_utils.WeightInit.Constant(0.0),
+                                      p.dtype)
+      if p.gradient_pruning:
+        self.CreateVariable('gradient', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_weight', grad_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'old_old_weight', grad_pc, theta_fn=None, trainable=False)
+
+    bias_pc = py_utils.WeightParams(
+        shape=[self.num_gates * self.hidden_size],
+        init=p.bias_init,
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+
+    if p.num_hidden_nodes:
+      w_proj = py_utils.WeightParams(
+          shape=[self.hidden_size, self.output_size],
           init=p.params_init,
           dtype=p.dtype,
           collections=self._VariableCollections())
-
-      self.CreateVariable('wm', wm_pc, self.AddGlobalVN)
-      if p.apply_pruning:
-        mask_pc = py_utils.WeightParams(wm_pc.shape,
-                                        py_utils.WeightInit.Constant(1.0),
-                                        p.dtype)
-        threshold_pc = py_utils.WeightParams([],
-                                             py_utils.WeightInit.Constant(0.0),
-                                             tf.float32)
-        self.CreateVariable('mask', mask_pc, theta_fn=None, trainable=False)
+      self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
+      if p.apply_pruning_to_projection:
+        proj_mask_pc = py_utils.WeightParams(w_proj.shape,
+                                             py_utils.WeightInit.Constant(1.0),
+                                             p.dtype)
+        proj_threshold_pc = py_utils.WeightParams(
+            [], py_utils.WeightInit.Constant(0.0), tf.float32)
         self.CreateVariable(
-            'threshold', threshold_pc, theta_fn=None, trainable=False)
-
+            'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
+        self.CreateVariable(
+            'proj_threshold', proj_threshold_pc, trainable=False)
         # for gradient based pruning
         # gradient and weight snapshots
-        grad_pc = py_utils.WeightParams(wm_pc.shape,
-                                        py_utils.WeightInit.Constant(0.0),
-                                        p.dtype)
+        proj_grad_pc = py_utils.WeightParams(w_proj.shape,
+                                             py_utils.WeightInit.Constant(0.0),
+                                             p.dtype)
         if p.gradient_pruning:
+          self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
+          self.CreateVariable('proj_old_weight', proj_grad_pc, trainable=False)
           self.CreateVariable(
-              'gradient', grad_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'old_weight', grad_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'old_old_weight', grad_pc, theta_fn=None, trainable=False)
-          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                           self.vars.threshold,
-                                           self.vars.gradient,
-                                           self.vars.old_weight,
-                                           self.vars.old_old_weight)
-        else:
-          py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                           self.vars.threshold)
-      bias_pc = py_utils.WeightParams(
-          shape=[self.num_gates * self.hidden_size],
-          init=p.bias_init,
+              'proj_old_old_weight', proj_grad_pc, trainable=False)
+
+    # TODO(yuansg): b/136014373 investigate the layer norm initialization and
+    # implementation, try skipping LP regularization on layer norm and bias.
+    if p.apply_layer_norm:
+      f_t_ln_scale = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=py_utils.WeightInit.Constant(1.0),
           dtype=p.dtype,
           collections=self._VariableCollections())
-      self.CreateVariable('b', bias_pc, self.AddGlobalVN)
+      self.CreateVariable('f_t_ln_scale', f_t_ln_scale, self.AddGlobalVN)
+      r_t_ln_scale = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('r_t_ln_scale', r_t_ln_scale, self.AddGlobalVN)
+      c_t_ln_scale = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=py_utils.WeightInit.Constant(1.0),
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('c_t_ln_scale', c_t_ln_scale, self.AddGlobalVN)
+      if not p.couple_input_forget_gates:
+        i_t_ln_scale = py_utils.WeightParams(
+            shape=[self.hidden_size],
+            init=py_utils.WeightInit.Constant(1.0),
+            dtype=p.dtype,
+            collections=self._VariableCollections())
+        self.CreateVariable('i_t_ln_scale', i_t_ln_scale, self.AddGlobalVN)
 
-      if p.num_hidden_nodes:
-        w_proj = py_utils.WeightParams(
-            shape=[self.hidden_size, self.output_size],
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('w_proj', w_proj, self.AddGlobalVN)
-        if p.apply_pruning_to_projection:
-          proj_mask_pc = py_utils.WeightParams(
-              w_proj.shape, py_utils.WeightInit.Constant(1.0), p.dtype)
-          proj_threshold_pc = py_utils.WeightParams(
-              [], py_utils.WeightInit.Constant(0.0), tf.float32)
-          self.CreateVariable(
-              'proj_mask', proj_mask_pc, theta_fn=None, trainable=False)
-          self.CreateVariable(
-              'proj_threshold', proj_threshold_pc, trainable=False)
-          # for gradient based pruning
-          # gradient and weight snapshots
-          proj_grad_pc = py_utils.WeightParams(
-              w_proj.shape, py_utils.WeightInit.Constant(0.0), p.dtype)
-          if p.gradient_pruning:
-            self.CreateVariable('proj_gradient', proj_grad_pc, trainable=False)
-            self.CreateVariable(
-                'proj_old_weight', proj_grad_pc, trainable=False)
-            self.CreateVariable(
-                'proj_old_old_weight', proj_grad_pc, trainable=False)
-            py_utils.AddToPruningCollections(self.vars.w_proj,
-                                             self.vars.proj_mask,
-                                             self.vars.proj_threshold,
-                                             self.vars.proj_gradient,
-                                             self.vars.proj_old_weight,
-                                             self.vars.proj_old_old_weight)
-          else:
-            py_utils.AddToPruningCollections(self.vars.w_proj,
-                                             self.vars.proj_mask,
-                                             self.vars.proj_threshold)
-      # TODO(yuansg): b/136014373 investigate the layer norm initialization and
-      # implementation, try skipping LP regularization on layer norm and bias.
-      if p.apply_layer_norm:
-        f_t_ln_scale = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(1.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('f_t_ln_scale', f_t_ln_scale, self.AddGlobalVN)
-        r_t_ln_scale = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(1.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('r_t_ln_scale', r_t_ln_scale, self.AddGlobalVN)
-        c_t_ln_scale = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=py_utils.WeightInit.Constant(1.0),
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('c_t_ln_scale', c_t_ln_scale, self.AddGlobalVN)
-        if not p.couple_input_forget_gates:
-          i_t_ln_scale = py_utils.WeightParams(
-              shape=[self.hidden_size],
-              init=py_utils.WeightInit.Constant(1.0),
-              dtype=p.dtype,
-              collections=self._VariableCollections())
-          self.CreateVariable('i_t_ln_scale', i_t_ln_scale, self.AddGlobalVN)
-
-      if p.pointwise_peephole:
-        f_t_vector_cell = py_utils.WeightParams(
+    if p.pointwise_peephole:
+      f_t_vector_cell = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('f_t_vector_cell', f_t_vector_cell, self.AddGlobalVN)
+      r_t_vector_cell = py_utils.WeightParams(
+          shape=[self.hidden_size],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=self._VariableCollections())
+      self.CreateVariable('r_t_vector_cell', r_t_vector_cell, self.AddGlobalVN)
+      if not p.couple_input_forget_gates:
+        i_t_vector_cell = py_utils.WeightParams(
             shape=[self.hidden_size],
             init=p.params_init,
             dtype=p.dtype,
             collections=self._VariableCollections())
-        self.CreateVariable('f_t_vector_cell', f_t_vector_cell,
+        self.CreateVariable('i_t_vector_cell', i_t_vector_cell,
                             self.AddGlobalVN)
-        r_t_vector_cell = py_utils.WeightParams(
-            shape=[self.hidden_size],
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=self._VariableCollections())
-        self.CreateVariable('r_t_vector_cell', r_t_vector_cell,
-                            self.AddGlobalVN)
-        if not p.couple_input_forget_gates:
-          i_t_vector_cell = py_utils.WeightParams(
-              shape=[self.hidden_size],
-              init=p.params_init,
-              dtype=p.dtype,
-              collections=self._VariableCollections())
-          self.CreateVariable('i_t_vector_cell', i_t_vector_cell,
-                              self.AddGlobalVN)
 
-      # Collect some stats.
-      if p.couple_input_forget_gates:
-        x_t2, resized, f_t, r_t = tf.split(
-            value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
+    if p.apply_pruning:
+      if p.gradient_pruning:
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold,
+                                         self.vars.gradient,
+                                         self.vars.old_weight,
+                                         self.vars.old_old_weight)
       else:
-        x_t2, resized, i_t, f_t, r_t = tf.split(
-            value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
-        _HistogramSummary(p, scope.name + '/wm_i_t', i_t)
-      _HistogramSummary(p, scope.name + '/wm_x_t2', x_t2)
-      _HistogramSummary(p, scope.name + '/wm_resized', resized)
-      _HistogramSummary(p, scope.name + '/wm_f_t', f_t)
-      _HistogramSummary(p, scope.name + '/wm_r_t', r_t)
+        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                         self.vars.threshold)
+    if p.num_hidden_nodes:
+      if p.apply_pruning_to_projection:
+        if p.gradient_pruning:
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold,
+                                           self.vars.proj_gradient,
+                                           self.vars.proj_old_weight,
+                                           self.vars.proj_old_old_weight)
+        else:
+          py_utils.AddToPruningCollections(self.vars.w_proj,
+                                           self.vars.proj_mask,
+                                           self.vars.proj_threshold)
 
-      self._timestep = -1
+    scope = tf.get_variable_scope()
+    # Collect some stats.
+    if p.couple_input_forget_gates:
+      x_t2, resized, f_t, r_t = tf.split(
+          value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
+    else:
+      x_t2, resized, i_t, f_t, r_t = tf.split(
+          value=self.vars.wm, num_or_size_splits=self.num_gates, axis=1)
+      _HistogramSummary(p, scope.name + '/wm_i_t', i_t)
+    _HistogramSummary(p, scope.name + '/wm_x_t2', x_t2)
+    _HistogramSummary(p, scope.name + '/wm_resized', resized)
+    _HistogramSummary(p, scope.name + '/wm_f_t', f_t)
+    _HistogramSummary(p, scope.name + '/wm_r_t', r_t)
 
   @property
   def output_size(self):
