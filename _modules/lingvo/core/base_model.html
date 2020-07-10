@@ -1417,6 +1417,10 @@
         <span class="s1">&#39;redundant since the individual tasks scope by their `name`.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
+<div class="viewcode-block" id="MultiTaskModel.TaskNames"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskModel.TaskNames">[docs]</a>  <span class="nd">@staticmethod</span>
+  <span class="k">def</span> <span class="nf">TaskNames</span><span class="p">(</span><span class="n">params</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">task_name</span> <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span></div>
+
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">MultiTaskModel</span><span class="p">)</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -1477,9 +1481,7 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">task_names</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="n">sorted_task_names</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span>
-        <span class="n">task_name</span> <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_params</span><span class="o">.</span><span class="n">IterParams</span><span class="p">())</span>
-    <span class="k">return</span> <span class="n">sorted_task_names</span>
+    <span class="k">return</span> <span class="n">MultiTaskModel</span><span class="o">.</span><span class="n">TaskNames</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
