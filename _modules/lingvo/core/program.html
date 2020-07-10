@@ -536,6 +536,13 @@
                                                <span class="n">eval_metrics</span><span class="p">,</span> <span class="n">outfeeds</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_WriteSummaries</span><span class="p">(</span>
         <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">basename</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_program_dir</span><span class="p">),</span> <span class="n">global_step</span><span class="p">,</span> <span class="n">summaries</span><span class="p">)</span>
+
+    <span class="c1"># Simpler version of _ShouldStop without early stopping.</span>
+    <span class="k">if</span> <span class="n">task_global_step</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ShouldStop: step:</span><span class="si">%6d</span><span class="s1"> params.train.max_steps:</span><span class="si">%6d</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">task_global_step</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">max_steps</span><span class="p">)</span>
+      <span class="k">return</span> <span class="kc">True</span>
+
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
 
@@ -615,6 +622,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">PackMetricsValues</span><span class="p">(</span><span class="n">values</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">_</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">metrics</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SummarizeValue</span><span class="p">(</span><span class="n">global_step</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_summary_writer</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
 
 
@@ -1059,7 +1067,9 @@
 <div class="viewcode-block" id="SimpleProgramSchedule.Run"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.SimpleProgramSchedule.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">train_executions_per_eval</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="n">done</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">train_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">done</span><span class="p">:</span>
+        <span class="k">break</span>
     <span class="k">for</span> <span class="n">eval_program</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">eval_programs</span><span class="p">:</span>
       <span class="n">eval_program</span><span class="o">.</span><span class="n">Run</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">False</span></div></div>
@@ -1071,7 +1081,8 @@
                                  <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">decode_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-                                 <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">):</span>
+                                 <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">,</span>
+                                 <span class="n">eval_program_cls</span><span class="o">=</span><span class="n">EvalProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenient helper method for common case.</span>
 
 <span class="sd">  Args:</span>
@@ -1082,8 +1093,10 @@
 <span class="sd">    decode_steps_per_loop: Number of steps to execute the decode program.</span>
 <span class="sd">    experimental_decoder: bool. Whether to use experimental deocder which is</span>
 <span class="sd">      placed in a tpu loop.</span>
-<span class="sd">    train_program_cls: The class of the TrainProgram to use.  Defaults</span>
+<span class="sd">    train_program_cls: The class to use for training programs.  Defaults</span>
 <span class="sd">      to TrainProgram.</span>
+<span class="sd">    eval_program_cls: The class to use for eval programs.  Defaults to</span>
+<span class="sd">      EvalProgram.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A populated SimpleProgramSchedule.Params()</span>
@@ -1101,7 +1114,7 @@
   <span class="k">for</span> <span class="n">dataset_name</span> <span class="ow">in</span> <span class="n">eval_dataset_names</span><span class="p">:</span>
     <span class="n">program_schedule_params</span><span class="o">.</span><span class="n">dataset_names</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">eval_steps_per_loop</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">eval_program_params</span> <span class="o">=</span> <span class="n">EvalProgram</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">eval_program_params</span> <span class="o">=</span> <span class="n">eval_program_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;eval_tpu&#39;</span>
       <span class="c1"># TODO(blee): This should be derived from the Dataset size.</span>
       <span class="n">eval_program_params</span><span class="o">.</span><span class="n">steps_per_loop</span> <span class="o">=</span> <span class="n">eval_steps_per_loop</span>

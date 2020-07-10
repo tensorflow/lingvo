@@ -544,7 +544,7 @@ Run all the eval_programs</p>
 
 <dl class="py function">
 <dt id="lingvo.core.program.SimpleProgramScheduleForTask">
-<code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em class="sig-param">train_dataset_name</em>, <em class="sig-param">train_steps_per_loop</em>, <em class="sig-param">eval_dataset_names</em>, <em class="sig-param">eval_steps_per_loop</em>, <em class="sig-param">decode_steps_per_loop</em>, <em class="sig-param">experimental_decoder=False</em>, <em class="sig-param">train_program_cls=&lt;class 'lingvo.core.program.TrainProgram'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.program.</code><code class="sig-name descname">SimpleProgramScheduleForTask</code><span class="sig-paren">(</span><em class="sig-param">train_dataset_name</em>, <em class="sig-param">train_steps_per_loop</em>, <em class="sig-param">eval_dataset_names</em>, <em class="sig-param">eval_steps_per_loop</em>, <em class="sig-param">decode_steps_per_loop</em>, <em class="sig-param">experimental_decoder=False</em>, <em class="sig-param">train_program_cls=&lt;class 'lingvo.core.program.TrainProgram'&gt;</em>, <em class="sig-param">eval_program_cls=&lt;class 'lingvo.core.program.EvalProgram'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/program.html#SimpleProgramScheduleForTask"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.program.SimpleProgramScheduleForTask" title="Permalink to this definition">¶</a></dt>
 <dd><p>Convenient helper method for common case.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -556,8 +556,10 @@ Run all the eval_programs</p>
 <li><p><strong>decode_steps_per_loop</strong> – Number of steps to execute the decode program.</p></li>
 <li><p><strong>experimental_decoder</strong> – bool. Whether to use experimental deocder which is
 placed in a tpu loop.</p></li>
-<li><p><strong>train_program_cls</strong> – The class of the TrainProgram to use.  Defaults
+<li><p><strong>train_program_cls</strong> – The class to use for training programs.  Defaults
 to TrainProgram.</p></li>
+<li><p><strong>eval_program_cls</strong> – The class to use for eval programs.  Defaults to
+EvalProgram.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
