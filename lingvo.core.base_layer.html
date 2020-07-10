@@ -720,10 +720,11 @@ self.CreateVariable() to create variables.</p>
 children CreateVariables calls are needed. eg, if children variables need to
 be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
-compabilitiy. This is only to ensure that variable scopes remain compatible
+compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables().</p>
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -731,6 +732,7 @@ self.CreateVariable() in _CreateVariables().</p>
 <code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">

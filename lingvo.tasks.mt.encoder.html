@@ -345,10 +345,11 @@ layer and its children layers.</p></li>
 children CreateVariables calls are needed. eg, if children variables need to
 be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
-compabilitiy. This is only to ensure that variable scopes remain compatible
+compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables().</p>
+self.CreateVariable() in _CreateVariables(). If you are okay with breaking
+old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
