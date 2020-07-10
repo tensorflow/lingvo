@@ -1070,7 +1070,8 @@
                                  <span class="n">eval_dataset_names</span><span class="p">,</span>
                                  <span class="n">eval_steps_per_loop</span><span class="p">,</span>
                                  <span class="n">decode_steps_per_loop</span><span class="p">,</span>
-                                 <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+                                 <span class="n">experimental_decoder</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+                                 <span class="n">train_program_cls</span><span class="o">=</span><span class="n">TrainProgram</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Convenient helper method for common case.</span>
 
 <span class="sd">  Args:</span>
@@ -1081,13 +1082,15 @@
 <span class="sd">    decode_steps_per_loop: Number of steps to execute the decode program.</span>
 <span class="sd">    experimental_decoder: bool. Whether to use experimental deocder which is</span>
 <span class="sd">      placed in a tpu loop.</span>
+<span class="sd">    train_program_cls: The class of the TrainProgram to use.  Defaults</span>
+<span class="sd">      to TrainProgram.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    A populated SimpleProgramSchedule.Params()</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
   <span class="n">program_schedule_params</span> <span class="o">=</span> <span class="n">SimpleProgramSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-  <span class="n">train_program_params</span> <span class="o">=</span> <span class="n">TrainProgram</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="n">train_program_params</span> <span class="o">=</span> <span class="n">train_program_cls</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="n">train_program_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span>
   <span class="n">train_program_params</span><span class="o">.</span><span class="n">steps_per_loop</span> <span class="o">=</span> <span class="n">train_steps_per_loop</span>
   <span class="n">train_program_params</span><span class="o">.</span><span class="n">dataset_name</span> <span class="o">=</span> <span class="n">train_dataset_name</span>
