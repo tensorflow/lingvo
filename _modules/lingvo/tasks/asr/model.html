@@ -557,8 +557,8 @@
           <span class="c1"># Note that these numbers are not consistent with what is used to</span>
           <span class="c1"># compute normalized WER.  In particular, these numbers will be</span>
           <span class="c1"># inflated when the transcript contains punctuation.</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span>
-                               <span class="n">subs</span><span class="p">,</span> <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;  ins: </span><span class="si">%d</span><span class="s1">, subs: </span><span class="si">%d</span><span class="s1">, del: </span><span class="si">%d</span><span class="s1">, total: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">ins</span><span class="p">,</span> <span class="n">subs</span><span class="p">,</span>
+                          <span class="n">dels</span><span class="p">,</span> <span class="n">errs</span><span class="p">)</span>
           <span class="c1"># Only aggregate scores of the top hypothesis.</span>
           <span class="k">if</span> <span class="n">n</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="n">total_errs</span> <span class="o">+=</span> <span class="n">errs</span>
@@ -568,14 +568,14 @@
           <span class="n">oracle_errs</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">oracle_errs</span><span class="p">,</span> <span class="n">norm_wer_errors</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">])</span>
         <span class="n">total_oracle_errs</span> <span class="o">+=</span> <span class="n">oracle_errs</span>
 
-      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span>
                                      <span class="n">total_ref_words</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;oracle_norm_wer&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
-          <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="n">total_ref_words</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">)</span>
+          <span class="n">total_oracle_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_words</span><span class="p">),</span> <span class="n">total_ref_words</span><span class="p">)</span>
       <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;sacc&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
           <span class="n">total_accurate_sentences</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">transcripts</span><span class="p">))</span>
-      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span><span class="n">total_token_errs</span> <span class="o">/</span> <span class="n">total_ref_tokens</span><span class="p">,</span>
-                                     <span class="n">total_ref_tokens</span><span class="p">)</span>
+      <span class="n">dec_metrics_dict</span><span class="p">[</span><span class="s1">&#39;ter&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">Update</span><span class="p">(</span>
+          <span class="n">total_token_errs</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="mf">1.</span><span class="p">,</span> <span class="n">total_ref_tokens</span><span class="p">),</span> <span class="n">total_ref_tokens</span><span class="p">)</span>
 
     <span class="c1"># Update any additional metrics.</span>
     <span class="n">dec_metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">UpdateAdditionalMetrics</span><span class="p">(</span><span class="n">dec_out_dict</span><span class="p">,</span>
