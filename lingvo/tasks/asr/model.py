@@ -409,8 +409,8 @@ class AsrModel(base_model.BaseTask):
           # Note that these numbers are not consistent with what is used to
           # compute normalized WER.  In particular, these numbers will be
           # inflated when the transcript contains punctuation.
-          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins,
-                               subs, dels, errs)
+          tf.logging.info('  ins: %d, subs: %d, del: %d, total: %d', ins, subs,
+                          dels, errs)
           # Only aggregate scores of the top hypothesis.
           if n == 0:
             total_errs += errs
@@ -420,14 +420,14 @@ class AsrModel(base_model.BaseTask):
           oracle_errs = min(oracle_errs, norm_wer_errors[i, n])
         total_oracle_errs += oracle_errs
 
-      dec_metrics_dict['wer'].Update(total_errs / total_ref_words,
+      dec_metrics_dict['wer'].Update(total_errs / max(1., total_ref_words),
                                      total_ref_words)
       dec_metrics_dict['oracle_norm_wer'].Update(
-          total_oracle_errs / total_ref_words, total_ref_words)
+          total_oracle_errs / max(1., total_ref_words), total_ref_words)
       dec_metrics_dict['sacc'].Update(
           total_accurate_sentences / len(transcripts), len(transcripts))
-      dec_metrics_dict['ter'].Update(total_token_errs / total_ref_tokens,
-                                     total_ref_tokens)
+      dec_metrics_dict['ter'].Update(
+          total_token_errs / max(1., total_ref_tokens), total_ref_tokens)
 
     # Update any additional metrics.
     dec_metrics_dict = self.UpdateAdditionalMetrics(dec_out_dict,
