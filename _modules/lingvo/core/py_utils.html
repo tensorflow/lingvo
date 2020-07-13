@@ -1668,8 +1668,14 @@
 <span class="n">_VARIABLE_CREATOR_STACK</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span><span class="o">.</span><span class="n">stack</span>
 
 
+<div class="viewcode-block" id="_DefaultVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefaultVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_DefaultVariableCreator</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="_GetVariableCreator"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetVariableCreator">[docs]</a><span class="k">def</span> <span class="nf">_GetVariableCreator</span><span class="p">():</span>
-  <span class="n">fn</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable</span>
+  <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefaultVariableCreator</span>
   <span class="k">for</span> <span class="n">wrapper</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">_VARIABLE_CREATOR_STACK</span><span class="p">):</span>
     <span class="n">fn</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">wrapper</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">fn</span></div>
@@ -1696,8 +1702,10 @@
 
 <span class="sd">  Variable creators are resolved from the outermost towards the innermost.</span>
 
-<span class="sd">  The innermost variable creator function is tf.get_variable. The passed in</span>
-<span class="sd">  kwargs must conform to what tf.get_variable accepts.</span>
+<span class="sd">  The innermost variable creator function is tf.get_variable.</span>
+
+<span class="sd">  The passed in kwargs must conform to what tf.get_variable accepts, with the</span>
+<span class="sd">  addition of `var_name` and `var_params`.</span>
 
 <span class="sd">  Args:</span>
 <span class="sd">    variable_creator: A variable creator function.</span>
@@ -1921,6 +1929,8 @@
     <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybeOpportunisticVariableReuse</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">VariableCreatorScope</span><span class="p">(</span><span class="n">MaybePinVarsToCpu</span><span class="p">):</span>
         <span class="n">var</span> <span class="o">=</span> <span class="n">_GetVariableCreator</span><span class="p">()(</span>
+            <span class="n">var_name</span><span class="o">=</span><span class="n">var_name</span><span class="p">,</span>
+            <span class="n">var_params</span><span class="o">=</span><span class="n">p</span><span class="p">,</span>
             <span class="n">name</span><span class="o">=</span><span class="s1">&#39;var&#39;</span><span class="p">,</span>
             <span class="n">shape</span><span class="o">=</span><span class="n">GetVariableShapePrefixes</span><span class="p">()</span> <span class="o">+</span> <span class="nb">list</span><span class="p">(</span><span class="n">shape</span><span class="p">),</span>
             <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>

@@ -1167,6 +1167,11 @@ new_name_format will be interpolated using the matched groups.</p>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils._DefaultVariableCreator">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefaultVariableCreator</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefaultVariableCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefaultVariableCreator" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils._GetVariableCreator">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_GetVariableCreator</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_GetVariableCreator"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._GetVariableCreator" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
@@ -1188,8 +1193,9 @@ upgraded to using tf.variable_creator_scope instead.</p>
 <p>This differs from tf.variable_scope(custom_getter=variable_creator) in that
 the kwargs passed can be manipulated.</p>
 <p>Variable creators are resolved from the outermost towards the innermost.</p>
-<p>The innermost variable creator function is tf.get_variable. The passed in
-kwargs must conform to what tf.get_variable accepts.</p>
+<p>The innermost variable creator function is tf.get_variable.</p>
+<p>The passed in kwargs must conform to what tf.get_variable accepts, with the
+addition of <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_name</span></code> and <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_params</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><p><strong>variable_creator</strong> – A variable creator function.</p>
