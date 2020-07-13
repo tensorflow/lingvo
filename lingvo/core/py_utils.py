@@ -1520,8 +1520,14 @@ def GetFanInFanOut(shape):
 _VARIABLE_CREATOR_STACK = ThreadLocalStack().stack
 
 
+def _DefaultVariableCreator(**kwargs):
+  kwargs.pop('var_name', None)
+  kwargs.pop('var_params', None)
+  return tf.get_variable(**kwargs)
+
+
 def _GetVariableCreator():
-  fn = tf.get_variable
+  fn = _DefaultVariableCreator
   for wrapper in reversed(_VARIABLE_CREATOR_STACK):
     fn = functools.partial(wrapper, fn)
   return fn
@@ -1548,8 +1554,10 @@ def VariableCreatorScope(variable_creator):
 
   Variable creators are resolved from the outermost towards the innermost.
 
-  The innermost variable creator function is tf.get_variable. The passed in
-  kwargs must conform to what tf.get_variable accepts.
+  The innermost variable creator function is tf.get_variable.
+
+  The passed in kwargs must conform to what tf.get_variable accepts, with the
+  addition of `var_name` and `var_params`.
 
   Args:
     variable_creator: A variable creator function.
@@ -1773,6 +1781,8 @@ def CreateVariable(name,
     with VariableCreatorScope(MaybeOpportunisticVariableReuse):
       with VariableCreatorScope(MaybePinVarsToCpu):
         var = _GetVariableCreator()(
+            var_name=var_name,
+            var_params=p,
             name='var',
             shape=GetVariableShapePrefixes() + list(shape),
             dtype=p.dtype,
