@@ -1479,8 +1479,9 @@ class TransformerDecoder(MTBaseDecoder):
         for layer in range(p.num_trans_layers):
           key = prefix_states['layer_%d' % layer]['key']
           value = prefix_states['layer_%d' % layer]['value']
-          bs = key.shape[1]
-          atten_dim = key.shape[2]
+          key_shapes = py_utils.GetShape(key)
+          bs = key_shapes[1]
+          atten_dim = key_shapes[2]
           zeros = tf.zeros([p.target_seq_len, bs, atten_dim],
                            dtype=py_utils.FPropDtype(p))
           prefix_states['layer_%d' % layer]['key'] = tf.concat([key, zeros], 0)
