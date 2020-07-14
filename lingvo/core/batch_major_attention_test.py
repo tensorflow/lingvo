@@ -53,7 +53,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         name='self_atten', input_dim=4, hidden_dim=4)
     l = p.Instantiate()
 
-    probs = l.AttenProbs(
+    probs, probs_sum = l.AttenProbs(
         l.theta,
         tf.expand_dims(input_vecs, 2),
         tf.expand_dims(input_vecs, 2),
@@ -62,7 +62,7 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
-      prob_out = sess.run(tf.squeeze(probs))
+      prob_out = sess.run(tf.squeeze(probs / probs_sum))
 
     # Use numpy to perform the same computation to generate expected results.
     input_vecs_p = np.array(input_vecs_p)
@@ -299,7 +299,7 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
     p = attention.MultiHeadedAttention.Params().Set(
         name='atten', input_dim=4, hidden_dim=4)
     l = p.Instantiate()
-    probs = l.AttenProbs(
+    probs, probs_sum = l.AttenProbs(
         l.theta,
         tf.expand_dims(query_vec, 2),
         tf.expand_dims(key_vec, 2),
@@ -309,7 +309,7 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
-      prob_out = sess.run(tf.squeeze(probs))
+      prob_out = sess.run(tf.squeeze(probs / probs_sum))
 
     # Use numpy to perform the same computation to generate expected results.
     query_vec_p = np.array(query_vec_p)
@@ -409,7 +409,7 @@ class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
         atten_merger_tpl=atten_merger_p)
     l = params.Instantiate()
 
-    probs = l.AttenProbs(
+    probs, probs_sum = l.AttenProbs(
         l.theta,
         tf.expand_dims(query_vec, 2),
         py_utils.NestedMap({
@@ -425,7 +425,7 @@ class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
 
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
-      prob_out = sess.run(tf.squeeze(probs))
+      prob_out = sess.run(tf.squeeze(probs / probs_sum))
 
     # Use numpy to perform the same computation to generate expected results.
     query_vec_p = np.array(query_vec_p)
@@ -530,7 +530,7 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
 
     l = p.Instantiate()
     query = tf.reshape(input_vecs, (batch, slen, num_heads, atten_dim))
-    probs = l.AttenProbs(
+    probs, probs_sum = l.AttenProbs(
         l.theta,
         query,
         query,
@@ -548,7 +548,7 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
       u, v, pos_proj = sess.run([l.vars.u, l.vars.v, l.pos_proj.vars.w])
-      actual_probs = sess.run(probs)
+      actual_probs = sess.run(probs / probs_sum)
       sinusoid_emb_p = sess.run(sinusoid_emb)
 
     # Compute ground truth with oracle class.
@@ -753,14 +753,14 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
 
     l = p.Instantiate()
     query = tf.reshape(input_vecs, (batch, slen, num_heads, atten_dim))
-    probs = l.AttenProbs(
+    probs, probs_sum = l.AttenProbs(
         l.theta, query, query, input_padding, segment_mask=None)
 
     with self.session(use_gpu=False) as sess:
       tf.global_variables_initializer().run()
       # [radius * 2 + 1, hidden_dim], [B, tgt_t, src_t]
       key_emb, value_emb, actual_probs = sess.run(
-          [l.key_emb.vars.w, l.value_emb.vars.w, probs])
+          [l.key_emb.vars.w, l.value_emb.vars.w, probs / probs_sum])
 
     oracle = MultiHeadedAttentionRPEOracle(num_heads, key_emb, value_emb)
 

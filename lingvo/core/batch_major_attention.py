@@ -335,7 +335,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         not None.
 
     Returns:
-      logits: [B, N, T, S].
+      unscaled_probs: [B, N, T, S].
+      probs_sum: [B, N, T, 1].
     """
     key = py_utils.HasRank(key, 4)
     b, s, n, h = py_utils.GetShape(key, 4)
@@ -368,10 +369,15 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           tf.constant(-0.7, dtype=logits.dtype))
       padded_logits = tf.where(paddings > 0.0, very_negative_logits, logits)
 
-    probs = tf.nn.softmax(padded_logits)
+    # Split the softmax into two parts. Do the 1st part here; the 2nd part
+    # (scaling) is moved after _AttenContext for better performance.
+    unscaled_probs = padded_logits - tf.stop_gradient(
+        tf.reduce_max(padded_logits, -1, True))
+    unscaled_probs = tf.exp(unscaled_probs)
+    probs_sum = tf.reduce_sum(unscaled_probs, -1, True)
 
-    probs = py_utils.HasShape(probs, [b, n, t, s])
-    return tf.cast(probs, key.dtype)
+    unscaled_probs = py_utils.HasShape(unscaled_probs, [b, n, t, s])
+    return tf.cast(unscaled_probs, key.dtype), tf.cast(probs_sum, key.dtype)
 
   def _AttenContext(self, theta, probs, value):
     return tf.einsum('BNTS,BSNH->BTNH', probs, value)
@@ -422,15 +428,20 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     # Compute prob with shape [batch, heads, target_time, source_time].
     with tf.name_scope('probs'):
-      probs = self.AttenProbs(theta, query, key, paddings, segment_mask,
-                              per_step_padding)
+      unscaled_probs, probs_sum = self.AttenProbs(theta, query, key, paddings,
+                                                  segment_mask,
+                                                  per_step_padding)
       # Apply dropout to probs.
-      probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
+      unscaled_probs = self.atten_dropout.FProp(theta.atten_dropout,
+                                                unscaled_probs)
 
     # Compute the attention context vector.
     with tf.name_scope('ctx'):
-      encoded = self._AttenContext(theta, probs, value)
-    return encoded, probs
+      unscaled_encoded = self._AttenContext(theta, unscaled_probs, value)
+      # The 2nd part of the softamx --- scaling.
+      encoded = unscaled_encoded / tf.transpose(probs_sum, [0, 2, 1, 3])
+
+    return encoded, unscaled_probs
 
   def _DotAttenOneStep(self,
                        theta,
