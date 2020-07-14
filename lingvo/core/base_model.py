@@ -261,7 +261,6 @@ class BaseTask(base_layer.BaseLayer):
         self._CreateVariable(
             var_name,
             base_layer.CreateVariableMeta(
-                var_scope=tf.get_variable_scope(),
                 var_params=py_utils.WeightParams(
                     [], py_utils.WeightInit.Constant(0), tf.int64),
                 theta_fn=None,
@@ -317,6 +316,11 @@ class BaseTask(base_layer.BaseLayer):
           else:
             self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
+
+  def CreateVariables(self):
+    with py_utils.GlobalStepContext(
+        tf.identity(self._global_step_var, name='global_step_tensor')):
+      super(BaseTask, self).CreateVariables()
 
   def _SetLearnerFromLegacyParams(self, tp):
     """Sets tp.learner based on legacy params."""
@@ -517,9 +521,6 @@ class BaseTask(base_layer.BaseLayer):
     self._metrics = metrics
     summary_utils.scalar('num_predictions', self._num_predictions)
 
-  def CreateTpuEnqueueOps(self):
-    return self.input_generator.CreateTpuEnqueueOps()
-
   def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""
     if input_batch is None:
@@ -643,6 +644,10 @@ class BaseTask(base_layer.BaseLayer):
 
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
+    if (self._create_variables_status !=
+        base_layer._CreateVariablesStatus.COMPLETED):  # pylint: disable=protected-access
+      raise ValueError(
+          'ApplyExponentialMovingAverage called before CreateVariables!')
     # TODO(rpang): raise an exception if this is called in the eval mode.
     p = self.params
     # We need to apply EMA to trainable and moving average variable of this
@@ -1062,8 +1067,6 @@ class BaseModel(base_layer.BaseLayer):
     tf.logging.info('Training parameters for %s: %s', params.cls,
                     self.params.train)
     self._global_step_var = py_utils.GetOrCreateGlobalStepVar()
-    self._global_step = tf.identity(
-        self._global_step_var, name='global_step_tensor')
 
     tp = self.params.train
     if tp.ema_decay > 0:
@@ -1214,8 +1217,7 @@ class SingleTaskModel(SingleTaskBase):
 
     super().__init__(p)
 
-    with py_utils.GlobalStepContext(self._global_step):
-      self.CreateChild('_task', self.params.task)
+    self.CreateChild('_task', self.params.task)
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.CreateVariables() outside of
@@ -1244,8 +1246,7 @@ class MultiTaskSubModel(SingleTaskBase):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with py_utils.GlobalStepContext(self._global_step):
-      self.CreateChild('_model', p.model_params)
+    self.CreateChild('_model', p.model_params)
     self._task = self._model.children.Get(p.task_name)
 
   def _CreateChildrenVariables(self):
@@ -1333,16 +1334,15 @@ class MultiTaskModel(BaseModel):
     # which then gets propagated down to all sub-layers during
     # BaseTask._PropagateDownGlobalConfigs(), or through sub-sequent CreateChild
     # or CreateChildren calls.
-    with py_utils.GlobalStepContext(self._global_step):
-      with tf.name_scope(p.name):
-        for task_name, task_params in sorted_task_params:
-          if p.task_name_var_scope:
-            with tf.variable_scope(task_name):
-              self.CreateChild(task_name, task_params)
-          else:
+    with tf.name_scope(p.name):
+      for task_name, task_params in sorted_task_params:
+        if p.task_name_var_scope:
+          with tf.variable_scope(task_name):
             self.CreateChild(task_name, task_params)
+        else:
+          self.CreateChild(task_name, task_params)
 
-        self.CreateChild('task_schedule', p.task_schedule)
+      self.CreateChild('task_schedule', p.task_schedule)
 
   def _CreateChildrenVariables(self):
     with tf.name_scope(self.params.name):

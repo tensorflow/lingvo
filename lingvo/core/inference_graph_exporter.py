@@ -395,8 +395,6 @@ class InferenceGraphExporter:
           FLAGS.enable_asserts = False
           FLAGS.xla_device = 'tpu'
 
-        # Ensure the global_step variable is created.
-        _ = py_utils.GetOrCreateGlobalStepVar()
         try:
           mdl = model_cfg.Instantiate()
           task = mdl.GetTask(model_task_name)

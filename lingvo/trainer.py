@@ -42,7 +42,6 @@ from lingvo import executor
 from lingvo import model_imports
 from lingvo import model_registry
 import lingvo.compat as tf
-from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import base_model_params
 from lingvo.core import checkpointer
@@ -570,16 +569,15 @@ class TrainerTpu(base_runner.BaseRunner):
 
     with self._graph.as_default(), tf.container(self._container_id):
       with self._cluster, tf.device(self._cluster.job_spec.name):
+        with cluster_factory.SetImmediatelyCreateVariables(False):
+          self._model = self.params.Instantiate()
+        self._task = self._model.GetTask()
+        self._task.input.CreateVariables()
+        self._task.input.CreateTpuEnqueueOps()
         self._eval_metrics = metrics.TpuEvalMetrics()
         # Needed due to the AddExtraTheta() reference to global_Step when
         # instantiating the InputGenerator.
         _ = py_utils.GetOrCreateGlobalStepVar()
-        input_params = base_layer.BaseLayer.CopyBaseParams(
-            self.params, self.params.input.Copy())
-        input_params = self._cluster.PlaceInput(input_params)
-        self._input = input_params.Instantiate()
-        self._input.CreateTpuEnqueueOps()
-        self.params.input.Define('skip_create_child', True, '')
 
         def TpuTrainStep(*args):
           """Train a shard of a batch on a single TPU core.
@@ -590,17 +588,15 @@ class TrainerTpu(base_runner.BaseRunner):
           Returns:
             New summed metrics values and a train_op.
           """
-          self._model = self.params.Instantiate()
-          self._task = self._model.GetTask()
-          self._task.AddChild('input', self._input)
-
+          self._model.CreateVariables()
+          self._model.ConstructFPropBPropGraph()
           self._load_ops = tf.get_collection(py_utils.TPU_EMBEDDING_LOAD_OPS)
           self._retrieve_ops = tf.get_collection(
               py_utils.TPU_EMBEDDING_RETRIEVE_OPS)
           tpu_embedding_collection = tf.get_collection(py_utils.TPU_EMBEDDING)
           self._tpu_embedding = (
               tpu_embedding_collection[0] if tpu_embedding_collection else None)
-          self._model.ConstructFPropBPropGraph()
+
           per_step_eval_metrics = self._eval_metrics.SetMetrics(
               self._task.eval_metrics, args)
           outfeed_op = self._OutfeedEnqueue(self._task.per_example_tensors)
@@ -628,7 +624,7 @@ class TrainerTpu(base_runner.BaseRunner):
         outfeed_dequeue_op = self._OutfeedDequeueLoop(
             self._task.per_example_tensors, self._steps_per_loop,
             self._cluster.num_splits_per_client)
-        self._input.CreateTpuEmbeddingEnqueueOps()
+        self._task.input.CreateTpuEmbeddingEnqueueOps()
 
         def _ConstructPostTrainingLoop(train_loop_op, outfeed_dequeue_op):
           """Returns the op for tpu training with tail cpu computation."""
@@ -656,7 +652,7 @@ class TrainerTpu(base_runner.BaseRunner):
         self.checkpointer = checkpointer.Checkpointer(
             self._train_dir, self._model, init_op=self._initialize_global_vars)
 
-      self.enqueue_ops = self._input.tpu_infeed_op
+      self.enqueue_ops = self._task.input.tpu_infeed_op
       tf.logging.info('Trainer number of enqueue ops: %d',
                       len(self.enqueue_ops))
 

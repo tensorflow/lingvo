@@ -101,6 +101,8 @@ class _Cluster:
         'decides based on the job type.')
     p.Define('do_eval', None, 'Whether to do eval.')
     p.Define('split_id', 0, 'Split id for the model.')
+    p.Define('immediately_create_variables', True,
+             'Whether to create variables immediately.')
     return p
 
   @classmethod
@@ -422,6 +424,10 @@ class _Cluster:
   @property
   def do_eval(self):
     return self.params.do_eval
+
+  @property
+  def immediately_create_variables(self):
+    return self.params.immediately_create_variables
 
   @property
   def worker_cluster_def(self):

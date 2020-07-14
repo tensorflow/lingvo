@@ -36,11 +36,6 @@ class SharedEncoderModel(base_model.MultiTaskModel):
     assert p.encoder_to_share in self.task_names
 
     # Assign the encoder from p.encoder_to_share task to all other tasks.
-    # The assumption here is that all of the variables are initialized in the
-    # __init__ function of the Task, and that they are connected together later
-    # in the FProp function. So, here, after all of the Tasks have been
-    # initialized, we can change references around to share what we need, and
-    # later when FProp is called everything will be connected properly.
     encoder = self.GetTask(p.encoder_to_share).encoder
     for name in self.task_names:
       if name != p.encoder_to_share:

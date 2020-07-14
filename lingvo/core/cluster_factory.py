@@ -97,6 +97,19 @@ def SetEval(mode):
   return Current().params.Copy().Set(do_eval=mode).Instantiate()
 
 
+def SetImmediatelyCreateVariables(mode):
+  """Returns a cluster with immediately_create_variables option turned on/off.
+
+  Args:
+    mode: True, False or None.
+
+  Returns:
+    A new Cluster instance.
+  """
+  return Current().params.Copy().Set(
+      immediately_create_variables=mode).Instantiate()
+
+
 def SetModelSplit(split_id):
   """Returns the current cluster with the model split id set.
 
