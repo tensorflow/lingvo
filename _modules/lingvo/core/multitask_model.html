@@ -184,11 +184,6 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_to_share</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span>
 
     <span class="c1"># Assign the encoder from p.encoder_to_share task to all other tasks.</span>
-    <span class="c1"># The assumption here is that all of the variables are initialized in the</span>
-    <span class="c1"># __init__ function of the Task, and that they are connected together later</span>
-    <span class="c1"># in the FProp function. So, here, after all of the Tasks have been</span>
-    <span class="c1"># initialized, we can change references around to share what we need, and</span>
-    <span class="c1"># later when FProp is called everything will be connected properly.</span>
     <span class="n">encoder</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTask</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">encoder_to_share</span><span class="p">)</span><span class="o">.</span><span class="n">encoder</span>
     <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">:</span>
       <span class="k">if</span> <span class="n">name</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_to_share</span><span class="p">:</span>

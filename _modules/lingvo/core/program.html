@@ -332,14 +332,7 @@
                                                    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseProgram.RestoreIfNeeded"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.RestoreIfNeeded">[docs]</a>  <span class="k">def</span> <span class="nf">RestoreIfNeeded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sess</span><span class="p">):</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div>
-
-<div class="viewcode-block" id="BaseProgram.SkipCreateChild"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.BaseProgram.SkipCreateChild">[docs]</a>  <span class="k">def</span> <span class="nf">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="k">if</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">base_model</span><span class="o">.</span><span class="n">MultiTaskSubModel</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">sub_params</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">model_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">IterParams</span><span class="p">():</span>
-        <span class="k">if</span> <span class="s1">&#39;skip_create_child&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">params</span><span class="p">:</span>
-          <span class="n">sub_params</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
-    <span class="n">params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;skip_create_child&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span></div></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_checkpointer</span><span class="o">.</span><span class="n">RestoreIfNeeded</span><span class="p">(</span><span class="n">sess</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="TrainProgram"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram">[docs]</a><span class="k">class</span> <span class="nc">TrainProgram</span><span class="p">(</span><span class="n">BaseProgram</span><span class="p">):</span>
@@ -434,74 +427,72 @@
 <div class="viewcode-block" id="TrainProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.TrainProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;TrainProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
-      <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+    <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
 
-      <span class="c1"># Instantiate input generator first.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
-      <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
+    <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">          *args: metrics values from previous steps.</span>
+<span class="sd">      Args:</span>
+<span class="sd">        *args: metrics values from previous steps.</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">          New summed metrics values and a train_op.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="p">)</span>
+<span class="sd">      Returns:</span>
+<span class="sd">        New summed metrics values and a train_op.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
-        <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-        <span class="n">outfeed_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">)</span>
-        <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">outfeed_op</span><span class="p">]):</span>
-          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">summed_metrics</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
+      <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="n">outfeed_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedEnqueue</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">)</span>
+      <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">outfeed_op</span><span class="p">]):</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+          <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">summed_metrics</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
 
-      <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
-      <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
-        <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-            <span class="n">TpuTrainStep</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
-        <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
+    <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
+    <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
+      <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+          <span class="n">TpuTrainStep</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">initial_values</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
+      <span class="c1"># Final metrics are the avg across self._steps_per_loop steps.</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">FinalizeMetrics</span><span class="p">(</span><span class="n">loop_result</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
-          <span class="n">TpuTrain</span><span class="p">,</span>
-          <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
-          <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
-      <span class="n">outfeed_dequeue_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
-      <span class="c1"># Get metric result from a single replica; they are all same here.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
+        <span class="n">TpuTrain</span><span class="p">,</span>
+        <span class="n">num_shards</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">,</span>
+        <span class="n">device_assignment</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">())</span>
+    <span class="n">outfeed_dequeue_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OutfeedDequeueLoop</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">per_example_tensors</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_steps_per_loop</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Returns the op for tpu training with tail cpu computation.&quot;&quot;&quot;</span>
-        <span class="c1"># Adds a tail computation that is run after the tpu_training loop</span>
-        <span class="c1"># step finishes. This allows us to run certain computation that</span>
-        <span class="c1"># acts on the variable between tpu_train_loop iterations and</span>
-        <span class="c1"># amortizing the cost of the operations. Alternative of running</span>
-        <span class="c1"># tpu.outside_compilation &amp; using tf.cond is expenseive.</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructPostTrainingLoop</span><span class="p">()</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">post_training_loop_op</span><span class="p">]):</span>
-            <span class="k">return</span> <span class="p">([[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">train_loop_op</span><span class="p">],</span>
-                     <span class="n">outfeed_dequeue_op</span><span class="p">])</span>
+    <span class="c1"># Get metric result from a single replica; they are all same here.</span>
 
-      <span class="c1"># Get metric result from a single replica; they are all same here.</span>
-      <span class="n">all_tpu_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span> <span class="o">=</span> <span class="p">(</span>
-          <span class="n">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">all_tpu_ops</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns the op for tpu training with tail cpu computation.&quot;&quot;&quot;</span>
+      <span class="c1"># Adds a tail computation that is run after the tpu_training loop</span>
+      <span class="c1"># step finishes. This allows us to run certain computation that</span>
+      <span class="c1"># acts on the variable between tpu_train_loop iterations and</span>
+      <span class="c1"># amortizing the cost of the operations. Alternative of running</span>
+      <span class="c1"># tpu.outside_compilation &amp; using tf.cond is expenseive.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span><span class="n">train_loop_op</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructPostTrainingLoop</span><span class="p">()</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">post_training_loop_op</span><span class="p">]):</span>
+          <span class="k">return</span> <span class="p">([[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">o</span><span class="p">)</span> <span class="k">for</span> <span class="n">o</span> <span class="ow">in</span> <span class="n">train_loop_op</span><span class="p">],</span> <span class="n">outfeed_dequeue_op</span><span class="p">])</span>
+
+    <span class="c1"># Get metric result from a single replica; they are all same here.</span>
+    <span class="n">all_tpu_ops</span> <span class="o">=</span> <span class="p">[</span><span class="n">t</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">batch_parallel_res</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span> <span class="o">=</span> <span class="p">(</span><span class="n">_ConstructPostTrainingLoop</span><span class="p">(</span><span class="n">all_tpu_ops</span><span class="p">,</span> <span class="n">outfeed_dequeue_op</span><span class="p">))</span>
 
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_ops</span></div>
 
@@ -561,13 +552,14 @@
 
 <div class="viewcode-block" id="EvalProgram.BuildTpuSubgraph"><a class="viewcode-back" href="../../../lingvo.core.program.html#lingvo.core.program.EvalProgram.BuildTpuSubgraph">[docs]</a>  <span class="k">def</span> <span class="nf">BuildTpuSubgraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;EvalProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
       <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
       <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;Eval a shard of a batch on a single TPU core.</span>
@@ -578,18 +570,15 @@
 <span class="sd">        Returns:</span>
 <span class="sd">          Summed eval metrics.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="p">)</span>
-
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
-          <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
-              <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
-          <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
-          <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
-            <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
-          <span class="k">return</span> <span class="n">summed_metrics</span>
+        <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+        <span class="n">summed_metrics</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">per_step_eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">):</span>
+          <span class="n">summed_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="n">y</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">summed_metrics</span>
 
       <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
       <span class="k">def</span> <span class="nf">TpuEval</span><span class="p">():</span>
@@ -643,22 +632,21 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;DecodeProgram BuildTpuSubGraph&#39;</span><span class="p">)</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
 
-    <span class="c1"># Instantiate input generator first.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
-      <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_input</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
-          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_compile_op</span><span class="p">,</span> <span class="n">batch_parallel_res</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">split_compile_and_shard</span><span class="p">(</span>
         <span class="n">_DecodeFn</span><span class="p">,</span>
@@ -720,22 +708,25 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
     <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span>
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
-        <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
-          <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
+      <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
-          <span class="n">device</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
-            <span class="n">outfeed_enqueue</span> <span class="o">=</span> <span class="n">tpu_ops</span><span class="o">.</span><span class="n">outfeed_enqueue_tuple</span><span class="p">(</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
-            <span class="k">return</span> <span class="p">[</span><span class="n">outfeed_enqueue</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
+        <span class="n">device</span> <span class="o">=</span> <span class="n">tpu</span><span class="o">.</span><span class="n">core</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+          <span class="n">outfeed_enqueue</span> <span class="o">=</span> <span class="n">tpu_ops</span><span class="o">.</span><span class="n">outfeed_enqueue_tuple</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">())</span>
+          <span class="k">return</span> <span class="p">[</span><span class="n">outfeed_enqueue</span><span class="p">]</span>
 
     <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
     <span class="k">def</span> <span class="nf">DecodeLoopFn</span><span class="p">():</span>
@@ -849,53 +840,53 @@
       <span class="n">mlp_log</span><span class="o">.</span><span class="n">mlperf_print</span><span class="p">(</span><span class="s1">&#39;opt_learning_rate_warmup_steps&#39;</span><span class="p">,</span>
                            <span class="bp">self</span><span class="o">.</span><span class="n">_ml_perf</span><span class="o">.</span><span class="n">warmup_steps</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
-      <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_train_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_train_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
+    <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span>
 
-      <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">():</span>
-        <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
+    <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">():</span>
+      <span class="sd">&quot;&quot;&quot;Train a shard of a batch on a single TPU core.</span>
 
-<span class="sd">        Do not calculate loss metrics.</span>
+<span class="sd">      Do not calculate loss metrics.</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">         [train_op].</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_input</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span>
+<span class="sd">      Returns:</span>
+<span class="sd">       [train_op].</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
-        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
+      <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
 
-      <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
-        <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_train_steps_per_loop</span><span class="p">,</span>
-            <span class="n">TpuTrainStep</span><span class="p">,</span>
-            <span class="n">inputs</span><span class="o">=</span><span class="p">[],</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">loop_result</span>
+    <span class="k">def</span> <span class="nf">TpuTrain</span><span class="p">():</span>
+      <span class="n">loop_result</span> <span class="o">=</span> <span class="n">tpu_training_loop</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_train_steps_per_loop</span><span class="p">,</span>
+          <span class="n">TpuTrainStep</span><span class="p">,</span>
+          <span class="n">inputs</span><span class="o">=</span><span class="p">[],</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;train_loop&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">loop_result</span>
 
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_input</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_decode_input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">SkipCreateChild</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
-    <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
-      <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
-      <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">AddChild</span><span class="p">(</span><span class="s1">&#39;input&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_input</span><span class="p">)</span>
+      <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
+        <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
+        <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
-          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
     <span class="nd">@tpu_function</span><span class="o">.</span><span class="n">on_device_training_loop</span>
     <span class="k">def</span> <span class="nf">TrainAndDecode</span><span class="p">():</span>
