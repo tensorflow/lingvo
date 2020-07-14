@@ -483,7 +483,8 @@
 <span class="sd">        not None.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      logits: [B, N, T, S].</span>
+<span class="sd">      unscaled_probs: [B, N, T, S].</span>
+<span class="sd">      probs_sum: [B, N, T, 1].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
     <span class="n">b</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
@@ -516,10 +517,15 @@
           <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
       <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
 
-    <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">)</span>
+    <span class="c1"># Split the softmax into two parts. Do the 1st part here; the 2nd part</span>
+    <span class="c1"># (scaling) is moved after _AttenContext for better performance.</span>
+    <span class="n">unscaled_probs</span> <span class="o">=</span> <span class="n">padded_logits</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_max</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">))</span>
+    <span class="n">unscaled_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="n">unscaled_probs</span><span class="p">)</span>
+    <span class="n">probs_sum</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">unscaled_probs</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
 
-    <span class="n">probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
+    <span class="n">unscaled_probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">unscaled_probs</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">s</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">unscaled_probs</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">probs_sum</span><span class="p">,</span> <span class="n">key</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._AttenContext"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenContext">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenContext</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BNTS,BSNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span></div>
@@ -570,15 +576,20 @@
 
     <span class="c1"># Compute prob with shape [batch, heads, target_time, source_time].</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;probs&#39;</span><span class="p">):</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AttenProbs</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
-                              <span class="n">per_step_padding</span><span class="p">)</span>
+      <span class="n">unscaled_probs</span><span class="p">,</span> <span class="n">probs_sum</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AttenProbs</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
+                                                  <span class="n">segment_mask</span><span class="p">,</span>
+                                                  <span class="n">per_step_padding</span><span class="p">)</span>
       <span class="c1"># Apply dropout to probs.</span>
-      <span class="n">probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten_dropout</span><span class="p">,</span> <span class="n">probs</span><span class="p">)</span>
+      <span class="n">unscaled_probs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">atten_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">atten_dropout</span><span class="p">,</span>
+                                                <span class="n">unscaled_probs</span><span class="p">)</span>
 
     <span class="c1"># Compute the attention context vector.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;ctx&#39;</span><span class="p">):</span>
-      <span class="n">encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenContext</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">probs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
+      <span class="n">unscaled_encoded</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_AttenContext</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">unscaled_probs</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+      <span class="c1"># The 2nd part of the softamx --- scaling.</span>
+      <span class="n">encoded</span> <span class="o">=</span> <span class="n">unscaled_encoded</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs_sum</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">unscaled_probs</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention._DotAttenOneStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._DotAttenOneStep">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAttenOneStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                        <span class="n">theta</span><span class="p">,</span>
