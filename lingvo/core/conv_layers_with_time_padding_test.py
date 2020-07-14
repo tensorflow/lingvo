@@ -55,11 +55,13 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       actual_output_channels = params.cls.OutputChannels(params)
       self.assertEqual(32, actual_output_channels)
 
-  def testConv2DLayerOutShape(self):
+  @parameterized.parameters(False, True)
+  def testConv2DLayerOutShape(self, v2_padding):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
       np.random.seed(12345)
       params = conv_layers.Conv2DLayerWithPadding.Params()
+      params.v2_padding = v2_padding
       params.name = 'conv'
       params.filter_shape = [3, 3, 3, 32]
       params.filter_stride = [2, 2]
@@ -72,6 +74,9 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       out_shape = conv_layer.OutShape(in_shape)
       self.assertEqual(out_shape, [None, 10, 5, 32])
 
+  # ComputeConvOutputPadding is broken for strided convolutions. Below we mark
+  # cases that are in correct with "Bug". testComputeConvOutputPaddingV2 below
+  # has the same test cases but without the bugs.
   @parameterized.parameters(
       ([0, 0, 0, 1], [0, 0, 0, 1], 1, 'SAME'),
       ([0, 0, 0, 0], [0, 0], 2, 'SAME'),
@@ -103,11 +108,54 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
   )
   def testComputeConvOutputPadding(self, padding, expected_padding, stride,
                                    padding_algorithm):
-    """Test Convolution padding computation."""
+    """Tests padding behavior. There are multiple bugs in the implementation."""
     padding = tf.constant([padding], tf.float32)
     expected_padding = tf.constant([expected_padding], tf.float32)
     with self.session(use_gpu=True):
       conv_padding = conv_layers.ComputeConvOutputPadding(
+          padding, window=3, stride=stride, padding_algorithm=padding_algorithm)
+      self.evaluate(tf.global_variables_initializer())
+      conv_padding = py_utils.Debug(conv_padding)
+      conv_padding = self.evaluate(conv_padding)
+      tf.logging.info('expected_padding {expected_padding}')
+      self.assertAllClose(expected_padding, conv_padding)
+
+  @parameterized.parameters(
+      ([0, 0, 0, 1], [0, 0, 0, 1], 1, 'SAME'),
+      ([0, 0, 0, 0], [0, 0], 2, 'SAME'),
+      ([0, 0, 0, 1], [0, 0], 2, 'SAME'),
+      ([0, 0, 1, 1], [0, 1], 2, 'SAME'),
+      ([0, 0, 0, 0, 0], [0, 0, 0], 2, 'SAME'),
+      ([0, 0, 0, 0, 1], [0, 0, 1], 2, 'SAME'),
+      ([0, 0, 0, 1, 1], [0, 0, 1], 2, 'SAME'),
+      ([0, 0, 1, 1, 1], [0, 1, 1], 2, 'SAME'),
+      ([0, 0, 0, 0, 0, 0], [0, 0, 0], 2, 'SAME'),
+      ([0, 0, 0, 0, 0, 1], [0, 0, 0], 2, 'SAME'),
+      ([0, 0, 0, 0, 1, 1], [0, 0, 1], 2, 'SAME'),
+      ([0, 0, 0, 1, 1, 1], [0, 0, 1], 2, 'SAME'),
+      ([0, 0, 1, 1, 1, 1], [0, 1, 1], 2, 'SAME'),
+      ([0, 0, 0, 0], [0, 0], 1, 'VALID'),
+      ([0, 0, 0, 1], [0, 1], 1, 'VALID'),
+      ([0, 0, 0, 0], [0], 2, 'VALID'),
+      ([0, 0, 0, 1], [0], 2, 'VALID'),
+      ([0, 0, 1, 1], [1], 2, 'VALID'),
+      ([0, 0, 0, 0, 0], [0, 0], 2, 'VALID'),
+      ([0, 0, 0, 0, 1], [0, 1], 2, 'VALID'),
+      ([0, 0, 0, 1, 1], [0, 1], 2, 'VALID'),
+      ([0, 0, 1, 1, 1], [1, 1], 2, 'VALID'),
+      ([0, 0, 0, 0, 0, 0], [0, 0], 2, 'VALID'),
+      ([0, 0, 0, 0, 0, 1], [0, 0], 2, 'VALID'),
+      ([0, 0, 0, 0, 1, 1], [0, 1], 2, 'VALID'),
+      ([0, 0, 0, 1, 1, 1], [0, 1], 2, 'VALID'),
+      ([0, 0, 1, 1, 1, 1], [1, 1], 2, 'VALID'),
+  )
+  def testComputeConvOutputPaddingV2(self, padding, expected_padding, stride,
+                                     padding_algorithm):
+    """Test Convolution padding computation."""
+    padding = tf.constant([padding], tf.float32)
+    expected_padding = tf.constant([expected_padding], tf.float32)
+    with self.session(use_gpu=True):
+      conv_padding = conv_layers._ComputeConvOutputPaddingV2(
           padding, window=3, stride=stride, padding_algorithm=padding_algorithm)
       self.evaluate(tf.global_variables_initializer())
       conv_padding = py_utils.Debug(conv_padding)
@@ -146,12 +194,6 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
       inputs = py_utils.ApplyPadding(
           tf.reshape(in_padding, [batch_size, seq_len, 1, 1]), inputs)
 
-      # [[[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[4], [4], [4]],
-      #   [[5], [5], [5]], [[0], [0], [0]]],
-      # [[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[4], [4], [4]],
-      #   [[0], [0], [0]], [[0], [0], [0]]],
-      # [[[1], [1], [1]], [[2], [2], [2]], [[3], [3], [3]], [[0], [0], [0]],
-      #   [[0], [0], [0]], [[0], [0], [0]]]]
       inputs = py_utils.Debug(inputs)
 
       output, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
@@ -186,6 +228,65 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
         ], output)
       else:
         raise ValueError('Test does not handle length {seq_len}')
+
+  @parameterized.parameters(5, 6)
+  def testConv2DLayerStridedWithPaddingFPropV2(self, seq_len):
+    """Check strided convs get the same values for different seq_len."""
+    with self.session(use_gpu=True):
+      batch_size = 3
+      expected_seq_len = 3
+
+      params = conv_layers.Conv2DLayerWithPadding.Params()
+      params.v2_padding = True
+      params.weight_norm = False
+      params.filter_stride = [2, 2]
+      params.name = 'conv'
+      params.filter_shape = [3, 3, 1, 1]
+      params.params_init = py_utils.WeightInit.Constant(1.0)
+      conv_layer = params.Instantiate()
+
+      # Set up the padding for the sequence length. (starting at 5).
+      in_padding = tf.constant([
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1],
+          [0, 0, 0, 1, 1],
+      ], tf.float32)
+      in_padding = tf.pad(
+          in_padding, [[0, 0], [0, seq_len - 5]], constant_values=1.0)
+
+      inputs = 1.0 + tf.tile(
+          tf.reshape(tf.range(seq_len, dtype=tf.float32), [1, seq_len, 1, 1]),
+          [batch_size, 1, 3, 1])
+      inputs = py_utils.ApplyPadding(
+          tf.reshape(in_padding, [batch_size, seq_len, 1, 1]), inputs)
+
+      inputs = py_utils.Debug(inputs)
+
+      output, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
+
+      output = py_utils.Debug(output)
+      out_padding = py_utils.Debug(out_padding)
+
+      self.evaluate(tf.global_variables_initializer())
+      output, out_padding = self.evaluate([output, out_padding])
+
+      self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
+      self.assertAllClose([
+          [0, 0, 0],
+          [0, 0, 1],
+          [0, 0, 1],
+      ], out_padding)
+
+      # Explanation of some computations (0s are padded)
+      # 6 = (1*0 + 1*0 + 1*0) + (1*0 + 1*1 + 1*1) + (1*0 + 1*2 + 1*2)
+      # 18 = (1*1 + 1*1 + 1*0) + (1*3 + 1*3 + 1*0) + (1*5 + 1*5 + 1*0)
+      self.assertAllClose(
+          [
+              [[[6], [6]], [[18], [18]], [[18], [18]]],
+              [[[6], [6]], [[18], [18]], [[8], [8]]],  # NOTE: Not padded.
+              [[[6], [6]], [[10], [10]], [[0], [0]]],
+          ],
+          output)
 
   def testConv2DLayerWithPaddingFPropRandom(self):
     with self.session(use_gpu=True):
@@ -270,6 +371,68 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
           [[[1], [1]], [[3], [3]], [[0], [0]]],
           [[[1], [1]], [[1], [1]], [[0], [0]]],
       ], output)
+
+  @parameterized.parameters(5, 6)
+  def testCausalConv2DLayerStridedWithPaddingFPropV2(self, seq_len):
+    """Check strided convs get the same values for different length dim."""
+    with self.session(use_gpu=True):
+      batch_size = 5
+      expected_seq_len = 3
+
+      params = conv_layers.CausalConv2DLayerWithPadding.Params()
+      params.v2_padding = True
+      params.weight_norm = False
+      params.filter_stride = [2, 2]
+      params.name = 'conv'
+      params.filter_shape = [3, 1, 1, 1]
+      params.params_init = py_utils.WeightInit.Constant(1.0)
+      conv_layer = params.Instantiate()
+
+      # Set up the padding for the sequence length. (starting at 5).
+      in_padding = tf.constant([
+          [0, 0, 0, 0, 0],
+          [0, 0, 0, 0, 1],
+          [0, 0, 0, 1, 1],
+          [0, 0, 1, 1, 1],
+          [0, 1, 1, 1, 1],
+      ], tf.float32)
+      in_padding = tf.pad(
+          in_padding, [[0, 0], [0, seq_len - 5]], constant_values=1.0)
+
+      inputs = 1.0 + tf.tile(
+          tf.reshape(tf.range(seq_len, dtype=tf.float32), [1, seq_len, 1, 1]),
+          [batch_size, 1, 3, 1])
+      inputs = py_utils.ApplyPadding(
+          tf.reshape(in_padding, [batch_size, seq_len, 1, 1]), inputs)
+
+      inputs = py_utils.Debug(inputs)
+
+      output, out_padding = conv_layer.FPropDefaultTheta(inputs, in_padding)
+
+      output = py_utils.Debug(output)
+      out_padding = py_utils.Debug(out_padding)
+
+      self.evaluate(tf.global_variables_initializer())
+      output, out_padding = self.evaluate([output, out_padding])
+
+      self.assertEqual((batch_size, expected_seq_len, 2, 1), output.shape)
+      self.assertAllClose([
+          [0, 0, 0],
+          [0, 0, 1],
+          [0, 0, 1],
+          [0, 1, 1],
+          [0, 1, 1],
+      ], out_padding)
+
+      self.assertAllClose(
+          [
+              [[[1], [1]], [[6], [6]], [[12], [12]]],
+              [[[1], [1]], [[6], [6]], [[7], [7]]],
+              [[[1], [1]], [[6], [6]], [[3], [3]]],  # NOTE: not padded.
+              [[[1], [1]], [[3], [3]], [[0], [0]]],
+              [[[1], [1]], [[1], [1]], [[0], [0]]],
+          ],
+          output)
 
   def testCausalConv2DLayerWithPaddingFPropRandom(self):
     with self.session(use_gpu=True):

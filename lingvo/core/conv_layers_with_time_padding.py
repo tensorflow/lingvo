@@ -13,7 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Common conv layers."""
+"""Common conv layers.
+
+WARNING: Strided convolutions are buggy. Consider using v2_padding=True.
+"""
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
@@ -63,9 +66,14 @@ def ComputeConvOutputShape(in_shape,
   return [n, ot, of, outc]
 
 
-def ComputeConvOutputPadding(paddings, window, stride,
-                             padding_algorithm='SAME'):
+def ComputeConvOutputPadding(paddings,
+                             window,
+                             stride,
+                             padding_algorithm='SAME',
+                             v2_padding=False):
   """Computes paddings for convolution and pooling output.
+
+  WARNING: This implementation is buggy prefer using ComputeConvOutputPaddingV2.
 
   out_padding[i] == 1 iff any in_padding corresponding to that output is 1.
 
@@ -74,10 +82,16 @@ def ComputeConvOutputPadding(paddings, window, stride,
     window: The size of the windows.
     stride: The time-stride between adjacent windows.
     padding_algorithm: 'SAME' or 'VALID'.
+    v2_padding: Prefer setting to True. The default implementation is buggy for
+    strided convolutions.
 
   Returns:
     out_padding, The new padding tensor of size [batch, ceil(time / stride)].
   """
+  if v2_padding:
+    return _ComputeConvOutputPaddingV2(paddings, window, stride,
+                                       padding_algorithm)
+
   if stride == 1:
     return paddings
 
@@ -95,8 +109,93 @@ def ComputeConvOutputPadding(paddings, window, stride,
   return tf.squeeze(out_padding, -1)
 
 
+def _ComputeConvOutputPaddingV2(paddings,
+                                window,
+                                stride,
+                                padding_algorithm='SAME'):
+  """Computes paddings for convolution and pooling output.
+
+  - If padding_algorithm='SAME': out_padding[i] == 0 if the in_padding
+    corresponding to that output is 0. This prevents the output from shrinking
+    unnecessarily when striding.
+  - If padding algorithm='VALID': out_padding[i] == 1 iff any in_padding
+    corresponding to that output is 1.
+
+  Args:
+    paddings: The paddings tensor. It is expected to be of shape [batch, time].
+    window: The size of the windows.
+    stride: The time-stride between adjacent windows.
+    padding_algorithm: 'SAME' or 'VALID'.
+
+  Returns:
+    out_padding, The new padding tensor of size [batch, ceil(time / stride)].
+  """
+  if stride == 1 and padding_algorithm == 'SAME':
+    return paddings
+
+  paddings, slice_len = _PadForLengthCompatibleStridesV2(
+      paddings, stride, padding_algorithm, 1.0)
+
+  expanded_paddings = tf.expand_dims(paddings, -1)
+
+  if padding_algorithm == 'SAME':
+    # Using a strided conv1d of size 1x1 we find all non-padded positions for
+    # the specified stride.
+    out_paddings = tf.nn.conv1d(
+        expanded_paddings,
+        filters=tf.ones([1, 1, 1], paddings.dtype),
+        stride=stride,
+        padding='SAME',
+        name='padding_conv')
+  elif padding_algorithm == 'VALID':
+    out_paddings = tf.nn.pool(
+        expanded_paddings, [window],
+        'MAX',
+        padding=padding_algorithm,
+        strides=[stride])
+  out_paddings = tf.squeeze(out_paddings, -1)
+  if slice_len > 0:
+    out_paddings = out_paddings[:, :-slice_len]
+  return out_paddings
+
+
+def _PadForLengthCompatibleStridesV2(tensor, stride, padding_algorithm,
+                                     constant_values):
+  """Pads tensor to make strided convolutions start in the first position.
+
+  Tensorflow strided convolutions and Lingvo paddings are incompatible.
+  Strided convolutions always end at the last index of the length dimension.
+  Therefore, the output of a Lingvo padded tensor depends on the length
+  dimension. Here we remove this dependency by pre-padding the tensor so that
+  the first convolution starts in the first position.
+
+  Args:
+    tensor: The tensor to prepare for convolution. [batch, time, ...].
+    stride: The stride in the length dimension.
+    padding_algorithm: 'SAME' or 'VALID'.
+    constant_values: Value to pad 0. for data tensor and 1.0 for padding tensor.
+
+  Returns:
+    A tuple (tensor, padded_length) where tensor is the potentionally padded
+    tensor and padded_length is the number paddings.
+  """
+  if padding_algorithm == 'VALID':
+    return tensor, 0
+
+  input_length = py_utils.GetShape(tensor)[1]
+  pad_len = ((input_length // stride) + 1) * stride - 1 - input_length
+  if pad_len == 0 or pad_len == stride:
+    return tensor, 0
+  tensor = py_utils.PadSequenceDimension(tensor, input_length + pad_len,
+                                         constant_values)
+  return tensor, pad_len
+
+
 class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
-  """Base class for 2D convolution layers."""
+  """Base class for 2D convolution layers.
+
+  WARNING: Strided convolutions are buggy. Prefer using v2_padding=True.
+  """
 
   @classmethod
   def Params(cls):
@@ -129,6 +228,9 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
     p.Define(
         'partial_conv', False, 'If true, rescale positions near sequence'
         'boundaries as proposed in https://arxiv.org/abs/1811.11718')
+    p.Define(
+        'v2_padding', False, 'Prefer setting to True. The default '
+        'implementation is incorrect for strided convolutions.')
 
     return p
 
@@ -200,17 +302,28 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
       inputs = _ApplyPadding(inputs, paddings)
 
       # Apply conv on 'inputs'.
-      out = self._ApplyConv(theta, inputs)
+      if p.v2_padding:
+        padded_inputs, slice_len = _PadForLengthCompatibleStridesV2(
+            inputs, p.filter_stride[0], 'SAME', 0.)
+        out = self._ApplyConv(theta, padded_inputs)
+        if slice_len > 0:
+          out = out[:, :-slice_len, :, :]
+      else:
+        out = self._ApplyConv(theta, inputs)
 
       if p.partial_conv:
         out = self._RescaleBoundary(out, paddings)
       # NOTE: this may be slightly inaccurate when p.dilation_rate[0] > 1.
       # But there's likely no real problems. Trying to set it gives an error:
       # pooling with SAME padding is not implemented for dilation_rate > 1.
-      # NOTE: we use window=p.filter_stride[0] to be compatible with legacy
-      # implementation.  Consider updating it to be the actual shape.
-      conv_padding = ComputeConvOutputPadding(
-          paddings, window=p.filter_stride[0], stride=p.filter_stride[0])
+      # implementation. Consider updating it to be the actual shape.
+      if p.v2_padding:
+        conv_padding = _ComputeConvOutputPaddingV2(
+            paddings, window=p.filter_shape[0], stride=p.filter_stride[0])
+      else:
+        conv_padding = ComputeConvOutputPadding(
+            paddings, window=p.filter_stride[0], stride=p.filter_stride[0])
+
       # Assuming padded nodes will be properly zero-ed out if necessary by
       # sub-sequent layers.
       # out = _ApplyPadding(out, conv_padding)
@@ -607,8 +720,7 @@ class ActivationLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
-    p.Define('activation', 'RELU',
-             'The activation function to apply')
+    p.Define('activation', 'RELU', 'The activation function to apply')
     return p
 
   def FProp(self, theta, inputs, paddings):
