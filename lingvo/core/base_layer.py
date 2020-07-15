@@ -27,6 +27,7 @@ from lingvo.core import py_utils
 
 
 _LAYER_STACK = py_utils.ThreadLocalStack()
+_CREATE_VARIABLES_STACK = py_utils.ThreadLocalStack()
 
 
 class Accumulator:
@@ -167,7 +168,6 @@ class BaseLayerMeta(type):
 
     cls.__init__ = _BaseLayerInitWrapper(cls.__init__)
     return cls
-
   # pylint: enable=bad-mcs-classmethod-argument
 
   def __call__(cls, *args, **kwargs):
@@ -774,20 +774,30 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       return
     self._create_variables_status = _CreateVariablesStatus.IN_PROGRESS
 
-    self._global_step = py_utils.GetGlobalStep()
-    self._CreateChildrenVariables()
+    stack_size = len(_CREATE_VARIABLES_STACK.stack)
+    _CREATE_VARIABLES_STACK.stack.append(self)
+    try:
+      self._global_step = py_utils.GetGlobalStep()
+      self._CreateChildrenVariables()
 
-    if not self._is_variable_free:
-      self.AddExtraTheta('global_step', self._global_step)
-      with tf.variable_scope(
-          py_utils.SanitizeScopeKey(self.params.name),
-          auxiliary_name_scope=False):
-        for name, meta in list(self._variables_to_create.items()):
-          self._CreateVariable(name, meta)
-        self._CreateVariables()
-    self._VerifyVarsAndTheta()
+      if not self._is_variable_free:
+        self.AddExtraTheta('global_step', self._global_step)
+        with tf.variable_scope(
+            py_utils.SanitizeScopeKey(self.params.name),
+            auxiliary_name_scope=False):
+          for name, meta in list(self._variables_to_create.items()):
+            self._CreateVariable(name, meta)
+          self._CreateVariables()
+    finally:
+      assert _CREATE_VARIABLES_STACK.stack[-1] is self
+      _CREATE_VARIABLES_STACK.stack.pop()
+      assert len(_CREATE_VARIABLES_STACK.stack) == stack_size
 
     self._create_variables_status = _CreateVariablesStatus.COMPLETED
+
+    if not _CREATE_VARIABLES_STACK.stack:
+      # Outermost layer just finished CreateVariables.
+      self._VerifyVarsAndTheta()
 
   def _CreateChildrenVariables(self):
     """Create variables for child layers.
@@ -922,6 +932,8 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   def _VerifyVarsAndTheta(self):
     """Verify that vars and theta have the same nested structure."""
+    for child in self._children_list:
+      child._VerifyVarsAndTheta()  # pylint: disable=protected-access
 
     def MatchKeys(x, y):
       assert len(x) <= len(y)
