@@ -16,11 +16,6 @@ config_setting(
     values = {"define": "using_cuda=true"},
 )
 
-config_setting(
-    name = "py3_mode",
-    flag_values = {"@bazel_tools//tools/python:python_version": "PY3"},
-)
-
 py_library(
     name = "base_runner",
     srcs = ["base_runner.py"],

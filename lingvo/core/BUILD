@@ -911,12 +911,8 @@ py_library(
         ":scorers",
         "//lingvo:compat",
         # Implicit numpy dependency.
-    ] + select({
-        "//lingvo:py3_mode": [
-            # Implicit sklearn dependency.
-        ],
-        "//conditions:default": [],
-    }),
+        # Implicit sklearn dependency.
+    ],
 )
 
 py_library(

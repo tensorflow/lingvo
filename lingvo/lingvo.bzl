@@ -97,7 +97,7 @@ def gen_op_pylib(name, cc_lib_name, srcs, kernel_deps, py_deps = [], **kwargs):
     native.py_library(
         name = name,
         srcs = srcs,
-        srcs_version = "PY2AND3",
+        srcs_version = "PY3",
         data = [cc_lib_name + ".so"],
         deps = py_deps,
         **kwargs
