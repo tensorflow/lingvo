@@ -165,6 +165,7 @@
 <span class="kn">import</span> <span class="nn">math</span>
 <span class="kn">import</span> <span class="nn">lingvo.compat</span> <span class="k">as</span> <span class="nn">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
@@ -1401,6 +1402,58 @@
       <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">gates</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">gates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">None</span><span class="p">,</span> <span class="n">gates</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">gates</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GatesInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span></div></div>
+
+
+<div class="viewcode-block" id="NormalizedLSTMCellSimple"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.NormalizedLSTMCellSimple">[docs]</a><span class="k">class</span> <span class="nc">NormalizedLSTMCellSimple</span><span class="p">(</span><span class="n">LSTMCellSimple</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;LSTM Cell that allows customzied normalization.</span>
+
+<span class="sd">  theta:</span>
+
+<span class="sd">  - wm: the parameter weight matrix. All gates combined.</span>
+<span class="sd">  - b: the combined bias vector.</span>
+
+<span class="sd">  state:</span>
+
+<span class="sd">  - m: the lstm output. [batch, cell_nodes]</span>
+<span class="sd">  - c: the lstm cell state. [batch, cell_nodes]</span>
+
+<span class="sd">  inputs:</span>
+
+<span class="sd">  - act: a list of input activations. [batch, input_nodes]</span>
+<span class="sd">  - padding: the padding. [batch, 1].</span>
+<span class="sd">  - reset_mask: optional 0/1 float input to support packed input training.</span>
+<span class="sd">    Shape [batch, 1]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="NormalizedLSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.NormalizedLSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">NormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span>
+             <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
+             <span class="s1">&#39;The normalization layer param&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">NormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">gates_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">gates_name</span><span class="p">:</span>
+        <span class="n">norm_layer_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;norm_&#39;</span> <span class="o">+</span> <span class="n">gate</span><span class="p">,</span> <span class="n">norm_layer_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="NormalizedLSTMCellSimple._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.NormalizedLSTMCellSimple._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+    <span class="c1"># Retrieve i_i, i_g, f_g, o_g</span>
+    <span class="n">gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_RetrieveAndSplitGates</span><span class="p">(</span><span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">)</span>
+    <span class="n">gates_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">gates_name</span><span class="p">):</span>
+      <span class="n">norm_layer_name</span> <span class="o">=</span> <span class="s1">&#39;norm_&#39;</span> <span class="o">+</span> <span class="n">gate_name</span>
+      <span class="k">if</span> <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">norm_layer_name</span><span class="p">)</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">norm_layer_name</span><span class="p">),</span> <span class="n">gates</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span> <span class="o">=</span> <span class="n">gates</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GatesInternal</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">i_i</span><span class="p">,</span> <span class="n">i_g</span><span class="p">,</span> <span class="n">f_g</span><span class="p">,</span> <span class="n">o_g</span><span class="p">)</span></div></div>
 
 

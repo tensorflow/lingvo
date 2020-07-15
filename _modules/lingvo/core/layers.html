@@ -3899,16 +3899,23 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
+<div class="viewcode-block" id="LayerNorm._GetNormalizationParamShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._GetNormalizationParamShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNormalizationParamShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span></div>
+
 <div class="viewcode-block" id="LayerNorm._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetNormalizationParamShape</span><span class="p">(),</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span></div>
 
 <div class="viewcode-block" id="LayerNorm.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies normalization over the last dimension (layer).</span>
@@ -3925,13 +3932,15 @@
     <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)],</span> <span class="n">inputs</span><span class="p">)</span>
 
+    <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetScaleAndBias</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">:</span>
       <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
                                                <span class="kc">None</span><span class="p">)</span>
       <span class="n">inputs_norm</span> <span class="o">=</span> <span class="p">(</span><span class="n">inputs</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
-      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span>
+      <span class="k">return</span> <span class="n">inputs_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">cur_scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">cur_bias</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span>
         <span class="o">*</span><span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="o">*</span> <span class="mi">3</span><span class="p">,</span>
@@ -3949,7 +3958,7 @@
       <span class="n">x_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x_norm</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">x_norm</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">+</span> <span class="n">scale</span><span class="p">)</span> <span class="o">+</span> <span class="n">bias</span>
 
-    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="n">Normalize</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LayerNorm.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">NumOutputNodes</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
@@ -3960,6 +3969,41 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckShapes</span><span class="p">((</span><span class="n">inputs</span><span class="p">,))</span>
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">flops</span><span class="o">=</span><span class="n">inputs</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span> <span class="o">*</span> <span class="mi">10</span><span class="p">,</span> <span class="n">out_shapes</span><span class="o">=</span><span class="p">(</span><span class="n">inputs</span><span class="p">,))</span></div></div>
+
+
+<div class="viewcode-block" id="CategoricalLayerNorm"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm">[docs]</a><span class="k">class</span> <span class="nc">CategoricalLayerNorm</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Categorical layer normalization.</span>
+
+<span class="sd">  Allow dynamic switch of normalization params based on given class_index.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="CategoricalLayerNorm.Params"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">CategoricalLayerNorm</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;Number of privatized copies of layer norm params.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="CategoricalLayerNorm._GetNormalizationParamShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._GetNormalizationParamShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNormalizationParamShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">CategoricalLayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">&gt;</span> <span class="mi">0</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;class_index&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+
+<div class="viewcode-block" id="CategoricalLayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tmp_tag</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]):</span>
+      <span class="n">cur_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
+      <span class="n">cur_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span></div></div>
 
 
 <div class="viewcode-block" id="ConvSetLayer"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer">[docs]</a><span class="k">class</span> <span class="nc">ConvSetLayer</span><span class="p">(</span><span class="n">quant_utils</span><span class="o">.</span><span class="n">QuantizableLayer</span><span class="p">):</span>
