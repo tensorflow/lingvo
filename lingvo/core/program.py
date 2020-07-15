@@ -87,7 +87,8 @@ class BaseProgram:
     else:
       program_dir_name = p.name + '_' + p.dataset_name.lower()
     self._program_dir = os.path.join(self._logdir, program_dir_name)
-    self._summary_writer = tf.summary.FileWriter(self._program_dir)
+    # Initialized on use; access via self._summary_writer property only.
+    self._summary_writer_obj = None
 
     tf.io.gfile.makedirs(self._logdir)
     # Just a standard spot that all programs may restore from.
@@ -103,6 +104,15 @@ class BaseProgram:
 
     self._compile_op = None
     self._status_msg_fn = None
+
+  @property
+  def _summary_writer(self):
+    """Returns the FileWriter object to use for summaries."""
+    # Initialize on first use, so that subclasses can override the
+    # implementation without creating a default FileWriter in the constructor.
+    if self._summary_writer_obj is None:
+      self._summary_writer_obj = tf.summary.FileWriter(self._program_dir)
+    return self._summary_writer_obj
 
   def _SummarizeValue(self, steps, tag, value):
     self._summary_writer.add_summary(
