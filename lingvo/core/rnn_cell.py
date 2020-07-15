@@ -17,6 +17,7 @@
 import math
 import lingvo.compat as tf
 from lingvo.core import hyperparams
+from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
@@ -1253,6 +1254,58 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
       i_i, i_g, f_g, o_g = gates
     else:
       i_i, i_g, f_g, o_g = gates[0], None, gates[1], gates[2]
+    return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
+
+
+class NormalizedLSTMCellSimple(LSTMCellSimple):
+  """LSTM Cell that allows customzied normalization.
+
+  theta:
+
+  - wm: the parameter weight matrix. All gates combined.
+  - b: the combined bias vector.
+
+  state:
+
+  - m: the lstm output. [batch, cell_nodes]
+  - c: the lstm cell state. [batch, cell_nodes]
+
+  inputs:
+
+  - act: a list of input activations. [batch, input_nodes]
+  - padding: the padding. [batch, 1].
+  - reset_mask: optional 0/1 float input to support packed input training.
+    Shape [batch, 1]
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(NormalizedLSTMCellSimple, cls).Params()
+    p.Define('norm_layer_tpl',
+             layers.LayerNorm.Params().Set(epsilon=1e-8),
+             'The normalization layer param')
+    return p
+
+  def __init__(self, params):
+    super(NormalizedLSTMCellSimple, self).__init__(params)
+    p = self.params
+    gates_name = ['i_i', 'i_g', 'f_g', 'o_g']
+    with tf.variable_scope(p.name):
+      for gate in gates_name:
+        norm_layer_p = p.norm_layer_tpl.Copy().Set(input_dim=self.hidden_size)
+        self.CreateChild('norm_' + gate, norm_layer_p)
+
+  def _Gates(self, xmw, theta, state0, inputs):
+    # Retrieve i_i, i_g, f_g, o_g
+    gates = self._RetrieveAndSplitGates(xmw, theta)
+    gates_name = ['i_i', 'i_g', 'f_g', 'o_g']
+    for i, gate_name in enumerate(gates_name):
+      norm_layer_name = 'norm_' + gate_name
+      if gates[i] is not None:
+        gates[i] = self.children.get(norm_layer_name).FProp(
+            theta.get(norm_layer_name), gates[i])
+
+    i_i, i_g, f_g, o_g = gates
     return self._GatesInternal(theta, state0, inputs, i_i, i_g, f_g, o_g)
 
 

@@ -1647,6 +1647,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":hyperparams",
+        ":layers",
         ":py_utils",
         ":quant_utils",
         ":summary_utils",

@@ -4224,6 +4224,85 @@ class LayerNormTest(test_utils.TestCase):
         self.assertAllClose(sg, ng, rtol=1e-02, atol=1e-02)
 
 
+class CategoricalLayerNormTest(test_utils.TestCase):
+
+  def testCategoricalLayerNormFProp(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.CategoricalLayerNorm.Params()
+      p.name = 'cat_ln'
+      p.input_dim = 3
+      p.num_classes = 2
+      layer_norm = layers.CategoricalLayerNorm(p)
+      npy_input = np.random.normal(1.0, 0.5,
+                                   [2, 4, 4, p.input_dim]).astype('float32')
+
+      inputs = tf.constant(npy_input, dtype=tf.float32)
+      output = layer_norm.FPropDefaultTheta(inputs)
+
+      self.evaluate(tf.global_variables_initializer())
+      # Set different bias and scale for different copy of ln params
+      self.evaluate(tf.assign(layer_norm.vars.scale, [[0.0] * 3] + [[1.0] * 3]))
+      self.evaluate(tf.assign(layer_norm.vars.bias, [[0.0] * 3] + [[1.0] * 3]))
+
+      output = layer_norm.FPropDefaultTheta(inputs)
+      sym_output_c1 = self.evaluate(output)
+
+      # Redefine output to use the value of new theta
+      theta = layer_norm.theta
+      theta.class_index = tf.constant(1, dtype=tf.int32)
+      output = layer_norm.FProp(theta, inputs)
+      sym_output_c2 = self.evaluate(output)
+
+      # Mean should be zero and variance should be close to one.
+      self.assertNotAllClose(sym_output_c1, sym_output_c2)
+      self.assertNear(0.0, sym_output_c1.mean(), 1e-5)
+      self.assertNear(1.0, np.var(sym_output_c1), 1e-4)
+      # Mean should be 1 and variance should be close to 2^2
+      self.assertNear(1.0, sym_output_c2.mean(), 1e-5)
+      self.assertNear(4.0, np.var(sym_output_c2), 1e-4)
+
+      # Compare with numpy.
+      mean = npy_input.mean(-1, keepdims=True)
+      variance = np.mean(np.square(npy_input - mean), -1, keepdims=True)
+      npy_output = (npy_input - mean) / np.sqrt(variance + p.epsilon)
+      self.assertAllClose(sym_output_c1, npy_output)
+
+      variance = np.mean(np.square(npy_input - mean), -1, keepdims=True)
+      npy_output = 2 * (npy_input - mean) / np.sqrt(variance + p.epsilon) + 1
+      self.assertAllClose(sym_output_c2, npy_output)
+
+  def testCategoricalLayerNormBProp(self):
+    with self.session(use_gpu=True) as sess:
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      p = layers.CategoricalLayerNorm.Params()
+      p.name = 'cat_ln'
+      p.input_dim = 3
+      p.num_classes = 2
+      layer_norm = layers.CategoricalLayerNorm(p)
+
+      inputs = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 4, 4, p.input_dim]), dtype=tf.float32)
+      output = layer_norm.FPropDefaultTheta(inputs)
+      loss = tf.reduce_sum(output)
+
+      all_vars = tf.trainable_variables()
+      self.assertEqual(2, len(all_vars))
+      grads = tf.gradients(loss, all_vars)
+      self.evaluate(tf.global_variables_initializer())
+      print('grads = {}'.format(grads))
+      sym_grads = [self.evaluate(sg) for sg in grads]
+      num_grads = [
+          test_utils.ComputeNumericGradient(sess, loss, v) for v in all_vars
+      ]
+
+      for sg, ng in zip(sym_grads, num_grads):
+        # sg is in sparsse form and only the first row is non-zero
+        self.assertAllClose(sg.values[0], ng[0], rtol=1e-02, atol=1e-02)
+
+
 class DeterministicDropoutTest(test_utils.TestCase, parameterized.TestCase):
 
   def testDeterministicDropoutLayer(self):

@@ -817,12 +817,23 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
         [-0.00272907, 0.31641623]],
        [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
         [-0.01014781, 0.46336061]]),
+      ('NormLSTMCellSimple', rnn_cell.NormalizedLSTMCellSimple, None,
+       [[0.03960676, 0.26547235], [-0.00677715, 0.09782403],
+        [-0.00272907, 0.31641623]],
+       [[0.14834785, 0.3804915], [-0.00927538, 0.38059634],
+        [-0.01014781, 0.46336061]]),
       ('LSTMCellLean', rnn_cell.LayerNormalizedLSTMCellLean, None,
        [[-0.20482419, 0.55676991], [-0.55648255, 0.20511301],
         [-0.20482422, 0.55676997]],
        [[0.14834785, 0.3804915], [-0.00927544, 0.38059637],
         [-0.01014781, 0.46336061]]),
       ('LSTMCellProj', rnn_cell.LayerNormalizedLSTMCellSimple, 4,
+       [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
+        [0.47132283, 0.03284446]],
+       [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
+        [-0.15832338, 1.22740746, 0.19910297, -0.14970526],
+        [-0.57552528, 0.9139322, 0.41805002, 0.58792269]]),
+      ('NormLSTMCellProj', rnn_cell.NormalizedLSTMCellSimple, 4,
        [[0.39790073, 0.28511256], [0.41482946, 0.28972796],
         [0.47132283, 0.03284446]],
        [[-0.3667627, 1.03294277, 0.24229962, 0.43976486],
@@ -919,7 +930,6 @@ class RNNCellTest(test_utils.TestCase, parameterized.TestCase):
     params.vn.global_vn = False
     params.vn.per_step_vn = False
     lstm = params.Instantiate()
-
     np.random.seed(_NUMPY_RANDOM_SEED)
     inputs = py_utils.NestedMap(
         act=[tf.constant(np.random.uniform(size=(3, 2)), tf.float32)],

@@ -3751,16 +3751,23 @@ class LayerNorm(base_layer.BaseLayer):
     assert p.name
     assert p.input_dim > 0
 
+  def _GetNormalizationParamShape(self):
+    return [self.params.input_dim]
+
   def _CreateVariables(self):
     super()._CreateVariables()
     p = self.params
     pc = py_utils.WeightParams(
-        shape=[p.input_dim],
+        shape=self._GetNormalizationParamShape(),
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+        collections=[self.__class__.__name__ + '_vars'] +
+        [py_utils.SKIP_LP_REGULARIZATION])
     self.CreateVariable('bias', pc)
     self.CreateVariable('scale', pc)
+
+  def _GetScaleAndBias(self, theta):
+    return theta.scale, theta.bias
 
   def FProp(self, theta, inputs):
     """Applies normalization over the last dimension (layer).
@@ -3777,13 +3784,15 @@ class LayerNorm(base_layer.BaseLayer):
     inputs = py_utils.with_dependencies(
         [py_utils.assert_equal(tf.shape(inputs)[-1], p.input_dim)], inputs)
 
+    cur_scale, cur_bias = self._GetScaleAndBias(theta)
+
     if p.use_fused_layernorm:
       counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
           inputs, axes=[-1], keepdims=True)
       mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
                                                None)
       inputs_norm = (inputs - mean) * tf.math.rsqrt(variance + p.epsilon)
-      return inputs_norm * (1.0 + theta.scale) + theta.bias
+      return inputs_norm * (1.0 + cur_scale) + cur_bias
 
     @tf.Defun(
         *[py_utils.FPropDtype(p)] * 3,
@@ -3801,7 +3810,7 @@ class LayerNorm(base_layer.BaseLayer):
       x_norm = tf.reshape(x_norm, x_shape)
       return x_norm * (1.0 + scale) + bias
 
-    return Normalize(inputs, theta.scale, theta.bias)
+    return Normalize(inputs, cur_scale, cur_bias)
 
   @classmethod
   def NumOutputNodes(cls, p):
@@ -3812,6 +3821,41 @@ class LayerNorm(base_layer.BaseLayer):
     py_utils.CheckShapes((inputs,))
     return py_utils.NestedMap(
         flops=inputs.num_elements() * 10, out_shapes=(inputs,))
+
+
+class CategoricalLayerNorm(LayerNorm):
+  """Categorical layer normalization.
+
+  Allow dynamic switch of normalization params based on given class_index.
+  """
+
+  @classmethod
+  def Params(cls):
+    p = super(CategoricalLayerNorm, cls).Params()
+    p.Define('num_classes', 1,
+             'Number of privatized copies of layer norm params.')
+    return p
+
+  def _GetNormalizationParamShape(self):
+    p = self.params
+    return [p.num_classes, p.input_dim]
+
+  def __init__(self, params):
+    super(CategoricalLayerNorm, self).__init__(params)
+    p = self.params
+    assert isinstance(p.num_classes, int)
+    assert p.num_classes > 0
+    with tf.variable_scope(p.name):
+      self.AddExtraTheta('class_index', tf.constant(0, dtype=tf.int32))
+
+  def _GetScaleAndBias(self, theta):
+    p = self.params
+    self.tmp_tag = tf.identity(theta.class_index)
+    with tf.control_dependencies(
+        [py_utils.assert_between(theta.class_index, 0, p.num_classes)]):
+      cur_scale = tf.gather(theta.scale, theta.class_index)
+      cur_bias = tf.gather(theta.bias, theta.class_index)
+      return cur_scale, cur_bias
 
 
 class ConvSetLayer(quant_utils.QuantizableLayer):
