@@ -526,7 +526,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     if self._is_variable_free:
       return self._private_children.Transform(lambda _: py_utils.NestedMap())
     if self._create_variables_status == _CreateVariablesStatus.NOT_CALLED:
-      raise ValueError('Cannot access vars before they have been created.')
+      raise ValueError(
+          'Cannot access vars for layer %s before they have been created.' %
+          self.params.cls)
     ret = self._private_children.Transform(lambda x: x.vars)
     for k in self._private_vars.keys():
       ret[k] = self._private_vars[k]
@@ -538,7 +540,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     if self._is_variable_free:
       return self._private_children.Transform(lambda _: py_utils.NestedMap())
     if self._create_variables_status == _CreateVariablesStatus.NOT_CALLED:
-      raise ValueError('Cannot access theta before they have been created.')
+      raise ValueError(
+          'Cannot access theta for layer %s before they have been created.' %
+          self.params.cls)
     ret = self._private_children.Transform(lambda x: x.theta)
 
     private_theta = self._private_theta
