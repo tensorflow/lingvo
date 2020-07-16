@@ -173,6 +173,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 
+<span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 <span class="n">_LAYER_STACK</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
 <span class="n">_CREATE_VARIABLES_STACK</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ThreadLocalStack</span><span class="p">()</span>
@@ -907,8 +908,13 @@
 <span class="sd">      meta: A CreateVariableMeta describing the variable to be created.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="o">.</span><span class="n">setdefault</span><span class="p">(</span><span class="s1">&#39;default_seed&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">random_seed</span><span class="p">)</span>
-    <span class="n">value</span><span class="p">,</span> <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">var</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="o">.</span><span class="n">var_params</span><span class="p">,</span> <span class="o">**</span><span class="n">meta</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">var</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">no_identity_on_vars</span><span class="p">:</span>
+      <span class="n">value</span> <span class="o">=</span> <span class="n">var</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">var</span><span class="o">.</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">value</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">var</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">value</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
