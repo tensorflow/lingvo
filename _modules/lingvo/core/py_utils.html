@@ -163,6 +163,11 @@
 <span class="c1"># ==============================================================================</span>
 <span class="sd">&quot;&quot;&quot;Common utilities.&quot;&quot;&quot;</span>
 
+<span class="c1"># ==============================================================================</span>
+<span class="c1"># Note: Avoid adding dependencies to py_utils beyond standard python packages</span>
+<span class="c1">#       and tensorflow.</span>
+<span class="c1"># ==============================================================================</span>
+
 <span class="kn">import</span> <span class="nn">collections</span> <span class="k">as</span> <span class="nn">py_collections</span>
 <span class="kn">import</span> <span class="nn">contextlib</span>
 <span class="kn">import</span> <span class="nn">functools</span>
@@ -185,7 +190,6 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 <span class="kn">import</span> <span class="nn">six</span>
 
-<span class="kn">from</span> <span class="nn">model_pruning.python</span> <span class="kn">import</span> <span class="n">pruning</span>
 <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.framework</span> <span class="kn">import</span> <span class="n">node_def_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">rewriter_config_pb2</span>
@@ -2732,29 +2736,6 @@
     <span class="k">return</span> <span class="n">results</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Unexpected type for ConcatRecursively: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="nb">type</span><span class="p">(</span><span class="n">splits</span><span class="p">))</span></div>
-
-
-<div class="viewcode-block" id="AddToPruningCollections"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AddToPruningCollections">[docs]</a><span class="k">def</span> <span class="nf">AddToPruningCollections</span><span class="p">(</span><span class="n">weight</span><span class="p">,</span>
-                            <span class="n">mask</span><span class="p">,</span>
-                            <span class="n">threshold</span><span class="p">,</span>
-                            <span class="n">gradient</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">old_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-                            <span class="n">old_old_weight</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Add mask, threshold, and weight vars to their respective collections.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">mask</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">):</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">MASK_COLLECTION</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">THRESHOLD_COLLECTION</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
-
-    <span class="c1"># Add gradient, old_weight, and old_old_weight to collections approximating</span>
-    <span class="c1"># gradient and hessian, where old_weight is the weight tensor one step</span>
-    <span class="c1"># before and old_old_weight is the weight tensor two steps before.</span>
-    <span class="k">if</span> <span class="n">gradient</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">assert</span> <span class="n">old_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="k">assert</span> <span class="n">old_old_weight</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">WEIGHT_GRADIENT_COLLECTION</span><span class="p">,</span> <span class="n">gradient</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_weight</span><span class="p">)</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">add_to_collection</span><span class="p">(</span><span class="n">pruning</span><span class="o">.</span><span class="n">OLD_OLD_WEIGHT_COLLECTION</span><span class="p">,</span> <span class="n">old_old_weight</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="WeightedAvg"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.WeightedAvg">[docs]</a><span class="k">def</span> <span class="nf">WeightedAvg</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">sum_reduction_fn</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">):</span>

@@ -173,6 +173,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">computation_cost</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">constants</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">conv_layers_with_time_padding</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">pruning_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">quant_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">recurrent</span>
@@ -1143,7 +1144,7 @@
             <span class="s1">&#39;masked_w&#39;</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
+      <span class="n">pruning_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
           <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span>
                                                         <span class="n">mask_var_name</span><span class="p">),</span>
           <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
@@ -2700,8 +2701,8 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">(</span><span class="n">weight</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span> <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
-                                       <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
+      <span class="n">pruning_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">wm</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">mask</span><span class="p">,</span>
+                                            <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">threshold</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">pc</span><span class="p">)</span></div>
 
@@ -3262,7 +3263,7 @@
               <span class="s1">&#39;masked_weights&#39;</span><span class="p">)</span>
 
         <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">weights_var_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="n">theta_fn</span><span class="o">=</span><span class="n">MaskWeightFn</span><span class="p">)</span>
-        <span class="n">py_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
+        <span class="n">pruning_utils</span><span class="o">.</span><span class="n">AddToPruningCollections</span><span class="p">(</span>
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">weights_var_name</span><span class="p">),</span>
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">mask_var_name</span><span class="p">),</span>
             <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">,</span> <span class="n">threshold_var_name</span><span class="p">))</span>
