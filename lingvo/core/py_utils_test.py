@@ -2808,9 +2808,17 @@ class FromGlobalTest(test_utils.TestCase):
     tf.flags.FLAGS(sys.argv)
 
 
-class CallDefunTest(test_utils.TestCase):
+class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testSimple(self):
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testSimple(self, use_tf_function):
+    # TODO(laigd): remove this check when 312743821 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.call_defun_use_tf_function = use_tf_function
     with self.session():
 
       def Bak(xs, ys, dys):
@@ -2835,7 +2843,15 @@ class CallDefunTest(test_utils.TestCase):
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
-  def testPreserveStaticShape(self):
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testPreserveStaticShape(self, use_tf_function):
+    # TODO(laigd): remove this check when 312743821 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.call_defun_use_tf_function = use_tf_function
     with self.session():
 
       def Bak(x, y, dy):
@@ -2858,7 +2874,15 @@ class CallDefunTest(test_utils.TestCase):
       y = self.evaluate(py_utils.CallDefun(Fwd, x, Bak))
       self.assertAllEqual(y, np.zeros_like(a))
 
-  def testNestedMap(self):
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testNestedMap(self, use_tf_function):
+    # TODO(laigd): remove this check when 312743821 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.call_defun_use_tf_function = use_tf_function
     with self.session():
 
       def Bak(xs, ys, dys):
