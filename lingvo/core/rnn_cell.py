@@ -18,6 +18,7 @@ import math
 import lingvo.compat as tf
 from lingvo.core import hyperparams
 from lingvo.core import layers
+from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import summary_utils
@@ -381,27 +382,27 @@ class LSTMCellSimple(RNNCell):
 
     if p.apply_pruning:
       if p.gradient_pruning:
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold,
-                                         self.vars.gradient,
-                                         self.vars.old_weight,
-                                         self.vars.old_old_weight)
+        pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                              self.vars.threshold,
+                                              self.vars.gradient,
+                                              self.vars.old_weight,
+                                              self.vars.old_old_weight)
       else:
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold)
+        pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                              self.vars.threshold)
     if p.num_hidden_nodes:
       if p.apply_pruning_to_projection:
         if p.gradient_pruning:
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold,
-                                           self.vars.proj_gradient,
-                                           self.vars.proj_old_weight,
-                                           self.vars.proj_old_old_weight)
+          pruning_utils.AddToPruningCollections(self.vars.w_proj,
+                                                self.vars.proj_mask,
+                                                self.vars.proj_threshold,
+                                                self.vars.proj_gradient,
+                                                self.vars.proj_old_weight,
+                                                self.vars.proj_old_old_weight)
         else:
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold)
+          pruning_utils.AddToPruningCollections(self.vars.w_proj,
+                                                self.vars.proj_mask,
+                                                self.vars.proj_threshold)
     # Collect some stats.
     scope = tf.get_variable_scope()
     w = self.vars.wm
@@ -2039,27 +2040,27 @@ class SRUCell(RNNCell):
 
     if p.apply_pruning:
       if p.gradient_pruning:
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold,
-                                         self.vars.gradient,
-                                         self.vars.old_weight,
-                                         self.vars.old_old_weight)
+        pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                              self.vars.threshold,
+                                              self.vars.gradient,
+                                              self.vars.old_weight,
+                                              self.vars.old_old_weight)
       else:
-        py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                         self.vars.threshold)
+        pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                              self.vars.threshold)
     if p.num_hidden_nodes:
       if p.apply_pruning_to_projection:
         if p.gradient_pruning:
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold,
-                                           self.vars.proj_gradient,
-                                           self.vars.proj_old_weight,
-                                           self.vars.proj_old_old_weight)
+          pruning_utils.AddToPruningCollections(self.vars.w_proj,
+                                                self.vars.proj_mask,
+                                                self.vars.proj_threshold,
+                                                self.vars.proj_gradient,
+                                                self.vars.proj_old_weight,
+                                                self.vars.proj_old_old_weight)
         else:
-          py_utils.AddToPruningCollections(self.vars.w_proj,
-                                           self.vars.proj_mask,
-                                           self.vars.proj_threshold)
+          pruning_utils.AddToPruningCollections(self.vars.w_proj,
+                                                self.vars.proj_mask,
+                                                self.vars.proj_threshold)
 
     scope = tf.get_variable_scope()
     # Collect some stats.

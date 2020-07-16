@@ -723,6 +723,7 @@ py_library(
         ":computation_cost",
         ":constants",
         ":conv_layers_with_time_padding",
+        ":pruning_utils",
         ":py_utils",
         ":quant_utils",
         ":recurrent",
@@ -1123,6 +1124,16 @@ py_library(
 )
 
 py_library(
+    name = "pruning_utils",
+    srcs = ["pruning_utils.py"],
+    srcs_version = "PY3",
+    deps = [
+        # Implicit model_pruning.pruning dependency.
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "py_utils",
     srcs = ["py_utils.py"],
     srcs_version = "PY3",
@@ -1131,7 +1142,6 @@ py_library(
         ":retry",
         ":symbolic",
         ":tshape",
-        # Implicit model_pruning.pruning dependency.
         "//lingvo:compat",
         "//lingvo/core/ops",
         # Implicit numpy dependency.
@@ -1644,6 +1654,7 @@ py_library(
     deps = [
         ":hyperparams",
         ":layers",
+        ":pruning_utils",
         ":py_utils",
         ":quant_utils",
         ":summary_utils",

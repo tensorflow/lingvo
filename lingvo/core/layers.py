@@ -25,6 +25,7 @@ from lingvo.core import builder_layers
 from lingvo.core import computation_cost
 from lingvo.core import constants
 from lingvo.core import conv_layers_with_time_padding
+from lingvo.core import pruning_utils
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import recurrent
@@ -995,7 +996,7 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
             'masked_w')
 
       self.CreateVariable(weights_var_name, w_pc, theta_fn=MaskWeightFn)
-      py_utils.AddToPruningCollections(
+      pruning_utils.AddToPruningCollections(
           getattr(self.vars, weights_var_name), getattr(self.vars,
                                                         mask_var_name),
           getattr(self.vars, threshold_var_name))
@@ -2552,8 +2553,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
             self.AddGlobalVN(weight), self.vars.mask, 'masked_weights')
 
       self.CreateVariable('wm', pc, theta_fn=MaskWeightFn)
-      py_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
-                                       self.vars.threshold)
+      pruning_utils.AddToPruningCollections(self.vars.wm, self.vars.mask,
+                                            self.vars.threshold)
     else:
       self.CreateVariable('wm', pc)
 
@@ -3114,7 +3115,7 @@ class SimpleFullSoftmax(SoftmaxLayer):
               'masked_weights')
 
         self.CreateVariable(weights_var_name, pc, theta_fn=MaskWeightFn)
-        py_utils.AddToPruningCollections(
+        pruning_utils.AddToPruningCollections(
             getattr(self.vars, weights_var_name),
             getattr(self.vars, mask_var_name),
             getattr(self.vars, threshold_var_name))
