@@ -1048,13 +1048,6 @@ class TransformerDecoder(MTBaseDecoder):
     if p.use_lang_dependent_atten and p.task_emb:
       p.trans_tpl.num_aux_atten_post_proj = p.task_emb.vocab_size
 
-    p.softmax.input_dim = p.model_dim
-    if self._share_sm_emb:
-      # Taking shared emb/softmax layer out of the decoder variable scope so
-      # that it can also be shared by encoder if needed.
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.CreateChild('softmax', p.softmax)
-
     with tf.variable_scope(p.name):
       if not self._share_sm_emb:
         self.CreateChild('token_emb', p.token_emb)
@@ -1089,8 +1082,16 @@ class TransformerDecoder(MTBaseDecoder):
 
       self.CreateChildren('trans', params_trans_layers)
 
-      if not self._share_sm_emb:
-        self.CreateChild('softmax', p.softmax)
+      p.softmax.input_dim = p.model_dim
+      self.CreateChild('softmax', p.softmax)
+
+  def _CreateChildrenVariables(self):
+    if self._share_sm_emb:
+      # Taking shared emb/softmax layer out of the decoder variable scope so
+      # that it can also be shared by encoder if needed.
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def _RemoveEOSProbs(self, p, probs, source_enc_len):
     """Remove the attention probs on EOS symbol and renormalize.
@@ -2101,8 +2102,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     p = self.params
 
     if p.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.CreateChild('softmax', p.shared_emb)
+      self.CreateChild('softmax', p.shared_emb)
 
     with tf.variable_scope(p.name):
       if not p.shared_emb:
@@ -2131,6 +2131,12 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
             use_fused_layernorm=p.use_fused_layernorm,
             fprop_dtype=p.input_dropout_tpl.fprop_dtype)
         self.CreateChild('final_ln', layer_norm_p)
+
+  def _CreateChildrenVariables(self):
+    if self.params.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def _MaybeTransposeEncoderOutputs(self, encoder_outputs, target_data_format):
     p = self.params

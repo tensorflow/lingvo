@@ -570,10 +570,9 @@ class TransformerEncoder(base_layer.BaseLayer):
     p = self.params
 
     if p.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        # Naming this 'softmax' to match the name of the same component in the
-        # decoder. Variable names need to be the same in order to be reused.
-        self.CreateChild('softmax', p.shared_emb)
+      # Naming this 'softmax' to match the name of the same component in the
+      # decoder. Variable names need to be the same in order to be reused.
+      self.CreateChild('softmax', p.shared_emb)
 
     with tf.variable_scope(p.name):
       assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
@@ -611,8 +610,9 @@ class TransformerEncoder(base_layer.BaseLayer):
     self.CreateChild('transformer_stack', p.transformer_stack)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    if self.params.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.CreateVariables()
     self.transformer_stack.CreateVariables()
     super()._CreateChildrenVariables()
 
@@ -803,8 +803,7 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
     assert p.output_data_format in ('TBC', 'BTC')
 
     if p.shared_emb:
-      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.CreateChild('softmax', p.shared_emb)
+      self.CreateChild('softmax', p.shared_emb)
 
     with tf.variable_scope(p.name):
       p.token_emb.dtype = p.dtype
@@ -826,6 +825,12 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
             use_fused_layernorm=p.use_fused_layernorm,
             fprop_dtype=p.input_dropout_tpl.fprop_dtype)
         self.CreateChild('final_ln', layer_norm_p)
+
+  def _CreateChildrenVariables(self):
+    if self.params.shared_emb:
+      with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
+        self.softmax.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def FProp(self, theta, input_batch):
     """Embeds source ids and transforms with TransformerStack.
