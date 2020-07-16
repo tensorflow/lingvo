@@ -153,10 +153,10 @@ class NoConstGuaranteeScopeTest(test_utils.TestCase):
           init=py_utils.WeightInit.Constant(0.0),
           dtype=tf.float32,
           collections=['v'])
-      v = py_utils.CreateVariable('v', wp)[1]
+      v = py_utils.CreateVariable('v', wp)
       self.assertEqual(tf.Tensor, type(v))
       with inference_graph_exporter.NoConstGuaranteeScope():
-        v = py_utils.CreateVariable('v', wp, reuse=True)[1]
+        v = py_utils.CreateVariable('v', wp, reuse=True)
         self.assertIsInstance(v, tf.Variable)
 
 
@@ -181,8 +181,8 @@ class LinearModel(base_model.BaseTask):
           shape=[],
           init=py_utils.WeightInit.Gaussian(scale=1.0, seed=234567),
           dtype=p.dtype)
-      self._w, _ = py_utils.CreateVariable('w', w)
-      self._b, _ = py_utils.CreateVariable('b', b)
+      self.CreateVariable('w', w)
+      self.CreateVariable('b', b)
 
   def Inference(self):
     """Computes y = w^T x + b. Returns y and x, as outputs and inputs."""
@@ -191,7 +191,7 @@ class LinearModel(base_model.BaseTask):
       r = tf.random.stateless_uniform([3],
                                       seed=py_utils.GenerateStepSeedPair(
                                           self.params, self.theta.global_step))
-      y = tf.reduce_sum((self._w + r) * x) + self._b
+      y = tf.reduce_sum((self.vars.w + r) * x) + self.vars.b
       return {'default': ({'output': y}, {'input': x})}
 
 
@@ -204,7 +204,7 @@ class LinearModelTpu(LinearModel):
       x = tf.placeholder(dtype=tf.bfloat16, name='input')
 
       def InferenceFn(x):
-        return tf.reduce_sum(self._w * x) + self._b
+        return tf.reduce_sum(self.vars.w * x) + self.vars.b
 
       y = tf.tpu.rewrite(InferenceFn, [x])
       return {'tpu': ({'output': y[0]}, {'input': x})}

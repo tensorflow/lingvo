@@ -1603,9 +1603,7 @@ def CreateVariable(name,
       Accepted values are constants defined in the class tf.VariableAggregation.
 
   Returns:
-    tf.identity(var), var pair. The tf.identity() node is colocated
-    with var. In the case of FLAGS.no_identity_on_vars, simply returns
-    a var, var pair.
+    The created variable.
   """
   p = params.Copy()
   shape = tf.TensorShape(ToStaticShape(p.shape)).as_list()
@@ -1797,13 +1795,7 @@ def CreateVariable(name,
             synchronization=synchronization,
             aggregation=aggregation)
 
-  if _FromGlobal('no_identity_on_vars'):
-    with tf.device(var.device):
-      return var, var
-  else:
-    # This tf.identity colocated with var.
-    with tf.device(var.device):
-      return tf.identity(var), var
+  return var
 
 
 _global_variable_scope = None

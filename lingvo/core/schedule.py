@@ -661,15 +661,14 @@ class DevBasedSchedule(BaseSchedule):
           init=py_utils.WeightInit.Constant(1.0),
           collections=['DevBasedSchedule_vars'],
           dtype=tf.float32)
-      _, self._cur_factor, = py_utils.CreateVariable(
+      self._cur_factor = py_utils.CreateVariable(
           'cur_factor', wp, trainable=False)
       wp = py_utils.WeightParams(
           shape=[],
           init=py_utils.WeightInit.Constant(0),
           collections=['DevBasedSchedule_vars'],
           dtype=tf.int64)
-      _, self._ref_step, = py_utils.CreateVariable(
-          'ref_step', wp, trainable=False)
+      self._ref_step = py_utils.CreateVariable('ref_step', wp, trainable=False)
       self._metric_history = early_stop.MetricHistory(p.metric_history)
       self._best_step = ops.best_step(self._metric_history.hist_file,
                                       p.tolerance)

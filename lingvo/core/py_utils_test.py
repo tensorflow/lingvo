@@ -116,7 +116,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt, col)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       # To reuse existing variables
       tf.get_variable_scope().reuse_variables()
@@ -127,7 +127,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt, col)
-        all_vars_copy.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars_copy.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       self.evaluate(tf.global_variables_initializer())
       for v1, v2 in zip(all_vars, all_vars_copy):
@@ -143,7 +143,7 @@ class PyUtilsTest(test_utils.TestCase):
       with symbolic.SymbolToValueMap(symbolic.STATIC_VALUES, {dim_symbol: 2}):
         pc = py_utils.WeightParams(shape, py_utils.WeightInit.Gaussian(),
                                    tf.float32, ['col1', 'col2'])
-        var = py_utils.CreateVariable('var', pc)[0]
+        var = py_utils.CreateVariable('var', pc)
 
       # To reuse existing variables
       tf.get_variable_scope().reuse_variables()
@@ -155,7 +155,7 @@ class PyUtilsTest(test_utils.TestCase):
                                      {new_dim_symbol: 2}):
         pc = py_utils.WeightParams(shape, py_utils.WeightInit.Gaussian(),
                                    tf.float32, ['col1', 'col2'])
-        var_copy = py_utils.CreateVariable('var', pc)[0]
+        var_copy = py_utils.CreateVariable('var', pc)
 
       self.evaluate(tf.global_variables_initializer())
       self.assertAllEqual(var.eval(), var_copy.eval())
@@ -174,7 +174,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (dt, m,
               sp) in enumerate(itertools.product(dtypes, methods, shapes)):
         pc = py_utils.WeightParams(sp, m(0.1), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [[0.069674, -0.072278, -0.021777],
                      [-0.052155, -0.050274, 0.086218]]
@@ -206,7 +206,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (dt, m,
               sp) in enumerate(itertools.product(dtypes, methods, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [[-1.472208, 0.960204, -0.192588],
                      [-0.461884, 1.018134, 0.063719]]
@@ -240,7 +240,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (dt, m,
               sp) in enumerate(itertools.product(dtypes, methods, shapes)):
         pc = py_utils.WeightParams(sp, m(scale=2), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       self.evaluate(tf.global_variables_initializer())
       var_values = self.evaluate(all_vars)
@@ -266,11 +266,11 @@ class PyUtilsTest(test_utils.TestCase):
     with self.session(use_gpu=False, graph=tf.Graph()):
       tf.random.set_seed(832124)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
-      var1 = py_utils.CreateVariable('var1', pc)[0]
+      var1 = py_utils.CreateVariable('var1', pc)
 
       tf.get_variable_scope().reuse_variables()
       # Reuses an existing variable.
-      var2 = py_utils.CreateVariable('var1', pc)[0]
+      var2 = py_utils.CreateVariable('var1', pc)
 
       # An exception should be thrown in this case.
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian(2.0))
@@ -285,9 +285,9 @@ class PyUtilsTest(test_utils.TestCase):
       tf.random.set_seed(3251343)
       pc = py_utils.WeightParams([2, 3], py_utils.WeightInit.Gaussian())
       with tf.variable_scope('layer0'):
-        w0, _ = py_utils.CreateVariable('w', pc)
+        w0 = py_utils.CreateVariable('w', pc)
       with tf.variable_scope('layer1'):
-        w1, _ = py_utils.CreateVariable('w', pc)
+        w1 = py_utils.CreateVariable('w', pc)
       self.evaluate(tf.global_variables_initializer())
 
       # w0_val, w1_val should be sufficient different.
@@ -305,7 +305,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [[1.051236, -0.959198, 0.796091],
                      [-0.685691, 0.230933, -1.006293]]
@@ -330,7 +330,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [1.175317, -1.072416]
 
@@ -348,7 +348,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [[[1.357139, -1.23832]]]
 
@@ -363,7 +363,7 @@ class PyUtilsTest(test_utils.TestCase):
           shape=shape, init=py_utils.WeightInit.Constant(0.0), dtype=tf.float32)
       with py_utils.VariableShapePrefixContext(5):
         with py_utils.VariableShapePrefixContext(4):
-          var = py_utils.CreateVariable('var', pc)[0]
+          var = py_utils.CreateVariable('var', pc)
       self.assertEqual([5, 4, 3, 2], var.shape.as_list())
 
   def testGeoMeanXavier(self):
@@ -376,7 +376,7 @@ class PyUtilsTest(test_utils.TestCase):
       for i, (m, dt,
               sp) in enumerate(itertools.product(methods, dtypes, shapes)):
         pc = py_utils.WeightParams(sp, m(), dt)
-        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc)[0])
+        all_vars.append(py_utils.CreateVariable('var_%d' % i, pc))
 
       v1_v_expted = [[1.062019, -0.969037, 0.804257],
                      [-0.692724, 0.233301, -1.016615]]
@@ -576,10 +576,10 @@ class PyUtilsTest(test_utils.TestCase):
   def testRenamingRules(self):
     pc = py_utils.WeightParams([3, 3])
     with tf.variable_scope('model'):
-      _, v1 = py_utils.CreateVariable('v1', pc)
+      v1 = py_utils.CreateVariable('v1', pc)
       with py_utils.VariableRenameScope([('model/(.*)', 'data/%s')]):
-        _, v2 = py_utils.CreateVariable('v2', pc)
-      _, v3 = py_utils.CreateVariable('v3', pc)
+        v2 = py_utils.CreateVariable('v2', pc)
+      v3 = py_utils.CreateVariable('v3', pc)
 
     self.assertEqual(v1.name, 'model/v1/var:0')
     self.assertEqual(v2.name, 'data/v2/var:0')
@@ -587,18 +587,18 @@ class PyUtilsTest(test_utils.TestCase):
 
   def testOpportunisticReuse(self):
     pc = py_utils.WeightParams([3, 3])
-    _, v1 = py_utils.CreateVariable('v1', pc)
+    v1 = py_utils.CreateVariable('v1', pc)
     with self.assertRaises(Exception):
-      _ = py_utils.CreateVariable('v1', pc)
+      py_utils.CreateVariable('v1', pc)
     with py_utils.OpportunisticVariableReuseScope(True):
-      _, v2 = py_utils.CreateVariable('v1', pc)
-      _, x1 = py_utils.CreateVariable('x1', pc)
+      v2 = py_utils.CreateVariable('v1', pc)
+      x1 = py_utils.CreateVariable('x1', pc)
       with py_utils.OpportunisticVariableReuseScope(False):
         with self.assertRaises(Exception):
-          _ = py_utils.CreateVariable('v1', pc)
-      _, v3 = py_utils.CreateVariable('v1', pc)
+          py_utils.CreateVariable('v1', pc)
+      v3 = py_utils.CreateVariable('v1', pc)
     with self.assertRaises(Exception):
-      _ = py_utils.CreateVariable('v1', pc)
+      py_utils.CreateVariable('v1', pc)
 
     for v in [v2, v3]:
       self.assertIs(v1, v)
@@ -625,7 +625,9 @@ class PyUtilsTest(test_utils.TestCase):
     test_vars = py_utils.NestedMap()
     for i, (m, dt, sp) in enumerate(itertools.product(methods, dtypes, shapes)):
       pc = py_utils.WeightParams(sp, m(), dt, 'col1')
-      test_vars['var_%d' % i] = py_utils.CreateVariable('var_%d' % i, pc)[0]
+      var = py_utils.CreateVariable('var_%d' % i, pc)
+      with tf.device(var.device):
+        test_vars['var_%d' % i] = tf.identity(var)
 
     test_devices = [
         '/job:worker/replica:0/device:GPU:0',
@@ -634,10 +636,6 @@ class PyUtilsTest(test_utils.TestCase):
 
     sharded_local_vars = py_utils.CreateLocalTheta(test_vars, test_devices)
     sharded_local_vars_list = sharded_local_vars.Flatten()
-
-    # assert the name is now Identity*
-    for v in sharded_local_vars_list:
-      self.assertIn('Identity', v.name)
 
     # assert proper device placement
     for i, v in enumerate(sharded_local_vars_list):
@@ -2359,7 +2357,7 @@ class WeightParamsTest(test_utils.TestCase):
                                py_utils.WeightInit.UniformPositive(1.0),
                                tf.float32)
     pc.shape = [10, 30]
-    var = py_utils.CreateVariable('var', pc)[0]
+    var = py_utils.CreateVariable('var', pc)
     self.assertEqual(var.shape, [10, 30])
 
 
@@ -2377,7 +2375,7 @@ class WeightInitTest(test_utils.TestCase):
       pc = py_utils.WeightParams([20, 30],
                                  py_utils.WeightInit.UniformPositive(1.0),
                                  tf.float32)
-      var = py_utils.CreateVariable('var', pc)[0]
+      var = py_utils.CreateVariable('var', pc)
       self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       self.assertTrue(np.all(var_v >= 0.0))
@@ -2388,7 +2386,7 @@ class WeightInitTest(test_utils.TestCase):
       pc = py_utils.WeightParams(
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInRelu(1.0),
           tf.float32)
-      var = py_utils.CreateVariable('var', pc)[0]
+      var = py_utils.CreateVariable('var', pc)
       self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       # With Relu initialization, uniform bounds are
@@ -2402,7 +2400,7 @@ class WeightInitTest(test_utils.TestCase):
       pc = py_utils.WeightParams(
           [2, 10, 30], py_utils.WeightInit.KaimingUniformFanInLeakyRelu(),
           tf.float32)
-      var = py_utils.CreateVariable('var', pc)[0]
+      var = py_utils.CreateVariable('var', pc)
       self.evaluate(tf.global_variables_initializer())
       var_v = var.eval()
       # With LeakyRelu initialization, uniform bounds are

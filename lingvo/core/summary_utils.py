@@ -296,7 +296,7 @@ class StatsCounter:
 
   def __init__(self, name):
     self._name = name
-    _, self._var = py_utils.CreateVariable(
+    self._var = py_utils.CreateVariable(
         name=name,
         params=py_utils.WeightParams([], py_utils.WeightInit.Constant(0),
                                      tf.int64),

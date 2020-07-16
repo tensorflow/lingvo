@@ -69,26 +69,28 @@ class ConvPaddedLayersTest(test_utils.TestCase):
       conv_pad[2, 3] = 1.0
       conv_pad[2, 4] = 1.0
       conv_pad = tf.constant(conv_pad, tf.float32)
-      conv_out1, out1_padding = l1.FProp(l1.theta, conv_in, conv_pad)
-      conv_out2, out2_padding = l2.FProp(l2.theta, conv_in, conv_pad)
+      l1_theta = l1.theta.Transform(tf.identity)
+      l2_theta = l2.theta.Transform(tf.identity)
+      conv_out1, out1_padding = l1.FProp(l1_theta, conv_in, conv_pad)
+      conv_out2, out2_padding = l2.FProp(l2_theta, conv_in, conv_pad)
 
-      tf.logging.info(l1.theta)
-      tf.logging.info(l2.theta)
-      l1_num_vars = l1.theta.Flatten()
-      l2_num_var2 = l2.theta.Flatten()
+      tf.logging.info(l1_theta)
+      tf.logging.info(l2_theta)
+      l1_num_vars = l1_theta.Flatten()
+      l2_num_var2 = l2_theta.Flatten()
       if len(l1_num_vars) != len(l2_num_var2):
         tf.logging.info(
             'Mismatched number of vars: l1: %d vars, l2: %d vars',
             len(l1_num_vars), len(l2_num_var2))
 
-      w1 = l1.theta.w
-      w2 = l2.theta.conv_2d.w
-      # b1 = l1.theta.b
-      # b2 = l2.theta.bn_or_bias.b
+      w1 = l1_theta.w
+      w2 = l2_theta.conv_2d.w
+      # b1 = l1_theta.b
+      # b2 = l2_theta.bn_or_bias.b
 
       tf.global_variables_initializer().run()
       v1, p1 = sess.run([conv_out1, out1_padding])
-      w1_v = sess.run([w1])[0]
+      w1_v = sess.run(w1)
       v2, p2 = sess.run([conv_out2, out2_padding], feed_dict={w2: w1_v})
 
       self.assertAllClose(v1, v2)
@@ -238,22 +240,24 @@ class ConvPaddedLayersTest(test_utils.TestCase):
       conv_pad[2, 3] = 1.0
       conv_pad[2, 4] = 1.0
       conv_pad = tf.constant(conv_pad, tf.float32)
-      conv_out1, out1_padding = l1.FProp(l1.theta, conv_in, conv_pad)
-      conv_out2, out2_padding = l2.FProp(l2.theta, conv_in, conv_pad)
+      l1_theta = l1.theta.Transform(tf.identity)
+      l2_theta = l2.theta.Transform(tf.identity)
+      conv_out1, out1_padding = l1.FProp(l1_theta, conv_in, conv_pad)
+      conv_out2, out2_padding = l2.FProp(l2_theta, conv_in, conv_pad)
 
-      tf.logging.info(l1.theta)
-      tf.logging.info(l2.theta)
-      l1_num_vars = l1.theta.Flatten()
-      l2_num_var2 = l2.theta.Flatten()
+      tf.logging.info(l1_theta)
+      tf.logging.info(l2_theta)
+      l1_num_vars = l1_theta.Flatten()
+      l2_num_var2 = l2_theta.Flatten()
       if len(l1_num_vars) != len(l2_num_var2):
         tf.logging.info(
             'Mismatched number of vars: l1: %d vars, l2: %d vars',
             len(l1_num_vars), len(l2_num_var2))
 
-      w1 = l1.theta.w
-      w2 = l2.theta.conv_2d.w
-      # b1 = l1.theta.b
-      # b2 = l2.theta.bn_or_bias.b
+      w1 = l1_theta.w
+      w2 = l2_theta.conv_2d.w
+      # b1 = l1_theta.b
+      # b2 = l2_theta.bn_or_bias.b
 
       tf.global_variables_initializer().run()
       v1, p1 = sess.run([conv_out1, out1_padding])
@@ -414,24 +418,26 @@ class ConvPaddedLayersTest(test_utils.TestCase):
       conv_pad[2, 3] = 1.0
       conv_pad[2, 4] = 1.0
       conv_pad = tf.constant(conv_pad, tf.float32)
-      conv_out1, out1_padding = l1.FProp(l1.theta, conv_in, conv_pad)
-      conv_out2, out2_padding = l2.FProp(l2.theta, conv_in, conv_pad)
+      l1_theta = l1.theta.Transform(tf.identity)
+      l2_theta = l2.theta.Transform(tf.identity)
+      conv_out1, out1_padding = l1.FProp(l1_theta, conv_in, conv_pad)
+      conv_out2, out2_padding = l2.FProp(l2_theta, conv_in, conv_pad)
 
-      tf.logging.info(l1.theta)
-      tf.logging.info(l2.theta)
-      l1_num_vars = l1.theta.Flatten()
-      l2_num_var2 = l2.theta.Flatten()
+      tf.logging.info(l1_theta)
+      tf.logging.info(l2_theta)
+      l1_num_vars = l1_theta.Flatten()
+      l2_num_var2 = l2_theta.Flatten()
       if len(l1_num_vars) != len(l2_num_var2):
         tf.logging.info(
             'Mismatched number of vars: l1: %d vars, l2: %d vars',
             len(l1_num_vars), len(l2_num_var2))
 
-      pointwise_conv_w1 = l1.theta.w
-      depth_conv_w1 = l1.theta.depthwise_conv.w
-      pointwise_conv_w2 = l2.theta.conv_1x1.w
-      depth_conv_w2 = l2.theta.conv_2d.w
-      # b1 = l1.theta.b
-      # b2 = l2.theta.bn_or_bias.b
+      pointwise_conv_w1 = l1_theta.w
+      depth_conv_w1 = l1_theta.depthwise_conv.w
+      pointwise_conv_w2 = l2_theta.conv_1x1.w
+      depth_conv_w2 = l2_theta.conv_2d.w
+      # b1 = l1_theta.b
+      # b2 = l2_theta.bn_or_bias.b
       tf.global_variables_initializer().run()
       v1, p1 = sess.run([conv_out1, out1_padding])
       p_w1_v, d_w1_v = sess.run([pointwise_conv_w1, depth_conv_w1])

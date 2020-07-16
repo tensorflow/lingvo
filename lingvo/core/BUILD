@@ -808,10 +808,10 @@ lingvo_cuda_py_test(
     srcs = ["conv_layers_builder_test.py"],
     python_version = "PY3",
     deps = [
-        ":base_layer",
+        ":bn_layers",
         ":conv_layers_builder",
+        ":conv_layers_with_time_padding",
         ":layers",
-        ":layers_test_lib",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
@@ -1169,6 +1169,7 @@ py_test(
         ":test_helper",
         ":test_utils",
         # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         "//lingvo:model_registry",
         "//lingvo/tasks/image/params:mnist",

@@ -25,6 +25,7 @@ from lingvo.core import cluster_factory
 from lingvo.core import hyperparams
 from lingvo.core import py_utils
 
+FLAGS = tf.flags.FLAGS
 
 _LAYER_STACK = py_utils.ThreadLocalStack()
 _CREATE_VARIABLES_STACK = py_utils.ThreadLocalStack()
@@ -759,8 +760,13 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       meta: A CreateVariableMeta describing the variable to be created.
     """
     meta.kwargs.setdefault('default_seed', self.params.random_seed)
-    value, var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
+    var = py_utils.CreateVariable(name, meta.var_params, **meta.kwargs)
     self._private_vars[name] = var
+    if FLAGS.no_identity_on_vars:
+      value = var
+    else:
+      with tf.device(var.device):
+        value = tf.identity(var)
     if meta.theta_fn is not None:
       value = meta.theta_fn(value)
     self._private_theta[name] = value

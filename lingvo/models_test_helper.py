@@ -63,7 +63,7 @@ def _StubOutCreateVariable(variable_cache):
       else:
         var = tf.zeros(shape, dtype)
         variable_cache[key] = var
-    return var, var
+    return var
 
   py_utils.CreateVariable = _CreateVariableStub
 

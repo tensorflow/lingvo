@@ -402,7 +402,7 @@ class Accumulator(Base):
 
       v, g = vg
       with tf.variable_scope(v.op.name):
-        _, a = py_utils.CreateVariable(
+        a = py_utils.CreateVariable(
             'grad_accumulator',
             py_utils.WeightParams(v.get_shape(),
                                   py_utils.WeightInit.Constant(0.0),
