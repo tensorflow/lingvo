@@ -693,6 +693,73 @@ class DecoderTest(test_utils.TestCase):
     self.assertEqual(vocab_size, p.fusion.lm.vocab_size)
     self.assertEqual(vocab_size, p.label_smoothing.num_classes)
 
+  def testDecoderFPropWithAdapters(self):
+    """Create decoder with adapters, and verify that FProp runs."""
+    with self.session(use_gpu=False):
+      tf.random.set_seed(8372749040)
+
+      params = self._DecoderParams(
+          num_rnn_layers=2,
+          vn_config=py_utils.VariationalNoiseParams(
+              None, True, False, seed=12345))
+      params.rnn_cell_dim = 3
+      params.adapter_layer_tpl.Set(
+          bottleneck_dim=4,
+          num_tasks=16,
+          projection_params_init=py_utils.WeightInit.Gaussian(0.01))
+      params.adapter_task_id_field = 'domain_ids'
+
+      dec = params.Instantiate()
+      src_seq_len = 5
+      src_enc = tf.random.normal([src_seq_len, 2, 8],
+                                 seed=982774838,
+                                 dtype=py_utils.FPropDtype(params))
+      src_enc_padding = tf.constant(
+          [[0.0, 0.0], [0.0, 0.0], [0.0, 0.0], [0.0, 1.0], [1.0, 1.0]],
+          dtype=py_utils.FPropDtype(params))
+      domain_ids = tf.constant(np.random.randint(low=0, high=16, size=[2]))
+      encoder_outputs = py_utils.NestedMap(
+          encoded=src_enc, padding=src_enc_padding, domain_ids=domain_ids)
+      # shape=[4, 5]
+      target_ids = tf.transpose(
+          tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 15],
+                       [5, 6, 7, 8], [10, 5, 2, 5]],
+                      dtype=tf.int32))
+      # shape=[4, 5]
+      target_labels = tf.transpose(
+          tf.constant([[0, 1, 2, 3], [1, 2, 3, 4], [10, 11, 12, 13],
+                       [5, 7, 8, 10], [10, 5, 2, 4]],
+                      dtype=tf.int32))
+      # shape=[4, 5]
+      target_paddings = tf.transpose(
+          tf.constant([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0], [0, 1, 0, 0],
+                       [1, 1, 1, 0]],
+                      dtype=py_utils.FPropDtype(params)))
+      target_transcripts = tf.constant(['abcd', 'bcde', 'klmp', 'fghi', 'kfcf'])
+      target_weights = 1.0 - target_paddings
+      # ids/labels/weights/paddings are all in [batch, time] shape.
+      targets = py_utils.NestedMap({
+          'ids': target_ids,
+          'labels': target_labels,
+          'weights': target_weights,
+          'paddings': target_paddings,
+          'transcripts': target_transcripts,
+      })
+      decoder_outputs = dec.FPropDefaultTheta(encoder_outputs, targets)
+      metrics = decoder_outputs.metrics
+      per_sequence_loss = decoder_outputs.per_sequence['loss']
+
+      self.assertIn('fraction_of_correct_next_step_preds', metrics)
+      self.evaluate(tf.global_variables_initializer())
+      metrics_val, per_sequence_loss_val = self.evaluate(
+          [metrics, per_sequence_loss])
+      tf.logging.info('metrics=%s, per_sequence_loss=%s', metrics_val,
+                      per_sequence_loss_val)
+
+      self.assertEqual(metrics_val['loss'], metrics_val['log_pplx'])
+      # Target batch size is 4. Therefore, we should expect 4 here.
+      self.assertEqual(per_sequence_loss_val.shape, (4,))
+
 
 if __name__ == '__main__':
   tf.test.main()

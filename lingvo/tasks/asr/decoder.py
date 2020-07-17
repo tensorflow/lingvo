@@ -257,6 +257,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
         'computation.')
     p.Define('focal_loss_alpha', None, 'The weighting factor alpha.')
     p.Define('focal_loss_gamma', None, 'Tunable focusing parameter.')
+    p.Define('adapter_layer_tpl', layers.MultitaskAdapterLayer.Params(),
+             'Params for domain/language adatper layer.')
+    p.Define(
+        'adapter_task_id_field', None,
+        'Setting this will enable the use of adapter layers. This is the name '
+        'of the field in the encoder_outputs to extract the tasks IDs for '
+        'adatper layers.')
 
     # Set some reasonable default values.
     # Default config for the embedding layer.
@@ -279,6 +286,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
     # Other configs.
     p.target_seq_len = 300
     p.source_dim = 512
+    p.adapter_layer_tpl.data_format = 'TBC'
     return p
 
   @classmethod
@@ -335,6 +343,7 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       self.CreateChild('emb', p.emb)
 
       params_rnn_cells = []
+      params_adapter_layers = []
       feat_dim = p.emb_dim
       for i in range(p.rnn_layers):
         if isinstance(p.rnn_cell_tpl, (list, tuple)):
@@ -352,7 +361,13 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
           rnn_cell_params.name = 'rnn_cell_%d' % i
         feat_dim = rnn_cell_params.num_output_nodes
         params_rnn_cells.append(rnn_cell_params)
+        if p.adapter_task_id_field is not None:
+          adapter_p = p.adapter_layer_tpl.Copy()
+          adapter_p.name = 'adapter_%d' % i
+          adapter_p.input_dim = feat_dim
+          params_adapter_layers.append(adapter_p)
       self.CreateChildren('rnn_cell', params_rnn_cells)
+      self.CreateChildren('adapters', params_adapter_layers)
 
       p.softmax.dtype = p.dtype
       p.softmax.input_dim = feat_dim
@@ -1138,7 +1153,6 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
 
   def MiscZeroState(self, theta, encoder_outputs, target_ids, bs):
     """Returns initial state for other miscellaneous states, if any."""
-    del encoder_outputs
     misc_zero_state = py_utils.NestedMap()
     p = self.params
     if self._max_label_prob > 0:
@@ -1150,6 +1164,15 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       groundtruth_p = tf.minimum(groundtruth_p, 1.0)
       summary_utils.scalar('ground_truth_sampling_probability', groundtruth_p)
       misc_zero_state.groundtruth_p = groundtruth_p
+    if p.adapter_task_id_field:
+      # encoder_outputs.encoded: [time, batch, dim]
+      source_bs = py_utils.GetShape(encoder_outputs.encoded, 2)[1]
+      # Only task_ids of shape [batch] is supported
+      task_ids = tf.reshape(
+          encoder_outputs.Get(p.adapter_task_id_field), [source_bs])
+      multiplier = bs // source_bs
+      task_ids = tf.tile(task_ids, [multiplier])
+      misc_zero_state.Set(p.adapter_task_id_field, task_ids)
     return misc_zero_state
 
   def TargetsToBeFedAtCurrentDecodeStep(self, time, theta, decoder_step_state,
@@ -1318,6 +1341,7 @@ class AsrDecoder(AsrDecoderBase):
       decoder (usually logits), and the new decoder state after processing the
       current step.
     """
+    p = self.params
     misc_states = decoder_step_state.misc_states
     new_rnn_states = []
     new_rnn_states_0, _ = self.rnn_cell[0].FProp(
@@ -1327,6 +1351,12 @@ class AsrDecoder(AsrDecoderBase):
             padding=cur_target_info.padding))
     new_rnn_states.append(new_rnn_states_0)
     rnn_out = self.rnn_cell[0].GetOutput(new_rnn_states_0)
+    if p.adapter_task_id_field:
+      # rnn_out is [batch, dim], adapter layers requires [time, batch, dim]
+      rnn_out = self.adapters[0].FProp(theta.adapters[0],
+                                       tf.expand_dims(rnn_out, [0]),
+                                       misc_states.Get(p.adapter_task_id_field))
+      rnn_out = tf.squeeze(rnn_out, [0])
 
     (new_atten_context, new_atten_probs,
      new_atten_states) = self._ComputeAttention(
@@ -1348,6 +1378,11 @@ class AsrDecoder(AsrDecoderBase):
               padding=cur_target_info.padding))
       new_rnn_states.append(new_rnn_states_i)
       new_rnn_out = cell.GetOutput(new_rnn_states_i)
+      if p.adapter_task_id_field:
+        new_rnn_out = self.adapters[i].FProp(
+            theta.adapters[i], tf.expand_dims(new_rnn_out, [0]),
+            misc_states.Get(p.adapter_task_id_field))
+        new_rnn_out = tf.squeeze(new_rnn_out, [0])
       new_rnn_out = self._ApplyDropout(
           theta,
           new_rnn_out,
