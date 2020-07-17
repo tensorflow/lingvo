@@ -16,6 +16,7 @@
 """Tests for layers."""
 
 import lingvo.compat as tf
+from lingvo.core import batch_major_attention
 from lingvo.core import py_utils
 from lingvo.core import test_utils
 from lingvo.tasks.lm import layers as lm_layers
@@ -885,17 +886,27 @@ class GPipeTransformerLmTest(test_utils.TestCase):
     p = lm_layers.GPipeTransformerLm.Params()
     p.name = 'transformerlm'
     p.vocab_size = vocab
-    p.stack.num_encoder_layers = 4
+    p.stack.num_encoder_layers = 2
+    p.stack.emb_tpl.ret_task_ids = True
     p.stack.emb_tpl.token_emb.vocab_size = vocab
     p.stack.emb_tpl.token_emb.embedding_dim = dims
     p.stack.emb_tpl.position_emb.embedding_dim = dims
     p.stack.model_dim = dims
+    p.stack.splits = 2
     p.stack.softmax_tpl.input_dim = dims
     p.stack.softmax_tpl.num_classes = vocab
-    trans_tpl = p.stack.encoder_tpl
-    trans_tpl.source_dim = dims
-    trans_tpl.tr_atten_tpl.num_attention_heads = 2
+    p.stack.batch_dim = 0
+    trans_tpl = batch_major_attention.GPipeTransformerLayer.Params()
+    trans_tpl.has_aux_atten = False
+    trans_tpl.mask_self_atten = True
+    trans_tpl.input_dim = dims
+    trans_tpl.output_dim = dims
+    trans_tpl.tr_atten_tpl.input_dim = dims
+    trans_tpl.tr_atten_tpl.hidden_dim = dims
+    trans_tpl.tr_atten_tpl.is_masked = True
+    trans_tpl.tr_atten_tpl.num_heads = 2
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
+    p.stack.encoder_tpl = trans_tpl
     p.random_seed = 12345
     return p
 
@@ -937,7 +948,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
       xent_output_val = self.evaluate(xent_output)
 
       print('xent_output_val', xent_output_val)
-      test_utils.CompareToGoldenSingleFloat(self, 3.880267,
+      test_utils.CompareToGoldenSingleFloat(self, 5.12745,
                                             xent_output_val.avg_xent)
       self.assertAllEqual(xent_output_val.per_example_argmax,
                           np.argmax(xent_output_val.logits, axis=-1))
@@ -954,7 +965,7 @@ class GPipeTransformerLmTest(test_utils.TestCase):
         grad_symbolic = self.evaluate(grad_x)
         grad_numeric = test_utils.ComputeNumericGradient(
             sess, xent_output.avg_xent, x, delta=1e-6)
-        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.005)
+        self.assertAllClose(grad_symbolic, grad_numeric, atol=0.05)
 
 
 if __name__ == '__main__':

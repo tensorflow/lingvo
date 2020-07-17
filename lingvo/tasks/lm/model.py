@@ -237,3 +237,53 @@ class FixedShapeInputLanguageModel(LanguageModel):
           tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
       data = (x[:, :max_seq_len] for x in data)
     return (tf.transpose(x) for x in data)
+
+
+class BatchMajorLanguageModel(LanguageModel):
+  """Batch major implementation of the language model."""
+
+  def _TrimIfPossible(self, ids, paddings, labels, weights):
+    data = (ids, paddings, labels, weights)
+    if not py_utils.use_tpu():
+      max_seq_len = tf.cast(
+          tf.reduce_max(tf.reduce_sum(1.0 - paddings, 1)), tf.int32)
+      data = (x[:, :max_seq_len] for x in data)
+    return data
+
+  def FPropTower(self, theta, input_batch):
+    p = self.params
+    tf.logging.info('input_batch=%r', input_batch)
+    ids, paddings, labels_ids, weights = self._TrimIfPossible(
+        input_batch.ids, input_batch.paddings, input_batch.labels,
+        input_batch.weights)
+    fprop_dtype = py_utils.FPropDtype(p)
+    paddings = tf.cast(paddings, fprop_dtype)
+    weights = tf.cast(weights, fprop_dtype)
+    tf.logging.info('inputs={}'.format((ids, paddings, labels_ids, weights)))
+
+    batch_size = tf.shape(ids)[0]
+    state0 = self.lm.zero_state(theta.lm, batch_size)
+    labels = py_utils.NestedMap(class_ids=labels_ids, class_weights=weights)
+    xent_output, _ = self.lm.FProp(theta.lm, ids, paddings, state0, labels)
+
+    # +1 to account for the end of sequence symbol.
+    num_words = tf.cast(
+        tf.reduce_sum(input_batch.word_count + tf.constant(1, dtype=tf.int32)),
+        fprop_dtype)
+    predicted_labels = tf.cast(xent_output.per_example_argmax, labels_ids.dtype)
+
+    num_preds = xent_output.total_weight
+    mean_acc = tf.reduce_sum(
+        tf.cast(tf.equal(labels_ids, predicted_labels), fprop_dtype) *
+        weights) / tf.math.maximum(num_preds, 1)
+    loss = xent_output.avg_xent
+    if p.train.sum_loss_across_tokens_in_batch:
+      loss = xent_output.total_xent
+    return {
+        'loss': (loss, num_preds),
+        'fraction_of_correct_next_step_preds': (mean_acc, num_preds),
+        'log_pplx': (xent_output.avg_xent, num_preds),
+        'log_pplx_per_word': (xent_output.total_xent / num_words, num_words),
+        'num_predictions': (num_preds, 1),
+        'num_words': (num_words, 1)
+    }, {}

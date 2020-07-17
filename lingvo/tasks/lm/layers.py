@@ -18,6 +18,7 @@
 import math
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import batch_major_attention
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import layers_with_gpipe
@@ -1186,22 +1187,13 @@ class GPipeTransformerLm(BaseLanguageModel):
     p = super().Params()
     p.Define('stack', layers_with_gpipe.GPipeTransformerStack.Params(),
              'GPipeTransformerStack Layer params.')
-
-    # Default config for the transformer layers.
-    trans_tpl = p.stack.encoder_tpl
-    trans_tpl.has_aux_atten = False
-    trans_tpl.mask_self_atten = True
-    trans_tpl.tr_atten_tpl.is_masked = True
-    trans_tpl.tr_atten_tpl.num_attention_heads = 8
-    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
-    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
-    trans_tpl.tr_fflayer_tpl.hidden_dim = 2048
     return p
 
   @classmethod
   def CommonParams(cls,
                    vocab_size,
                    model_dim,
+                   attention_hidden_dim=None,
                    hidden_dim=1024,
                    num_heads=8,
                    num_layers=6,
@@ -1219,6 +1211,7 @@ class GPipeTransformerLm(BaseLanguageModel):
     Args:
       vocab_size: vocab size.
       model_dim: model dimension.
+      attention_hidden_dim: hidden dim for the attention layer.
       hidden_dim: hidden dimension of feed-forward inner layer.
       num_heads: number of attention heads.
       num_layers: number of layers in the transformer LM.
@@ -1249,10 +1242,9 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.num_micro_batches = num_micro_batches
     p.stack.micro_batch_size = micro_batch_size
     p.stack.num_encoder_layers = num_layers
-    p.stack.state_dtype = p.dtype
-    if p.fprop_dtype:
-      p.stack.state_dtype = p.fprop_dtype
+    p.stack.batch_dim = 0
     emb_params_init = py_utils.WeightInit.Gaussian(1.0 / math.sqrt(model_dim))
+    p.stack.emb_tpl.ret_task_ids = True
     p.stack.emb_tpl.token_emb.Set(
         use_matmul=False,
         use_3d_weight_tensor=False,
@@ -1262,17 +1254,20 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.emb_tpl.position_emb.Set(
         embedding_dim=model_dim, trainable_scaling=False)
     p.stack.emb_tpl.input_dropout_prob = input_dropout_prob
-    trans_tpl = p.stack.encoder_tpl
-    trans_tpl.source_dim = model_dim
 
-    trans_tpl.is_decoder = False
+    trans_tpl = batch_major_attention.GPipeTransformerLayer.Params()
     trans_tpl.has_aux_atten = False
     trans_tpl.mask_self_atten = True
+    trans_tpl.input_dim = model_dim
+    trans_tpl.output_dim = model_dim
+    trans_tpl.tr_atten_tpl.input_dim = model_dim
+    trans_tpl.tr_atten_tpl.hidden_dim = attention_hidden_dim or model_dim
     trans_tpl.tr_atten_tpl.is_masked = True
-    trans_tpl.tr_atten_tpl.num_attention_heads = num_heads
-    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_pre_proj = True
-    trans_tpl.tr_atten_tpl.atten_tpl.enable_ctx_post_proj = True
+    trans_tpl.tr_atten_tpl.num_heads = num_heads
+    trans_tpl.tr_atten_tpl.atten_tpl.use_bias = False
     trans_tpl.tr_fflayer_tpl.hidden_dim = hidden_dim
+    p.stack.encoder_tpl = trans_tpl
+
     p.stack.softmax_tpl.Set(
         num_classes=vocab_size, input_dim=model_dim, num_shards=num_shards)
     if softmax_max_alloc:
@@ -1285,7 +1280,9 @@ class GPipeTransformerLm(BaseLanguageModel):
     super().__init__(params)
     p = self.params
     p.stack.name = p.name
-
+    p.stack.state_dtype = p.dtype
+    if p.fprop_dtype:
+      p.stack.state_dtype = p.fprop_dtype
     with tf.variable_scope(p.name):
       self.CreateChild('stack', p.stack)
 
@@ -1298,14 +1295,14 @@ class GPipeTransformerLm(BaseLanguageModel):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: Input ids. An int32 tensor of shape [time, batch].
-      paddings: A 0/1 tensor of shape [time, batch].
+      inputs: Input ids. An int32 tensor of shape [batch, time].
+      paddings: A 0/1 tensor of shape [batch, time].
       state0: Not used for Transformer.
       labels: If not None, a `.NestedMap` containing the following fields:  -
-        class_weights, a tensor with shape [time, batch] containing the weights
-        for each target word. - class_ids, a tensor with shape [time, batch] of
+        class_weights, a tensor with shape [batch, time] containing the weights
+        for each target word. - class_ids, a tensor with shape [batch, time] of
         int32 dtype containing the target class labels. - class_probabilities, a
-        tensor with shape [time, batch, vocab_size] of float values indicating
+        tensor with shape [batch, time, vocab_size] of float values indicating
         class-membership probabilities.
 
     Returns:

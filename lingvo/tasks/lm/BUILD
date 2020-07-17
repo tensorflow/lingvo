@@ -46,6 +46,7 @@ py_library(
     deps = [
         "//lingvo:compat",
         "//lingvo/core:base_layer",
+        "//lingvo/core:batch_major_attention",
         "//lingvo/core:layers",
         "//lingvo/core:layers_with_attention",
         "//lingvo/core:layers_with_gpipe",

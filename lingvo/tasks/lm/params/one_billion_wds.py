@@ -232,7 +232,7 @@ class OneBWdsGPipeTransformerWPM(WordLevelOneBwdsBase):
 
   def Task(self):
     """Language model on 1bw dataset using gpipe transformer."""
-    p = model.FixedShapeInputLanguageModel.Params()
+    p = model.BatchMajorLanguageModel.Params()
     p.eval.samples_per_summary = 0
     p.name = '1bwds_wpm_level_lm'
     p.lm = lm_layers.GPipeTransformerLm.CommonParams(
