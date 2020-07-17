@@ -185,6 +185,15 @@
   <span class="k">return</span> <span class="kc">False</span></div>
 
 
+<div class="viewcode-block" id="_InsertParams"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports._InsertParams">[docs]</a><span class="k">def</span> <span class="nf">_InsertParams</span><span class="p">(</span><span class="n">module</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Try inserting &#39;params&#39; everywhere in the module.&quot;&quot;&quot;</span>
+  <span class="n">left</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="n">right</span> <span class="o">=</span> <span class="n">module</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)</span>
+  <span class="k">while</span> <span class="n">right</span><span class="p">:</span>
+    <span class="n">left</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">right</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">yield</span> <span class="s1">&#39;.&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">left</span> <span class="o">+</span> <span class="p">[</span><span class="s1">&#39;params&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">right</span><span class="p">)</span></div>
+
+
 <span class="n">_TASK_ROOT</span> <span class="o">=</span> <span class="s1">&#39;lingvo.tasks&#39;</span>
 
 
@@ -218,7 +227,6 @@
 
 <div class="viewcode-block" id="ImportParams"><a class="viewcode-back" href="../../lingvo.model_imports.html#lingvo.model_imports.ImportParams">[docs]</a><span class="k">def</span> <span class="nf">ImportParams</span><span class="p">(</span><span class="n">model_name</span><span class="p">,</span>
                  <span class="n">task_root</span><span class="o">=</span><span class="n">_TASK_ROOT</span><span class="p">,</span>
-                 <span class="n">task_dirs</span><span class="o">=</span><span class="n">_TASK_DIRS</span><span class="p">,</span>
                  <span class="n">require_success</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Attempts to only import the files that may contain the model.&quot;&quot;&quot;</span>
   <span class="c1"># &#39;model_name&#39; follows &lt;task&gt;.&lt;path&gt;.&lt;class name&gt;</span>
@@ -227,13 +235,16 @@
   <span class="n">model_module</span> <span class="o">=</span> <span class="n">model_name</span><span class="o">.</span><span class="n">rpartition</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
   <span class="c1"># Try importing the module directly, in case it&#39;s a local import.</span>
   <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span>
+  <span class="c1"># Try all locations of inserting params.</span>
+  <span class="k">for</span> <span class="n">module_with_params</span> <span class="ow">in</span> <span class="n">_InsertParams</span><span class="p">(</span><span class="n">model_module</span><span class="p">):</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">module_with_params</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
 
   <span class="c1"># Try built-in tasks imports.</span>
-  <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">task_dirs</span><span class="p">):</span>
-    <span class="k">if</span> <span class="n">model_module</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">task</span> <span class="o">+</span> <span class="s1">&#39;.&#39;</span><span class="p">):</span>
-      <span class="n">path</span> <span class="o">=</span> <span class="n">model_module</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">task</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:]</span>
-      <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">.</span><span class="si">{}</span><span class="s1">.params.</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_root</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span>
-                                                 <span class="n">path</span><span class="p">))</span> <span class="ow">or</span> <span class="n">success</span>
+  <span class="n">model_module</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">task_root</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">model_module</span><span class="si">}</span><span class="s1">&#39;</span>
+  <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
+  <span class="c1"># Try all locations of inserting params.</span>
+  <span class="k">for</span> <span class="n">module_with_params</span> <span class="ow">in</span> <span class="n">_InsertParams</span><span class="p">(</span><span class="n">model_module</span><span class="p">):</span>
+    <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">module_with_params</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
 
   <span class="k">if</span> <span class="n">require_success</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span>
