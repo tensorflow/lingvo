@@ -355,6 +355,14 @@ class TrainProgram(BaseProgram):
     # Get metric result from a single replica; they are all same here.
     all_tpu_ops = [t[0] for t in batch_parallel_res]
     self.tpu_ops = (_ConstructPostTrainingLoop(all_tpu_ops, outfeed_dequeue_op))
+    self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
+        self._model)
+    try:
+      with tf.io.gfile.GFile(
+          os.path.join(self._program_dir, 'model_analysis.txt'), 'w') as f:
+        f.write(self._model_analysis)
+    except tf.errors.NotFoundError as e:
+      tf.logging.info('Failed to write model analysis %s', e)
 
     return self.tpu_ops
 
@@ -380,7 +388,8 @@ class TrainProgram(BaseProgram):
     self._SummarizeValue(global_step, 'global_step/sec', step_rate)
     self._SummarizeValue(global_step, 'examples/sec', example_rate)
     self._SummarizeValue(global_step, 'total_samples', total_examples)
-
+    self._SummarizeValue(global_step, 'total_num_params',
+                         self._total_num_params)
     for key, (val, _) in sorted(eval_metrics.items()):
       self._SummarizeValue(global_step, key, val)
 

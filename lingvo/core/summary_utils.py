@@ -344,3 +344,38 @@ class StepRateTracker:
     tf.logging.info('Steps/second: %f, Examples/second: %f', rate,
                          example_rate)
     return rate, example_rate, total_examples
+
+
+def ModelAnalysis(model):
+  """Returns a text showing variable sizes and their total size."""
+
+  class Analyzer:
+    """Helper class."""
+
+    def __init__(self):
+      self._seen_var = {}
+      self.total = 0
+
+    def __call__(self, v):
+      assert isinstance(v, tf.Variable)
+      # pylint: disable=protected-access
+      if not v.shape.is_fully_defined():
+        # Only Cudnn RNN params lack static shapes.
+        if hasattr(v, 'approx_size'):
+          size = v.approx_size
+        else:
+          return '%-20s %10s %s' % (v.shape, 'n/a', v._shared_name)
+      else:
+        size = v.shape.num_elements()
+      if v._shared_name not in self._seen_var:
+        self._seen_var[v._shared_name] = size
+        self.total += size
+      return '%-20s %10d %s' % (v.shape, size, v._shared_name)
+
+  analyzer = Analyzer()
+  output = '\n'
+  output += model.vars.Transform(analyzer).DebugString()
+  output += '\n'
+  output += '=' * 100
+  output += '\ntotal #params: %10d\n' % analyzer.total
+  return output, analyzer.total

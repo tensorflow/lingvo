@@ -206,41 +206,6 @@ def _StartShell(local_ns=None):
   IPython.start_ipython(argv=[], user_ns=user_ns)
 
 
-def _ModelAnalysis(model):
-  """Returns a text showing variable sizes and their total size."""
-
-  class Analyzer:
-    """Helper class."""
-
-    def __init__(self):
-      self._seen_var = {}
-      self.total = 0
-
-    def __call__(self, v):
-      assert isinstance(v, tf.Variable)
-      # pylint: disable=protected-access
-      if not v.shape.is_fully_defined():
-        # Only Cudnn RNN params lack static shapes.
-        if hasattr(v, 'approx_size'):
-          size = v.approx_size
-        else:
-          return '%-20s %10s %s' % (v.shape, 'n/a', v._shared_name)
-      else:
-        size = v.shape.num_elements()
-      if v._shared_name not in self._seen_var:
-        self._seen_var[v._shared_name] = size
-        self.total += size
-      return '%-20s %10d %s' % (v.shape, size, v._shared_name)
-
-  analyzer = Analyzer()
-  output = '\n'
-  output += model.vars.Transform(analyzer).DebugString()
-  output += '\n'
-  output += '=' * 100
-  output += '\ntotal #params: %10d\n' % analyzer.total
-  return output, analyzer.total
-
-
 class Controller(base_runner.BaseRunner):
   """Controller for a training cluster."""
 
@@ -272,7 +237,8 @@ class Controller(base_runner.BaseRunner):
               init_op=self._initialize_global_vars)
 
     self._ExportMetrics(params=self.params)
-    self._model_analysis, self._total_num_params = _ModelAnalysis(self._model)
+    self._model_analysis, self._total_num_params = summary_utils.ModelAnalysis(
+        self._model)
     py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
     self._WriteToLog(self._model_analysis, self._control_dir,
                      'model_analysis.txt')
@@ -657,7 +623,12 @@ class TrainerTpu(base_runner.BaseRunner):
                       len(self.enqueue_ops))
 
     self._summary_writer = self._CreateSummaryWriter(self._train_dir)
-
+    if FLAGS.checkpoint_in_trainer_tpu:
+      self._model_analysis, self._total_num_params = (
+          summary_utils.ModelAnalysis(self._model))
+      py_utils.LogMultiLines('MODEL ANALYSIS', self._train_dir)
+      self._WriteToLog(self._model_analysis, self._train_dir,
+                       'model_analysis.txt')
     # Saves the graph def.
     tf.io.write_graph(self._graph.as_graph_def(), self._train_dir,
                       'train.pbtxt')
@@ -879,7 +850,9 @@ class TrainerTpu(base_runner.BaseRunner):
         self._SummarizeValue(global_step, 'global_step/sec', step_rate)
         self._SummarizeValue(global_step, 'examples/sec', example_rate)
         self._SummarizeValue(global_step, 'total_samples', total_examples)
-
+        if FLAGS.checkpoint_in_trainer_tpu:
+          self._SummarizeValue(global_step, 'total_num_params',
+                               self._total_num_params)
         msg = 'step:%6d, steps/sec: %0.2f, examples/sec: %0.2f' % (
             global_step, step_rate, example_rate)
         for key, (val, _) in sorted(eval_metrics.items()):
@@ -1680,7 +1653,7 @@ class RunnerManager:
     p = self.GetParamsForDataset('controller', 'Train')
     c = cluster_factory.Cluster(p.cluster)
     with tf.Graph().as_default(), c, tf.device(c.GetPlacer()):
-      analysis, _ = _ModelAnalysis(p.Instantiate())
+      analysis, _ = summary_utils.ModelAnalysis(p.Instantiate())
     print(analysis)
 
   def InspectDatasets(self):
