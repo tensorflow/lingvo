@@ -380,7 +380,7 @@
 
 <div class="viewcode-block" id="OneBWdsGPipeTransformerWPM.Task"><a class="viewcode-back" href="../../../../../lingvo.tasks.lm.params.one_billion_wds.html#lingvo.tasks.lm.params.one_billion_wds.OneBWdsGPipeTransformerWPM.Task">[docs]</a>  <span class="k">def</span> <span class="nf">Task</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Language model on 1bw dataset using gpipe transformer.&quot;&quot;&quot;</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">FixedShapeInputLanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">BatchMajorLanguageModel</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">eval</span><span class="o">.</span><span class="n">samples_per_summary</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;1bwds_wpm_level_lm&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">lm</span> <span class="o">=</span> <span class="n">lm_layers</span><span class="o">.</span><span class="n">GPipeTransformerLm</span><span class="o">.</span><span class="n">CommonParams</span><span class="p">(</span>

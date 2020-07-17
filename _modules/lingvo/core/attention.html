@@ -363,7 +363,10 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span> <span class="o">=</span> <span class="kc">False</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="BaseAttentionLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseAttentionLayer.InitForSourcePacked"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer.InitForSourcePacked">[docs]</a>  <span class="k">def</span> <span class="nf">InitForSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                           <span class="n">theta</span><span class="p">,</span>
@@ -1349,16 +1352,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">)</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span> <span class="o">==</span> <span class="mi">0</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
-                      <span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
-    <span class="c1"># TODO(suderman): Remove the self.do_eval check below once brop quant within</span>
-    <span class="c1"># defun is fixed on the training side. This is less than ideal as-is because</span>
-    <span class="c1"># training will just trend to match downstream quant constraints vs force</span>
-    <span class="c1"># alignment.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
-        <span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
-
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown proj_init: </span><span class="si">%s</span><span class="s1">!&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span><span class="p">)</span>
 
@@ -1452,7 +1445,17 @@
           <span class="n">init</span><span class="o">=</span><span class="n">InitProj</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">ctx_post_proj_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_b&#39;</span><span class="p">,</span> <span class="n">pc_bias_post_proj</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ctx_post_proj_b&#39;</span><span class="p">,</span> <span class="n">pc_bias_post_proj</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;source_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;source_proj_add&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;query_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;query_proj_add&#39;</span><span class="p">,</span>
+                      <span class="s1">&#39;ctx_pre_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_pre_proj_add&#39;</span><span class="p">)</span>
+    <span class="c1"># TODO(suderman): Remove the self.do_eval check below once brop quant within</span>
+    <span class="c1"># defun is fixed on the training side. This is less than ideal as-is because</span>
+    <span class="c1"># training will just trend to match downstream quant constraints vs force</span>
+    <span class="c1"># alignment.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
+        <span class="s1">&#39;ctx_post_proj_matmul&#39;</span><span class="p">,</span> <span class="s1">&#39;ctx_post_proj_add&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttention.SetOutputContextDim"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention.SetOutputContextDim">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">SetOutputContextDim</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">out_dim</span><span class="p">):</span>
@@ -1981,16 +1984,6 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;dropout is not supported&#39;</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;atten_context&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
-        <span class="s1">&#39;atten_matmul&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;logits_add&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;encode_matmul&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;logits_mul&#39;</span><span class="p">,</span>
-        <span class="s1">&#39;logits_bias&#39;</span><span class="p">,</span>
-        <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span>
-
     <span class="nd">@_ConditionalDefun</span><span class="p">(</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_is_quantized</span><span class="p">,</span> <span class="o">*</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">,</span> <span class="n">noinline</span><span class="o">=</span><span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">())</span>
     <span class="k">def</span> <span class="nf">AttenLogits</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">query_vec_reshaped</span><span class="p">,</span> <span class="n">hidden_v</span><span class="p">,</span>
@@ -2240,7 +2233,17 @@
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">(</span><span class="mf">0.05</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;LocationSensitiveAttention_vars&#39;</span><span class="p">])</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;location_var&#39;</span><span class="p">,</span> <span class="n">location_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;location_var&#39;</span><span class="p">,</span> <span class="n">location_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;atten_conv&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;atten_context&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;atten_context&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span>
+        <span class="s1">&#39;atten_matmul&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;logits_add&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;encode_matmul&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;logits_mul&#39;</span><span class="p">,</span>
+        <span class="s1">&#39;logits_bias&#39;</span><span class="p">,</span>
+        <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocationSensitiveAttention._ApplyConv"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention._ApplyConv">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyConv</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attention_state</span><span class="p">,</span> <span class="n">location_filter_var</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Applies the convolution on attention state.&quot;&quot;&quot;</span>

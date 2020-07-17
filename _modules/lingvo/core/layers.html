@@ -455,35 +455,7 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span>
     <span class="k">assert</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">in</span> <span class="n">_ACTIVATIONS</span><span class="p">)</span>
-    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;b&#39;</span><span class="p">,</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-                <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_channels</span><span class="p">],</span>
-                <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;g&#39;</span><span class="p">,</span>
-            <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-                <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_output_shape</span><span class="p">,</span>
-                <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-                <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-                <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
 
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">disable_activation_quantization</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span> <span class="ow">and</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="c1"># batch normalization dimension is number of input channels</span>
       <span class="c1"># (filter_shape[2]) if we apply batch_norm on input and convolution</span>
@@ -498,6 +470,38 @@
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">conv_last</span><span class="p">,</span> <span class="s1">&#39;bn_fold_weights requires conv_last = False&#39;</span>
 
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
+
+<div class="viewcode-block" id="BaseConv2DLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">bias</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_channels</span><span class="p">],</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;g&#39;</span><span class="p">,</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+              <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">filter_output_shape</span><span class="p">,</span>
+              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">disable_activation_quantization</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span> <span class="ow">and</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
@@ -1077,21 +1081,6 @@
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Folded batchnorm is not compatible with affine_last&#39;</span><span class="p">)</span>
 
-    <span class="c1"># Determine quantization needs based on whether fusing activation</span>
-    <span class="c1"># or not.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="kc">None</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
-                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">and</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">):</span>
-      <span class="c1"># Not a fused activation function.</span>
-      <span class="c1"># Need a qtensor to track the pre-activation tensor. The name is</span>
-      <span class="c1"># compatible with older checkpoints.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="s1">&#39;affine_matmul&#39;</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span>
-
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="n">bn_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
@@ -1154,7 +1143,22 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">b_pc</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">g_pc</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;g&#39;</span><span class="p">,</span> <span class="n">g_pc</span><span class="p">)</span>
+
+    <span class="c1"># Determine quantization needs based on whether fusing activation</span>
+    <span class="c1"># or not.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;activation&#39;</span>
+                            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="k">else</span> <span class="s1">&#39;affine_matmul&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="o">!=</span> <span class="s1">&#39;NONE&#39;</span> <span class="ow">and</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">activation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">_TFLITE_FUSED_ACTIVATION_NAMES</span><span class="p">):</span>
+      <span class="c1"># Not a fused activation function.</span>
+      <span class="c1"># Need a qtensor to track the pre-activation tensor. The name is</span>
+      <span class="c1"># compatible with older checkpoints.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span> <span class="o">=</span> <span class="s1">&#39;affine_matmul&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_output_qt_name</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
@@ -1787,7 +1791,10 @@
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">window_shape</span><span class="p">])</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">window_stride</span><span class="p">])</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;MAX&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">]</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="PoolingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PoolingLayer.OutShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer.OutShape">[docs]</a>  <span class="k">def</span> <span class="nf">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the output shape given the input shape.&quot;&quot;&quot;</span>
@@ -3217,8 +3224,6 @@
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span>
-
 <div class="viewcode-block" id="SimpleFullSoftmax._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -3277,7 +3282,9 @@
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shards</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;inputs&#39;</span><span class="p">,</span> <span class="s1">&#39;logits&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="SimpleFullSoftmax._GetInputs"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._GetInputs">[docs]</a>  <span class="k">def</span> <span class="nf">_GetInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
@@ -4042,9 +4049,6 @@
         <span class="n">input_shape</span> <span class="o">=</span> <span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
       <span class="k">assert</span> <span class="n">input_shape</span> <span class="o">==</span> <span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
-    <span class="c1"># The same QTensor is used for all inputs to the concat.</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span>
-
     <span class="n">params_conv_set</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">filter_shape</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shapes</span><span class="p">:</span>
@@ -4059,6 +4063,11 @@
         <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">filter_shape</span>
         <span class="n">params_conv_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;conv_set&#39;</span><span class="p">,</span> <span class="n">params_conv_set</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ConvSetLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="c1"># The same QTensor is used for all inputs to the concat.</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ConvSetLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply all convolution sets to inputs and concatenate outputs.</span>
