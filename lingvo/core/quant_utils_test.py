@@ -36,8 +36,8 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('output_dim', 3, 'Depth of the output.')
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
 
     w_pc = py_utils.WeightParams(
@@ -45,8 +45,7 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
         init=p.params_init,
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'])
-    with tf.variable_scope(p.name):
-      self.CreateVariable('w', w_pc)
+    self.CreateVariable('w', w_pc)
 
     self.TrackQTensor('inputs', 'transformed')
 

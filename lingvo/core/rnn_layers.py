@@ -237,6 +237,9 @@ class StackedFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 
     self.CreateChildren('rnn', rnn_params)
     self.CreateChild('dropout', p.dropout)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
     self.TrackQTensor('residual')
 
   def _CreateChildrenVariables(self):
@@ -324,6 +327,9 @@ class StackedBiFRNNLayerByLayer(StackedRNNBase, quant_utils.QuantizableLayer):
 
     self.CreateChildren('rnn', rnn_params)
     self.CreateChild('dropout', p.dropout)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
     self.TrackQTensor('residual')
 
   def _CreateChildrenVariables(self):

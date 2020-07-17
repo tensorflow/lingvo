@@ -215,6 +215,9 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
     super().__init__(params)
 
     self._source_init_done = False
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
     self.TrackQTensor('logits', domain='fullyconnected')
 
   def InitForSourcePacked(self,
@@ -1201,16 +1204,6 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     p = self.params
     assert symbolic.ToStatic(p.hidden_dim) % p.num_attention_heads == 0
 
-    self.TrackQTensor('source_proj_matmul', 'source_proj_add',
-                      'query_proj_matmul', 'query_proj_add',
-                      'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
-    # TODO(suderman): Remove the self.do_eval check below once brop quant within
-    # defun is fixed on the training side. This is less than ideal as-is because
-    # training will just trend to match downstream quant constraints vs force
-    # alignment.
-    self.TrackQTensor(
-        'ctx_post_proj_matmul', 'ctx_post_proj_add', domain='atten_context')
-
     if p.proj_init not in ('uniform', 'default'):
       raise ValueError('Unknown proj_init: %s!' % p.proj_init)
 
@@ -1305,6 +1298,16 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
       self.CreateVariable('ctx_post_proj_b', pc_bias_post_proj)
+
+    self.TrackQTensor('source_proj_matmul', 'source_proj_add',
+                      'query_proj_matmul', 'query_proj_add',
+                      'ctx_pre_proj_matmul', 'ctx_pre_proj_add')
+    # TODO(suderman): Remove the self.do_eval check below once brop quant within
+    # defun is fixed on the training side. This is less than ideal as-is because
+    # training will just trend to match downstream quant constraints vs force
+    # alignment.
+    self.TrackQTensor(
+        'ctx_post_proj_matmul', 'ctx_post_proj_add', domain='atten_context')
 
   @classmethod
   def SetOutputContextDim(cls, p, out_dim):
@@ -1833,16 +1836,6 @@ class LocationSensitiveAttention(BaseAttentionLayer):
     if p.atten_dropout_prob != 0:
       raise NotImplementedError('dropout is not supported')
 
-    self.TrackQTensor('atten_conv')
-    self.TrackQTensor('atten_context', domain='atten_context')
-    self.TrackQTensor(
-        'atten_matmul',
-        'logits_add',
-        'encode_matmul',
-        'logits_mul',
-        'logits_bias',
-        domain='fullyconnected')
-
     @_ConditionalDefun(
         self._is_quantized, *[p.dtype] * 5, noinline=not py_utils.use_tpu())
     def AttenLogits(concated_source_vecs, query_vec_reshaped, hidden_v,
@@ -2093,6 +2086,16 @@ class LocationSensitiveAttention(BaseAttentionLayer):
         dtype=p.dtype,
         collections=['LocationSensitiveAttention_vars'])
     self.CreateVariable('location_var', location_pc, self.AddGlobalVN)
+
+    self.TrackQTensor('atten_conv')
+    self.TrackQTensor('atten_context', domain='atten_context')
+    self.TrackQTensor(
+        'atten_matmul',
+        'logits_add',
+        'encode_matmul',
+        'logits_mul',
+        'logits_bias',
+        domain='fullyconnected')
 
   def _ApplyConv(self, attention_state, location_filter_var):
     """Applies the convolution on attention state."""

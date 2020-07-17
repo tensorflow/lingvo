@@ -307,35 +307,7 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     if p.batch_norm:
       assert not p.bias
     assert (p.activation == 'NONE' or p.activation in _ACTIVATIONS)
-    w_pc = py_utils.WeightParams(
-        shape=p.filter_shape,
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
-    with tf.variable_scope(p.name):
-      self.CreateVariable('w', w_pc)
-      if p.bias:
-        self.CreateVariable(
-            'b',
-            py_utils.WeightParams(
-                shape=[self.output_channels],
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
-      if p.weight_norm:
-        self.CreateVariable(
-            'g',
-            py_utils.WeightParams(
-                shape=self.filter_output_shape,
-                init=py_utils.WeightInit.Constant(0.0),
-                dtype=p.dtype,
-                collections=[self.__class__.__name__ + '_vars']))
 
-    if not p.disable_activation_quantization:
-      self.TrackQTensor('activation')
-      if (p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES and
-          p.activation != 'NONE'):
-        self.TrackQTensor('pre_activation')
     if p.batch_norm:
       # batch normalization dimension is number of input channels
       # (filter_shape[2]) if we apply batch_norm on input and convolution
@@ -350,6 +322,38 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
       assert not p.conv_last, 'bn_fold_weights requires conv_last = False'
 
     # TODO(yonghui): implement the variational noise logic.
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    p = self.params
+    w_pc = py_utils.WeightParams(
+        shape=p.filter_shape,
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('w', w_pc)
+    if p.bias:
+      self.CreateVariable(
+          'b',
+          py_utils.WeightParams(
+              shape=[self.output_channels],
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
+    if p.weight_norm:
+      self.CreateVariable(
+          'g',
+          py_utils.WeightParams(
+              shape=self.filter_output_shape,
+              init=py_utils.WeightInit.Constant(0.0),
+              dtype=p.dtype,
+              collections=[self.__class__.__name__ + '_vars']))
+
+    if not p.disable_activation_quantization:
+      self.TrackQTensor('activation')
+      if (p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES and
+          p.activation != 'NONE'):
+        self.TrackQTensor('pre_activation')
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.CreateVariables() outside of
@@ -929,21 +933,6 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       assert not p.affine_last, (
           'Folded batchnorm is not compatible with affine_last')
 
-    # Determine quantization needs based on whether fusing activation
-    # or not.
-    self._pre_activation_qt_name = None
-    self._output_qt_name = ('activation'
-                            if p.activation != 'NONE' else 'affine_matmul')
-    if (p.activation != 'NONE' and
-        p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES):
-      # Not a fused activation function.
-      # Need a qtensor to track the pre-activation tensor. The name is
-      # compatible with older checkpoints.
-      self._pre_activation_qt_name = 'affine_matmul'
-    self.TrackQTensor(self._output_qt_name)
-    if self._pre_activation_qt_name:
-      self.TrackQTensor(self._pre_activation_qt_name)
-
     if p.batch_norm:
       bn_params = p.bn_params.Copy()
       bn_params.name = p.name
@@ -1007,6 +996,21 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.CreateVariable('b', b_pc)
     if p.weight_norm:
       self.CreateVariable('g', g_pc)
+
+    # Determine quantization needs based on whether fusing activation
+    # or not.
+    self._pre_activation_qt_name = None
+    self._output_qt_name = ('activation'
+                            if p.activation != 'NONE' else 'affine_matmul')
+    if (p.activation != 'NONE' and
+        p.activation not in _TFLITE_FUSED_ACTIVATION_NAMES):
+      # Not a fused activation function.
+      # Need a qtensor to track the pre-activation tensor. The name is
+      # compatible with older checkpoints.
+      self._pre_activation_qt_name = 'affine_matmul'
+    self.TrackQTensor(self._output_qt_name)
+    if self._pre_activation_qt_name:
+      self.TrackQTensor(self._pre_activation_qt_name)
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.CreateVariables() outside of
@@ -1639,6 +1643,9 @@ class PoolingLayer(quant_utils.QuantizableLayer):
     assert all([x > 0 for x in p.window_shape])
     assert all([x > 0 for x in p.window_stride])
     assert p.pooling_type in ['MAX', 'AVG']
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
     self.TrackQTensor('output')
 
   def OutShape(self, in_shape):
@@ -3069,8 +3076,6 @@ class SimpleFullSoftmax(SoftmaxLayer):
     # We shard params across the class dimension.
     assert p.num_classes % p.num_shards == 0
 
-    self.TrackQTensor('inputs', 'logits')
-
   def _CreateVariables(self):
     super()._CreateVariables()
     p = self.params
@@ -3130,6 +3135,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
         collections=[self.__class__.__name__ + '_vars'])
     for i in range(p.num_shards):
       self.CreateVariable('bias_%d' % i, pc, self.AddGlobalVN)
+
+    self.TrackQTensor('inputs', 'logits')
 
   def _GetInputs(self, inputs):
     if isinstance(inputs, list):
@@ -3894,9 +3901,6 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
         input_shape = filter_shape[2]
       assert input_shape == filter_shape[2]
 
-    # The same QTensor is used for all inputs to the concat.
-    self.TrackQTensor('activation')
-
     params_conv_set = []
     with tf.variable_scope(p.name):
       for filter_shape in p.filter_shapes:
@@ -3911,6 +3915,11 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
         conv_p.filter_shape = filter_shape
         params_conv_set.append(conv_p)
       self.CreateChildren('conv_set', params_conv_set)
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    # The same QTensor is used for all inputs to the concat.
+    self.TrackQTensor('activation')
 
   def FProp(self, theta, inputs, paddings):
     """Apply all convolution sets to inputs and concatenate outputs.

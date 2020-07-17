@@ -290,22 +290,6 @@ class LSTMCellSimple(RNNCell):
                       (int, float)) or p.cell_value_cap is None
 
     assert p.cell_value_cap is None or p.qdomain.default is None
-    self.TrackQTensor(
-        'zero_m',
-        'm_output',
-        'm_output_projection',
-        'm_zoneout',
-        domain='m_state')
-    self.TrackQTensor(
-        'zero_c',
-        'mixed',
-        'c_couple_invert',
-        'c_input_gate',
-        'c_forget_gate',
-        'c_output_gate',
-        'c_zoneout',
-        domain='c_state')
-    self.TrackQTensor('add_bias', domain='fullyconnected')
 
     self._timestep = -1
 
@@ -403,6 +387,24 @@ class LSTMCellSimple(RNNCell):
           pruning_utils.AddToPruningCollections(self.vars.w_proj,
                                                 self.vars.proj_mask,
                                                 self.vars.proj_threshold)
+
+    self.TrackQTensor(
+        'zero_m',
+        'm_output',
+        'm_output_projection',
+        'm_zoneout',
+        domain='m_state')
+    self.TrackQTensor(
+        'zero_c',
+        'mixed',
+        'c_couple_invert',
+        'c_input_gate',
+        'c_forget_gate',
+        'c_output_gate',
+        'c_zoneout',
+        domain='c_state')
+    self.TrackQTensor('add_bias', domain='fullyconnected')
+
     # Collect some stats.
     scope = tf.get_variable_scope()
     w = self.vars.wm
@@ -1205,21 +1207,19 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     return p
 
-  def __init__(self, params):
-    """Initializes LayerNormalizedLSTMCellSimple."""
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
 
     add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
     self.TrackQTensor(*add_biases, domain='fullyconnected')
 
-    with tf.variable_scope(p.name):
-      ln_scale_pc = py_utils.WeightParams(
-          shape=[self.num_gates * self.hidden_size],
-          init=py_utils.WeightInit.Constant(1.0),
-          dtype=p.dtype,
-          collections=self._VariableCollections())
-      self.CreateVariable('ln_scale', ln_scale_pc, self.AddGlobalVN)
+    ln_scale_pc = py_utils.WeightParams(
+        shape=[self.num_gates * self.hidden_size],
+        init=py_utils.WeightInit.Constant(1.0),
+        dtype=p.dtype,
+        collections=self._VariableCollections())
+    self.CreateVariable('ln_scale', ln_scale_pc, self.AddGlobalVN)
 
   def _Gates(self, xmw, theta, state0, inputs):
     """Compute the new state."""
