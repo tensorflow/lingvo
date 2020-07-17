@@ -243,6 +243,8 @@
                      <span class="s1">&#39;If True use tf.function for py_utils.If().&#39;</span><span class="p">)</span>
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;while_loop_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
                      <span class="s1">&#39;If True use tf.function for py_utils.WhileLoop().&#39;</span><span class="p">)</span>
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span><span class="s1">&#39;call_defun_use_tf_function&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+                     <span class="s1">&#39;If True use tf.function for py_utils.CallDefun().&#39;</span><span class="p">)</span>
 
 <span class="c1"># NOTE: Using absl flags in libraries are frowned upon for several reasons:</span>
 <span class="c1">#</span>
@@ -4366,6 +4368,110 @@
   <span class="k">return</span> <span class="n">Call</span></div>
 
 
+<div class="viewcode-block" id="_DefineFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineFunction">[docs]</a><span class="k">def</span> <span class="nf">_DefineFunction</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span>
+                    <span class="n">fwd_sig</span><span class="p">,</span>
+                    <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                    <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    fwd: A callable xs: Nested Structure -&gt; ys: Nested Structure.</span>
+<span class="sd">    fwd_sig: A Nested Structure of tf.Tensor representing the input signature of</span>
+<span class="sd">      fwd.</span>
+<span class="sd">    bak: A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The</span>
+<span class="sd">      custom backprop function for fwd. If implicit_captures is not None, bak</span>
+<span class="sd">      must return its gradients in a Nested Structure as the last part of dxs.</span>
+<span class="sd">    implicit_captures: A Nested Structure of tf.Tensor. Implicit inputs of fwd</span>
+<span class="sd">      that are not listed in fwd_sig.</span>
+<span class="sd">    device: the device on which to run fwd and bak.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A function that wraps fwd.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+  <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">use_xla</span><span class="p">()</span>
+
+  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
+    <span class="c1"># With custom_gradient, implicit captures need to be part of the input.</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+
+  <span class="c1"># Only used to hold the output dtypes of fwd in sigs.rets, which will be set</span>
+  <span class="c1"># in Forward.</span>
+  <span class="n">sigs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
+
+  <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">),</span> <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+  <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;The forward function.&quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xs</span>  <span class="c1"># Ignore implicit captures since fwd doesn&#39;t take that.</span>
+      <span class="n">rets</span> <span class="o">=</span> <span class="n">fwd</span><span class="p">(</span><span class="n">xs</span><span class="p">)</span>
+    <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">rets</span>
+    <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
+
+  <span class="c1"># StackedRecurrent need this to perform send/recv across function boundary.</span>
+  <span class="c1"># TODO(laigd): make it an option and only use it in StackedRecurrent.</span>
+  <span class="n">Forward</span><span class="o">.</span><span class="n">_shared_rendezvous</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># pylint: disable=protected-access</span>
+
+  <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Gradient function for the forward function.</span>
+
+<span class="sd">      Args:</span>
+<span class="sd">        op: The forward operation.</span>
+<span class="sd">        *args: Gradients wrt op.outputs.</span>
+<span class="sd">        **kwargs: Additional arguments from tf.custom_gradient.</span>
+
+<span class="sd">      Returns:</span>
+<span class="sd">        Tuple of derivatives.</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="k">if</span> <span class="n">kwargs</span><span class="p">:</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
+            <span class="s1">&#39;Ignoring additional arguments used by tf.custom_gradient: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+            <span class="nb">str</span><span class="p">(</span><span class="n">kwargs</span><span class="p">))</span>
+
+      <span class="c1"># With tf.custom_gradient, implicit captures are always part of fwd&#39;s</span>
+      <span class="c1"># input signature.</span>
+      <span class="n">_AssertInputsMatch</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="n">fwd_sig</span><span class="p">,</span> <span class="n">NestedMap</span><span class="p">())</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
+        <span class="n">xs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">xs</span>  <span class="c1"># Ignore implicit captures since bak doesn&#39;t take that.</span>
+      <span class="n">ys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">)</span>
+      <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+
+      <span class="c1"># Ensure dys contains no None.</span>
+      <span class="n">dys</span> <span class="o">=</span> <span class="n">ConvertNoneGradientToZeros</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+
+      <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
+        <span class="n">dxs</span> <span class="o">=</span> <span class="n">bak</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">,</span> <span class="n">dys</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">dxs</span><span class="p">)</span>
+
+    <span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
+    <span class="k">def</span> <span class="nf">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Forward function and its custom gradient.&quot;&quot;&quot;</span>
+      <span class="n">op</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span><span class="n">inputs</span><span class="o">=</span><span class="n">args</span><span class="p">,</span> <span class="n">outputs</span><span class="o">=</span><span class="n">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">))</span>
+      <span class="k">return</span> <span class="n">op</span><span class="o">.</span><span class="n">outputs</span><span class="p">,</span> <span class="k">lambda</span> <span class="o">*</span><span class="n">dys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">:</span> <span class="n">Backward</span><span class="p">(</span><span class="n">op</span><span class="p">,</span> <span class="o">*</span><span class="n">dys</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">forward</span> <span class="o">=</span> <span class="n">ForwardWithGrad</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">forward</span> <span class="o">=</span> <span class="n">Forward</span>
+
+  <span class="k">def</span> <span class="nf">Call</span><span class="p">(</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Wrapper of fwd.&quot;&quot;&quot;</span>
+    <span class="n">flat_rets</span> <span class="o">=</span> <span class="n">forward</span><span class="p">(</span><span class="o">*</span><span class="n">Flatten</span><span class="p">([</span><span class="n">args</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">flat_rets</span><span class="p">,</span> <span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="nb">list</span><span class="p">)):</span>
+      <span class="n">flat_rets</span> <span class="o">=</span> <span class="p">[</span><span class="n">flat_rets</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">flat_rets</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">Call</span></div>
+
+
 <div class="viewcode-block" id="CallDefun"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CallDefun">[docs]</a><span class="k">def</span> <span class="nf">CallDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Wraps fwd in a defun with custom gradient bak and calls it with args.</span>
 
@@ -4381,7 +4487,11 @@
 <span class="sd">  Returns:</span>
 <span class="sd">    A Nested Structure equivalent to what fwd(args) computes.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">call</span> <span class="o">=</span> <span class="n">_DefineDefun</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;call_defun_use_tf_function&#39;</span><span class="p">):</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineFunction</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">fn</span> <span class="o">=</span> <span class="n">_DefineDefun</span>
+  <span class="n">call</span> <span class="o">=</span> <span class="n">fn</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">bak</span><span class="p">,</span> <span class="n">implicit_captures</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">call</span><span class="p">(</span><span class="n">args</span><span class="p">)</span></div>
 
 
