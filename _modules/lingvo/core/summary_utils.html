@@ -492,6 +492,41 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Steps/second: </span><span class="si">%f</span><span class="s1">, Examples/second: </span><span class="si">%f</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">rate</span><span class="p">,</span>
                          <span class="n">example_rate</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">rate</span><span class="p">,</span> <span class="n">example_rate</span><span class="p">,</span> <span class="n">total_examples</span></div></div>
+
+
+<div class="viewcode-block" id="ModelAnalysis"><a class="viewcode-back" href="../../../lingvo.core.summary_utils.html#lingvo.core.summary_utils.ModelAnalysis">[docs]</a><span class="k">def</span> <span class="nf">ModelAnalysis</span><span class="p">(</span><span class="n">model</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns a text showing variable sizes and their total size.&quot;&quot;&quot;</span>
+
+  <span class="k">class</span> <span class="nc">Analyzer</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Helper class.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+      <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Variable</span><span class="p">)</span>
+      <span class="c1"># pylint: disable=protected-access</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">is_fully_defined</span><span class="p">():</span>
+        <span class="c1"># Only Cudnn RNN params lack static shapes.</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;approx_size&#39;</span><span class="p">):</span>
+          <span class="n">size</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">approx_size</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%-20s</span><span class="s1"> </span><span class="si">%10s</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="s1">&#39;n/a&#39;</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">num_elements</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_seen_var</span><span class="p">[</span><span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">total</span> <span class="o">+=</span> <span class="n">size</span>
+      <span class="k">return</span> <span class="s1">&#39;</span><span class="si">%-20s</span><span class="s1"> </span><span class="si">%10d</span><span class="s1"> </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">_shared_name</span><span class="p">)</span>
+
+  <span class="n">analyzer</span> <span class="o">=</span> <span class="n">Analyzer</span><span class="p">()</span>
+  <span class="n">output</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+  <span class="n">output</span> <span class="o">+=</span> <span class="n">model</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">analyzer</span><span class="p">)</span><span class="o">.</span><span class="n">DebugString</span><span class="p">()</span>
+  <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span>
+  <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;=&#39;</span> <span class="o">*</span> <span class="mi">100</span>
+  <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">total #params: </span><span class="si">%10d</span><span class="se">\n</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span>
+  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">analyzer</span><span class="o">.</span><span class="n">total</span></div>
 </pre></div>
 
            </div>
