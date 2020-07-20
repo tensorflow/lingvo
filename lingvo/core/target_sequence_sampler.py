@@ -47,6 +47,10 @@ class TargetSequenceSampler(base_layer.BaseLayer):
         'temperature', 1., 'If > 1, a smoother distribution than logits; '
         'if < 1, a sharper distribution than logits. '
         'Must be > 0.')
+    p.Define(
+        'use_stop_fn', False, 'If True, use a stop_fn that causes the '
+        'sampler to early terminate when all samples in the batch end with '
+        'the target_eos_id token.')
     p.name = 'target_sequence_sampler'
     return p
 
@@ -133,11 +137,21 @@ class TargetSequenceSampler(base_layer.BaseLayer):
                                              state1.ids, bs_state1)
       return state1, py_utils.NestedMap()
 
+    def StopFn(t, theta, state):
+      del t, theta  # Unused: this stop function only uses the state ids.
+      return tf.equal(state.ids, p.target_eos_id)
+
+    if p.use_stop_fn:
+      stop_fn = StopFn
+    else:
+      stop_fn = None
+
     accumulated_states, _ = recurrent.Recurrent(
         recurrent_theta,
         recurrent_state0,
         inputs,
         Step,
+        stop_fn=stop_fn,
         allow_implicit_capture=True)
     result = py_utils.NestedMap(
         logits=tf.transpose(accumulated_states.logits, [1, 0, 2]),

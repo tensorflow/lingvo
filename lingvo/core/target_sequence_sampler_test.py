@@ -169,6 +169,29 @@ class TargetSequenceSamplerTest(test_utils.TestCase):
       self.assertAllEqual(expected_ids, ids)
       self.assertAllEqual(expected_lens, lens)
 
+      # Now do the same, except with use_stop_fn=True.
+      p = target_sequence_sampler.TargetSequenceSampler.Params().Set(
+          name='bsh', target_seq_len=tgt_len, target_eoc_id=0, use_stop_fn=True)
+      seq_sampler = p.Instantiate()
+      decoder_output = seq_sampler.Sample(theta, encoder_outputs, random_seed,
+                                          InitBeamSearchCallBack,
+                                          PreBeamSearchStepCallback,
+                                          PostBeamSearchStepCallback)
+
+      ids, lens = self.evaluate([
+          decoder_output.ids,
+          tf.reduce_sum(1 - decoder_output.paddings, 1),
+      ])
+      print(np.array_repr(ids))
+      print(np.array_repr(lens))
+      expected_ids = [
+          [0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+          [0, 0, 3, 3, 1, 0, 3, 0, 1, 3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+      ]
+      expected_lens = [5, 11]
+      self.assertAllEqual(expected_ids, ids)
+      self.assertAllEqual(expected_lens, lens)
+
   def testTargetSequenceSamplerWithVariables(self):
     with self.session(use_gpu=False):
       np.random.seed(9384758)
