@@ -377,5 +377,5 @@ def ModelAnalysis(model):
   output += model.vars.Transform(analyzer).DebugString()
   output += '\n'
   output += '=' * 100
-  output += '\ntotal #params: %10d\n' % analyzer.total
+  output += f'\ntotal #params: {analyzer.total:,}\n'
   return output, analyzer.total
