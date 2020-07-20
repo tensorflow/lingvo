@@ -195,6 +195,10 @@
         <span class="s1">&#39;temperature&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;If &gt; 1, a smoother distribution than logits; &#39;</span>
         <span class="s1">&#39;if &lt; 1, a sharper distribution than logits. &#39;</span>
         <span class="s1">&#39;Must be &gt; 0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_stop_fn&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If True, use a stop_fn that causes the &#39;</span>
+        <span class="s1">&#39;sampler to early terminate when all samples in the batch end with &#39;</span>
+        <span class="s1">&#39;the target_eos_id token.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;target_sequence_sampler&#39;</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
@@ -281,11 +285,21 @@
                                              <span class="n">state1</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">bs_state1</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">state1</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
 
+    <span class="k">def</span> <span class="nf">StopFn</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+      <span class="k">del</span> <span class="n">t</span><span class="p">,</span> <span class="n">theta</span>  <span class="c1"># Unused: this stop function only uses the state ids.</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">target_eos_id</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_stop_fn</span><span class="p">:</span>
+      <span class="n">stop_fn</span> <span class="o">=</span> <span class="n">StopFn</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">stop_fn</span> <span class="o">=</span> <span class="kc">None</span>
+
     <span class="n">accumulated_states</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">recurrent</span><span class="o">.</span><span class="n">Recurrent</span><span class="p">(</span>
         <span class="n">recurrent_theta</span><span class="p">,</span>
         <span class="n">recurrent_state0</span><span class="p">,</span>
         <span class="n">inputs</span><span class="p">,</span>
         <span class="n">Step</span><span class="p">,</span>
+        <span class="n">stop_fn</span><span class="o">=</span><span class="n">stop_fn</span><span class="p">,</span>
         <span class="n">allow_implicit_capture</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">logits</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">accumulated_states</span><span class="o">.</span><span class="n">logits</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">]),</span>
