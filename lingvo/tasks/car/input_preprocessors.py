@@ -2207,7 +2207,7 @@ class RandomFlipY(Preprocessor):
     # Compensate rotation.
     bboxes_dims = features.labels.bboxes_3d[..., 3:6]
     bboxes_rot = features.labels.bboxes_3d[..., 6:]
-    bboxes_rot = tf.where(choice, geometry.WrapAngleRad(-bboxes_rot + np.pi),
+    bboxes_rot = tf.where(choice, geometry.WrapAngleRad(-bboxes_rot),
                           bboxes_rot)
     features.labels.bboxes_3d = tf.concat([bboxes_xyz, bboxes_dims, bboxes_rot],
                                           axis=-1)
