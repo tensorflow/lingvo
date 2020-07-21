@@ -42,27 +42,6 @@ tf.flags.DEFINE_string(
 FLAGS = tf.flags.FLAGS
 
 
-def _MaybeUpdateParamsFromFlags(cfg):
-  """Updates Model() Params from flags if set."""
-  if FLAGS.model_params_override and FLAGS.model_params_file_override:
-    raise ValueError('Only one of --model_params_override and'
-                     ' --model_params_file_override may be specified.')
-
-  if FLAGS.model_params_override:
-    params_override = FLAGS.model_params_override.replace(';', '\n')
-    tf.logging.info('Applying params overrides:\n%s\nTo:\n%s',
-                         params_override, cfg.ToText())
-    cfg.FromText(params_override)
-  if (FLAGS.model_params_file_override and
-      tf.io.gfile.exists(FLAGS.model_params_file_override)):
-    params_override = tf.io.gfile.GFile(FLAGS.model_params_file_override,
-                                        'r').read()
-    tf.logging.info('Applying params overrides from file %s:\n%s\nTo:\n%s',
-                         FLAGS.model_params_file_override, params_override,
-                         cfg.ToText())
-    cfg.FromText(params_override)
-
-
 class _ModelRegistryHelper:
   """Helper class."""
 
@@ -159,6 +138,27 @@ class _ModelRegistryHelper:
     return Registered
 
   @classmethod
+  def MaybeUpdateParamsFromFlags(cls, cfg):
+    """Updates Model() Params from flags if set."""
+    if FLAGS.model_params_override and FLAGS.model_params_file_override:
+      raise ValueError('Only one of --model_params_override and'
+                       ' --model_params_file_override may be specified.')
+
+    if FLAGS.model_params_override:
+      params_override = FLAGS.model_params_override.replace(';', '\n')
+      tf.logging.info('Applying params overrides:\n%s\nTo:\n%s',
+                      params_override, cfg.ToText())
+      cfg.FromText(params_override)
+    if (FLAGS.model_params_file_override and
+        tf.io.gfile.exists(FLAGS.model_params_file_override)):
+      params_override = tf.io.gfile.GFile(FLAGS.model_params_file_override,
+                                          'r').read()
+      tf.logging.info('Applying params overrides from file %s:\n%s\nTo:\n%s',
+                      FLAGS.model_params_file_override, params_override,
+                      cfg.ToText())
+      cfg.FromText(params_override)
+
+  @classmethod
   def RegisterSingleTaskModel(cls, src_cls):
     """Class decorator that registers a `.SingleTaskModelParams` subclass."""
     if not issubclass(src_cls, base_model_params.SingleTaskModelParams):
@@ -224,7 +224,7 @@ class _ModelRegistryHelper:
     cfg = model_params.Model()
     cfg.input = model_params.GetDatasetParams(dataset_name)
 
-    _MaybeUpdateParamsFromFlags(cfg)
+    cls.MaybeUpdateParamsFromFlags(cfg)
     return cfg
 
   @classmethod
