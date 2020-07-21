@@ -68,49 +68,48 @@ class TransformerStack(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    with tf.variable_scope(p.name):
-      # Add transformer layers.
-      transformer_layer_params = []
-      denom = 1
+    # Add transformer layers.
+    transformer_layer_params = []
+    denom = 1
+    if isinstance(p.transformer_tpl, list):
+      denom = len(p.transformer_tpl)
+      assert p.num_transformer_layers % len(p.transformer_tpl) == 0
+    for i in range(p.num_transformer_layers // denom):
       if isinstance(p.transformer_tpl, list):
-        denom = len(p.transformer_tpl)
-        assert p.num_transformer_layers % len(p.transformer_tpl) == 0
-      for i in range(p.num_transformer_layers // denom):
-        if isinstance(p.transformer_tpl, list):
-          for q in p.transformer_tpl:
-            params = q.Copy()
-            transformer_layer_params.append(params)
-        else:
-          params = p.transformer_tpl.Copy()
+        for q in p.transformer_tpl:
+          params = q.Copy()
           transformer_layer_params.append(params)
+      else:
+        params = p.transformer_tpl.Copy()
+        transformer_layer_params.append(params)
 
-      for i, params in enumerate(transformer_layer_params):
-        params.name = 'trans_%d' % i
-        params.source_dim = p.model_dim
-        params.packed_input = p.packed_input
-        params.has_aux_atten = p.has_aux_attention
-        params.mask_self_atten = p.mask_self_atten
+    for i, params in enumerate(transformer_layer_params):
+      params.name = 'trans_%d' % i
+      params.source_dim = p.model_dim
+      params.packed_input = p.packed_input
+      params.has_aux_atten = p.has_aux_attention
+      params.mask_self_atten = p.mask_self_atten
 
-      self.CreateChildren('trans', transformer_layer_params)
+    self.CreateChildren('trans', transformer_layer_params)
 
-      # Initialize TransformerStack output layer norm
-      if p.ln_output:
-        params = p.ln_tpl.Copy()
-        # Keeping historic 'enc_out_ln' name for checkpoint compatibility.
-        params.name = 'enc_out_ln'
-        params.input_dim = p.model_dim
-        self.CreateChild('layer_norm_out', params)
+    # Initialize TransformerStack output layer norm
+    if p.ln_output:
+      params = p.ln_tpl.Copy()
+      # Keeping historic 'enc_out_ln' name for checkpoint compatibility.
+      params.name = 'enc_out_ln'
+      params.input_dim = p.model_dim
+      self.CreateChild('layer_norm_out', params)
 
-      if p.is_transparent:
-        transparent_params = []
-        if not p.num_transparent_outputs:
-          raise ValueError('num_transparent_outputs should be greater than 0.')
-        for i in range(p.num_transparent_outputs):
-          transparent_param = p.transparent_merger_tpl.Copy()
-          transparent_param.name = 'transparent_%d' % i
-          transparent_param.num_sources = 1 + len(transformer_layer_params)
-          transparent_params.append(transparent_param)
-        self.CreateChildren('transparent_merger', transparent_params)
+    if p.is_transparent:
+      transparent_params = []
+      if not p.num_transparent_outputs:
+        raise ValueError('num_transparent_outputs should be greater than 0.')
+      for i in range(p.num_transparent_outputs):
+        transparent_param = p.transparent_merger_tpl.Copy()
+        transparent_param.name = 'transparent_%d' % i
+        transparent_param.num_sources = 1 + len(transformer_layer_params)
+        transparent_params.append(transparent_param)
+      self.CreateChildren('transparent_merger', transparent_params)
 
   def FProp(self,
             theta,

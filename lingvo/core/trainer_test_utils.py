@@ -67,16 +67,18 @@ class IdentityRegressionTask(base_model.BaseTask):
 
   def __init__(self, params):
     super().__init__(params)
-    with tf.variable_scope('IdentityRegressionTask'):
-      self.CreateVariable(
-          'm',
-          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))
-      self.CreateVariable(
-          'b',
-          py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))
     self.global_steps = []
     self.metrics = []
     self.result_per_example_tensors = []
+
+  def _CreateVariables(self):
+    super()._CreateVariables()
+    self.CreateVariable(
+        'm',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))
 
   def ComputePredictions(self, theta, input_batch):
     """sum(m * x) + b."""

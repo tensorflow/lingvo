@@ -75,18 +75,17 @@ class AsrModel(base_model.BaseTask):
     super().__init__(params)
     p = self.params
 
-    with tf.variable_scope(p.name):
-      # Construct the model.
-      if p.encoder:
-        if not p.encoder.name:
-          p.encoder.name = 'enc'
-        self.CreateChild('encoder', p.encoder)
-      if p.decoder:
-        if not p.decoder.name:
-          p.decoder.name = 'dec'
-        self.CreateChild('decoder', p.decoder)
-      if p.frontend:
-        self.CreateChild('frontend', p.frontend)
+    # Construct the model.
+    if p.encoder:
+      if not p.encoder.name:
+        p.encoder.name = 'enc'
+      self.CreateChild('encoder', p.encoder)
+    if p.decoder:
+      if not p.decoder.name:
+        p.decoder.name = 'dec'
+      self.CreateChild('decoder', p.decoder)
+    if p.frontend:
+      self.CreateChild('frontend', p.frontend)
 
   def _GetDecoderTargets(self, input_batch):
     """Returns targets which will be forwarded to the decoder.

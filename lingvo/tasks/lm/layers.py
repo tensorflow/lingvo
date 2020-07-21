@@ -309,9 +309,8 @@ class RnnLmNoEmbedding(BaseLanguageModel):
           'softmax num of classess %d does not match vocabulary size %d!' %
           (p.softmax.num_classes, p.vocab_size))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('rnns', p.rnns)
-      self.CreateChild('softmax', p.softmax)
+    self.CreateChild('rnns', p.rnns)
+    self.CreateChild('softmax', p.softmax)
 
   def zero_state(self, theta, batch_size):
     return self.rnns.zero_state(theta.rnns, batch_size)
@@ -562,8 +561,7 @@ class RnnLm(RnnLmNoEmbedding):
           '{} vs. {}'.format(p.emb.embedding_dim,
                              p.rnns.cell_tpl[0].num_input_nodes))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('emb', p.emb)
+    self.CreateChild('emb', p.emb)
 
   def FProp(self,
             theta,
@@ -639,8 +637,7 @@ class ConditionalRnnLm(RnnLmNoEmbedding):
             p.rnns.cell_tpl[0].num_input_nodes), ('{} vs. {}'.format(
                 p.emb.embedding_dim, p.rnns.cell_tpl[0].num_input_nodes))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('emb', p.emb)
+    self.CreateChild('emb', p.emb)
 
   def FProp(self,
             theta,
@@ -733,40 +730,38 @@ class MoeLm(BaseLanguageModel):
       assert p.merge.vocab_size == p.vocab_size, ('{} vs. {}'.format(
           p.merge.vocab_size, p.vocab_size))
 
-    with tf.variable_scope(p.name):
-      # Embeddings
-      if p.shared_emb:
-        self.CreateChild('emb', p.emb)
-      else:
-        # 0-th embedding is for the domain predictor.
-        self.CreateChildren(
-            'emb', [
-                p.emb.Copy().Set(name='emb_%d' % i)
-                for i in range(1 + p.number_of_experts)
-            ])
+    # Embeddings
+    if p.shared_emb:
+      self.CreateChild('emb', p.emb)
+    else:
+      # 0-th embedding is for the domain predictor.
+      self.CreateChildren('emb', [
+          p.emb.Copy().Set(name='emb_%d' % i)
+          for i in range(1 + p.number_of_experts)
+      ])
 
-      # Rnns
-      # 0-th rnns is for the domain predictor.
-      self.CreateChildren(
-          'rnns', [p.rnns.Copy() for i in range(1 + p.number_of_experts)])
+    # Rnns
+    # 0-th rnns is for the domain predictor.
+    self.CreateChildren('rnns',
+                        [p.rnns.Copy() for i in range(1 + p.number_of_experts)])
 
-      # Softmax
-      rnn_output_size = _RnnOutputSize(p.rnns)
-      sm_params = layers.SimpleFullSoftmax.Params()
-      sm_params.name = 'domain_predictor_softmax'
-      sm_params.input_dim = rnn_output_size
-      sm_params.num_classes = p.number_of_experts
-      self.CreateChild('domain_predictor_softmax', sm_params)
+    # Softmax
+    rnn_output_size = _RnnOutputSize(p.rnns)
+    sm_params = layers.SimpleFullSoftmax.Params()
+    sm_params.name = 'domain_predictor_softmax'
+    sm_params.input_dim = rnn_output_size
+    sm_params.num_classes = p.number_of_experts
+    self.CreateChild('domain_predictor_softmax', sm_params)
 
-      # Merge
-      if p.add_postgating_rnn:
-        self.CreateChild('merge', p.merge)
-      else:
-        output_sm_params = layers.SimpleFullSoftmax.Params()
-        output_sm_params.name = 'output_softmax'
-        output_sm_params.input_dim = rnn_output_size
-        output_sm_params.num_classes = p.vocab_size
-        self.CreateChild('output_softmax', output_sm_params)
+    # Merge
+    if p.add_postgating_rnn:
+      self.CreateChild('merge', p.merge)
+    else:
+      output_sm_params = layers.SimpleFullSoftmax.Params()
+      output_sm_params.name = 'output_softmax'
+      output_sm_params.input_dim = rnn_output_size
+      output_sm_params.num_classes = p.vocab_size
+      self.CreateChild('output_softmax', output_sm_params)
 
   def zero_state(self, theta, batch_size):
     p = self.params
@@ -892,25 +887,24 @@ class TransformerLmNoEmbedding(BaseLanguageModel):
     p.trans_tpl.tr_fflayer_tpl.residual_dropout_prob = p.residual_dropout_prob
     p.trans_tpl.tr_fflayer_tpl.relu_dropout_prob = p.relu_dropout_prob
 
-    with tf.variable_scope(p.name):
-      p.position_emb.embedding_dim = p.model_dim
-      self.CreateChild('position_emb', p.position_emb)
+    p.position_emb.embedding_dim = p.model_dim
+    self.CreateChild('position_emb', p.position_emb)
 
-      dropout_tpl = layers.DropoutLayer.Params().Set(
-          keep_prob=(1.0 - p.input_dropout_prob))
-      self.CreateChild('input_dropout', dropout_tpl)
+    dropout_tpl = layers.DropoutLayer.Params().Set(
+        keep_prob=(1.0 - p.input_dropout_prob))
+    self.CreateChild('input_dropout', dropout_tpl)
 
-      params_trans_layers = []
-      for i in range(p.num_trans_layers):
-        params = p.trans_tpl.Copy()
-        params.source_dim = p.model_dim
-        params.name = 'layer_%d' % i
-        params_trans_layers.append(params)
-      self.CreateChildren('trans', params_trans_layers)
+    params_trans_layers = []
+    for i in range(p.num_trans_layers):
+      params = p.trans_tpl.Copy()
+      params.source_dim = p.model_dim
+      params.name = 'layer_%d' % i
+      params_trans_layers.append(params)
+    self.CreateChildren('trans', params_trans_layers)
 
-      p.softmax.input_dim = p.model_dim
-      p.softmax.num_classes = p.vocab_size
-      self.CreateChild('softmax', p.softmax)
+    p.softmax.input_dim = p.model_dim
+    p.softmax.num_classes = p.vocab_size
+    self.CreateChild('softmax', p.softmax)
 
   def zero_state(self, theta, batch_size):
     p = self.params
@@ -1146,8 +1140,7 @@ class TransformerLm(TransformerLmNoEmbedding):
     assert p.emb.embedding_dim == p.model_dim, ('{} vs. {}'.format(
         p.emb.embedding_dim, p.model_dim))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('emb', p.emb)
+    self.CreateChild('emb', p.emb)
 
   def FProp(self, theta, inputs, paddings, state0=None, labels=None):
     """Computes xent loss given the language model input activations.
@@ -1283,8 +1276,7 @@ class GPipeTransformerLm(BaseLanguageModel):
     p.stack.state_dtype = p.dtype
     if p.fprop_dtype:
       p.stack.state_dtype = p.fprop_dtype
-    with tf.variable_scope(p.name):
-      self.CreateChild('stack', p.stack)
+    self.CreateChild('stack', p.stack)
 
   def zero_state(self, theta, batch_size):
     return py_utils.NestedMap()

@@ -231,8 +231,7 @@ class InsertionModel(MTBaseModel):
     super().__init__(params)
     p = self.params
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('insertion', p.insertion)
+    self.CreateChild('insertion', p.insertion)
 
   def _SampleCanvasAndTargets(self, x, x_paddings):
     """Sample a canvas and its corresponding targets.

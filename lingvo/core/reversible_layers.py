@@ -45,9 +45,8 @@ class RevNetLayer(base_layer.BaseLayer):
     assert p.name
     assert p.f_params
     assert p.g_params
-    with tf.variable_scope(p.name):
-      self.CreateChild('f_block', p.f_params)
-      self.CreateChild('g_block', p.g_params)
+    self.CreateChild('f_block', p.f_params)
+    self.CreateChild('g_block', p.g_params)
 
   def ReverseAndGrad(self, theta, outputs, d_outputs, f_seed, g_seed,
                      *extra_inputs):
@@ -175,8 +174,7 @@ class StackedRevNetLayer(base_layer.BaseLayer):
     p = params
     assert p.name
     assert p.sub_layer_params
-    with tf.variable_scope(p.name):
-      self.CreateChildren('sub_layers', p.sub_layer_params)
+    self.CreateChildren('sub_layers', p.sub_layer_params)
 
   def FProp(self, theta, inputs, *extra_inputs):
 

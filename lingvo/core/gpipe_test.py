@@ -42,15 +42,13 @@ class _SimpyLayer(base_layer.BaseLayer):
 
   def __init__(self, params):
     super().__init__(params)
-    p = self.params
     conv = Conv2DLayerNoPadding.Params().Set(
         name='conv',
         filter_shape=(3, 3, 1, 1),
         filter_stride=(1, 1),
         params_init=py_utils.WeightInit.Constant(0.1))
-    with tf.variable_scope(p.name):
-      self.CreateChild('conv', conv)
-      self.RegisterAccumulator('ts_count', _TimestepAccumulator())
+    self.CreateChild('conv', conv)
+    self.RegisterAccumulator('ts_count', _TimestepAccumulator())
 
   def FProp(self, theta, inputs):
     p = self.params

@@ -140,8 +140,7 @@ class StatelessLayerStep(Step):
   def __init__(self, params):
     super().__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      self.CreateChild('layer', p.layer)
+    self.CreateChild('layer', p.layer)
 
   def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Perform inference on a stateless layer.
@@ -207,9 +206,8 @@ class StackStep(Step):
   def __init__(self, params):
     super().__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      self.sub_steps = []
-      self.CreateChildren('sub', p.sub)
+    self.sub_steps = []
+    self.CreateChildren('sub', p.sub)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Delegates external inputs preparation to sub-layers.
@@ -316,8 +314,7 @@ class ParallelStep(Step):
   def __init__(self, params):
     super().__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      self.CreateChildren('sub', p.sub)
+    self.CreateChildren('sub', p.sub)
 
   def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Performs inference on N steps at once and concatenates the result.
@@ -416,26 +413,25 @@ class GraphStep(Step):
     super().__init__(params)
     p = self.params
     assert p.name
-    with tf.variable_scope(p.name):
-      self._seq = []
-      for i, (signature, external_signature, sub_params) in enumerate(p.sub):
-        assert signature
-        sig = builder_layers.GraphSignature(signature)
-        assert len(sig.inputs) == 1
-        assert sig.outputs
-        external_sig = None
-        if external_signature:
-          external_sig = builder_layers.GraphSignature(external_signature)
-          assert len(external_sig.inputs) == 1
-          assert not external_sig.outputs
-        name = sub_params.name
-        if not name:
-          name = '%s_%02d' % (sig.outputs[0], i)
-          sub_params.name = name
-        self.CreateChild(name, sub_params)
-        self._seq.append(
-            GraphStep._seq(name, sig, external_sig, self.children[name]))
-      self.output_signature = builder_layers.GraphSignature(p.output_signature)
+    self._seq = []
+    for i, (signature, external_signature, sub_params) in enumerate(p.sub):
+      assert signature
+      sig = builder_layers.GraphSignature(signature)
+      assert len(sig.inputs) == 1
+      assert sig.outputs
+      external_sig = None
+      if external_signature:
+        external_sig = builder_layers.GraphSignature(external_signature)
+        assert len(external_sig.inputs) == 1
+        assert not external_sig.outputs
+      name = sub_params.name
+      if not name:
+        name = '%s_%02d' % (sig.outputs[0], i)
+        sub_params.name = name
+      self.CreateChild(name, sub_params)
+      self._seq.append(
+          GraphStep._seq(name, sig, external_sig, self.children[name]))
+    self.output_signature = builder_layers.GraphSignature(p.output_signature)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Prepares external inputs for each sub-step.

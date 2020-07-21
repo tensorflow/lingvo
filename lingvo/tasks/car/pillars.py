@@ -75,8 +75,7 @@ class PointsToGridFeaturizer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateChild('featurizer', p.featurizer)
+    self.CreateChild('featurizer', p.featurizer)
 
   def FProp(self, theta, input_batch):
     # pyformat: disable
@@ -361,13 +360,12 @@ class ModelV1(point_detector.PointDetectorBase):
     p = self.params
     self._utils = detection_3d_lib.Utils3D()
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('input_featurizer', p.input_featurizer)
-      self.CreateChild('backbone', p.backbone)
-      self.CreateChild('class_detector', p.class_detector)
-      self.CreateChild('regression_detector', p.regression_detector)
-      if p.direction_classifier_weight > 0.0:
-        self.CreateChild('direction_classifier', p.direction_classifier)
+    self.CreateChild('input_featurizer', p.input_featurizer)
+    self.CreateChild('backbone', p.backbone)
+    self.CreateChild('class_detector', p.class_detector)
+    self.CreateChild('regression_detector', p.regression_detector)
+    if p.direction_classifier_weight > 0.0:
+      self.CreateChild('direction_classifier', p.direction_classifier)
 
   def ComputePredictions(self, theta, input_batch):
     """Computes predictions for `input_batch`.

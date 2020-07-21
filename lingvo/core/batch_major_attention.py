@@ -246,34 +246,32 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         p.hidden_dim, p.num_heads)
     dim_per_head = p.hidden_dim // p.num_heads
 
-    with tf.variable_scope(p.name):
+    def ProjectInput():
+      return p.proj_tpl.Copy().Set(
+          input_dim=p.input_dim,
+          num_heads=p.num_heads,
+          dim_per_head=dim_per_head,
+          use_bias=p.use_bias)
 
-      def ProjectInput():
-        return p.proj_tpl.Copy().Set(
+    self.CreateChild('key', ProjectInput())
+    self.CreateChild('query', ProjectInput())
+    if p.enable_value_proj:
+      self.CreateChild('value', ProjectInput())
+    if p.enable_per_dim_scale:
+      self.CreateChild('per_dim_scale',
+                       PerDimScaleLayer.Params().Set(dim=dim_per_head))
+    self.CreateChild('atten_dropout',
+                     p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
+    # Setting is_output_projection=True to set the projection direction
+    # from hidden dim to input dim.
+    self.CreateChild(
+        'post',
+        p.proj_tpl.Copy().Set(
             input_dim=p.input_dim,
             num_heads=p.num_heads,
             dim_per_head=dim_per_head,
-            use_bias=p.use_bias)
-
-      self.CreateChild('key', ProjectInput())
-      self.CreateChild('query', ProjectInput())
-      if p.enable_value_proj:
-        self.CreateChild('value', ProjectInput())
-      if p.enable_per_dim_scale:
-        self.CreateChild('per_dim_scale',
-                         PerDimScaleLayer.Params().Set(dim=dim_per_head))
-      self.CreateChild('atten_dropout',
-                       p.dropout_tpl.Set(keep_prob=1.0 - p.atten_dropout_prob))
-      # Setting is_output_projection=True to set the projection direction
-      # from hidden dim to input dim.
-      self.CreateChild(
-          'post',
-          p.proj_tpl.Copy().Set(
-              input_dim=p.input_dim,
-              num_heads=p.num_heads,
-              dim_per_head=dim_per_head,
-              is_output_projection=True,
-              use_bias=p.use_bias))
+            is_output_projection=True,
+            use_bias=p.use_bias))
 
   def _AttenLogits(self, theta, query, key, per_step_padding):
     """Computes attention logits.
@@ -746,20 +744,18 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalide rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
-    with tf.variable_scope(params.name):
+    emb_params = layers.PositionalEmbeddingLayer.Params().Set(
+        embedding_dim=params.rel_pos_emb_dim)
+    self.CreateChild('pos_emb', emb_params)
 
-      emb_params = layers.PositionalEmbeddingLayer.Params().Set(
-          embedding_dim=params.rel_pos_emb_dim)
-      self.CreateChild('pos_emb', emb_params)
-
-      # Projection layer for relative position encoding
-      dim_per_head = params.hidden_dim // params.num_heads
-      pos_proj_tpl = params.proj_tpl.Copy().Set(
-          input_dim=params.rel_pos_emb_dim,
-          num_heads=params.num_heads,
-          dim_per_head=dim_per_head,
-          use_bias=False)
-      self.CreateChild('pos_proj', pos_proj_tpl)
+    # Projection layer for relative position encoding
+    dim_per_head = params.hidden_dim // params.num_heads
+    pos_proj_tpl = params.proj_tpl.Copy().Set(
+        input_dim=params.rel_pos_emb_dim,
+        num_heads=params.num_heads,
+        dim_per_head=dim_per_head,
+        use_bias=False)
+    self.CreateChild('pos_proj', pos_proj_tpl)
 
   def _CreateVariables(self):
     super()._CreateVariables()
@@ -905,16 +901,14 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     else:
       pos_proj_tpl = None
 
-    with tf.variable_scope(
-        params.name, reuse=tf.AUTO_REUSE if params.use_global_emb else False):
-      self.CreateChild('key_emb', rel_pos_emb_tpl)
-      # Add projection layer if rel_pos_emb_dim is different from hidden_dim.
+    self.CreateChild('key_emb', rel_pos_emb_tpl)
+    # Add projection layer if rel_pos_emb_dim is different from hidden_dim.
+    if pos_proj_tpl is not None:
+      self.CreateChild('key_pos_proj', pos_proj_tpl)
+    if not params.skip_value_emb:
+      self.CreateChild('value_emb', rel_pos_emb_tpl)
       if pos_proj_tpl is not None:
-        self.CreateChild('key_pos_proj', pos_proj_tpl)
-      if not params.skip_value_emb:
-        self.CreateChild('value_emb', rel_pos_emb_tpl)
-        if pos_proj_tpl is not None:
-          self.CreateChild('value_pos_proj', pos_proj_tpl)
+        self.CreateChild('value_pos_proj', pos_proj_tpl)
 
   def _CreateChildrenVariables(self):
     with tf.variable_scope(
@@ -1303,20 +1297,18 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
       raise ValueError('Invalide rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
-    with tf.variable_scope(params.name):
+    emb_params = layers.PositionalEmbeddingLayer.Params().Set(
+        embedding_dim=params.rel_pos_emb_dim)
+    self.CreateChild('pos_emb', emb_params)
 
-      emb_params = layers.PositionalEmbeddingLayer.Params().Set(
-          embedding_dim=params.rel_pos_emb_dim)
-      self.CreateChild('pos_emb', emb_params)
-
-      # Projection layer for relative position encoding
-      dim_per_head = params.hidden_dim // params.num_heads
-      pos_proj_tpl = params.proj_tpl.Copy().Set(
-          input_dim=params.rel_pos_emb_dim,
-          num_heads=params.num_heads,
-          dim_per_head=dim_per_head,
-          use_bias=False)
-      self.CreateChild('pos_proj', pos_proj_tpl)
+    # Projection layer for relative position encoding
+    dim_per_head = params.hidden_dim // params.num_heads
+    pos_proj_tpl = params.proj_tpl.Copy().Set(
+        input_dim=params.rel_pos_emb_dim,
+        num_heads=params.num_heads,
+        dim_per_head=dim_per_head,
+        use_bias=False)
+    self.CreateChild('pos_proj', pos_proj_tpl)
 
   def _CreateVariables(self):
     super()._CreateVariables()
@@ -1418,21 +1410,20 @@ class MultiSourceAttention(base_layer.BaseLayer):
     assert p.primary_source_key in [
         x for x, _ in p.source_atten_tpls
     ], ('Source attention must have the primary source key.')
-    with tf.variable_scope(p.name):
-      for source_key, atten_p in p.source_atten_tpls:
-        child_p = atten_p.Copy()
-        if child_p.hidden_dim <= 0:
-          child_p.hidden_dim = p.hidden_dim
-        if child_p.input_dim <= 0:
-          child_p.input_dim = p.input_dim
-        self.CreateChild('atten_%s' % source_key, child_p)
+    for source_key, atten_p in p.source_atten_tpls:
+      child_p = atten_p.Copy()
+      if child_p.hidden_dim <= 0:
+        child_p.hidden_dim = p.hidden_dim
+      if child_p.input_dim <= 0:
+        child_p.input_dim = p.input_dim
+      self.CreateChild('atten_%s' % source_key, child_p)
 
-      # Initialize source context vector merging layer.
-      merger_p = p.atten_merger_tpl.Copy()
-      merger_p.name = 'atten_merger'
-      merger_p.source_dim = p.input_dim
-      merger_p.query_dim = p.input_dim
-      self.CreateChild('atten_merger', merger_p)
+    # Initialize source context vector merging layer.
+    merger_p = p.atten_merger_tpl.Copy()
+    merger_p.name = 'atten_merger'
+    merger_p.source_dim = p.input_dim
+    merger_p.query_dim = p.input_dim
+    self.CreateChild('atten_merger', merger_p)
 
   def FProp(self,
             theta,
@@ -1557,21 +1548,20 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     if not p.hidden_dim:
       p.hidden_dim = p.input_dim
 
-    with tf.variable_scope(p.name):
-      # Initialize attention.
-      params = self._InitAttentionParams(p.atten_tpl)
-      self.CreateChild('atten', params)
+    # Initialize attention.
+    params = self._InitAttentionParams(p.atten_tpl)
+    self.CreateChild('atten', params)
 
-      # Initialize attention layer normalization.
-      params = p.ln_tpl.Copy()
-      params.name = 'atten_ln'
-      params.input_dim = p.input_dim
-      self.CreateChild('layer_norm', params)
+    # Initialize attention layer normalization.
+    params = p.ln_tpl.Copy()
+    params.name = 'atten_ln'
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
 
-      # Initialize residual dropout.
-      dropout_tpl = p.dropout_tpl.Copy()
-      dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
-      self.CreateChild('residual_dropout', dropout_tpl)
+    # Initialize residual dropout.
+    dropout_tpl = p.dropout_tpl.Copy()
+    dropout_tpl.keep_prob = (1.0 - p.residual_dropout_prob)
+    self.CreateChild('residual_dropout', dropout_tpl)
 
   def FProp(self,
             theta,
@@ -1791,33 +1781,32 @@ class TransformerLayer(base_layer.BaseLayer):
     super().__init__(params)
     p = self.params
 
-    with tf.variable_scope(p.name):
-      # Initialize masked multi-headed self-attention
-      if p.tr_self_atten_tpl is not None:
-        self_atten_tpl = p.tr_self_atten_tpl
-      else:
-        self_atten_tpl = p.tr_atten_tpl
-      params = self_atten_tpl.Copy()
-      params.name = 'multihead_self_atten'
+    # Initialize masked multi-headed self-attention
+    if p.tr_self_atten_tpl is not None:
+      self_atten_tpl = p.tr_self_atten_tpl
+    else:
+      self_atten_tpl = p.tr_atten_tpl
+    params = self_atten_tpl.Copy()
+    params.name = 'multihead_self_atten'
+    params.input_dim = p.input_dim
+    params.is_masked = p.mask_self_atten
+    params.atten_tpl.packed_input = p.packed_input
+    self.CreateChild('self_atten', params)
+
+    if p.has_aux_atten:
+      # Initialize multi-headed cross-attention
+      params = p.tr_atten_tpl.Copy()
+      params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dim
-      params.is_masked = p.mask_self_atten
       params.atten_tpl.packed_input = p.packed_input
-      self.CreateChild('self_atten', params)
+      self.CreateChild('cross_atten', params)
 
-      if p.has_aux_atten:
-        # Initialize multi-headed cross-attention
-        params = p.tr_atten_tpl.Copy()
-        params.name = 'multihead_cross_atten'
-        params.input_dim = p.input_dim
-        params.atten_tpl.packed_input = p.packed_input
-        self.CreateChild('cross_atten', params)
-
-      # Initialize feed-forward layer
-      params = p.tr_fflayer_tpl.Copy()
-      params.name = 'tr_fflayer'
-      params.input_dim = p.input_dim
-      params.output_dim = p.output_dim
-      self.CreateChild('fflayer', params)
+    # Initialize feed-forward layer
+    params = p.tr_fflayer_tpl.Copy()
+    params.name = 'tr_fflayer'
+    params.input_dim = p.input_dim
+    params.output_dim = p.output_dim
+    self.CreateChild('fflayer', params)
 
   def _GetSourceBatchSize(self, aux_vec):
     return py_utils.GetShape(aux_vec, 2)[0]
@@ -2171,8 +2160,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
 
     layer_params = [_LayerParams(ii) for ii in range(p.num_layers)]
 
-    with tf.variable_scope(p.name):
-      self.CreateChildren('x_layers', layer_params)
+    self.CreateChildren('x_layers', layer_params)
 
     if p.final_layer_norm:
       final_ln_p = layers.LayerNorm.Params().Set(

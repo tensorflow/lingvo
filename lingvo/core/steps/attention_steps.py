@@ -47,8 +47,7 @@ class AttentionStep(step.Step):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateChild('atten', p.atten)
+    self.CreateChild('atten', p.atten)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Prepare encoded source data for processing.
@@ -213,10 +212,8 @@ class AttentionBlockStep(step.Step):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    name = p.name
-    with tf.variable_scope(name):
-      self.CreateChild('query_generator', p.query_generator)
-      self.CreateChild('attention', p.attention)
+    self.CreateChild('query_generator', p.query_generator)
+    self.CreateChild('attention', p.attention)
 
   def ZeroState(self, theta, prepared_inputs, batch_size):
     """Produce a zero state for this step.

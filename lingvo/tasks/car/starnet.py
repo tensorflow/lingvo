@@ -567,10 +567,9 @@ class ModelV1(ModelBase):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateChild('cell_featurizer', p.cell_featurizer)
-      self.CreateChild('localization_regressor', p.localization_regressor)
-      self.CreateChild('classifier', p.classifier)
+    self.CreateChild('cell_featurizer', p.cell_featurizer)
+    self.CreateChild('localization_regressor', p.localization_regressor)
+    self.CreateChild('classifier', p.classifier)
 
   def ComputePredictions(self, theta, input_batch):
     """Computes predictions for `input_batch`.
@@ -781,11 +780,10 @@ class ModelV2(ModelBase):
         num_anchors_per_offset * p.num_classes,
         bias_params_init=py_utils.WeightInit.Constant(-4.595))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('cell_featurizer', p.cell_featurizer)
-      self.CreateChild('cell_feature_projector', cell_feature_projector_p)
-      self.CreateChild('localization_regressor', localization_regressor_p)
-      self.CreateChild('classifier', classifier_p)
+    self.CreateChild('cell_featurizer', p.cell_featurizer)
+    self.CreateChild('cell_feature_projector', cell_feature_projector_p)
+    self.CreateChild('localization_regressor', localization_regressor_p)
+    self.CreateChild('classifier', classifier_p)
 
   def _CellFeaturizer(self, theta, input_batch):
     """Featurizes each center location."""

@@ -78,8 +78,7 @@ class PointDetectorBase(base_model.BaseTask):
     super().__init__(params)
     p = self.params
     self._utils_3d = detection_3d_lib.Utils3D()
-    with tf.variable_scope(p.name):
-      self.CreateChild('output_decoder', p.output_decoder)
+    self.CreateChild('output_decoder', p.output_decoder)
 
   def CreateDecoderMetrics(self):
     """Create decoder metrics."""

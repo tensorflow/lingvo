@@ -498,75 +498,82 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
     p = self.params
     assert p.emb.vocab_size == p.softmax.num_classes
 
-    with tf.variable_scope(p.name):
-      if p.cc_schedule is None:
-        self.cc_schedule = None
-      else:
-        self.CreateChild('cc_schedule', p.cc_schedule)
+    if p.cc_schedule is None:
+      self.cc_schedule = None
+    else:
+      self.CreateChild('cc_schedule', p.cc_schedule)
 
+    self.CreateChild('emb', p.emb)
+
+    p.attention.dtype = p.dtype
+    p.attention.source_dim = p.source_dim
+    p.attention.query_dim = p.rnn_cell_dim
+    p.attention.packed_input = p.packed_input
+    if p.attention.params_init is None:
+      p.attention.params_init = py_utils.WeightInit.Gaussian(
+          1. / math.sqrt(p.attention.source_dim + p.attention.query_dim),
+          seed=p.random_seed)
+    atten_params = p.attention.Copy()
+
+    params = p.atten_rnn_cell_tpl.Copy()
+    params.name = 'atten_rnn'
+    params.dtype = p.dtype
+    params.reset_cell_state = p.packed_input
+    params.num_input_nodes = p.emb.embedding_dim + p.attention.source_dim
+    params.num_output_nodes = p.rnn_cell_dim
+    atten_rnn_cell = params.Copy()
+
+    params = p.atten_rnn_cls.Params()
+    params.name = 'frnn_with_atten'
+    params.dtype = p.dtype
+    params.cell = atten_rnn_cell
+    params.attention = atten_params
+    params.output_prev_atten_ctx = p.use_prev_atten_ctx
+    params.packed_input = p.packed_input
+    params.use_zero_atten_state = p.use_zero_atten_state
+    params.atten_context_dim = p.attention.source_dim
+    self.CreateChild('frnn_with_atten', params)
+
+    # TODO(zhifengc): Avoid this?
+    self._atten = self.frnn_with_atten.attention
+
+    rnn_layers_params = []
+    for i in range(1, p.rnn_layers):
+      params = p.rnn_cell_tpl.Copy()
+      params.name = 'rnn%d' % i
+      params.dtype = p.dtype
+      params.num_input_nodes = p.rnn_cell_dim + p.attention.source_dim
+      params.num_output_nodes = p.rnn_cell_dim
+      params.reset_cell_state = p.packed_input
+      rnn_cell_p = params
+
+      params = model_helper.CreateUnidirectionalRNNParams(
+          self.params, rnn_cell_p)
+      params.name = 'frnn%d' % i
+      params.packed_input = p.packed_input
+      rnn_layers_params.append(params)
+
+    self.CreateChildren('frnn', rnn_layers_params)
+
+    p.softmax.dtype = p.dtype
+    if p.feed_attention_context_vec_to_softmax:
+      p.softmax.input_dim = p.rnn_cell_dim + p.attention.source_dim
+    else:
+      p.softmax.input_dim = p.rnn_cell_dim
+    self.CreateChild('softmax', p.softmax)
+
+  def _CreateChildrenVariables(self):
+    with tf.variable_scope(self.params.name):
       if py_utils.use_tpu():
         emb_device = self.cluster.WorkerDeviceInModelSplit(0)
       else:
         emb_device = ''
       with tf.device(emb_device):
-        self.CreateChild('emb', p.emb)
-
-        p.attention.dtype = p.dtype
-        p.attention.source_dim = p.source_dim
-        p.attention.query_dim = p.rnn_cell_dim
-        p.attention.packed_input = p.packed_input
-        if p.attention.params_init is None:
-          p.attention.params_init = py_utils.WeightInit.Gaussian(
-              1. / math.sqrt(p.attention.source_dim + p.attention.query_dim),
-              seed=p.random_seed)
-        atten_params = p.attention.Copy()
-
-        params = p.atten_rnn_cell_tpl.Copy()
-        params.name = 'atten_rnn'
-        params.dtype = p.dtype
-        params.reset_cell_state = p.packed_input
-        params.num_input_nodes = p.emb.embedding_dim + p.attention.source_dim
-        params.num_output_nodes = p.rnn_cell_dim
-        atten_rnn_cell = params.Copy()
-
-        params = p.atten_rnn_cls.Params()
-        params.name = 'frnn_with_atten'
-        params.dtype = p.dtype
-        params.cell = atten_rnn_cell
-        params.attention = atten_params
-        params.output_prev_atten_ctx = p.use_prev_atten_ctx
-        params.packed_input = p.packed_input
-        params.use_zero_atten_state = p.use_zero_atten_state
-        params.atten_context_dim = p.attention.source_dim
-        self.CreateChild('frnn_with_atten', params)
-
-        # TODO(zhifengc): Avoid this?
-        self._atten = self.frnn_with_atten.attention
-
-        rnn_layers_params = []
-        for i in range(1, p.rnn_layers):
-          params = p.rnn_cell_tpl.Copy()
-          params.name = 'rnn%d' % i
-          params.dtype = p.dtype
-          params.num_input_nodes = p.rnn_cell_dim + p.attention.source_dim
-          params.num_output_nodes = p.rnn_cell_dim
-          params.reset_cell_state = p.packed_input
-          rnn_cell_p = params
-
-          params = model_helper.CreateUnidirectionalRNNParams(
-              self.params, rnn_cell_p)
-          params.name = 'frnn%d' % i
-          params.packed_input = p.packed_input
-          rnn_layers_params.append(params)
-
-        self.CreateChildren('frnn', rnn_layers_params)
-
-      p.softmax.dtype = p.dtype
-      if p.feed_attention_context_vec_to_softmax:
-        p.softmax.input_dim = p.rnn_cell_dim + p.attention.source_dim
-      else:
-        p.softmax.input_dim = p.rnn_cell_dim
-      self.CreateChild('softmax', p.softmax)
+        self.emb.CreateVariables()
+        self.frnn_with_atten.CreateVariables()
+        for frnn in self.frnn:
+          frnn.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def ApplyDropout(self, x_in):
     p = self.params
@@ -1048,42 +1055,41 @@ class TransformerDecoder(MTBaseDecoder):
     if p.use_lang_dependent_atten and p.task_emb:
       p.trans_tpl.num_aux_atten_post_proj = p.task_emb.vocab_size
 
-    with tf.variable_scope(p.name):
-      if not self._share_sm_emb:
-        self.CreateChild('token_emb', p.token_emb)
-      self.CreateChild('position_emb', p.position_emb)
-      if p.task_emb:
-        assert p.task_emb.embedding_dim == self._token_emb_dim
-        self.CreateChild('task_emb', p.task_emb)
+    if not self._share_sm_emb:
+      self.CreateChild('token_emb', p.token_emb)
+    self.CreateChild('position_emb', p.position_emb)
+    if p.task_emb:
+      assert p.task_emb.embedding_dim == self._token_emb_dim
+      self.CreateChild('task_emb', p.task_emb)
 
-      dropout_tpl = layers.DropoutLayer.Params()
-      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      self.CreateChild('input_dropout', dropout_tpl)
+    dropout_tpl = layers.DropoutLayer.Params()
+    dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+    self.CreateChild('input_dropout', dropout_tpl)
 
-      params_trans_layers = []
-      denom = 1
+    params_trans_layers = []
+    denom = 1
+    if isinstance(p.trans_tpl, list):
+      denom = len(p.trans_tpl)
+    assert p.num_trans_layers % denom == 0
+    for i in range(p.num_trans_layers // denom):
       if isinstance(p.trans_tpl, list):
-        denom = len(p.trans_tpl)
-      assert p.num_trans_layers % denom == 0
-      for i in range(p.num_trans_layers // denom):
-        if isinstance(p.trans_tpl, list):
-          for q in p.trans_tpl:
-            params = q.Copy()
-            params_trans_layers.append(params)
-        else:
-          params = p.trans_tpl.Copy()
+        for q in p.trans_tpl:
+          params = q.Copy()
           params_trans_layers.append(params)
+      else:
+        params = p.trans_tpl.Copy()
+        params_trans_layers.append(params)
 
-      for i, params in enumerate(params_trans_layers):
-        params.name = 'trans_layer_%d' % i
-        params.packed_input = p.packed_input
-        params.has_aux_atten = True
-        params.mask_self_atten = True
+    for i, params in enumerate(params_trans_layers):
+      params.name = 'trans_layer_%d' % i
+      params.packed_input = p.packed_input
+      params.has_aux_atten = True
+      params.mask_self_atten = True
 
-      self.CreateChildren('trans', params_trans_layers)
+    self.CreateChildren('trans', params_trans_layers)
 
-      p.softmax.input_dim = p.model_dim
-      self.CreateChild('softmax', p.softmax)
+    p.softmax.input_dim = p.model_dim
+    self.CreateChild('softmax', p.softmax)
 
   def _CreateChildrenVariables(self):
     if self._share_sm_emb:
@@ -1898,26 +1904,25 @@ class InsertionDecoder(base_decoder.BaseBeamSearchDecoder):
     assert p.token_emb.embedding_dim == p.position_emb.embedding_dim
     assert p.token_emb.embedding_dim == p.model_dim
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('token_emb', p.token_emb)
-      self.CreateChild('position_emb', p.position_emb)
+    self.CreateChild('token_emb', p.token_emb)
+    self.CreateChild('position_emb', p.position_emb)
 
-      dropout_tpl = layers.DropoutLayer.Params()
-      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      self.CreateChild('input_dropout', dropout_tpl)
+    dropout_tpl = layers.DropoutLayer.Params()
+    dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+    self.CreateChild('input_dropout', dropout_tpl)
 
-      params_trans_layers = []
-      for i in range(p.num_trans_layers):
-        params = p.trans_tpl.Copy()
-        params.name = 'trans_layer_%d' % i
-        params.packed_input = p.packed_input
-        params.has_aux_atten = False
-        params.mask_self_atten = True
-        params_trans_layers.append(params)
-      self.CreateChildren('trans', params_trans_layers)
+    params_trans_layers = []
+    for i in range(p.num_trans_layers):
+      params = p.trans_tpl.Copy()
+      params.name = 'trans_layer_%d' % i
+      params.packed_input = p.packed_input
+      params.has_aux_atten = False
+      params.mask_self_atten = True
+      params_trans_layers.append(params)
+    self.CreateChildren('trans', params_trans_layers)
 
-      p.softmax.input_dim = p.model_dim
-      self.CreateChild('softmax', p.softmax)
+    p.softmax.input_dim = p.model_dim
+    self.CreateChild('softmax', p.softmax)
 
   def ComputePredictions(self, theta, encoder_outputs, targets):
     """Compute 1-step of the insertion iteration.
@@ -2104,33 +2109,32 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     if p.shared_emb:
       self.CreateChild('softmax', p.shared_emb)
 
-    with tf.variable_scope(p.name):
-      if not p.shared_emb:
-        self.CreateChild('token_emb', p.token_emb)
-      self.CreateChild('position_emb', p.position_emb)
+    if not p.shared_emb:
+      self.CreateChild('token_emb', p.token_emb)
+    self.CreateChild('position_emb', p.position_emb)
 
-      dropout_tpl = p.input_dropout_tpl.Copy()
-      dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      self.CreateChild('input_dropout', dropout_tpl)
+    dropout_tpl = p.input_dropout_tpl.Copy()
+    dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+    self.CreateChild('input_dropout', dropout_tpl)
 
-      params_trans_layers = []
-      for i in range(p.num_trans_layers):
-        params = p.trans_decoder_tpl.Copy()
-        params.name = 'decoder_trans_layer_%d' % i
-        params_trans_layers.append(params)
-      self.CreateChildren('decoder_trans', params_trans_layers)
+    params_trans_layers = []
+    for i in range(p.num_trans_layers):
+      params = p.trans_decoder_tpl.Copy()
+      params.name = 'decoder_trans_layer_%d' % i
+      params_trans_layers.append(params)
+    self.CreateChildren('decoder_trans', params_trans_layers)
 
-      p.softmax.input_dim = p.model_dim
-      if not p.shared_emb:
-        self.CreateChild('softmax', p.softmax)
+    p.softmax.input_dim = p.model_dim
+    if not p.shared_emb:
+      self.CreateChild('softmax', p.softmax)
 
-      if p.final_layer_norm:
-        layer_norm_p = layers.LayerNorm.Params().Set(
-            name='final_ln',
-            input_dim=p.model_dim,
-            use_fused_layernorm=p.use_fused_layernorm,
-            fprop_dtype=p.input_dropout_tpl.fprop_dtype)
-        self.CreateChild('final_ln', layer_norm_p)
+    if p.final_layer_norm:
+      layer_norm_p = layers.LayerNorm.Params().Set(
+          name='final_ln',
+          input_dim=p.model_dim,
+          use_fused_layernorm=p.use_fused_layernorm,
+          fprop_dtype=p.input_dropout_tpl.fprop_dtype)
+      self.CreateChild('final_ln', layer_norm_p)
 
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:

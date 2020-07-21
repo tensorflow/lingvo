@@ -14,7 +14,6 @@
 # limitations under the License.
 """Step APIs for RNN layers."""
 
-from lingvo import compat as tf
 from lingvo.core import py_utils
 from lingvo.core import rnn_cell
 from lingvo.core import step
@@ -33,8 +32,7 @@ class RnnStep(step.Step):
   def __init__(self, params):
     super().__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      self.CreateChild('cell', p.cell)
+    self.CreateChild('cell', p.cell)
 
   def PrepareExternalInputs(self, theta, external_inputs):
     """Does not modify the external_inputs parameter.

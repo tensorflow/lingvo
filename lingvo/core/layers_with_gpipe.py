@@ -434,35 +434,33 @@ class GPipeTransformerEmbeddingLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      p.token_emb.name = 'src_token_emb'
-      p.position_emb.name = 'src_position_emb'
-      self.CreateChild('src_token_emb', p.token_emb)
-      self.CreateChild('src_pos_emb', p.position_emb)
-      if p.enc_task_emb:
-        self.CreateChild('src_task_emb', p.enc_task_emb)
+    p.token_emb.name = 'src_token_emb'
+    p.position_emb.name = 'src_position_emb'
+    self.CreateChild('src_token_emb', p.token_emb)
+    self.CreateChild('src_pos_emb', p.position_emb)
+    if p.enc_task_emb:
+      self.CreateChild('src_task_emb', p.enc_task_emb)
 
-      p.dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
-      p.dropout_tpl.name = 'src_dropout'
-      self.CreateChild('src_dropout', p.dropout_tpl)
+    p.dropout_tpl.keep_prob = (1.0 - p.input_dropout_prob)
+    p.dropout_tpl.name = 'src_dropout'
+    self.CreateChild('src_dropout', p.dropout_tpl)
 
-      if p.add_tgt_embedding_layer:
-        params = p.token_emb.Copy()
-        if p.target_vocab_size:
-          params.vocab_size = p.target_vocab_size
-        params.name = 'tgt_token_emb'
-        self.CreateChild('tgt_token_emb', params)
-        params = p.position_emb.Copy()
-        params.name = 'tgt_position_emb'
-        self.CreateChild('tgt_pos_emb', params)
-        if p.dec_task_emb:
-          self.CreateChild('tgt_task_emb', p.dec_task_emb)
+    if p.add_tgt_embedding_layer:
+      params = p.token_emb.Copy()
+      if p.target_vocab_size:
+        params.vocab_size = p.target_vocab_size
+      params.name = 'tgt_token_emb'
+      self.CreateChild('tgt_token_emb', params)
+      params = p.position_emb.Copy()
+      params.name = 'tgt_position_emb'
+      self.CreateChild('tgt_pos_emb', params)
+      if p.dec_task_emb:
+        self.CreateChild('tgt_task_emb', p.dec_task_emb)
 
-        params = p.dropout_tpl.Copy()
-        params.keep_prob = (1.0 - p.input_dropout_prob)
-        params.name = 'tgt_dropout'
-        self.CreateChild('tgt_dropout', params)
-    assert p.name
+      params = p.dropout_tpl.Copy()
+      params.keep_prob = (1.0 - p.input_dropout_prob)
+      params.name = 'tgt_dropout'
+      self.CreateChild('tgt_dropout', params)
 
   def GetEmbeddings(self, emb_theta, emb, pos_emb_theta, pos_emb, dropout_theta,
                     dropout, input_ids, input_pos_ids, task_emb_theta, task_emb,
@@ -642,75 +640,81 @@ class GPipeTransformerStack(PipeliningLayer):
         p.splits.append((i + 1) * layers_per_split)
       p.splits[-1] = num_layers
 
-    with tf.variable_scope(p.name):
-      transformers = []
+    transformers = []
 
+    if p.is_transparent:
+      p.transparent_merger_tpl.num_sources = p.num_encoder_layers + 1
+      p.transparent_merger_tpl.dropout_tpl.keep_prob = (
+          1 - p.transparent_merger_dropout_prob)
+
+    # Encoder Embedding layer.
+    if len(p.splits) > 1 or p.num_micro_batches > 1:
+      p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
+    p.emb_tpl.packed_input = p.packed_input
+    p.emb_tpl.is_transparent = p.is_transparent
+    p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
+    p.emb_tpl.name = 'emb'
+    p.emb_tpl.batch_dim = p.batch_dim
+    transformers.append(p.emb_tpl)
+    if p.softmax_tpl:
+      p.softmax_tpl.name = 'softmax'
+      p.softmax_tpl.inputs_from_decoder = p.num_decoder_layers > 0
+    # Encoder layers.
+    for i in range(p.num_encoder_layers):
+      params = p.encoder_tpl.Copy()
+      params.name = 'encoder_%d' % i
       if p.is_transparent:
-        p.transparent_merger_tpl.num_sources = p.num_encoder_layers + 1
-        p.transparent_merger_tpl.dropout_tpl.keep_prob = (
-            1 - p.transparent_merger_dropout_prob)
-
-      # Encoder Embedding layer.
+        params.is_transparent = p.is_transparent
+        params.final_enc_layer = (i == (p.num_encoder_layers - 1))
+      if p.normalize_encoder and (i == (p.num_encoder_layers - 1)):
+        params.normalize_output = p.normalize_encoder
+        params.final_enc_layer = (i == (p.num_encoder_layers - 1))
+      if p.packed_input:
+        params.packed_input = p.packed_input
+      # Use DeterministicDropoutLayer when used in temp graphs.
       if len(p.splits) > 1 or p.num_micro_batches > 1:
-        p.emb_tpl.dropout_tpl = layers.DeterministicDropoutLayer.Params()
-      p.emb_tpl.packed_input = p.packed_input
-      p.emb_tpl.is_transparent = p.is_transparent
-      p.emb_tpl.add_tgt_embedding_layer = (p.num_decoder_layers > 0)
-      p.emb_tpl.name = 'emb'
-      p.emb_tpl.batch_dim = p.batch_dim
-      transformers.append(p.emb_tpl)
-      if p.softmax_tpl:
-        p.softmax_tpl.name = 'softmax'
-        p.softmax_tpl.inputs_from_decoder = p.num_decoder_layers > 0
-      # Encoder layers.
-      for i in range(p.num_encoder_layers):
-        params = p.encoder_tpl.Copy()
-        params.name = 'encoder_%d' % i
-        if p.is_transparent:
-          params.is_transparent = p.is_transparent
-          params.final_enc_layer = (i == (p.num_encoder_layers - 1))
-        if p.normalize_encoder and (i == (p.num_encoder_layers - 1)):
-          params.normalize_output = p.normalize_encoder
-          params.final_enc_layer = (i == (p.num_encoder_layers - 1))
-        if p.packed_input:
-          params.packed_input = p.packed_input
-        # Use DeterministicDropoutLayer when used in temp graphs.
-        if len(p.splits) > 1 or p.num_micro_batches > 1:
-          params = params.cls.SetupDeterministicDropout(params)
-        assert not params.has_aux_atten
-        if p.is_transparent and i == 0:
-          params.transparent_merger_tpl = p.transparent_merger_tpl.Copy()
-        transformers.append(params)
+        params = params.cls.SetupDeterministicDropout(params)
+      assert not params.has_aux_atten
+      if p.is_transparent and i == 0:
+        params.transparent_merger_tpl = p.transparent_merger_tpl.Copy()
+      transformers.append(params)
 
-      # Decoder layers.
-      for i in range(p.num_decoder_layers):
-        params = p.decoder_tpl.Copy()
-        params.name = 'decoder_%d' % i
-        params.mask_self_atten = True
-        if p.packed_input:
-          params.packed_input = p.packed_input
-        if len(p.splits) > 1 or p.num_micro_batches > 1:
-          params = params.cls.SetupDeterministicDropout(params)
-        assert params.has_aux_atten
-        transformers.append(params)
-      cells = []
-      cell_start = 0
-      # To account for embedding layers in the pipeline.
-      offset = 1
-      for split, cell_end in enumerate(p.splits):
-        # Layer 0 (embeddings) is always in split 0.
-        sub = transformers[cell_start:(cell_end + offset)]
-        if split == len(p.splits) - 1 and p.softmax_tpl:
-          sub.append(p.softmax_tpl)
-        cell = FeatureExtractionLayer.Params().Set(
-            name='cell_{}'.format(split), sub=sub)
-        cells.append(cell)
-        cell_start = cell_end + offset
-      p.cell_tpl = cells
+    # Decoder layers.
+    for i in range(p.num_decoder_layers):
+      params = p.decoder_tpl.Copy()
+      params.name = 'decoder_%d' % i
+      params.mask_self_atten = True
+      if p.packed_input:
+        params.packed_input = p.packed_input
+      if len(p.splits) > 1 or p.num_micro_batches > 1:
+        params = params.cls.SetupDeterministicDropout(params)
+      assert params.has_aux_atten
+      transformers.append(params)
+    cells = []
+    cell_start = 0
+    # To account for embedding layers in the pipeline.
+    offset = 1
+    for split, cell_end in enumerate(p.splits):
+      # Layer 0 (embeddings) is always in split 0.
+      sub = transformers[cell_start:(cell_end + offset)]
+      if split == len(p.splits) - 1 and p.softmax_tpl:
+        sub.append(p.softmax_tpl)
+      cell = FeatureExtractionLayer.Params().Set(
+          name='cell_{}'.format(split), sub=sub)
+      cells.append(cell)
+      cell_start = cell_end + offset
+    p.cell_tpl = cells
     super().__init__(p)
 
     if p.label_smoothing:
       self.CreateChild('smoother', p.label_smoothing)
+
+  def _CreateChildrenVariables(self):
+    # Backwards compatibility: manually call child.CreateVariables() outside of
+    # tf.variable_scope(p.name).
+    if self.params.label_smoothing:
+      self.smoother.CreateVariables()
+    super()._CreateChildrenVariables()
 
   def Logits(self, theta, inputs):
     num_splits = len(self.params.splits)

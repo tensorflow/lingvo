@@ -37,27 +37,26 @@ def EvalAndFlatten(nmap):
 
 class TestLayer(base_layer.BaseLayer):
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    with tf.variable_scope(p.name):
-      self.CreateVariable(
-          'w',
-          py_utils.WeightParams(
-              shape=[4, 4],
-              dtype=p.dtype,
-              init=p.params_init,
-              collections=[self.__class__.__name__ + '_vars']))
-      self.CreateVariable(
-          'b',
-          py_utils.WeightParams(
-              shape=[4],
-              dtype=p.dtype,
-              init=py_utils.WeightInit.Constant(),
-              collections=[
-                  self.__class__.__name__ + '_vars',
-                  py_utils.SKIP_LP_REGULARIZATION
-              ]))
+    self.CreateVariable(
+        'w',
+        py_utils.WeightParams(
+            shape=[4, 4],
+            dtype=p.dtype,
+            init=p.params_init,
+            collections=[self.__class__.__name__ + '_vars']))
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(
+            shape=[4],
+            dtype=p.dtype,
+            init=py_utils.WeightInit.Constant(),
+            collections=[
+                self.__class__.__name__ + '_vars',
+                py_utils.SKIP_LP_REGULARIZATION
+            ]))
 
 
 class BaseLayerTest(test_utils.TestCase):

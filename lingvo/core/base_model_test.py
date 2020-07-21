@@ -40,8 +40,7 @@ class TestTask(base_model.BaseTask):
 
   def __init__(self, params):
     super().__init__(params)
-    with tf.variable_scope(self.params.name):
-      self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
+    self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
 
   def _CreateVariables(self):
     super()._CreateVariables()

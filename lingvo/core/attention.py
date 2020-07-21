@@ -1207,22 +1207,21 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.proj_init not in ('uniform', 'default'):
       raise ValueError('Unknown proj_init: %s!' % p.proj_init)
 
-    with tf.variable_scope(p.name):
-      att_dim = p.hidden_dim // p.num_attention_heads
+    att_dim = p.hidden_dim // p.num_attention_heads
 
-      att_p = p.inner_atten_params.Set(
-          source_dim=att_dim,
-          query_dim=att_dim,
-          hidden_dim=att_dim,
-          dtype=p.dtype,
-          atten_dropout_prob=p.atten_dropout_prob,
-          atten_dropout_deterministic=p.atten_dropout_deterministic,
-          packed_input=p.packed_input)
-      if not att_p.name:
-        att_p.name = 'inner_att'
-      self.CreateChild('atten', att_p)
-      if p.attention_head_prob_index >= 0:
-        assert p.attention_head_prob_index < p.num_attention_heads
+    att_p = p.inner_atten_params.Set(
+        source_dim=att_dim,
+        query_dim=att_dim,
+        hidden_dim=att_dim,
+        dtype=p.dtype,
+        atten_dropout_prob=p.atten_dropout_prob,
+        atten_dropout_deterministic=p.atten_dropout_deterministic,
+        packed_input=p.packed_input)
+    if not att_p.name:
+      att_p.name = 'inner_att'
+    self.CreateChild('atten', att_p)
+    if p.attention_head_prob_index >= 0:
+      assert p.attention_head_prob_index < p.num_attention_heads
 
   def _CreateVariables(self):
     super()._CreateVariables()
@@ -2627,129 +2626,127 @@ class GmmMonotonicAttention(BaseAttentionLayer):
       raise NotImplementedError('dropout is not supported.')
 
     # TODO(ngyuzh): Compare Sigmoid and other activation functions.
-    with tf.variable_scope(p.name):
-      ff_params = layers.FeedForwardNet.Params().Set(
-          name=p.name,
-          input_dim=p.query_dim,
-          hidden_layer_dims=[p.hidden_dim, p.num_mixtures * 3],
-          activation=['SIGMOID', 'NONE'],
-          params_init=p.params_init.Copy())
-      self.CreateChild('GMM', ff_params)
+    ff_params = layers.FeedForwardNet.Params().Set(
+        name=p.name,
+        input_dim=p.query_dim,
+        hidden_layer_dims=[p.hidden_dim, p.num_mixtures * 3],
+        activation=['SIGMOID', 'NONE'],
+        params_init=p.params_init.Copy())
+    self.CreateChild('GMM', ff_params)
 
-      def ComputeProbs(encoder_positions, priors, means, variances):
-        """Computes the location GMM probabilities at all encoder positions.
+    def ComputeProbs(encoder_positions, priors, means, variances):
+      """Computes the location GMM probabilities at all encoder positions.
 
-        This function assumes that the first 2 dimensions of `priors`, `means`,
-        `variances`, and the return value:
-        `multiplier (target_batch / source_batch)` and `source_batch` are
-        transposed, and `encoder_positions` has only non-one dimensions.
+      This function assumes that the first 2 dimensions of `priors`, `means`,
+      `variances`, and the return value:
+      `multiplier (target_batch / source_batch)` and `source_batch` are
+      transposed, and `encoder_positions` has only non-one dimensions.
 
-        Args:
-          encoder_positions: [source_batch, source_length]
-          priors: [multiplier, source_batch, num_mixtures]
-          means: [multiplier, source_batch, num_mixtures]
-          variances: [multiplier, source_batch, num_mixtures]
+      Args:
+        encoder_positions: [source_batch, source_length]
+        priors: [multiplier, source_batch, num_mixtures]
+        means: [multiplier, source_batch, num_mixtures]
+        variances: [multiplier, source_batch, num_mixtures]
 
-        Returns:
-          Probabilities shaped [multiplier, source_batch, source_length].
-        """
-        # [multiplier, source_batch, 1, num_mixtures]
-        priors = tf.expand_dims(priors, 2)
-        means = tf.expand_dims(means, 2)
-        variances = tf.expand_dims(variances, 2)
-        epsilon = 1e-8
+      Returns:
+        Probabilities shaped [multiplier, source_batch, source_length].
+      """
+      # [multiplier, source_batch, 1, num_mixtures]
+      priors = tf.expand_dims(priors, 2)
+      means = tf.expand_dims(means, 2)
+      variances = tf.expand_dims(variances, 2)
+      epsilon = 1e-8
 
-        # [source_batch, source_length, 1]
-        encoder_positions = tf.expand_dims(encoder_positions, 2)
+      # [source_batch, source_length, 1]
+      encoder_positions = tf.expand_dims(encoder_positions, 2)
 
-        # [multiplier, source_batch, source_length, num_mixtures]
-        probs = ((priors * tf.math.rsqrt(2 * np.pi * variances + epsilon)) *
-                 tf.exp(-(encoder_positions - means)**2 /
-                        (2 * variances + epsilon)))
+      # [multiplier, source_batch, source_length, num_mixtures]
+      probs = ((priors * tf.math.rsqrt(2 * np.pi * variances + epsilon)) *
+               tf.exp(-(encoder_positions - means)**2 /
+                      (2 * variances + epsilon)))
 
-        # [multiplier, source_batch, source_length]
-        return tf.reduce_sum(probs, axis=3)
+      # [multiplier, source_batch, source_length]
+      return tf.reduce_sum(probs, axis=3)
 
-      def Atten(source_padding, concated_source_vecs, concated_source_contexts,
-                query_vec, priors, means, variances, encoder_positions,
-                per_step_source_padding):
-        """Computes the attention context vector.
+    def Atten(source_padding, concated_source_vecs, concated_source_contexts,
+              query_vec, priors, means, variances, encoder_positions,
+              per_step_source_padding):
+      """Computes the attention context vector.
 
-        Args:
-          source_padding: [source_length, source_batch]
-          concated_source_vecs: [source_length, source_batch, hidden_dim]
-          concated_source_contexts: [source_batch, source_length, context_dim]
-          query_vec: [target_batch, query_dim]
-          priors: [target_batch, num_mixtures]
-          means: [target_batch, num_mixtures]
-          variances: [target_batch, num_mixtures]
-          encoder_positions: [source_batch, source_length]
-          per_step_source_padding: [target_batch, source_length]
+      Args:
+        source_padding: [source_length, source_batch]
+        concated_source_vecs: [source_length, source_batch, hidden_dim]
+        concated_source_contexts: [source_batch, source_length, context_dim]
+        query_vec: [target_batch, query_dim]
+        priors: [target_batch, num_mixtures]
+        means: [target_batch, num_mixtures]
+        variances: [target_batch, num_mixtures]
+        encoder_positions: [source_batch, source_length]
+        per_step_source_padding: [target_batch, source_length]
 
-        Returns:
-          Tuple(context vector, atten probs):
+      Returns:
+        Tuple(context vector, atten probs):
 
-          - context vector: [target_batch, context_dim]
-          - attention probabilities: [target_batch, source_length]
-        """
-        # Note: shape [target_batch] can be converted to
-        # [multiplier, source_batch], not [source_batch, multiplier].
-        p = self.params
-        source_batch = tf.shape(concated_source_vecs)[1]
-        target_batch = tf.shape(query_vec)[0]
-        multiplier = target_batch // source_batch
+        - context vector: [target_batch, context_dim]
+        - attention probabilities: [target_batch, source_length]
+      """
+      # Note: shape [target_batch] can be converted to
+      # [multiplier, source_batch], not [source_batch, multiplier].
+      p = self.params
+      source_batch = tf.shape(concated_source_vecs)[1]
+      target_batch = tf.shape(query_vec)[0]
+      multiplier = target_batch // source_batch
 
-        # [multiplier, source_batch, num_mixtures]
-        priors = tf.reshape(priors, [multiplier, source_batch, p.num_mixtures])
-        means = tf.reshape(means, [multiplier, source_batch, p.num_mixtures])
-        variances = tf.reshape(variances,
-                               [multiplier, source_batch, p.num_mixtures])
+      # [multiplier, source_batch, num_mixtures]
+      priors = tf.reshape(priors, [multiplier, source_batch, p.num_mixtures])
+      means = tf.reshape(means, [multiplier, source_batch, p.num_mixtures])
+      variances = tf.reshape(variances,
+                             [multiplier, source_batch, p.num_mixtures])
 
-        # [multiplier, source_batch, source_length]
-        probs = ComputeProbs(encoder_positions, priors, means, variances)
+      # [multiplier, source_batch, source_length]
+      probs = ComputeProbs(encoder_positions, priors, means, variances)
 
-        # [source_batch, source_length]
-        source_padding = tf.transpose(source_padding)
+      # [source_batch, source_length]
+      source_padding = tf.transpose(source_padding)
 
-        # [multiplier, source_batch, source_length]
-        per_step_source_padding = tf.reshape(per_step_source_padding,
-                                             [multiplier, source_batch, -1])
-        source_padding += per_step_source_padding
-        source_padding = tf.minimum(source_padding, 1.0)
+      # [multiplier, source_batch, source_length]
+      per_step_source_padding = tf.reshape(per_step_source_padding,
+                                           [multiplier, source_batch, -1])
+      source_padding += per_step_source_padding
+      source_padding = tf.minimum(source_padding, 1.0)
 
-        # [multiplier, source_batch, source_length]
-        probs *= (1.0 - source_padding)
-        if p.normalize_probs:
-          probs /= tf.maximum(
-              tf.reduce_sum(probs, axis=2, keepdims=True), 1e-12)
+      # [multiplier, source_batch, source_length]
+      probs *= (1.0 - source_padding)
+      if p.normalize_probs:
+        probs /= tf.maximum(tf.reduce_sum(probs, axis=2, keepdims=True), 1e-12)
 
-        # [source_batch, multiplier, source_length]
-        probs_transposed = tf.transpose(probs, [1, 0, 2])
+      # [source_batch, multiplier, source_length]
+      probs_transposed = tf.transpose(probs, [1, 0, 2])
 
-        # Matmul:
-        # [source_batch, multiplier, source_length]
-        # @ [source_batch, source_length, context_dim]
-        # -> [source_batch, multiplier, context_dim]
-        context_vector_transposed = tf.matmul(probs_transposed,
-                                              concated_source_contexts)
+      # Matmul:
+      # [source_batch, multiplier, source_length]
+      # @ [source_batch, source_length, context_dim]
+      # -> [source_batch, multiplier, context_dim]
+      context_vector_transposed = tf.matmul(probs_transposed,
+                                            concated_source_contexts)
 
-        # [multiplier, source_batch, context_dim]
-        context_vector = tf.transpose(context_vector_transposed, [1, 0, 2])
+      # [multiplier, source_batch, context_dim]
+      context_vector = tf.transpose(context_vector_transposed, [1, 0, 2])
 
-        # [target_batch, context_dim], [target_batch, source_length]
-        return (tf.reshape(context_vector, [target_batch, -1]),
-                tf.reshape(probs, [target_batch, -1]))
+      # [target_batch, context_dim], [target_batch, source_length]
+      return (tf.reshape(context_vector, [target_batch, -1]),
+              tf.reshape(probs, [target_batch, -1]))
 
-      self._ctx_vec = Atten
+    self._ctx_vec = Atten
 
-      def EncodeSource(vecs, ctxs):
-        # TODO(ngyuzh): combine with content-base attention.
-        time, batch = py_utils.GetShape(vecs, 2)
-        ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
-        transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
-        return vecs, transposed_ctxs
+    def EncodeSource(vecs, ctxs):
+      # TODO(ngyuzh): combine with content-base attention.
+      time, batch = py_utils.GetShape(vecs, 2)
+      ctxs = py_utils.HasShape(ctxs, [time, batch, -1])
+      transposed_ctxs = tf.transpose(ctxs, [1, 0, 2])
+      return vecs, transposed_ctxs
 
-      self._encode_source = EncodeSource
+    self._encode_source = EncodeSource
 
   def PackSource(self,
                  theta,
@@ -3137,23 +3134,22 @@ class MultiSourceAttention(BaseAttentionLayer):
     """Constructs an MultiSourceAttention object."""
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      for source_key, atten_p in p.source_atten_tpls:
-        child_p = atten_p.Copy()
-        if child_p.query_dim <= 0:
-          child_p.query_dim = p.query_dim
-        else:
-          assert child_p.query_dim == p.query_dim
-        if child_p.source_dim <= 0:
-          child_p.source_dim = p.source_dim
-        self.CreateChild('atten_%s' % source_key, child_p)
+    for source_key, atten_p in p.source_atten_tpls:
+      child_p = atten_p.Copy()
+      if child_p.query_dim <= 0:
+        child_p.query_dim = p.query_dim
+      else:
+        assert child_p.query_dim == p.query_dim
+      if child_p.source_dim <= 0:
+        child_p.source_dim = p.source_dim
+      self.CreateChild('atten_%s' % source_key, child_p)
 
-      # Initialize source context vector merging layer.
-      merger_p = p.atten_merger_tpl.Copy()
-      merger_p.name = 'atten_merger'
-      merger_p.source_dim = p.source_dim
-      merger_p.query_dim = p.query_dim
-      self.CreateChild('atten_merger', merger_p)
+    # Initialize source context vector merging layer.
+    merger_p = p.atten_merger_tpl.Copy()
+    merger_p.name = 'atten_merger'
+    merger_p.source_dim = p.source_dim
+    merger_p.query_dim = p.query_dim
+    self.CreateChild('atten_merger', merger_p)
 
   def PackSource(self,
                  theta,

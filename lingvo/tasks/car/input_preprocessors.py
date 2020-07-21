@@ -261,9 +261,8 @@ class CreateDecoderCopy(Preprocessor):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      if p.pad_lasers is not None:
-        self.CreateChild('pad_lasers', p.pad_lasers)
+    if p.pad_lasers is not None:
+      self.CreateChild('pad_lasers', p.pad_lasers)
 
   def _DeepCopyIfExists(self, keys, nested_map, parent_key):
     """Deep copy a specific key to a parent key if it exists."""
@@ -1034,10 +1033,9 @@ class SparseCenterSelector(Preprocessor):
     if p.sampling_method not in self._SAMPLING_METHODS:
       raise ValueError('Param `sampling_method` must be one of {}.'.format(
           self._SAMPLING_METHODS))
-    with tf.variable_scope(p.name):
-      if p.features_preparation_layers is not None:
-        self.CreateChildren('features_preparation_layers',
-                            p.features_preparation_layers)
+    if p.features_preparation_layers is not None:
+      self.CreateChildren('features_preparation_layers',
+                          p.features_preparation_layers)
 
   def _FarthestPointSampleCenters(self, points_xyz, num_seeded_points):
     """Samples centers with Farthest Point Sampling.
@@ -3167,8 +3165,7 @@ class RepeatPreprocessor(Preprocessor):
           'repeat_count must be >= 0 and int, repeat_count={}'.format(
               p.repeat_count))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('subprocessor', p.subprocessor)
+    self.CreateChild('subprocessor', p.subprocessor)
 
   def TransformFeatures(self, features):
     p = self.params
@@ -3215,8 +3212,7 @@ class RandomApplyPreprocessor(Preprocessor):
       raise ValueError(
           'prob must be >= 0 and <=1 and float type, prob={}'.format(p.prob))
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('subprocessor', p.subprocessor)
+    self.CreateChild('subprocessor', p.subprocessor)
 
   def TransformFeatures(self, features):
     p = self.params
@@ -3321,10 +3317,9 @@ class SparseSampler(Preprocessor):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      if p.features_preparation_layers:
-        self.CreateChildren('features_preparation_layers',
-                            p.features_preparation_layers)
+    if p.features_preparation_layers:
+      self.CreateChildren('features_preparation_layers',
+                          p.features_preparation_layers)
 
   def TransformFeatures(self, features):
     p = self.params

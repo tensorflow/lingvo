@@ -310,11 +310,10 @@ class BaseTask(base_layer.BaseLayer):
     if tp:
       self._SetLearnerFromLegacyParams(tp)
       if tp.learner is not None:
-        with tf.variable_scope(p.name):
-          if isinstance(tp.learner, (list, tuple)):
-            self.CreateChildren('learners', tp.learner)
-          else:
-            self.CreateChildren('learners', [tp.learner])
+        if isinstance(tp.learner, (list, tuple)):
+          self.CreateChildren('learners', tp.learner)
+        else:
+          self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
 
   def CreateVariables(self):
@@ -908,18 +907,17 @@ class DistillationTask(BaseTask):
     p.student.input = p.input
     # Teacher also might need an input generator, eg. for waveform_processor.
     p.teacher.input = p.input
-    with tf.variable_scope(p.name):
-      for child in ('teacher', 'student'):
-        child_p = getattr(p, child)
-        assert issubclass(child_p.cls, BaseTask)
-        assert child_p.train is None
-        assert child_p.eval is None
-        # In theory it's ok for teacher to be a DistillationTask. In practice
-        # it probably won't happen.
-        assert not issubclass(child_p.cls, DistillationTask)
-        child_p.name = child
-        self.CreateChild(child, child_p)
-      self.CreateChild('distillation_loss_weight', p.distillation_loss_weight)
+    for child in ('teacher', 'student'):
+      child_p = getattr(p, child)
+      assert issubclass(child_p.cls, BaseTask)
+      assert child_p.train is None
+      assert child_p.eval is None
+      # In theory it's ok for teacher to be a DistillationTask. In practice
+      # it probably won't happen.
+      assert not issubclass(child_p.cls, DistillationTask)
+      child_p.name = child
+      self.CreateChild(child, child_p)
+    self.CreateChild('distillation_loss_weight', p.distillation_loss_weight)
 
   def ComputePredictions(self, theta, input_batch):
     p = self.params
@@ -1336,11 +1334,7 @@ class MultiTaskModel(BaseModel):
     # or CreateChildren calls.
     with tf.name_scope(p.name):
       for task_name, task_params in sorted_task_params:
-        if p.task_name_var_scope:
-          with tf.variable_scope(task_name):
-            self.CreateChild(task_name, task_params)
-        else:
-          self.CreateChild(task_name, task_params)
+        self.CreateChild(task_name, task_params)
 
       self.CreateChild('task_schedule', p.task_schedule)
 

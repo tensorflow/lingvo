@@ -33,20 +33,19 @@ class LinearModel(base_model.BaseTask):
     p.name = 'linear_model'
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
+  def _CreateVariables(self):
+    super()._CreateVariables()
     p = self.params
-    with tf.variable_scope(p.name):
-      w = py_utils.WeightParams(
-          shape=[3],
-          init=py_utils.WeightInit.Gaussian(scale=1.0, seed=123456),
-          dtype=p.dtype)
-      b = py_utils.WeightParams(
-          shape=[],
-          init=py_utils.WeightInit.Gaussian(scale=1.0, seed=234567),
-          dtype=p.dtype)
-      self.CreateVariable('w', w)
-      self.CreateVariable('b', b)
+    w = py_utils.WeightParams(
+        shape=[3],
+        init=py_utils.WeightInit.Gaussian(scale=1.0, seed=123456),
+        dtype=p.dtype)
+    b = py_utils.WeightParams(
+        shape=[],
+        init=py_utils.WeightInit.Gaussian(scale=1.0, seed=234567),
+        dtype=p.dtype)
+    self.CreateVariable('w', w)
+    self.CreateVariable('b', b)
 
 
 class CheckpointerTest(test_utils.TestCase):

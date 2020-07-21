@@ -853,8 +853,7 @@ class SeparableConv2DLayer(Conv2DLayer):
         bn_decay=p.bn_decay,
         bn_fold_weights=p.bn_fold_weights)
     depthwise_params.qdomain.default = p.qdomain.default
-    with tf.variable_scope(p.name):
-      self.CreateChild('depthwise_conv', depthwise_params)
+    self.CreateChild('depthwise_conv', depthwise_params)
 
   def FProp(self, theta, inputs, paddings=None):
     inputs, paddings = self.depthwise_conv.FProp(theta.depthwise_conv, inputs,
@@ -1322,32 +1321,31 @@ class FeedForwardNet(quant_utils.QuantizableLayer):
     else:
       params_dropout_layers = [params_dropout_layers] * num_layers
 
-    with tf.variable_scope(p.name):
-      # Residual connections work better in the form of:
-      #   y = x + Affine(Activation(BatchNorm(x)))
-      params_fc_layers = []
-      in_dim = p.input_dim
-      for i in range(num_layers):
-        out_dim = p.hidden_layer_dims[i]
-        proj_out_dim = out_dim
-        name = '%s_%d' % (p.name, i)
-        params_i = p.projection.Copy().Set(
-            batch_norm=batch_norm[i],
-            weight_norm=weight_norm[i],
-            has_bias=(not batch_norm[i]),
-            activation=activation[i],
-            input_dim=in_dim,
-            output_dim=proj_out_dim,
-            bn_fold_weights=p.bn_fold_weights,
-            name=name)
-        params_fc_layers.append(params_i)
-        in_dim = out_dim
+    # Residual connections work better in the form of:
+    #   y = x + Affine(Activation(BatchNorm(x)))
+    params_fc_layers = []
+    in_dim = p.input_dim
+    for i in range(num_layers):
+      out_dim = p.hidden_layer_dims[i]
+      proj_out_dim = out_dim
+      name = '%s_%d' % (p.name, i)
+      params_i = p.projection.Copy().Set(
+          batch_norm=batch_norm[i],
+          weight_norm=weight_norm[i],
+          has_bias=(not batch_norm[i]),
+          activation=activation[i],
+          input_dim=in_dim,
+          output_dim=proj_out_dim,
+          bn_fold_weights=p.bn_fold_weights,
+          name=name)
+      params_fc_layers.append(params_i)
+      in_dim = out_dim
 
-        if p.qdomain.default is not None:
-          params_i.qdomain.default = p.qdomain.default.Copy()
+      if p.qdomain.default is not None:
+        params_i.qdomain.default = p.qdomain.default.Copy()
 
-      self.CreateChildren('fc', params_fc_layers)
-      self.CreateChildren('dropout', params_dropout_layers)
+    self.CreateChildren('fc', params_fc_layers)
+    self.CreateChildren('dropout', params_dropout_layers)
 
   @property
   def output_dim(self):
@@ -3401,13 +3399,12 @@ class SingleShardFullSoftmax(SoftmaxLayer):
     super().__init__(params)
     p = self.params
     assert p.name
-    with tf.variable_scope(p.name):
-      linear_p = builder_layers.LinearLayer.Params().Set(
-          name='linear', input_dims=p.input_dim, output_dims=p.num_classes)
-      self.CreateChild('linear', linear_p)
-      bias_p = builder_layers.BiasLayer.Params().Set(
-          name='bias', dims=p.num_classes)
-      self.CreateChild('bias', bias_p)
+    linear_p = builder_layers.LinearLayer.Params().Set(
+        name='linear', input_dims=p.input_dim, output_dims=p.num_classes)
+    self.CreateChild('linear', linear_p)
+    bias_p = builder_layers.BiasLayer.Params().Set(
+        name='bias', dims=p.num_classes)
+    self.CreateChild('bias', bias_p)
 
   def Logits(self, theta, inputs):
     """Returns the logits computed before the softmax.
@@ -3612,31 +3609,30 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
     p.Define('num_classes', 0, 'Total number of target classes.')
     return p
 
-  def __init__(self, params):
+  def _CreateVariables(self):
     """Constructs a SimpleFullSoftmax layer."""
-    super().__init__(params)
+    super()._CreateVariables()
     p = self.params
-    with tf.variable_scope(p.name):
-      if p.hidden_dim:
-        w_proj_pc = py_utils.WeightParams(
-            shape=(1, p.input_dim, p.hidden_dim),
-            init=p.params_init,
-            dtype=p.dtype,
-            collections=[self.__class__.__name__ + '_vars'])
-        self.CreateVariable('w_proj', w_proj_pc)
-      w_pc = py_utils.WeightParams(
-          shape=(1, p.hidden_dim or p.input_dim, p.num_classes),
+    if p.hidden_dim:
+      w_proj_pc = py_utils.WeightParams(
+          shape=(1, p.input_dim, p.hidden_dim),
           init=p.params_init,
           dtype=p.dtype,
           collections=[self.__class__.__name__ + '_vars'])
-      self.CreateVariable('w', w_pc)
-      self.CreateVariable(
-          'b',
-          py_utils.WeightParams(
-              shape=[p.num_classes],
-              init=py_utils.WeightInit.Constant(0.0),
-              dtype=p.dtype,
-              collections=[self.__class__.__name__ + '_vars']))
+      self.CreateVariable('w_proj', w_proj_pc)
+    w_pc = py_utils.WeightParams(
+        shape=(1, p.hidden_dim or p.input_dim, p.num_classes),
+        init=p.params_init,
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('w', w_pc)
+    self.CreateVariable(
+        'b',
+        py_utils.WeightParams(
+            shape=[p.num_classes],
+            init=py_utils.WeightInit.Constant(0.0),
+            dtype=p.dtype,
+            collections=[self.__class__.__name__ + '_vars']))
 
   def Logits(self, theta, inputs):
     p = self.params
@@ -3853,8 +3849,7 @@ class CategoricalLayerNorm(LayerNorm):
     p = self.params
     assert isinstance(p.num_classes, int)
     assert p.num_classes > 0
-    with tf.variable_scope(p.name):
-      self.AddExtraTheta('class_index', tf.constant(0, dtype=tf.int32))
+    self.AddExtraTheta('class_index', tf.constant(0, dtype=tf.int32))
 
   def _GetScaleAndBias(self, theta):
     p = self.params
@@ -3902,19 +3897,18 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
       assert input_shape == filter_shape[2]
 
     params_conv_set = []
-    with tf.variable_scope(p.name):
-      for filter_shape in p.filter_shapes:
-        conv_p = p.cnn_tpl.Copy()
-        conv_p.name = '%d_%d' % (filter_shape[0], filter_shape[1])
-        # Important: combined quantization will be done pre-concat versus
-        # by each layer on its output. Otherwise, inherit quantization params
-        # from this layer.
-        if p.qdomain.default is not None:
-          conv_p.qdomain.default = p.qdomain.default.Copy()
-        conv_p.disable_activation_quantization = True
-        conv_p.filter_shape = filter_shape
-        params_conv_set.append(conv_p)
-      self.CreateChildren('conv_set', params_conv_set)
+    for filter_shape in p.filter_shapes:
+      conv_p = p.cnn_tpl.Copy()
+      conv_p.name = '%d_%d' % (filter_shape[0], filter_shape[1])
+      # Important: combined quantization will be done pre-concat versus
+      # by each layer on its output. Otherwise, inherit quantization params
+      # from this layer.
+      if p.qdomain.default is not None:
+        conv_p.qdomain.default = p.qdomain.default.Copy()
+      conv_p.disable_activation_quantization = True
+      conv_p.filter_shape = filter_shape
+      params_conv_set.append(conv_p)
+    self.CreateChildren('conv_set', params_conv_set)
 
   def _CreateVariables(self):
     super()._CreateVariables()
@@ -4151,27 +4145,26 @@ class HighwaySkipLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      carry_gate_params = ProjectionLayer.Params().Set(
+    carry_gate_params = ProjectionLayer.Params().Set(
+        batch_norm=p.batch_norm,
+        has_bias=True,
+        activation='SIGMOID',
+        input_dim=p.input_dim,
+        output_dim=p.input_dim,
+        bias_init=p.carry_bias_init,
+        name='%s_carry_gate' % p.name)
+    self.CreateChild('carry_gate', carry_gate_params)
+
+    if not p.couple_carry_transform_gates:
+      transform_gate_params = ProjectionLayer.Params().Set(
           batch_norm=p.batch_norm,
           has_bias=True,
           activation='SIGMOID',
           input_dim=p.input_dim,
           output_dim=p.input_dim,
-          bias_init=p.carry_bias_init,
-          name='%s_carry_gate' % p.name)
-      self.CreateChild('carry_gate', carry_gate_params)
-
-      if not p.couple_carry_transform_gates:
-        transform_gate_params = ProjectionLayer.Params().Set(
-            batch_norm=p.batch_norm,
-            has_bias=True,
-            activation='SIGMOID',
-            input_dim=p.input_dim,
-            output_dim=p.input_dim,
-            bias_init=-p.carry_bias_init,
-            name='%s_transform_gate' % p.name)
-        self.CreateChild('transform_gate', transform_gate_params)
+          bias_init=-p.carry_bias_init,
+          name='%s_transform_gate' % p.name)
+      self.CreateChild('transform_gate', transform_gate_params)
 
   def FProp(self, theta, x, transformed_x, paddings=None):
     """Fprop for Highway Skip layer.
@@ -4222,16 +4215,15 @@ class GatingLayer(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      carry_gate_params = ProjectionLayer.Params().Set(
-          batch_norm=False,
-          has_bias=p.has_bias,
-          activation='SIGMOID',
-          input_dim=p.input_dim * 2,
-          output_dim=p.input_dim,
-          bias_init=p.carry_bias_init,
-          name='carry')
-      self.CreateChild('carry_gate', carry_gate_params)
+    carry_gate_params = ProjectionLayer.Params().Set(
+        batch_norm=False,
+        has_bias=p.has_bias,
+        activation='SIGMOID',
+        input_dim=p.input_dim * 2,
+        output_dim=p.input_dim,
+        bias_init=p.carry_bias_init,
+        name='carry')
+    self.CreateChild('carry_gate', carry_gate_params)
 
   def FProp(self, theta, x, y, paddings=None):
     """Fprop for the gating layer.
@@ -4585,18 +4577,17 @@ class ResidualAdapterLayer(base_layer.BaseLayer):
     p = self.params
     assert p.name
 
-    with tf.variable_scope(p.name):
-      bottleneck_params = FeedForwardNet.Params().Set(
-          name='bottleneck',
-          activation=['RELU', 'NONE'],
-          input_dim=p.input_dim,
-          hidden_layer_dims=[p.bottleneck_dim, p.input_dim])
-      self.CreateChild('bottleneck', bottleneck_params)
+    bottleneck_params = FeedForwardNet.Params().Set(
+        name='bottleneck',
+        activation=['RELU', 'NONE'],
+        input_dim=p.input_dim,
+        hidden_layer_dims=[p.bottleneck_dim, p.input_dim])
+    self.CreateChild('bottleneck', bottleneck_params)
 
-      params = p.ln_tpl.Copy()
-      params.name = 'adapter_ln'
-      params.input_dim = p.input_dim
-      self.CreateChild('layer_norm', params)
+    params = p.ln_tpl.Copy()
+    params.name = 'adapter_ln'
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
 
   def FProp(self, theta, x, paddings=None):
     """Fprop for Residual Adapter.
@@ -4828,32 +4819,31 @@ class GluLayer(base_layer.BaseLayer):
     if p.apply_residual:
       assert output_dim == p.input_dim
 
-    with tf.variable_scope(p.name):
-      # Initialize value feed-forward layer.
-      params = p.dense_tpl.Copy()
-      params.name = 'value_layer'
-      params.input_dim = p.input_dim
-      params.activation = p.activation
-      params.output_dim = output_dim
-      self.CreateChild('value_layer', params)
+    # Initialize value feed-forward layer.
+    params = p.dense_tpl.Copy()
+    params.name = 'value_layer'
+    params.input_dim = p.input_dim
+    params.activation = p.activation
+    params.output_dim = output_dim
+    self.CreateChild('value_layer', params)
 
-      # Initialize gate feed-forward layer.
-      params = p.dense_tpl.Copy()
-      params.name = 'gate_layer'
-      params.input_dim = p.input_dim
-      params.activation = 'SIGMOID'
-      params.output_dim = output_dim
-      self.CreateChild('gate_layer', params)
+    # Initialize gate feed-forward layer.
+    params = p.dense_tpl.Copy()
+    params.name = 'gate_layer'
+    params.input_dim = p.input_dim
+    params.activation = 'SIGMOID'
+    params.output_dim = output_dim
+    self.CreateChild('gate_layer', params)
 
-      # Initialize layer norm.
-      params = p.ln_tpl.Copy()
-      params.name = 'layer_norm'
-      params.input_dim = p.input_dim
-      self.CreateChild('layer_norm', params)
+    # Initialize layer norm.
+    params = p.ln_tpl.Copy()
+    params.name = 'layer_norm'
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
 
-      # Initialize dropout.
-      dropout_tpl = p.dropout_tpl.Copy()
-      self.CreateChild('dropout', dropout_tpl)
+    # Initialize dropout.
+    dropout_tpl = p.dropout_tpl.Copy()
+    self.CreateChild('dropout', dropout_tpl)
 
   def FProp(self, theta, inputs, paddings):
     inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
@@ -4908,32 +4898,31 @@ class MultitaskAdapterLayer(base_layer.BaseLayer):
     assert p.name
     # Data format is either 'TBC' (time-major) or 'BTC' (batch-major).
     assert p.data_format in ('TBC', 'BTC')
-    with tf.variable_scope(p.name):
-      base_emb_params = EmbeddingLayer.Params().Set(
-          vocab_size=p.num_tasks, max_num_shards=1)
-      down_proj_w_params = base_emb_params.Copy()
-      down_proj_w_params.Set(
-          embedding_dim=p.input_dim * p.bottleneck_dim, name='down_proj_w')
-      if p.projection_params_init:
-        down_proj_w_params.params_init = p.projection_params_init
-      down_proj_b_params = base_emb_params.Copy()
-      down_proj_b_params.Set(embedding_dim=p.bottleneck_dim, name='down_proj_b')
-      up_proj_w_params = base_emb_params.Copy()
-      up_proj_w_params.Set(
-          embedding_dim=p.bottleneck_dim * p.input_dim, name='up_proj_w')
-      if p.projection_params_init:
-        up_proj_w_params.params_init = p.projection_params_init
-      up_proj_b_params = base_emb_params.Copy()
-      up_proj_b_params.Set(embedding_dim=p.input_dim, name='up_proj_b')
+    base_emb_params = EmbeddingLayer.Params().Set(
+        vocab_size=p.num_tasks, max_num_shards=1)
+    down_proj_w_params = base_emb_params.Copy()
+    down_proj_w_params.Set(
+        embedding_dim=p.input_dim * p.bottleneck_dim, name='down_proj_w')
+    if p.projection_params_init:
+      down_proj_w_params.params_init = p.projection_params_init
+    down_proj_b_params = base_emb_params.Copy()
+    down_proj_b_params.Set(embedding_dim=p.bottleneck_dim, name='down_proj_b')
+    up_proj_w_params = base_emb_params.Copy()
+    up_proj_w_params.Set(
+        embedding_dim=p.bottleneck_dim * p.input_dim, name='up_proj_w')
+    if p.projection_params_init:
+      up_proj_w_params.params_init = p.projection_params_init
+    up_proj_b_params = base_emb_params.Copy()
+    up_proj_b_params.Set(embedding_dim=p.input_dim, name='up_proj_b')
 
-      self.CreateChild('down_proj_w', down_proj_w_params)
-      self.CreateChild('down_proj_b', down_proj_b_params)
-      self.CreateChild('up_proj_w', up_proj_w_params)
-      self.CreateChild('up_proj_b', up_proj_b_params)
-      params = p.layer_norm_tpl.Copy()
-      params.name = 'adapter_ln'
-      params.input_dim = p.input_dim
-      self.CreateChild('layer_norm', params)
+    self.CreateChild('down_proj_w', down_proj_w_params)
+    self.CreateChild('down_proj_b', down_proj_b_params)
+    self.CreateChild('up_proj_w', up_proj_w_params)
+    self.CreateChild('up_proj_b', up_proj_b_params)
+    params = p.layer_norm_tpl.Copy()
+    params.name = 'adapter_ln'
+    params.input_dim = p.input_dim
+    self.CreateChild('layer_norm', params)
 
   def FProp(self, theta, inputs, tasks):
     """Fprop for multitask adapter.
@@ -5049,18 +5038,17 @@ class CCTGatingNetwork(quant_utils.QuantizableLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    with tf.variable_scope(p.name):
-      params = schedule.PolynomialSchedule.Params()
-      params.start = (0, 0.0)
-      params.limit = (p.noise_warmup_steps, p.noise_std)
-      self.CreateChild('noise_std', params)
+    params = schedule.PolynomialSchedule.Params()
+    params.start = (0, 0.0)
+    params.limit = (p.noise_warmup_steps, p.noise_std)
+    self.CreateChild('noise_std', params)
 
-      params = FeedForwardNet.Params()
-      params.name = 'gating_layer'
-      params.input_dim = p.input_dim
-      params.activation = ['RELU', 'NONE']
-      params.hidden_layer_dims = [p.hidden_layer_dim, p.num_outputs]
-      self.CreateChild('gatingfflayer', params)
+    params = FeedForwardNet.Params()
+    params.name = 'gating_layer'
+    params.input_dim = p.input_dim
+    params.activation = ['RELU', 'NONE']
+    params.hidden_layer_dims = [p.hidden_layer_dim, p.num_outputs]
+    self.CreateChild('gatingfflayer', params)
 
   def FProp(self, theta, inputs, paddings=None):
     p = self.params
@@ -5118,16 +5106,15 @@ class CondScaleShiftFFNLayer(base_layer.BaseLayer):
     assert p.name
 
     output_dim = p.output_dim * 2  # 1st split for shift, 2nd split for scale
-    with tf.variable_scope(p.name):
-      params_ffn = p.ffn.Copy().Set(
-          input_dim=p.input_dim, name='{}_ffn'.format(p.name))
-      params_fcout = FCLayer.Params().Copy().Set(
-          input_dim=params_ffn.hidden_layer_dims[-1],
-          output_dim=output_dim,
-          activation='NONE',
-          name='{}_fcout'.format(p.name))
-      self.CreateChild('ffn', params_ffn)
-      self.CreateChild('fcout', params_fcout)
+    params_ffn = p.ffn.Copy().Set(
+        input_dim=p.input_dim, name='{}_ffn'.format(p.name))
+    params_fcout = FCLayer.Params().Copy().Set(
+        input_dim=params_ffn.hidden_layer_dims[-1],
+        output_dim=output_dim,
+        activation='NONE',
+        name='{}_fcout'.format(p.name))
+    self.CreateChild('ffn', params_ffn)
+    self.CreateChild('fcout', params_fcout)
 
   def FProp(self, theta, inputs, paddings=None):
     """Calculate scale shift and modify input.

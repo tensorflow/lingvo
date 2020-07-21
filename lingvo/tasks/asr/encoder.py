@@ -143,106 +143,104 @@ class AsrEncoder(base_layer.BaseLayer):
   def __init__(self, params):
     super().__init__(params)
     p = self.params
-    name = p.name
 
-    with tf.variable_scope(name):
-      # Use specAugment or not.
-      if p.use_specaugment:
-        self.CreateChild('specaugment', p.specaugment_network.Copy())
-      # First create the conv layers.
+    # Use specAugment or not.
+    if p.use_specaugment:
+      self.CreateChild('specaugment', p.specaugment_network.Copy())
+    # First create the conv layers.
 
-      assert p.num_cnn_layers == len(p.conv_filter_shapes)
-      assert p.num_cnn_layers == len(p.conv_filter_strides)
-      params_conv_layers = []
-      for i in range(p.num_cnn_layers):
-        conv_p = p.cnn_tpl.Copy()
-        conv_p.name = 'conv_L%d' % i
-        conv_p.filter_shape = p.conv_filter_shapes[i]
-        conv_p.filter_stride = p.conv_filter_strides[i]
-        params_conv_layers.append(conv_p)
-      self.CreateChildren('conv', params_conv_layers)
+    assert p.num_cnn_layers == len(p.conv_filter_shapes)
+    assert p.num_cnn_layers == len(p.conv_filter_strides)
+    params_conv_layers = []
+    for i in range(p.num_cnn_layers):
+      conv_p = p.cnn_tpl.Copy()
+      conv_p.name = 'conv_L%d' % i
+      conv_p.filter_shape = p.conv_filter_shapes[i]
+      conv_p.filter_stride = p.conv_filter_strides[i]
+      params_conv_layers.append(conv_p)
+    self.CreateChildren('conv', params_conv_layers)
 
-      conv_output_shape = p.input_shape
-      for i in range(p.num_cnn_layers):
-        conv_output_shape = self.conv[i].OutShape(conv_output_shape)
-      assert len(conv_output_shape) == 4  # batch, height, width, channel.
+    conv_output_shape = p.input_shape
+    for i in range(p.num_cnn_layers):
+      conv_output_shape = self.conv[i].OutShape(conv_output_shape)
+    assert len(conv_output_shape) == 4  # batch, height, width, channel.
 
-      params_conv_lstm_rnn = []
-      params_conv_lstm_cnn = []
-      for i in range(p.num_conv_lstm_layers):
-        # NOTE(yonghui): We assume that output from ConvLSTMBlock has the same
-        # shape as its input.
-        _, _, width, in_channel = conv_output_shape
-        f_conv_lstm_p = p.conv_lstm_tpl.Copy()
-        f_conv_lstm_p.name = 'f_conv_lstm_%d' % i
-        f_conv_lstm_p.inputs_shape = [None, 1, width, in_channel]
-        f_conv_lstm_p.cell_shape = [None, 1, width, in_channel]
-        b_conv_lstm_p = f_conv_lstm_p.Copy()
-        b_conv_lstm_p.name = 'b_conv_lstm_%d' % i
-        conv_lstm_rnn_p = self.CreateConvLstmLayerParams()
-        conv_lstm_rnn_p.name = 'conv_lstm_rnn'
-        conv_lstm_rnn_p.fwd = f_conv_lstm_p
-        conv_lstm_rnn_p.bak = b_conv_lstm_p
-        params_conv_lstm_rnn.append(conv_lstm_rnn_p)
-        cnn_p = p.after_conv_lstm_cnn_tpl.Copy()
-        cnn_p.name = 'conv_lstm_cnn_%d' % i
-        cnn_p.filter_shape[2] = 2 * in_channel
-        cnn_p.filter_shape[3] = in_channel
-        params_conv_lstm_cnn.append(cnn_p)
-        # TODO(yonghui): Refactor ConvLSTMBlock into a layer.
-      self.CreateChildren('conv_lstm_rnn', params_conv_lstm_rnn)
-      self.CreateChildren('conv_lstm_cnn', params_conv_lstm_cnn)
+    params_conv_lstm_rnn = []
+    params_conv_lstm_cnn = []
+    for i in range(p.num_conv_lstm_layers):
+      # NOTE(yonghui): We assume that output from ConvLSTMBlock has the same
+      # shape as its input.
+      _, _, width, in_channel = conv_output_shape
+      f_conv_lstm_p = p.conv_lstm_tpl.Copy()
+      f_conv_lstm_p.name = 'f_conv_lstm_%d' % i
+      f_conv_lstm_p.inputs_shape = [None, 1, width, in_channel]
+      f_conv_lstm_p.cell_shape = [None, 1, width, in_channel]
+      b_conv_lstm_p = f_conv_lstm_p.Copy()
+      b_conv_lstm_p.name = 'b_conv_lstm_%d' % i
+      conv_lstm_rnn_p = self.CreateConvLstmLayerParams()
+      conv_lstm_rnn_p.name = 'conv_lstm_rnn'
+      conv_lstm_rnn_p.fwd = f_conv_lstm_p
+      conv_lstm_rnn_p.bak = b_conv_lstm_p
+      params_conv_lstm_rnn.append(conv_lstm_rnn_p)
+      cnn_p = p.after_conv_lstm_cnn_tpl.Copy()
+      cnn_p.name = 'conv_lstm_cnn_%d' % i
+      cnn_p.filter_shape[2] = 2 * in_channel
+      cnn_p.filter_shape[3] = in_channel
+      params_conv_lstm_cnn.append(cnn_p)
+      # TODO(yonghui): Refactor ConvLSTMBlock into a layer.
+    self.CreateChildren('conv_lstm_rnn', params_conv_lstm_rnn)
+    self.CreateChildren('conv_lstm_cnn', params_conv_lstm_cnn)
 
-      (self._first_lstm_input_dim,
-       self._first_lstm_input_dim_pad) = self.FirstLstmLayerInputDimAndPadding(
-           conv_output_shape, pad_to_multiple=16)
+    (self._first_lstm_input_dim,
+     self._first_lstm_input_dim_pad) = self.FirstLstmLayerInputDimAndPadding(
+         conv_output_shape, pad_to_multiple=16)
 
-      # Now create all the rnn layers and projection layers.
-      # TODO(yonghui): take care of device placement.
-      params_rnn_layers = []
-      params_proj_layers = []
-      params_highway_skip_layers = []
-      output_dim = self._first_lstm_input_dim
-      for i in range(p.num_lstm_layers):
-        input_dim = output_dim
-        forward_p = p.lstm_tpl.Copy()
-        forward_p.name = 'fwd_rnn_L%d' % i
-        forward_p.num_input_nodes = input_dim
-        forward_p.num_output_nodes = p.lstm_cell_size
-        backward_p = forward_p.Copy()
-        backward_p.name = 'bak_rnn_L%d' % i
-        rnn_p = self.CreateBidirectionalRNNParams(forward_p, backward_p)
-        rnn_p.name = 'brnn_L%d' % i
-        params_rnn_layers.append(rnn_p)
-        output_dim = 2 * p.lstm_cell_size
+    # Now create all the rnn layers and projection layers.
+    # TODO(yonghui): take care of device placement.
+    params_rnn_layers = []
+    params_proj_layers = []
+    params_highway_skip_layers = []
+    output_dim = self._first_lstm_input_dim
+    for i in range(p.num_lstm_layers):
+      input_dim = output_dim
+      forward_p = p.lstm_tpl.Copy()
+      forward_p.name = 'fwd_rnn_L%d' % i
+      forward_p.num_input_nodes = input_dim
+      forward_p.num_output_nodes = p.lstm_cell_size
+      backward_p = forward_p.Copy()
+      backward_p.name = 'bak_rnn_L%d' % i
+      rnn_p = self.CreateBidirectionalRNNParams(forward_p, backward_p)
+      rnn_p.name = 'brnn_L%d' % i
+      params_rnn_layers.append(rnn_p)
+      output_dim = 2 * p.lstm_cell_size
 
-        if p.project_lstm_output and (i < p.num_lstm_layers - 1):
-          proj_p = p.proj_tpl.Copy()
-          proj_p.input_dim = 2 * p.lstm_cell_size
-          proj_p.output_dim = 2 * p.lstm_cell_size
-          proj_p.name = 'proj_L%d' % i
-          params_proj_layers.append(proj_p)
+      if p.project_lstm_output and (i < p.num_lstm_layers - 1):
+        proj_p = p.proj_tpl.Copy()
+        proj_p.input_dim = 2 * p.lstm_cell_size
+        proj_p.output_dim = 2 * p.lstm_cell_size
+        proj_p.name = 'proj_L%d' % i
+        params_proj_layers.append(proj_p)
 
-        # add the skip layers
-        residual_index = i - p.residual_start + 1
-        if p.residual_start > 0 and residual_index >= 0 and p.highway_skip:
-          highway_skip = p.highway_skip_tpl.Copy()
-          highway_skip.name = 'enc_hwskip_%d' % len(params_highway_skip_layers)
-          highway_skip.input_dim = 2 * p.lstm_cell_size
-          params_highway_skip_layers.append(highway_skip)
-        # Adds the stacking layer.
-        if p.layer_index_before_stacking == i:
-          stacking_layer = p.stacking_layer_tpl.Copy()
-          stacking_layer.name = 'stacking_%d' % i
-          self.CreateChild('stacking', stacking_layer)
-          stacking_window_len = (
-              p.stacking_layer_tpl.left_context + 1 +
-              p.stacking_layer_tpl.right_context)
-          output_dim *= stacking_window_len
+      # add the skip layers
+      residual_index = i - p.residual_start + 1
+      if p.residual_start > 0 and residual_index >= 0 and p.highway_skip:
+        highway_skip = p.highway_skip_tpl.Copy()
+        highway_skip.name = 'enc_hwskip_%d' % len(params_highway_skip_layers)
+        highway_skip.input_dim = 2 * p.lstm_cell_size
+        params_highway_skip_layers.append(highway_skip)
+      # Adds the stacking layer.
+      if p.layer_index_before_stacking == i:
+        stacking_layer = p.stacking_layer_tpl.Copy()
+        stacking_layer.name = 'stacking_%d' % i
+        self.CreateChild('stacking', stacking_layer)
+        stacking_window_len = (
+            p.stacking_layer_tpl.left_context + 1 +
+            p.stacking_layer_tpl.right_context)
+        output_dim *= stacking_window_len
 
-      self.CreateChildren('rnn', params_rnn_layers)
-      self.CreateChildren('proj', params_proj_layers)
-      self.CreateChildren('highway_skip', params_highway_skip_layers)
+    self.CreateChildren('rnn', params_rnn_layers)
+    self.CreateChildren('proj', params_proj_layers)
+    self.CreateChildren('highway_skip', params_highway_skip_layers)
 
   @property
   def _use_functional(self):

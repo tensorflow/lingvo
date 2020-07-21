@@ -58,9 +58,8 @@ class LanguageModel(base_model.BaseTask):
         'lm.vocab_size does not match input.tokenizer.vocab_size: %d vs %d' %
         (p.lm.vocab_size, p.input.tokenizer.vocab_size))
 
-    with tf.variable_scope(p.name):
-      # Construct the model.
-      self.CreateChild('lm', p.lm)
+    # Construct the model.
+    self.CreateChild('lm', p.lm)
 
   @classmethod
   def UpdateTargetVocabSize(cls, p, vocab_size, wpm_model=None):

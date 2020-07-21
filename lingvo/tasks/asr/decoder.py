@@ -333,64 +333,63 @@ class AsrDecoderBase(base_decoder.BaseBeamSearchDecoder):
       self._font_properties = font_manager.FontProperties()
 
     name = p.name
-    with tf.variable_scope(name):
-      self.CreateChild('contextualizer', p.contextualizer)
-      atten_context_dim = self._GetAttenContextDim()
-      assert symbolic.IsExpr(atten_context_dim) or atten_context_dim > 0
+    self.CreateChild('contextualizer', p.contextualizer)
+    atten_context_dim = self._GetAttenContextDim()
+    assert symbolic.IsExpr(atten_context_dim) or atten_context_dim > 0
 
-      p.emb.dtype = p.dtype
-      p.emb.embedding_dim = p.emb_dim
-      self.CreateChild('emb', p.emb)
+    p.emb.dtype = p.dtype
+    p.emb.embedding_dim = p.emb_dim
+    self.CreateChild('emb', p.emb)
 
-      params_rnn_cells = []
-      params_adapter_layers = []
-      feat_dim = p.emb_dim
-      for i in range(p.rnn_layers):
-        if isinstance(p.rnn_cell_tpl, (list, tuple)):
-          assert len(p.rnn_cell_tpl) == p.rnn_layers
-          rnn_cell_params = p.rnn_cell_tpl[i].Copy()
-        else:
-          rnn_cell_params = p.rnn_cell_tpl.Copy()
-        rnn_cell_params.dtype = p.dtype
-        rnn_cell_params.inputs_arity = 2
-        decoder_utils.SetRnnCellNodes(p, rnn_cell_params)
-        rnn_cell_params.num_input_nodes = feat_dim + atten_context_dim
-        if i == 0:
-          rnn_cell_params.name = 'rnn_cell'
-        else:
-          rnn_cell_params.name = 'rnn_cell_%d' % i
-        feat_dim = rnn_cell_params.num_output_nodes
-        params_rnn_cells.append(rnn_cell_params)
-        if p.adapter_task_id_field is not None:
-          adapter_p = p.adapter_layer_tpl.Copy()
-          adapter_p.name = 'adapter_%d' % i
-          adapter_p.input_dim = feat_dim
-          params_adapter_layers.append(adapter_p)
-      self.CreateChildren('rnn_cell', params_rnn_cells)
-      self.CreateChildren('adapters', params_adapter_layers)
+    params_rnn_cells = []
+    params_adapter_layers = []
+    feat_dim = p.emb_dim
+    for i in range(p.rnn_layers):
+      if isinstance(p.rnn_cell_tpl, (list, tuple)):
+        assert len(p.rnn_cell_tpl) == p.rnn_layers
+        rnn_cell_params = p.rnn_cell_tpl[i].Copy()
+      else:
+        rnn_cell_params = p.rnn_cell_tpl.Copy()
+      rnn_cell_params.dtype = p.dtype
+      rnn_cell_params.inputs_arity = 2
+      decoder_utils.SetRnnCellNodes(p, rnn_cell_params)
+      rnn_cell_params.num_input_nodes = feat_dim + atten_context_dim
+      if i == 0:
+        rnn_cell_params.name = 'rnn_cell'
+      else:
+        rnn_cell_params.name = 'rnn_cell_%d' % i
+      feat_dim = rnn_cell_params.num_output_nodes
+      params_rnn_cells.append(rnn_cell_params)
+      if p.adapter_task_id_field is not None:
+        adapter_p = p.adapter_layer_tpl.Copy()
+        adapter_p.name = 'adapter_%d' % i
+        adapter_p.input_dim = feat_dim
+        params_adapter_layers.append(adapter_p)
+    self.CreateChildren('rnn_cell', params_rnn_cells)
+    self.CreateChildren('adapters', params_adapter_layers)
 
-      p.softmax.dtype = p.dtype
-      p.softmax.input_dim = feat_dim
-      if p.softmax_uses_attention:
-        p.softmax.input_dim += atten_context_dim
-      self.CreateChild('softmax', p.softmax)
+    p.softmax.dtype = p.dtype
+    p.softmax.input_dim = feat_dim
+    if p.softmax_uses_attention:
+      p.softmax.input_dim += atten_context_dim
+    self.CreateChild('softmax', p.softmax)
 
-      if p.fusion:
-        p.fusion.base_model_logits_dim = p.softmax.input_dim
-        self.CreateChild('fusion', p.fusion)
+    if p.fusion:
+      p.fusion.base_model_logits_dim = p.softmax.input_dim
+      self.CreateChild('fusion', p.fusion)
 
-      self._CreateAtten()
+    self._CreateAtten()
 
-      if p.label_smoothing is not None:
-        p.label_smoothing.name = 'smoother'
-        if p.label_smoothing.num_classes == 0:
-          p.label_smoothing.num_classes = p.softmax.num_classes
-        elif p.label_smoothing.num_classes != p.softmax.num_classes:
-          raise ValueError('label_smoothing.num_classes ({}) does not match '
-                           'softmax.num_classes ({})'.format(
-                               p.label_smoothing.num_classes,
-                               p.softmax.num_classes))
-        self.CreateChild('smoother', p.label_smoothing)
+    if p.label_smoothing is not None:
+      p.label_smoothing.name = 'smoother'
+      if p.label_smoothing.num_classes == 0:
+        p.label_smoothing.num_classes = p.softmax.num_classes
+      elif p.label_smoothing.num_classes != p.softmax.num_classes:
+        raise ValueError('label_smoothing.num_classes ({}) does not match '
+                         'softmax.num_classes ({})'.format(
+                             p.label_smoothing.num_classes,
+                             p.softmax.num_classes))
+      self.CreateChild('smoother', p.label_smoothing)
 
   def _CreateAtten(self):
     p = self.params

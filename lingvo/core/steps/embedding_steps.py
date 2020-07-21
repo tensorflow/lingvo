@@ -14,7 +14,6 @@
 # limitations under the License.
 """Step classes for embedding tables."""
 
-from lingvo import compat as tf
 from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import step
@@ -37,8 +36,7 @@ class EmbeddingStep(step.Step):
   def __init__(self, params):
     super().__init__(params)
     p = params
-    with tf.variable_scope(p.name):
-      self.CreateChild('emb', p.emb)
+    self.CreateChild('emb', p.emb)
 
   def FProp(self, theta, prepared_inputs, step_inputs, padding, state0):
     """Looks up a list of embeddings from an EmbeddingLayer.

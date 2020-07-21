@@ -495,7 +495,7 @@ class DistributedShampoo(optimizer.Optimizer):
     # the current i.
     def _update_statistics(dim, stat_var, grad):
       """Update preconditioner statistics."""
-      with tf.variable_scope("GradientStatistics"):
+      with tf.name_scope("GradientStatistics"):
         var_rank = len(grad.get_shape())
         axes = list(range(dim)) + list(range(dim + 1, var_rank))
         new_stat = math_ops.tensordot(grad, grad, axes=(axes, axes))

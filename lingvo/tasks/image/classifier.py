@@ -113,41 +113,39 @@ class ModelV1(BaseClassifier):
     p = self.params
     assert p.name
 
-    with tf.variable_scope(p.name):
-      assert len(p.filter_shapes) == len(p.window_shapes)
+    assert len(p.filter_shapes) == len(p.window_shapes)
 
-      # A few conv + max pooling layers.
-      shape = [None] + list(p.input.data_shape)
-      conv_params = []
-      pooling_params = []
-      for i, (kernel,
-              window) in enumerate(zip(p.filter_shapes, p.window_shapes)):
-        conv_params.append(layers.ConvLayer.Params().Set(
-            name='conv%d' % i,
-            filter_shape=kernel,
-            filter_stride=(1, 1),
-            batch_norm=p.batch_norm))
-        pooling_params.append(layers.PoolingLayer.Params().Set(
-            name='pool%d' % i, window_shape=window, window_stride=window))
-      self.CreateChildren('conv', conv_params)
-      self.CreateChildren('pool', pooling_params)
+    # A few conv + max pooling layers.
+    shape = [None] + list(p.input.data_shape)
+    conv_params = []
+    pooling_params = []
+    for i, (kernel, window) in enumerate(zip(p.filter_shapes, p.window_shapes)):
+      conv_params.append(layers.ConvLayer.Params().Set(
+          name='conv%d' % i,
+          filter_shape=kernel,
+          filter_stride=(1, 1),
+          batch_norm=p.batch_norm))
+      pooling_params.append(layers.PoolingLayer.Params().Set(
+          name='pool%d' % i, window_shape=window, window_stride=window))
+    self.CreateChildren('conv', conv_params)
+    self.CreateChildren('pool', pooling_params)
 
-      # Logs expected activation shapes.
-      for i in range(len(self.conv)):
-        tf.logging.info('shape %d %s', i, shape)
-        shape = self.conv[i].OutShape(shape)
-        tf.logging.info('shape %d %s', i, shape)
-        shape = self.pool[i].OutShape(shape)
-      tf.logging.info('shape %s', shape)
+    # Logs expected activation shapes.
+    for i in range(len(self.conv)):
+      tf.logging.info('shape %d %s', i, shape)
+      shape = self.conv[i].OutShape(shape)
+      tf.logging.info('shape %d %s', i, shape)
+      shape = self.pool[i].OutShape(shape)
+    tf.logging.info('shape %s', shape)
 
-      # FC layer to project down to p.softmax.input_dim.
-      self.CreateChild(
-          'fc',
-          layers.FCLayer.Params().Set(
-              name='fc',
-              input_dim=np.prod(shape[1:]),
-              output_dim=p.softmax.input_dim))
-      self.CreateChild('softmax', p.softmax)
+    # FC layer to project down to p.softmax.input_dim.
+    self.CreateChild(
+        'fc',
+        layers.FCLayer.Params().Set(
+            name='fc',
+            input_dim=np.prod(shape[1:]),
+            output_dim=p.softmax.input_dim))
+    self.CreateChild('softmax', p.softmax)
 
   def FPropTower(self, theta, input_batch):
     p = self.params
@@ -221,9 +219,8 @@ class ModelV2(BaseClassifier):
     p = self.params
     assert p.name
 
-    with tf.variable_scope(p.name):
-      self.CreateChild('extract', p.extract)
-      self.CreateChild('softmax', p.softmax)
+    self.CreateChild('extract', p.extract)
+    self.CreateChild('softmax', p.softmax)
 
   def ComputePredictions(self, theta, input_batch):
     # Forward through layers.
