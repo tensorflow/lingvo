@@ -226,61 +226,61 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are not yet supported for &#39;</span>
                                 <span class="s1">&#39;MTEncoderV1.&#39;</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
-      <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
 
-      <span class="c1"># L0 is a bi-directional lstm.</span>
+    <span class="c1"># L0 is a bi-directional lstm.</span>
 
-      <span class="c1"># L0&#39;s forward lstm cell</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_bidi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="c1"># L0&#39;s forward lstm cell</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_bidi</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_bidi</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0_rnn_fwd&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+    <span class="n">forward_lstm</span> <span class="o">=</span> <span class="n">params</span>
+
+    <span class="c1"># L0&#39;s backward lstm cell</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0_rnn_bak&#39;</span>
+    <span class="n">backward_lstm</span> <span class="o">=</span> <span class="n">params</span>
+
+    <span class="c1"># L0 layer.</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateBidirectionalRNNParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span>
+                                                       <span class="n">forward_lstm</span><span class="p">,</span>
+                                                       <span class="n">backward_lstm</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0&#39;</span>
+    <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+
+    <span class="c1"># The latter layers are all uni-directional lstm.</span>
+    <span class="n">input_size</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
+      <span class="c1"># Forward lstm cell.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_uni</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_bidi</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0_rnn_fwd&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-      <span class="n">forward_lstm</span> <span class="o">=</span> <span class="n">params</span>
-
-      <span class="c1"># L0&#39;s backward lstm cell</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0_rnn_bak&#39;</span>
-      <span class="n">backward_lstm</span> <span class="o">=</span> <span class="n">params</span>
-
-      <span class="c1"># L0 layer.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateBidirectionalRNNParams</span><span class="p">(</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">forward_lstm</span><span class="p">,</span> <span class="n">backward_lstm</span><span class="p">)</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L0&#39;</span>
+        <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_uni</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_size</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+      <span class="c1"># Forward lstm layer.</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateUnidirectionalRNNParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
       <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="n">input_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
 
-      <span class="c1"># The latter layers are all uni-directional lstm.</span>
-      <span class="n">input_size</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
-        <span class="c1"># Forward lstm cell.</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_uni</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl_uni</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">input_size</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-        <span class="c1"># Forward lstm layer.</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateUnidirectionalRNNParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">input_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
-
-      <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
-          <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">84828474</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
+    <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">84828474</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTEncoderV1.ApplyClipping"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderV1.ApplyClipping">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -394,40 +394,39 @@
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;Packed inputs are not yet supported for &#39;</span>
                                 <span class="s1">&#39;MTEncoderUniRNN.&#39;</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="o">=</span> <span class="kc">None</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
 
-      <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
 
-      <span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
-        <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">num_input_nodes</span>
-        <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateUnidirectionalRNNParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-        <span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span>
+    <span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
+      <span class="n">cell</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">num_input_nodes</span>
+      <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateUnidirectionalRNNParams</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">cell</span><span class="p">)</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+      <span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">cell</span><span class="o">.</span><span class="n">num_output_nodes</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
 
-      <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
-          <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">827366448</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
+    <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">827366448</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-        <span class="n">transparent_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">transparent_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent&#39;</span>
-        <span class="n">transparent_params</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
+      <span class="n">transparent_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">transparent_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent&#39;</span>
+      <span class="n">transparent_params</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTEncoderUniRNN.ApplyClipping"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderUniRNN.ApplyClipping">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">:</span>
@@ -540,66 +539,65 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+
+    <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn_fwd&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cc_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">)</span>
+        <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="n">forward_lstm</span> <span class="o">=</span> <span class="n">params</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="p">)</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn_bak&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="n">backward_lstm</span> <span class="o">=</span> <span class="n">params</span>
 
-      <span class="n">rnn_layers_params</span> <span class="o">=</span> <span class="p">[]</span>
+      <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateBidirectionalRNNParams</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">forward_lstm</span><span class="p">,</span> <span class="n">backward_lstm</span><span class="p">)</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span><span class="p">):</span>
-        <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn_fwd&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">params</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-        <span class="n">forward_lstm</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
 
-        <span class="n">params</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">_rnn_bak&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-        <span class="n">backward_lstm</span> <span class="o">=</span> <span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_out_dim</span><span class="p">:</span>
+      <span class="c1"># Project the encoder output to the desired dim.</span>
+      <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;proj&#39;</span><span class="p">,</span>
+          <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">encoder_out_dim</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;TANH&#39;</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">proj_p</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;NONE&#39;</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
 
-        <span class="n">params</span> <span class="o">=</span> <span class="n">model_helper</span><span class="o">.</span><span class="n">CreateBidirectionalRNNParams</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">,</span> <span class="n">forward_lstm</span><span class="p">,</span> <span class="n">backward_lstm</span><span class="p">)</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">packed_input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
-        <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;L</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="n">rnn_layers_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
+        <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
+        <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">827366448</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_layers_params</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">encoder_out_dim</span><span class="p">:</span>
-        <span class="c1"># Project the encoder output to the desired dim.</span>
-        <span class="n">proj_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;proj&#39;</span><span class="p">,</span>
-            <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">lstm_cell_size</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">encoder_out_dim</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cc_schedule</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">False</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;TANH&#39;</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">has_bias</span> <span class="o">=</span> <span class="kc">True</span>
-          <span class="n">proj_p</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;NONE&#39;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
-
-      <span class="n">dropout_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout_layer&#39;</span><span class="p">,</span>
-          <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">,</span>
-          <span class="n">random_seed</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="o">+</span> <span class="mi">827366448</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">random_seed</span> <span class="k">else</span> <span class="kc">None</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
-        <span class="n">transparent_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">transparent_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent&#39;</span>
-        <span class="n">transparent_params</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_transparent</span><span class="p">:</span>
+      <span class="n">transparent_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transparent_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">transparent_params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;transparent&#39;</span>
+      <span class="n">transparent_params</span><span class="o">.</span><span class="n">num_sources</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_lstm_layers</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transparent_merger&#39;</span><span class="p">,</span> <span class="n">transparent_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MTEncoderBiRNN.ApplyClipping"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.MTEncoderBiRNN.ApplyClipping">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyClipping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cc_schedule</span><span class="p">:</span>
@@ -722,37 +720,34 @@
       <span class="c1"># decoder. Variable names need to be the same in order to be reused.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">model_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span>
-            <span class="s1">&#39;token_emb.embedding_dim != model_dim (</span><span class="si">%s</span><span class="s1"> vs. </span><span class="si">%s</span><span class="s1">), &#39;</span>
-            <span class="s1">&#39;creating a projection!&#39;</span><span class="p">)</span>
-        <span class="n">proj_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;emb_proj&#39;</span>
-        <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-        <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
-        <span class="n">proj_p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">model_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="s1">&#39;token_emb.embedding_dim != model_dim (</span><span class="si">%s</span><span class="s1"> vs. </span><span class="si">%s</span><span class="s1">), &#39;</span>
+                         <span class="s1">&#39;creating a projection!&#39;</span><span class="p">)</span>
+      <span class="n">proj_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;emb_proj&#39;</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
+      <span class="n">proj_p</span><span class="o">.</span><span class="n">batch_norm</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;emb_proj&#39;</span><span class="p">,</span> <span class="n">proj_p</span><span class="p">)</span>
 
-      <span class="c1"># Token embeddings</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
+    <span class="c1"># Token embeddings</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+      <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
 
-      <span class="c1"># Positional embeddings</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
+    <span class="c1"># Positional embeddings</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
 
-      <span class="c1"># Task embeddings.</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">)</span>
+    <span class="c1"># Task embeddings.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">embedding_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_emb</span><span class="p">)</span>
 
-      <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
+    <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
@@ -953,26 +948,25 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;softmax&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="o">.</span><span class="n">dtype</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dtype</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;token_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">token_emb</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;position_emb&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">position_emb</span><span class="p">)</span>
 
-      <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
+    <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">dropout_tpl</span><span class="o">.</span><span class="n">keep_prob</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dropout_prob</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;input_dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transformer_stack&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_stack</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
-        <span class="n">layer_norm_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-            <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">,</span>
-            <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dropout_tpl</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">layer_norm_p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
+      <span class="n">layer_norm_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+          <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">,</span>
+          <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dropout_tpl</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">layer_norm_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TransformerBatchMajorEncoder._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.encoder.html#lingvo.tasks.mt.encoder.TransformerBatchMajorEncoder._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">shared_emb</span><span class="p">:</span>

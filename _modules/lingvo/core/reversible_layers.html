@@ -193,9 +193,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">f_params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">g_params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;f_block&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">f_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;g_block&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">g_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;f_block&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">f_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;g_block&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">g_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RevNetLayer.ReverseAndGrad"><a class="viewcode-back" href="../../../lingvo.core.reversible_layers.html#lingvo.core.reversible_layers.RevNetLayer.ReverseAndGrad">[docs]</a>  <span class="k">def</span> <span class="nf">ReverseAndGrad</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">d_outputs</span><span class="p">,</span> <span class="n">f_seed</span><span class="p">,</span> <span class="n">g_seed</span><span class="p">,</span>
                      <span class="o">*</span><span class="n">extra_inputs</span><span class="p">):</span>
@@ -323,8 +322,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub_layers&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;sub_layers&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">sub_layer_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="StackedRevNetLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.reversible_layers.html#lingvo.core.reversible_layers.StackedRevNetLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">extra_inputs</span><span class="p">):</span>
 

@@ -1355,22 +1355,21 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;uniform&#39;</span><span class="p">,</span> <span class="s1">&#39;default&#39;</span><span class="p">):</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unknown proj_init: </span><span class="si">%s</span><span class="s1">!&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">proj_init</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">att_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
+    <span class="n">att_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
-      <span class="n">att_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">source_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
-          <span class="n">query_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
-          <span class="n">hidden_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
-          <span class="n">atten_dropout_deterministic</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_deterministic</span><span class="p">,</span>
-          <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">)</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">att_p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
-        <span class="n">att_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;inner_att&#39;</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">att_p</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
+    <span class="n">att_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inner_atten_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">source_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
+        <span class="n">query_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">att_dim</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+        <span class="n">atten_dropout_deterministic</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_deterministic</span><span class="p">,</span>
+        <span class="n">packed_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">att_p</span><span class="o">.</span><span class="n">name</span><span class="p">:</span>
+      <span class="n">att_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;inner_att&#39;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">att_p</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
 <div class="viewcode-block" id="MultiHeadedAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
@@ -2775,129 +2774,127 @@
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;dropout is not supported.&#39;</span><span class="p">)</span>
 
     <span class="c1"># TODO(ngyuzh): Compare Sigmoid and other activation functions.</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">ff_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">,</span>
-          <span class="n">hidden_layer_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span> <span class="o">*</span> <span class="mi">3</span><span class="p">],</span>
-          <span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">],</span>
-          <span class="n">params_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;GMM&#39;</span><span class="p">,</span> <span class="n">ff_params</span><span class="p">)</span>
+    <span class="n">ff_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">query_dim</span><span class="p">,</span>
+        <span class="n">hidden_layer_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span> <span class="o">*</span> <span class="mi">3</span><span class="p">],</span>
+        <span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">],</span>
+        <span class="n">params_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="o">.</span><span class="n">Copy</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;GMM&#39;</span><span class="p">,</span> <span class="n">ff_params</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.</span>
+    <span class="k">def</span> <span class="nf">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Computes the location GMM probabilities at all encoder positions.</span>
 
-<span class="sd">        This function assumes that the first 2 dimensions of `priors`, `means`,</span>
-<span class="sd">        `variances`, and the return value:</span>
-<span class="sd">        `multiplier (target_batch / source_batch)` and `source_batch` are</span>
-<span class="sd">        transposed, and `encoder_positions` has only non-one dimensions.</span>
+<span class="sd">      This function assumes that the first 2 dimensions of `priors`, `means`,</span>
+<span class="sd">      `variances`, and the return value:</span>
+<span class="sd">      `multiplier (target_batch / source_batch)` and `source_batch` are</span>
+<span class="sd">      transposed, and `encoder_positions` has only non-one dimensions.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">          encoder_positions: [source_batch, source_length]</span>
-<span class="sd">          priors: [multiplier, source_batch, num_mixtures]</span>
-<span class="sd">          means: [multiplier, source_batch, num_mixtures]</span>
-<span class="sd">          variances: [multiplier, source_batch, num_mixtures]</span>
+<span class="sd">      Args:</span>
+<span class="sd">        encoder_positions: [source_batch, source_length]</span>
+<span class="sd">        priors: [multiplier, source_batch, num_mixtures]</span>
+<span class="sd">        means: [multiplier, source_batch, num_mixtures]</span>
+<span class="sd">        variances: [multiplier, source_batch, num_mixtures]</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">          Probabilities shaped [multiplier, source_batch, source_length].</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># [multiplier, source_batch, 1, num_mixtures]</span>
-        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-8</span>
+<span class="sd">      Returns:</span>
+<span class="sd">        Probabilities shaped [multiplier, source_batch, source_length].</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="c1"># [multiplier, source_batch, 1, num_mixtures]</span>
+      <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">epsilon</span> <span class="o">=</span> <span class="mf">1e-8</span>
 
-        <span class="c1"># [source_batch, source_length, 1]</span>
-        <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="c1"># [source_batch, source_length, 1]</span>
+      <span class="n">encoder_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
 
-        <span class="c1"># [multiplier, source_batch, source_length, num_mixtures]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="p">((</span><span class="n">priors</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">))</span> <span class="o">*</span>
-                 <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">encoder_positions</span> <span class="o">-</span> <span class="n">means</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span>
-                        <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)))</span>
+      <span class="c1"># [multiplier, source_batch, source_length, num_mixtures]</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="p">((</span><span class="n">priors</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">))</span> <span class="o">*</span>
+               <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="p">(</span><span class="n">encoder_positions</span> <span class="o">-</span> <span class="n">means</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">/</span>
+                      <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">variances</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)))</span>
 
-        <span class="c1"># [multiplier, source_batch, source_length]</span>
-        <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+      <span class="c1"># [multiplier, source_batch, source_length]</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
 
-      <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
-                <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
-                <span class="n">per_step_source_padding</span><span class="p">):</span>
-        <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
+    <span class="k">def</span> <span class="nf">Atten</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">concated_source_contexts</span><span class="p">,</span>
+              <span class="n">query_vec</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">,</span> <span class="n">encoder_positions</span><span class="p">,</span>
+              <span class="n">per_step_source_padding</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Computes the attention context vector.</span>
 
-<span class="sd">        Args:</span>
-<span class="sd">          source_padding: [source_length, source_batch]</span>
-<span class="sd">          concated_source_vecs: [source_length, source_batch, hidden_dim]</span>
-<span class="sd">          concated_source_contexts: [source_batch, source_length, context_dim]</span>
-<span class="sd">          query_vec: [target_batch, query_dim]</span>
-<span class="sd">          priors: [target_batch, num_mixtures]</span>
-<span class="sd">          means: [target_batch, num_mixtures]</span>
-<span class="sd">          variances: [target_batch, num_mixtures]</span>
-<span class="sd">          encoder_positions: [source_batch, source_length]</span>
-<span class="sd">          per_step_source_padding: [target_batch, source_length]</span>
+<span class="sd">      Args:</span>
+<span class="sd">        source_padding: [source_length, source_batch]</span>
+<span class="sd">        concated_source_vecs: [source_length, source_batch, hidden_dim]</span>
+<span class="sd">        concated_source_contexts: [source_batch, source_length, context_dim]</span>
+<span class="sd">        query_vec: [target_batch, query_dim]</span>
+<span class="sd">        priors: [target_batch, num_mixtures]</span>
+<span class="sd">        means: [target_batch, num_mixtures]</span>
+<span class="sd">        variances: [target_batch, num_mixtures]</span>
+<span class="sd">        encoder_positions: [source_batch, source_length]</span>
+<span class="sd">        per_step_source_padding: [target_batch, source_length]</span>
 
-<span class="sd">        Returns:</span>
-<span class="sd">          Tuple(context vector, atten probs):</span>
+<span class="sd">      Returns:</span>
+<span class="sd">        Tuple(context vector, atten probs):</span>
 
-<span class="sd">          - context vector: [target_batch, context_dim]</span>
-<span class="sd">          - attention probabilities: [target_batch, source_length]</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="c1"># Note: shape [target_batch] can be converted to</span>
-        <span class="c1"># [multiplier, source_batch], not [source_batch, multiplier].</span>
-        <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-        <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">multiplier</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
+<span class="sd">        - context vector: [target_batch, context_dim]</span>
+<span class="sd">        - attention probabilities: [target_batch, source_length]</span>
+<span class="sd">      &quot;&quot;&quot;</span>
+      <span class="c1"># Note: shape [target_batch] can be converted to</span>
+      <span class="c1"># [multiplier, source_batch], not [source_batch, multiplier].</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">source_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+      <span class="n">target_batch</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">multiplier</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
 
-        <span class="c1"># [multiplier, source_batch, num_mixtures]</span>
-        <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
-        <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span>
-                               <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+      <span class="c1"># [multiplier, source_batch, num_mixtures]</span>
+      <span class="n">priors</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">priors</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+      <span class="n">means</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">means</span><span class="p">,</span> <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
+      <span class="n">variances</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">variances</span><span class="p">,</span>
+                             <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_mixtures</span><span class="p">])</span>
 
-        <span class="c1"># [multiplier, source_batch, source_length]</span>
-        <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
+      <span class="c1"># [multiplier, source_batch, source_length]</span>
+      <span class="n">probs</span> <span class="o">=</span> <span class="n">ComputeProbs</span><span class="p">(</span><span class="n">encoder_positions</span><span class="p">,</span> <span class="n">priors</span><span class="p">,</span> <span class="n">means</span><span class="p">,</span> <span class="n">variances</span><span class="p">)</span>
 
-        <span class="c1"># [source_batch, source_length]</span>
-        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
+      <span class="c1"># [source_batch, source_length]</span>
+      <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">source_padding</span><span class="p">)</span>
 
-        <span class="c1"># [multiplier, source_batch, source_length]</span>
-        <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span>
-                                             <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">source_padding</span> <span class="o">+=</span> <span class="n">per_step_source_padding</span>
-        <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+      <span class="c1"># [multiplier, source_batch, source_length]</span>
+      <span class="n">per_step_source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">per_step_source_padding</span><span class="p">,</span>
+                                           <span class="p">[</span><span class="n">multiplier</span><span class="p">,</span> <span class="n">source_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">source_padding</span> <span class="o">+=</span> <span class="n">per_step_source_padding</span>
+      <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">source_padding</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
 
-        <span class="c1"># [multiplier, source_batch, source_length]</span>
-        <span class="n">probs</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_padding</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_probs</span><span class="p">:</span>
-          <span class="n">probs</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
-              <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">)</span>
+      <span class="c1"># [multiplier, source_batch, source_length]</span>
+      <span class="n">probs</span> <span class="o">*=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">source_padding</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">normalize_probs</span><span class="p">:</span>
+        <span class="n">probs</span> <span class="o">/=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span> <span class="mf">1e-12</span><span class="p">)</span>
 
-        <span class="c1"># [source_batch, multiplier, source_length]</span>
-        <span class="n">probs_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="c1"># [source_batch, multiplier, source_length]</span>
+      <span class="n">probs_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
-        <span class="c1"># Matmul:</span>
-        <span class="c1"># [source_batch, multiplier, source_length]</span>
-        <span class="c1"># @ [source_batch, source_length, context_dim]</span>
-        <span class="c1"># -&gt; [source_batch, multiplier, context_dim]</span>
-        <span class="n">context_vector_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs_transposed</span><span class="p">,</span>
-                                              <span class="n">concated_source_contexts</span><span class="p">)</span>
+      <span class="c1"># Matmul:</span>
+      <span class="c1"># [source_batch, multiplier, source_length]</span>
+      <span class="c1"># @ [source_batch, source_length, context_dim]</span>
+      <span class="c1"># -&gt; [source_batch, multiplier, context_dim]</span>
+      <span class="n">context_vector_transposed</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">matmul</span><span class="p">(</span><span class="n">probs_transposed</span><span class="p">,</span>
+                                            <span class="n">concated_source_contexts</span><span class="p">)</span>
 
-        <span class="c1"># [multiplier, source_batch, context_dim]</span>
-        <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector_transposed</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="c1"># [multiplier, source_batch, context_dim]</span>
+      <span class="n">context_vector</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">context_vector_transposed</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
 
-        <span class="c1"># [target_batch, context_dim], [target_batch, source_length]</span>
-        <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
-                <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+      <span class="c1"># [target_batch, context_dim], [target_batch, source_length]</span>
+      <span class="k">return</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">context_vector</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]),</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">probs</span><span class="p">,</span> <span class="p">[</span><span class="n">target_batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
-      <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
-        <span class="c1"># TODO(ngyuzh): combine with content-base attention.</span>
-        <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-        <span class="n">ctxs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-        <span class="n">transposed_ctxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-        <span class="k">return</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">transposed_ctxs</span>
+    <span class="k">def</span> <span class="nf">EncodeSource</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="n">ctxs</span><span class="p">):</span>
+      <span class="c1"># TODO(ngyuzh): combine with content-base attention.</span>
+      <span class="n">time</span><span class="p">,</span> <span class="n">batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">vecs</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+      <span class="n">ctxs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="n">time</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="n">transposed_ctxs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">ctxs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="k">return</span> <span class="n">vecs</span><span class="p">,</span> <span class="n">transposed_ctxs</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
 
 <div class="viewcode-block" id="GmmMonotonicAttention.PackSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.GmmMonotonicAttention.PackSource">[docs]</a>  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
@@ -3285,23 +3282,22 @@
     <span class="sd">&quot;&quot;&quot;Constructs an MultiSourceAttention object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">atten_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
-        <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
-        <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-          <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">atten_p</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">source_atten_tpls</span><span class="p">:</span>
+      <span class="n">child_p</span> <span class="o">=</span> <span class="n">atten_p</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+      <span class="k">if</span> <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">child_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">source_key</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
 
-      <span class="c1"># Initialize source context vector merging layer.</span>
-      <span class="n">merger_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">merger_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_merger&#39;</span>
-      <span class="n">merger_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
-      <span class="n">merger_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_merger&#39;</span><span class="p">,</span> <span class="n">merger_p</span><span class="p">)</span>
+    <span class="c1"># Initialize source context vector merging layer.</span>
+    <span class="n">merger_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">atten_merger_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">merger_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;atten_merger&#39;</span>
+    <span class="n">merger_p</span><span class="o">.</span><span class="n">source_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">source_dim</span>
+    <span class="n">merger_p</span><span class="o">.</span><span class="n">query_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">query_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_merger&#39;</span><span class="p">,</span> <span class="n">merger_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiSourceAttention.PackSource"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiSourceAttention.PackSource">[docs]</a>  <span class="k">def</span> <span class="nf">PackSource</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>

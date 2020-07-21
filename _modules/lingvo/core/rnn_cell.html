@@ -811,22 +811,21 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span> <span class="o">==</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_shuffle_shards</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">child_params</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">):</span>
-        <span class="n">child_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">child_lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;group_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
-        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">==</span> <span class="mi">0</span>
-        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="mi">0</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">split_inputs</span><span class="p">:</span>
-          <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">reset_cell_state</span>
-        <span class="n">child_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child_p</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;groups&#39;</span><span class="p">,</span> <span class="n">child_params</span><span class="p">)</span>
+    <span class="n">child_params</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">):</span>
+      <span class="n">child_p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">child_lstm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">child_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;group_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">i</span>
+      <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">==</span> <span class="mi">0</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">split_inputs</span><span class="p">:</span>
+        <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">child_p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span>
+      <span class="n">child_p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_output_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
+      <span class="n">child_p</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
+      <span class="n">child_p</span><span class="o">.</span><span class="n">reset_cell_state</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">reset_cell_state</span>
+      <span class="n">child_params</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">child_p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;groups&#39;</span><span class="p">,</span> <span class="n">child_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="LSTMCellGrouped.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LSTMCellGrouped.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">batch_size</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span></div>
@@ -1356,6 +1355,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
 <div class="viewcode-block" id="LayerNormalizedLSTMCellSimple._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellSimple._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Initializes LayerNormalizedLSTMCellSimple.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1439,10 +1439,9 @@
     <span class="nb">super</span><span class="p">(</span><span class="n">NormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">gates_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">gates_name</span><span class="p">:</span>
-        <span class="n">norm_layer_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;norm_&#39;</span> <span class="o">+</span> <span class="n">gate</span><span class="p">,</span> <span class="n">norm_layer_p</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">gates_name</span><span class="p">:</span>
+      <span class="n">norm_layer_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">norm_layer_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">input_dim</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;norm_&#39;</span> <span class="o">+</span> <span class="n">gate</span><span class="p">,</span> <span class="n">norm_layer_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="NormalizedLSTMCellSimple._Gates"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.NormalizedLSTMCellSimple._Gates">[docs]</a>  <span class="k">def</span> <span class="nf">_Gates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">xmw</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state0</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="c1"># Retrieve i_i, i_g, f_g, o_g</span>
@@ -1532,43 +1531,45 @@
           <span class="s1">&#39;p.cell_value_cap should be a int/float if not None, but got </span><span class="si">{}</span><span class="s1">&#39;</span>
           <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">))</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Define weights.</span>
-      <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+<div class="viewcode-block" id="LayerNormalizedLSTMCellLean._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.LayerNormalizedLSTMCellLean._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Define weights.</span>
+    <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
+      <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
-        <span class="n">w_proj</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
-        <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_lstm_bias</span><span class="p">:</span>
+      <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-      <span class="n">ln_gates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
-        <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_ln_bias</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="n">ln_gates</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+      <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_ln_bias</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1707,47 +1708,44 @@
     <span class="n">p</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">GeoMeanXavier</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">)</span>
+<div class="viewcode-block" id="DoubleProjectionLSTMCell._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.DoubleProjectionLSTMCell._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-
-      <span class="k">def</span> <span class="nf">_WeightInit</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-          <span class="s1">&#39;w_input_proj&#39;</span><span class="p">,</span>
-          <span class="n">_WeightInit</span><span class="p">(</span>
-              <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">]),</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_output_proj&#39;</span><span class="p">,</span>
-                          <span class="n">_WeightInit</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">]),</span>
-                          <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="k">for</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-            <span class="s1">&#39;wm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">,</span>
-            <span class="n">_WeightInit</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">]),</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-
-      <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+    <span class="k">def</span> <span class="nf">_WeightInit</span><span class="p">(</span><span class="n">shape</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-      <span class="n">ln_gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
-        <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
-      <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;w_input_proj&#39;</span><span class="p">,</span>
+        <span class="n">_WeightInit</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">]),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_output_proj&#39;</span><span class="p">,</span>
+                        <span class="n">_WeightInit</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">]),</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">gate_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+          <span class="s1">&#39;wm_</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">gate_name</span><span class="p">,</span>
+          <span class="n">_WeightInit</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_hidden_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">]),</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="n">ln_gates</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gates</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_ln_on_c</span><span class="p">:</span>
+      <span class="n">ln_gates</span> <span class="o">+=</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">]</span>
+    <span class="k">for</span> <span class="n">ln_name</span> <span class="ow">in</span> <span class="n">ln_gates</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;ln_scale_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="n">ln_name</span><span class="p">,</span> <span class="n">pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1896,26 +1894,29 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span>
 
+<div class="viewcode-block" id="ConvLSTMCell._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="n">in_channels</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">inputs_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
     <span class="n">out_channels</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_shape</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Define weights.</span>
-      <span class="n">var_shape</span> <span class="o">=</span> <span class="p">[</span>
-          <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">in_channels</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span>
-      <span class="p">]</span>
-      <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">,</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+    <span class="c1"># Define weights.</span>
+    <span class="n">var_shape</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">in_channels</span><span class="p">,</span> <span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span>
+    <span class="p">]</span>
+    <span class="n">wm_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">var_shape</span><span class="p">,</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;wm&#39;</span><span class="p">,</span> <span class="n">wm_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-      <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span><span class="p">],</span>
-          <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-          <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
+    <span class="n">bias_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">4</span> <span class="o">*</span> <span class="n">out_channels</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">())</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">bias_pc</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ConvLSTMCell.batch_size"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.ConvLSTMCell.batch_size">[docs]</a>  <span class="k">def</span> <span class="nf">batch_size</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">act</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">0</span><span class="p">]</span></div>
@@ -2554,6 +2555,12 @@
                       <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">))</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">cell_value_cap</span> <span class="ow">is</span> <span class="kc">None</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">zo_prob</span> <span class="o">==</span> <span class="mf">0.0</span>
 
+    <span class="bp">self</span><span class="o">.</span><span class="n">_timestep</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+<div class="viewcode-block" id="GRUCell._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.GRUCell._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
     <span class="k">def</span> <span class="nf">CreateVarHelper</span><span class="p">(</span><span class="n">variable_name</span><span class="p">,</span> <span class="n">shape_to_init</span><span class="p">,</span> <span class="n">params_to_init</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Utility function to initialize variables.</span>
 
@@ -2571,43 +2578,40 @@
               <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
               <span class="n">collections</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_VariableCollections</span><span class="p">()),</span> <span class="bp">self</span><span class="o">.</span><span class="n">AddGlobalVN</span><span class="p">)</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Define weights.</span>
-      <span class="c1"># Weight for block input</span>
-      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_n&#39;</span><span class="p">,</span>
-                      <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+    <span class="c1"># Define weights.</span>
+    <span class="c1"># Weight for block input</span>
+    <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_n&#39;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
+    <span class="c1"># Weight for update gate</span>
+    <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_u&#39;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
+    <span class="c1"># Weight for reset gate</span>
+    <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_r&#39;</span><span class="p">,</span>
+                    <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
+                    <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
+      <span class="c1"># Set up projection matrix</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
                       <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
-      <span class="c1"># Weight for update gate</span>
-      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_u&#39;</span><span class="p">,</span>
-                      <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span>
-                      <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
-      <span class="c1"># Weight for reset gate</span>
-      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_r&#39;</span><span class="p">,</span>
-                      <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_input_nodes</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
-                      <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_proj&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">num_hidden_nodes</span><span class="p">:</span>
-        <span class="c1"># Set up projection matrix</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span>
-                        <span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">)</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_proj&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_gru_bias</span><span class="p">:</span>
+      <span class="c1"># Bias for the block input</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_n&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
+      <span class="c1"># Bias for update gate</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_u&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
+      <span class="c1"># Bias for the reset gate</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_r&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
 
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_gru_bias</span><span class="p">:</span>
-        <span class="c1"># Bias for the block input</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_n&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
-        <span class="c1"># Bias for update gate</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_u&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
-        <span class="c1"># Bias for the reset gate</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;b_r&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">p</span><span class="o">.</span><span class="n">bias_init</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
-        <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_epsilon</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-        <span class="n">ln_unit</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;bn_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;bu_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span>
-        <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;br_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span>
-
-      <span class="bp">self</span><span class="o">.</span><span class="n">_timestep</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_epsilon</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+      <span class="n">ln_unit</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;bn_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;bu_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">hidden_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span>
+      <span class="n">CreateVarHelper</span><span class="p">(</span><span class="s1">&#39;br_ln_scale&#39;</span><span class="p">,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">output_size</span><span class="p">],</span> <span class="n">ln_unit</span><span class="p">)</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

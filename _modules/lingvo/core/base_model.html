@@ -458,11 +458,10 @@
     <span class="k">if</span> <span class="n">tp</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="n">tp</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-          <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">)</span>
-          <span class="k">else</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
 
 <div class="viewcode-block" id="BaseTask.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1056,18 +1055,17 @@
     <span class="n">p</span><span class="o">.</span><span class="n">student</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span>
     <span class="c1"># Teacher also might need an input generator, eg. for waveform_processor.</span>
     <span class="n">p</span><span class="o">.</span><span class="n">teacher</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="s1">&#39;student&#39;</span><span class="p">):</span>
-        <span class="n">child_p</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseTask</span><span class="p">)</span>
-        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">train</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">eval</span> <span class="ow">is</span> <span class="kc">None</span>
-        <span class="c1"># In theory it&#39;s ok for teacher to be a DistillationTask. In practice</span>
-        <span class="c1"># it probably won&#39;t happen.</span>
-        <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DistillationTask</span><span class="p">)</span>
-        <span class="n">child_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">child</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">distillation_loss_weight</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;teacher&#39;</span><span class="p">,</span> <span class="s1">&#39;student&#39;</span><span class="p">):</span>
+      <span class="n">child_p</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">child</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">BaseTask</span><span class="p">)</span>
+      <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">train</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="k">assert</span> <span class="n">child_p</span><span class="o">.</span><span class="n">eval</span> <span class="ow">is</span> <span class="kc">None</span>
+      <span class="c1"># In theory it&#39;s ok for teacher to be a DistillationTask. In practice</span>
+      <span class="c1"># it probably won&#39;t happen.</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="nb">issubclass</span><span class="p">(</span><span class="n">child_p</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">DistillationTask</span><span class="p">)</span>
+      <span class="n">child_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">child</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">child</span><span class="p">,</span> <span class="n">child_p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;distillation_loss_weight&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">distillation_loss_weight</span><span class="p">)</span>
 
 <div class="viewcode-block" id="DistillationTask.ComputePredictions"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.DistillationTask.ComputePredictions">[docs]</a>  <span class="k">def</span> <span class="nf">ComputePredictions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1484,11 +1482,7 @@
     <span class="c1"># or CreateChildren calls.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span> <span class="ow">in</span> <span class="n">sorted_task_params</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">task_name_var_scope</span><span class="p">:</span>
-          <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="n">task_name</span><span class="p">,</span> <span class="n">task_params</span><span class="p">)</span>
 
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;task_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">task_schedule</span><span class="p">)</span>
 

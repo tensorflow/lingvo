@@ -1001,8 +1001,7 @@
         <span class="n">bn_decay</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_decay</span><span class="p">,</span>
         <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">)</span>
     <span class="n">depthwise_params</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;depthwise_conv&#39;</span><span class="p">,</span> <span class="n">depthwise_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;depthwise_conv&#39;</span><span class="p">,</span> <span class="n">depthwise_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SeparableConv2DLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SeparableConv2DLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">depthwise_conv</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">depthwise_conv</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span>
@@ -1470,32 +1469,31 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="p">[</span><span class="n">params_dropout_layers</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Residual connections work better in the form of:</span>
-      <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
-      <span class="n">params_fc_layers</span> <span class="o">=</span> <span class="p">[]</span>
-      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
-        <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
-        <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
-        <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
-        <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
-            <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
-            <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
-            <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
-        <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
-        <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+    <span class="c1"># Residual connections work better in the form of:</span>
+    <span class="c1">#   y = x + Affine(Activation(BatchNorm(x)))</span>
+    <span class="n">params_fc_layers</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">in_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+      <span class="n">out_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+      <span class="n">proj_out_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
+      <span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+      <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+          <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+          <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
+          <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
+          <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
+          <span class="n">bn_fold_weights</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bn_fold_weights</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">)</span>
+      <span class="n">params_fc_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">params_i</span><span class="p">)</span>
+      <span class="n">in_dim</span> <span class="o">=</span> <span class="n">out_dim</span>
 
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">params_i</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">params_i</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span> <span class="n">params_fc_layers</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">params_dropout_layers</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;fc&#39;</span><span class="p">,</span> <span class="n">params_fc_layers</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">params_dropout_layers</span><span class="p">)</span>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">output_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -3549,13 +3547,12 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">linear_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">LinearLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">input_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">linear_p</span><span class="p">)</span>
-      <span class="n">bias_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">bias_p</span><span class="p">)</span>
+    <span class="n">linear_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">LinearLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">input_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;linear&#39;</span><span class="p">,</span> <span class="n">linear_p</span><span class="p">)</span>
+    <span class="n">bias_p</span> <span class="o">=</span> <span class="n">builder_layers</span><span class="o">.</span><span class="n">BiasLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">dims</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="n">bias_p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SingleShardFullSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardFullSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns the logits computed before the softmax.</span>
@@ -3760,31 +3757,30 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of target classes.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+<div class="viewcode-block" id="ConvSoftmax._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSoftmax._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs a SimpleFullSoftmax layer.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">:</span>
-        <span class="n">w_proj_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-            <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
-            <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj_pc</span><span class="p">)</span>
-      <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-          <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">:</span>
+      <span class="n">w_proj_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">),</span>
           <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
           <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
           <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
-          <span class="s1">&#39;b&#39;</span><span class="p">,</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-              <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
-              <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
-              <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-              <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w_proj&#39;</span><span class="p">,</span> <span class="n">w_proj_pc</span><span class="p">)</span>
+    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">),</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">w_pc</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
+        <span class="s1">&#39;b&#39;</span><span class="p">,</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+            <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">],</span>
+            <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+            <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+            <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]))</span></div>
 
 <div class="viewcode-block" id="ConvSoftmax.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSoftmax.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -4001,8 +3997,7 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;class_index&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">AddExtraTheta</span><span class="p">(</span><span class="s1">&#39;class_index&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">))</span>
 
 <div class="viewcode-block" id="CategoricalLayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -4050,19 +4045,18 @@
       <span class="k">assert</span> <span class="n">input_shape</span> <span class="o">==</span> <span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
 
     <span class="n">params_conv_set</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">for</span> <span class="n">filter_shape</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shapes</span><span class="p">:</span>
-        <span class="n">conv_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cnn_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">conv_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-        <span class="c1"># Important: combined quantization will be done pre-concat versus</span>
-        <span class="c1"># by each layer on its output. Otherwise, inherit quantization params</span>
-        <span class="c1"># from this layer.</span>
-        <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-          <span class="n">conv_p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-        <span class="n">conv_p</span><span class="o">.</span><span class="n">disable_activation_quantization</span> <span class="o">=</span> <span class="kc">True</span>
-        <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">filter_shape</span>
-        <span class="n">params_conv_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;conv_set&#39;</span><span class="p">,</span> <span class="n">params_conv_set</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">filter_shape</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shapes</span><span class="p">:</span>
+      <span class="n">conv_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">cnn_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">conv_p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="si">%d</span><span class="s1">_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">filter_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+      <span class="c1"># Important: combined quantization will be done pre-concat versus</span>
+      <span class="c1"># by each layer on its output. Otherwise, inherit quantization params</span>
+      <span class="c1"># from this layer.</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">conv_p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">qdomain</span><span class="o">.</span><span class="n">default</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+      <span class="n">conv_p</span><span class="o">.</span><span class="n">disable_activation_quantization</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">conv_p</span><span class="o">.</span><span class="n">filter_shape</span> <span class="o">=</span> <span class="n">filter_shape</span>
+      <span class="n">params_conv_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;conv_set&#39;</span><span class="p">,</span> <span class="n">params_conv_set</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ConvSetLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
@@ -4299,27 +4293,26 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+    <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">batch_norm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">,</span>
+        <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">bias_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_carry_gate&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;carry_gate&#39;</span><span class="p">,</span> <span class="n">carry_gate_params</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_carry_transform_gates</span><span class="p">:</span>
+      <span class="n">transform_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">batch_norm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">,</span>
           <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
           <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">bias_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_carry_gate&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;carry_gate&#39;</span><span class="p">,</span> <span class="n">carry_gate_params</span><span class="p">)</span>
-
-      <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">couple_carry_transform_gates</span><span class="p">:</span>
-        <span class="n">transform_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-            <span class="n">batch_norm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">,</span>
-            <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
-            <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-            <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-            <span class="n">bias_init</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
-            <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_transform_gate&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transform_gate&#39;</span><span class="p">,</span> <span class="n">transform_gate_params</span><span class="p">)</span>
+          <span class="n">bias_init</span><span class="o">=-</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
+          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">_transform_gate&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;transform_gate&#39;</span><span class="p">,</span> <span class="n">transform_gate_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="HighwaySkipLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.HighwaySkipLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">transformed_x</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Fprop for Highway Skip layer.</span>
@@ -4370,16 +4363,15 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-          <span class="n">has_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">,</span>
-          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
-          <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">bias_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;carry&#39;</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;carry_gate&#39;</span><span class="p">,</span> <span class="n">carry_gate_params</span><span class="p">)</span>
+    <span class="n">carry_gate_params</span> <span class="o">=</span> <span class="n">ProjectionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">batch_norm</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">has_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">has_bias</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;SIGMOID&#39;</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="mi">2</span><span class="p">,</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">bias_init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">carry_bias_init</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;carry&#39;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;carry_gate&#39;</span><span class="p">,</span> <span class="n">carry_gate_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GatingLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatingLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Fprop for the gating layer.</span>
@@ -4733,18 +4725,17 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">bottleneck_params</span> <span class="o">=</span> <span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span>
-          <span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">],</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
-          <span class="n">hidden_layer_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span> <span class="n">bottleneck_params</span><span class="p">)</span>
+    <span class="n">bottleneck_params</span> <span class="o">=</span> <span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">],</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
+        <span class="n">hidden_layer_dims</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bottleneck&#39;</span><span class="p">,</span> <span class="n">bottleneck_params</span><span class="p">)</span>
 
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;adapter_ln&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;adapter_ln&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="ResidualAdapterLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ResidualAdapterLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Fprop for Residual Adapter.</span>
@@ -4976,32 +4967,31 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_residual</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">output_dim</span> <span class="o">==</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="c1"># Initialize value feed-forward layer.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;value_layer&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="c1"># Initialize value feed-forward layer.</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;value_layer&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">activation</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;value_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-      <span class="c1"># Initialize gate feed-forward layer.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gate_layer&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;SIGMOID&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gate_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="c1"># Initialize gate feed-forward layer.</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dense_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gate_layer&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="s1">&#39;SIGMOID&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">=</span> <span class="n">output_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gate_layer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-      <span class="c1"># Initialize layer norm.</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_norm&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="c1"># Initialize layer norm.</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ln_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_norm&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-      <span class="c1"># Initialize dropout.</span>
-      <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
+    <span class="c1"># Initialize dropout.</span>
+    <span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_tpl</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GluLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GluLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
@@ -5056,32 +5046,31 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="c1"># Data format is either &#39;TBC&#39; (time-major) or &#39;BTC&#39; (batch-major).</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">data_format</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;TBC&#39;</span><span class="p">,</span> <span class="s1">&#39;BTC&#39;</span><span class="p">)</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">base_emb_params</span> <span class="o">=</span> <span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">vocab_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
-      <span class="n">down_proj_w_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">down_proj_w_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;down_proj_w&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span><span class="p">:</span>
-        <span class="n">down_proj_w_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span>
-      <span class="n">down_proj_b_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">down_proj_b_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;down_proj_b&#39;</span><span class="p">)</span>
-      <span class="n">up_proj_w_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">up_proj_w_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;up_proj_w&#39;</span><span class="p">)</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span><span class="p">:</span>
-        <span class="n">up_proj_w_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span>
-      <span class="n">up_proj_b_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">up_proj_b_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;up_proj_b&#39;</span><span class="p">)</span>
+    <span class="n">base_emb_params</span> <span class="o">=</span> <span class="n">EmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">vocab_size</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_tasks</span><span class="p">,</span> <span class="n">max_num_shards</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">down_proj_w_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">down_proj_w_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;down_proj_w&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span><span class="p">:</span>
+      <span class="n">down_proj_w_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span>
+    <span class="n">down_proj_b_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">down_proj_b_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;down_proj_b&#39;</span><span class="p">)</span>
+    <span class="n">up_proj_w_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">up_proj_w_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">bottleneck_dim</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;up_proj_w&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span><span class="p">:</span>
+      <span class="n">up_proj_w_params</span><span class="o">.</span><span class="n">params_init</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection_params_init</span>
+    <span class="n">up_proj_b_params</span> <span class="o">=</span> <span class="n">base_emb_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">up_proj_b_params</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">embedding_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;up_proj_b&#39;</span><span class="p">)</span>
 
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;down_proj_w&#39;</span><span class="p">,</span> <span class="n">down_proj_w_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;down_proj_b&#39;</span><span class="p">,</span> <span class="n">down_proj_b_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;up_proj_w&#39;</span><span class="p">,</span> <span class="n">up_proj_w_params</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;up_proj_b&#39;</span><span class="p">,</span> <span class="n">up_proj_b_params</span><span class="p">)</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;adapter_ln&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;down_proj_w&#39;</span><span class="p">,</span> <span class="n">down_proj_w_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;down_proj_b&#39;</span><span class="p">,</span> <span class="n">down_proj_b_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;up_proj_w&#39;</span><span class="p">,</span> <span class="n">up_proj_w_params</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;up_proj_b&#39;</span><span class="p">,</span> <span class="n">up_proj_b_params</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">layer_norm_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;adapter_ln&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;layer_norm&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultitaskAdapterLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.MultitaskAdapterLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">tasks</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Fprop for multitask adapter.</span>
@@ -5197,18 +5186,17 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">params</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">PolynomialSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">noise_warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;noise_std&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">schedule</span><span class="o">.</span><span class="n">PolynomialSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">start</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">)</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">limit</span> <span class="o">=</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">noise_warmup_steps</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">noise_std</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;noise_std&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-      <span class="n">params</span> <span class="o">=</span> <span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gating_layer&#39;</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">]</span>
-      <span class="n">params</span><span class="o">.</span><span class="n">hidden_layer_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_outputs</span><span class="p">]</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gatingfflayer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;gating_layer&#39;</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">]</span>
+    <span class="n">params</span><span class="o">.</span><span class="n">hidden_layer_dims</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">hidden_layer_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_outputs</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gatingfflayer&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CCTGatingNetwork.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CCTGatingNetwork.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -5266,16 +5254,15 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
     <span class="n">output_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># 1st split for shift, 2nd split for scale</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">params_ffn</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ffn</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_ffn&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-      <span class="n">params_fcout</span> <span class="o">=</span> <span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
-          <span class="n">input_dim</span><span class="o">=</span><span class="n">params_ffn</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
-          <span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span>
-          <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
-          <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_fcout&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;ffn&#39;</span><span class="p">,</span> <span class="n">params_ffn</span><span class="p">)</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fcout&#39;</span><span class="p">,</span> <span class="n">params_fcout</span><span class="p">)</span>
+    <span class="n">params_ffn</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ffn</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_ffn&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="n">params_fcout</span> <span class="o">=</span> <span class="n">FCLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">params_ffn</span><span class="o">.</span><span class="n">hidden_layer_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+        <span class="n">output_dim</span><span class="o">=</span><span class="n">output_dim</span><span class="p">,</span>
+        <span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">_fcout&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;ffn&#39;</span><span class="p">,</span> <span class="n">params_ffn</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;fcout&#39;</span><span class="p">,</span> <span class="n">params_fcout</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CondScaleShiftFFNLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CondScaleShiftFFNLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calculate scale shift and modify input.</span>

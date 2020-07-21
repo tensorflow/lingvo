@@ -409,9 +409,8 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_lasers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pad_lasers&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_lasers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_lasers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pad_lasers&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">pad_lasers</span><span class="p">)</span>
 
 <div class="viewcode-block" id="CreateDecoderCopy._DeepCopyIfExists"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.CreateDecoderCopy._DeepCopyIfExists">[docs]</a>  <span class="k">def</span> <span class="nf">_DeepCopyIfExists</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">keys</span><span class="p">,</span> <span class="n">nested_map</span><span class="p">,</span> <span class="n">parent_key</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Deep copy a specific key to a parent key if it exists.&quot;&quot;&quot;</span>
@@ -1182,10 +1181,9 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">sampling_method</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_SAMPLING_METHODS</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Param `sampling_method` must be one of </span><span class="si">{}</span><span class="s1">.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_SAMPLING_METHODS</span><span class="p">))</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
-                            <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
+                          <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SparseCenterSelector._FarthestPointSampleCenters"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseCenterSelector._FarthestPointSampleCenters">[docs]</a>  <span class="k">def</span> <span class="nf">_FarthestPointSampleCenters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">,</span> <span class="n">num_seeded_points</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Samples centers with Farthest Point Sampling.</span>
@@ -3315,8 +3313,7 @@
           <span class="s1">&#39;repeat_count must be &gt;= 0 and int, repeat_count=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
               <span class="n">p</span><span class="o">.</span><span class="n">repeat_count</span><span class="p">))</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RepeatPreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RepeatPreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -3363,8 +3360,7 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;prob must be &gt;= 0 and &lt;=1 and float type, prob=</span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">prob</span><span class="p">))</span>
 
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;subprocessor&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">subprocessor</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RandomApplyPreprocessor.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomApplyPreprocessor.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -3469,10 +3465,9 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
-                            <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;features_preparation_layers&#39;</span><span class="p">,</span>
+                          <span class="n">p</span><span class="o">.</span><span class="n">features_preparation_layers</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SparseSampler.TransformFeatures"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.SparseSampler.TransformFeatures">[docs]</a>  <span class="k">def</span> <span class="nf">TransformFeatures</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">features</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
