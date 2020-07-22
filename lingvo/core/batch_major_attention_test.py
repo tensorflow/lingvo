@@ -1600,6 +1600,45 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       seq_len = sl // accumulate_stride if accumulate_stride != 0 else 1
       self.assertAllEqual([bs, seq_len, d], actual_enc_out.shape)
 
+  @parameterized.named_parameters(
+      {
+          'testcase_name': '_baseline',
+          'strides': [(1, 6), (1, 3), 3],
+      }, {
+          'testcase_name': '_stride_2',
+          'strides': [(2, 4), (1, None), 2],
+      }, {
+          'testcase_name': '_first_token',
+          'strides': [(2, 5), (0, None), 1],
+      })
+  def testTransformerStackWithStrideAndOutLength(self, strides):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(12345)
+      atten_builder = attention.Builder.Params().Set(
+          model_dim=d, num_heads=2, ff_hidden_dim=5).Instantiate()
+      layers = []
+      out_seq_len = strides.pop()
+      for layer_i, (stride, first_n) in enumerate(strides):
+        layers.append(
+            atten_builder.TransformerEncoderLayer(
+                name='atten_{}'.format(layer_i), stride=stride,
+                first_n=first_n))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      enc_out = l_out.vec
+      tf.global_variables_initializer().run()
+      actual_enc_out = sess.run(enc_out)
+      self.assertAllEqual([bs, out_seq_len, d], actual_enc_out.shape)
+
 
 def _CreateDummyParams(field_names):
   p = hyperparams.Params()

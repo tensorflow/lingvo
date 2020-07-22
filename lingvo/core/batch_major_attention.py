@@ -2715,7 +2715,7 @@ class Builder(builder.Base):
               convolution_fn=None))
     return self._MaybeSplit(name, blocks) or self._Seq(name, *blocks)
 
-  def _Stride(self, name, stride):
+  def _Stride(self, name, stride, first_n=None):
     """Strides the input sequence.
 
     Args:
@@ -2723,25 +2723,45 @@ class Builder(builder.Base):
       stride: To use every k-th token, set the stride to k. When stride == 0,
         only returns the first token of the input. When stride == 1, returns
         every token in the input.
+      first_n: only considers the first N tokens for the output. We use
+        [:first_n:stride] to select the output tokens. If first_n is None, this
+        flag is a no-op. If stride is positive, the output sequence length is
+        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
+        1. first_n can't be 0. If first_n <= stride, only the first token is
+        used.
 
     Returns:
       A layer params that does stride.
     """
-    if stride == 1:
-      return self._Id(name)
+    assert first_n is None or first_n > 0
     if stride == 0:
+      assert first_n is None or first_n == 1
       return self._Fn(
           name=name,
           fn=lambda x: tf.expand_dims(x[:, 0], 1),
           fn_out=lambda x: tshape.Shape(x[0:1] + [1] + x[2:]),
           fn_flops=lambda x: 1)
+
+    if first_n:
+      # out_seq_len is 1 if first_n is 1 ~ stride and is 2 if it's stride+1 ~
+      # 2*stride...
+      out_seq_len = (first_n - 1) // stride + 1
+      return self._Fn(
+          name=name,
+          fn=lambda x: x[:, :first_n:stride],
+          fn_out=lambda x: tshape.Shape(x[0:1] + [out_seq_len] + x[2:]),
+          fn_flops=lambda x: 1)
+
+    if stride == 1:
+      return self._Id(name)
+
     return self._Fn(
         name=name,
         fn=lambda x: x[:, ::stride],
         fn_out=lambda x: tshape.Shape(x[0:1] + x[1] // stride + x[2:]),
         fn_flops=lambda x: 1)
 
-  def _StridedAttention(self, name, stride=1):
+  def _StridedAttention(self, name, stride=1, first_n=None):
     """Computes self attention with optional stride.
 
     Args:
@@ -2749,6 +2769,12 @@ class Builder(builder.Base):
       stride: If omitted, the default is 1: use every token in the query. To use
         every k-th token, set the stride to k. When set to 0, only use the first
         token of the query.
+      first_n: only considers the first N tokens for the output. We use
+        [:first_n:stride] to select the output tokens. If first_n is None, this
+        flag is a no-op. If stride is positive, the output sequence length is
+        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
+        1. first_n can't be 0. If first_n <= stride, only the first token is
+        used.
 
     Returns:
       A self attention layer params.
@@ -2766,17 +2792,17 @@ class Builder(builder.Base):
          self._LN('LN', p.model_dim,
                   use_fused_layernorm=p.use_fused_layernorm)),
         ('after_ln->strided_query',
-         self._Stride('query_after_stride', stride)),
+         self._Stride('query_after_stride', stride, first_n)),
         ('{}->after_att,prob'.format(attention_inputs),
          self._MultiHeadedAtten('atten')),
         ('after_att->after_dropout',
          self._Dropout('dropout', p.residual_dropout_prob)),
         ('{}->strided_input'.format(input_to_add),
-         self._Stride('before_add', stride)),
+         self._Stride('before_add', stride, first_n)),
         ('strided_input,after_dropout->o.vec',
          self._Add('add')),
         ('i.paddings->o.paddings',
-         self._Stride('padding_after_Stride', stride)),
+         self._Stride('padding_after_Stride', stride, first_n)),
     ]
     if p.packed_input:
       sub_list.append(('i.segment_mask->o.segment_mask', self._Id('segment_mask')))
@@ -2787,7 +2813,7 @@ class Builder(builder.Base):
         ['o'],  # output NestedMap with {vec, paddings, segment_mask}
         *sub_list)
 
-  def TransformerEncoderLayer(self, name, stride=1):
+  def TransformerEncoderLayer(self, name, stride=1, first_n=None):
     """(inputs, paddings) -> (encoded, paddings).
 
     Args:
@@ -2795,6 +2821,12 @@ class Builder(builder.Base):
       stride: To use every k-th token, set the stride to k. When stride == 0,
         only returns the first token of the input. When stride == 1, returns
         every token in the input.
+      first_n: only considers the first N tokens for the output. We use
+        [:first_n:stride] to select the output tokens. If first_n is None, this
+        flag is a no-op. If stride is positive, the output sequence length is
+        "(first_n-1) // stride + 1". If stride is 0, first_n has to be None or
+        1. first_n can't be 0. If first_n <= stride, only the first token is
+        used.
 
     Returns:
       A transformer encoder layer params that supports optional stride.
@@ -2802,7 +2834,8 @@ class Builder(builder.Base):
     # Hack to be compatible with ckpt generated by self._rep
     return self._Seq(name, self._Seq(
         'block',
-        self._StridedAttention('self_atten', stride=stride),
+        self._StridedAttention(
+            'self_atten', stride=stride, first_n=first_n),
         self.Feedforward('ff')))
 
   def Stack(self, name, blocks):
