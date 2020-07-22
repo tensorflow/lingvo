@@ -190,27 +190,6 @@
 <span class="n">FLAGS</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">FLAGS</span>
 
 
-<div class="viewcode-block" id="_MaybeUpdateParamsFromFlags"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._MaybeUpdateParamsFromFlags">[docs]</a><span class="k">def</span> <span class="nf">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Updates Model() Params from flags if set.&quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">:</span>
-    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only one of --model_params_override and&#39;</span>
-                     <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
-
-  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="p">:</span>
-    <span class="n">params_override</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">params_override</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span>
-  <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span> <span class="ow">and</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">)):</span>
-    <span class="n">params_override</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span>
-                                        <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides from file </span><span class="si">%s</span><span class="s1">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                         <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span> <span class="n">params_override</span><span class="p">,</span>
-                         <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
-    <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span></div>
-
-
 <div class="viewcode-block" id="_ModelRegistryHelper"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper">[docs]</a><span class="k">class</span> <span class="nc">_ModelRegistryHelper</span><span class="p">:</span>
   <span class="sd">&quot;&quot;&quot;Helper class.&quot;&quot;&quot;</span>
 
@@ -306,6 +285,27 @@
     <span class="n">Registered</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">=</span> <span class="n">src_cls</span><span class="o">.</span><span class="vm">__name__</span>
     <span class="k">return</span> <span class="n">Registered</span></div>
 
+<div class="viewcode-block" id="_ModelRegistryHelper.MaybeUpdateParamsFromFlags"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.MaybeUpdateParamsFromFlags">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">cfg</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Updates Model() Params from flags if set.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span> <span class="ow">and</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Only one of --model_params_override and&#39;</span>
+                       <span class="s1">&#39; --model_params_file_override may be specified.&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="p">:</span>
+      <span class="n">params_override</span> <span class="o">=</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_override</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;;&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">params_override</span><span class="p">,</span> <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span> <span class="ow">and</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">)):</span>
+      <span class="n">params_override</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">gfile</span><span class="o">.</span><span class="n">GFile</span><span class="p">(</span><span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span>
+                                          <span class="s1">&#39;r&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Applying params overrides from file </span><span class="si">%s</span><span class="s1">:</span><span class="se">\n</span><span class="si">%s</span><span class="se">\n</span><span class="s1">To:</span><span class="se">\n</span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                      <span class="n">FLAGS</span><span class="o">.</span><span class="n">model_params_file_override</span><span class="p">,</span> <span class="n">params_override</span><span class="p">,</span>
+                      <span class="n">cfg</span><span class="o">.</span><span class="n">ToText</span><span class="p">())</span>
+      <span class="n">cfg</span><span class="o">.</span><span class="n">FromText</span><span class="p">(</span><span class="n">params_override</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="_ModelRegistryHelper.RegisterSingleTaskModel"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.RegisterSingleTaskModel">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">RegisterSingleTaskModel</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">src_cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Class decorator that registers a `.SingleTaskModelParams` subclass.&quot;&quot;&quot;</span>
@@ -372,7 +372,7 @@
     <span class="n">cfg</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">Model</span><span class="p">()</span>
     <span class="n">cfg</span><span class="o">.</span><span class="n">input</span> <span class="o">=</span> <span class="n">model_params</span><span class="o">.</span><span class="n">GetDatasetParams</span><span class="p">(</span><span class="n">dataset_name</span><span class="p">)</span>
 
-    <span class="n">_MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">MaybeUpdateParamsFromFlags</span><span class="p">(</span><span class="n">cfg</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">cfg</span></div>
 
 <div class="viewcode-block" id="_ModelRegistryHelper.GetProgramSchedule"><a class="viewcode-back" href="../../lingvo.model_registry.html#lingvo.model_registry._ModelRegistryHelper.GetProgramSchedule">[docs]</a>  <span class="nd">@classmethod</span>
