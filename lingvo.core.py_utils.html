@@ -2463,7 +2463,7 @@ inputs of ‘op’.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils._DefineDefun">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefineDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">fwd_sig</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefineDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefineDefun" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefineDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">fwd_sig</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefineDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefineDefun" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wraps fwd in a defun with custom gradient bak.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2474,6 +2474,7 @@ fwd.</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The
 custom backprop function for fwd. If implicit_captures is not None, bak
 must return its gradients in a Nested Structure as the last part of dxs.</p></li>
+<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for bak.</p></li>
 <li><p><strong>implicit_captures</strong> – A Nested Structure of tf.Tensor. Implicit inputs of fwd
 that are not listed in fwd_sig.</p></li>
 <li><p><strong>device</strong> – the device on which to run fwd and bak.</p></li>
@@ -2487,7 +2488,7 @@ that are not listed in fwd_sig.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils._DefineFunction">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefineFunction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">fwd_sig</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefineFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefineFunction" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_DefineFunction</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">fwd_sig</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_DefineFunction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._DefineFunction" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wraps fwd in a defun with custom gradient bak.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2498,6 +2499,7 @@ fwd.</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The
 custom backprop function for fwd. If implicit_captures is not None, bak
 must return its gradients in a Nested Structure as the last part of dxs.</p></li>
+<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for bak.</p></li>
 <li><p><strong>implicit_captures</strong> – A Nested Structure of tf.Tensor. Implicit inputs of fwd
 that are not listed in fwd_sig.</p></li>
 <li><p><strong>device</strong> – the device on which to run fwd and bak.</p></li>
@@ -2511,7 +2513,7 @@ that are not listed in fwd_sig.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.CallDefun">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CallDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CallDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CallDefun" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">CallDefun</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">fwd</span></em>, <em class="sig-param"><span class="n">args</span></em>, <em class="sig-param"><span class="n">bak</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">bak_as_function</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">implicit_captures</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">device</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#CallDefun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.CallDefun" title="Permalink to this definition">¶</a></dt>
 <dd><p>Wraps fwd in a defun with custom gradient bak and calls it with args.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -2520,6 +2522,7 @@ that are not listed in fwd_sig.</p></li>
 <li><p><strong>args</strong> – A Nested Structure of tf.Tensor.</p></li>
 <li><p><strong>bak</strong> – A callable xs, ys, dys: Nested Structure -&gt; dxs: Nested Structure. The
 custom backprop function for fwd.</p></li>
+<li><p><strong>bak_as_function</strong> – Whether to create a TF graph function for bak.</p></li>
 <li><p><strong>implicit_captures</strong> – A Nested Structure of tf.Tensor. Implicit inputs of fwd
 that are not listed in args.</p></li>
 <li><p><strong>device</strong> – the device on which to run fwd and bak.</p></li>

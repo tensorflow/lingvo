@@ -747,8 +747,12 @@
 
 <div class="viewcode-block" id="_Recurrent.Compute"><a class="viewcode-back" href="../../../lingvo.core.recurrent.html#lingvo.core.recurrent._Recurrent.Compute">[docs]</a>  <span class="k">def</span> <span class="nf">Compute</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Run the computation.&quot;&quot;&quot;</span>
-    <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_backward</span><span class="p">,</span>
-                             <span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_caller_device</span><span class="p">)</span>
+    <span class="n">run</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_forward</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_fwd_args</span><span class="p">,</span>
+        <span class="n">bak</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_backward</span><span class="p">,</span>
+        <span class="n">implicit_captures</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_implicit_captures</span><span class="p">,</span>
+        <span class="n">device</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_caller_device</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_accumulator_layer</span><span class="p">:</span>
       <span class="c1"># Restore the accumulators from the final recurrent state.</span>
