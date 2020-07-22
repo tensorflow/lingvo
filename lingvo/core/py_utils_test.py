@@ -2913,7 +2913,7 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
       ('_defun', False),
       ('_tf_function', True),
   )
-  def testSimple(self, use_tf_function):
+  def testNestedMapInput(self, use_tf_function):
     # TODO(laigd): remove this check when 313682500 is in the release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
@@ -2940,6 +2940,66 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
 
     self.assertEqual(-1., true_out.value)
     self.assertEqual(1., false_out.value)
+
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testScalarInput(self, use_tf_function):
+    # TODO(laigd): remove this check when 313682500 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.if_use_tf_function = use_tf_function
+
+    g = tf.Graph()
+    with g.as_default():
+
+      def ThenBody(value):
+        return value - 1.
+
+      def ElseBody(value):
+        return value + 1.
+
+      inputs = tf.constant(0.)
+      true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
+      false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
+
+    with self.session(graph=g):
+      true_out = self.evaluate(true_out)
+      false_out = self.evaluate(false_out)
+
+    self.assertEqual(-1., true_out)
+    self.assertEqual(1., false_out)
+
+  @parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  def testListInput(self, use_tf_function):
+    # TODO(laigd): remove this check when 313682500 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.if_use_tf_function = use_tf_function
+
+    g = tf.Graph()
+    with g.as_default():
+
+      def ThenBody(values):
+        return values[0] - 1., values[1] + 1.
+
+      def ElseBody(values):
+        return values[0] + 1., values[1] - 1.
+
+      inputs = [tf.constant(0.), tf.constant(0.)]
+      true_out = py_utils.If(True, inputs, ThenBody, ElseBody)
+      false_out = py_utils.If(False, inputs, ThenBody, ElseBody)
+
+    with self.session(graph=g):
+      true_out = self.evaluate(true_out)
+      false_out = self.evaluate(false_out)
+
+    self.assertEqual((-1., 1.), true_out)
+    self.assertEqual((1., -1.), false_out)
 
 
 class ForLoopTest(test_utils.TestCase):

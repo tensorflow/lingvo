@@ -4352,78 +4352,70 @@ def If(cond, inputs, then_branch, else_branch):
 
   Args:
     cond: A scalar `Tensor` that can be converted to boolean.
-    inputs: A NestedMap representing the input tensors of the if/else statement.
-    then_branch: A callable 'inputs' -> NestedMap. The returned NestedMap should
-      be compatible with what 'else_branch' returns.
-    else_branch: A callable 'inputs' -> NestedMap. The returned NestedMap should
-      be compatible with what 'then_branch' returns.
+    inputs: A flattenable representing the input tensors of the if/else
+      statement.
+    then_branch: A callable 'inputs' -> flattenable. The returned value
+      should be compatible with what 'else_branch' returns.
+    else_branch: A callable 'inputs' -> flattenable. The returned value
+      should be compatible with what 'then_branch' returns.
 
   Returns:
-    NestedMap returned by the call to either 'then_branch' or 'else_branch'.
-
-  Raises:
-    TypeError: if
-      - 'inputs' is not a NestedMap, or
-      - 'then_branch' or 'else_branch' doesn't return a NestedMap, or
-      - the outputs of 'then_branch' and 'else_branch' are not compatible.
+    Output returned by the call to either 'then_branch' or 'else_branch'.
   """
-  if not isinstance(inputs, NestedMap):
-    raise TypeError('inputs must be a NestedMap, got %s' % type(inputs))
-
-  then_out = then_branch(inputs)
-  if not isinstance(then_out, NestedMap):
-    raise TypeError('then_branch must return a NestedMap, got %s' %
-                    type(then_out))
-
-  else_out = else_branch(inputs)
-  if not isinstance(else_out, NestedMap):
-    raise TypeError('else_branch must return a NestedMap, got %s' %
-                    type(else_out))
-
-  if not then_out.IsCompatible(else_out):
-    raise TypeError(
-        'Outputs of then_branch and else_branch are not compatible.')
+  ret_dtypes = NestedMap()
+  get_dtype = lambda x: x.dtype
 
   if _FromGlobal('if_use_tf_function'):
 
     @tf.function(autograph=False)
     def ThenBranch(*args):
-      inp = inputs.Pack(args)
+      inp = Pack(inputs, args)
       out = then_branch(inp)
-      return out.Flatten()
+      ret_dtypes.then_out = Transform(get_dtype, out)
+      return Flatten(out)
 
     @tf.function(autograph=False)
     def ElseBranch(*args):
-      inp = inputs.Pack(args)
+      inp = Pack(inputs, args)
       out = else_branch(inp)
-      return out.Flatten()
+      ret_dtypes.else_out = Transform(get_dtype, out)
+      return Flatten(out)
 
     ret = tf.If(
         cond=cond,
-        inputs=inputs.Flatten(),
+        inputs=Flatten(inputs),
         then_branch=_GetConcreteFunction(ThenBranch, inputs),
         else_branch=_GetConcreteFunction(ElseBranch, inputs))
   else:
-    dtypes = inputs.Transform(lambda x: x.dtype).Flatten()
+    dtypes = Flatten(Transform(lambda x: x.dtype, inputs))
 
     @tf.Defun(*dtypes)
     def ThenBranch(*args):
-      inp = inputs.Pack(args)
+      for dst, src in zip(args, Flatten(inputs)):
+        dst.set_shape(src.shape)
+      inp = Pack(inputs, args)
       out = then_branch(inp)
-      return out.Flatten()
+      ret_dtypes.then_out = Transform(get_dtype, out)
+      return Flatten(out)
 
     @tf.Defun(*dtypes)
     def ElseBranch(*args):
-      inp = inputs.Pack(args)
+      for dst, src in zip(args, Flatten(inputs)):
+        dst.set_shape(src.shape)
+      inp = Pack(inputs, args)
       out = else_branch(inp)
-      return out.Flatten()
+      ret_dtypes.else_out = Transform(get_dtype, out)
+      return Flatten(out)
 
     ret = tf.If(
         cond=cond,
-        inputs=inputs.Flatten(),
+        inputs=Flatten(inputs),
         then_branch=ThenBranch,
         else_branch=ElseBranch)
-  return then_out.Pack(ret)
+
+  assert IsCompatible(ret_dtypes.then_out, ret_dtypes.else_out), (
+      'Outputs of then_branch and else_branch are not compatible.')
+  return Pack(ret_dtypes.then_out, ret)
 
 
 def _Itype():
