@@ -1838,7 +1838,7 @@ Corresponding PyTorch Implementation (L587):
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._Stride">
-<code class="sig-name descname">_Stride</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Stride"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Stride" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_Stride</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._Stride"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._Stride" title="Permalink to this definition">¶</a></dt>
 <dd><p>Strides the input sequence.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1847,6 +1847,12 @@ Corresponding PyTorch Implementation (L587):
 <li><p><strong>stride</strong> – To use every k-th token, set the stride to k. When stride == 0,
 only returns the first token of the input. When stride == 1, returns
 every token in the input.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
+[:first_n:stride] to select the output tokens. If first_n is None, this
+flag is a no-op. If stride is positive, the output sequence length is
+“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
+1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
+used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1857,7 +1863,7 @@ every token in the input.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._StridedAttention">
-<code class="sig-name descname">_StridedAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._StridedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._StridedAttention" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_StridedAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._StridedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._StridedAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes self attention with optional stride.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1866,6 +1872,12 @@ every token in the input.</p></li>
 <li><p><strong>stride</strong> – If omitted, the default is 1: use every token in the query. To use
 every k-th token, set the stride to k. When set to 0, only use the first
 token of the query.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
+[:first_n:stride] to select the output tokens. If first_n is None, this
+flag is a no-op. If stride is positive, the output sequence length is
+“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
+1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
+used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1876,7 +1888,7 @@ token of the query.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">
-<code class="sig-name descname">TransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.TransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">TransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.TransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1885,6 +1897,12 @@ token of the query.</p></li>
 <li><p><strong>stride</strong> – To use every k-th token, set the stride to k. When stride == 0,
 only returns the first token of the input. When stride == 1, returns
 every token in the input.</p></li>
+<li><p><strong>first_n</strong> – only considers the first N tokens for the output. We use
+[:first_n:stride] to select the output tokens. If first_n is None, this
+flag is a no-op. If stride is positive, the output sequence length is
+“(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
+1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
+used.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
