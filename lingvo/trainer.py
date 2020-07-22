@@ -626,7 +626,7 @@ class TrainerTpu(base_runner.BaseRunner):
     if FLAGS.checkpoint_in_trainer_tpu:
       self._model_analysis, self._total_num_params = (
           summary_utils.ModelAnalysis(self._model))
-      py_utils.LogMultiLines('MODEL ANALYSIS', self._train_dir)
+      py_utils.LogMultiLines('MODEL ANALYSIS', self._model_analysis)
       self._WriteToLog(self._model_analysis, self._train_dir,
                        'model_analysis.txt')
     # Saves the graph def.
