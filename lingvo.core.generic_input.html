@@ -233,6 +233,41 @@ represents the batch dimension.</p></li>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt id="lingvo.core.generic_input.ReplicatedGenericInput">
+<code class="sig-prename descclassname">lingvo.core.generic_input.</code><code class="sig-name descname">ReplicatedGenericInput</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">processor</span></em>, <em class="sig-param"><span class="n">num_replicas</span></em>, <em class="sig-param"><span class="n">replica_device_fn</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/generic_input.html#ReplicatedGenericInput"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.generic_input.ReplicatedGenericInput" title="Permalink to this definition">¶</a></dt>
+<dd><p>Builds a replicated input pipeline.</p>
+<p>This is similar to GenericInput, except that the input processing can be
+distributed across devices and then concatenated at the current device.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>processor</strong> – see comments for GenericInput.</p></li>
+<li><p><strong>num_replicas</strong> – the number of input processing replicas. Usually set to number
+of infeed hosts.</p></li>
+<li><p><strong>replica_device_fn</strong> – a int -&gt; string function that takes the replica index in
+range [0, num_replicas) and returns a TF device string, e.g.,
+lambda i: ‘/task:{}/device:CPU:0’.format(i)</p></li>
+<li><p><strong>**kwargs</strong> – additional keyword args for x_ops.generic_input.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p>outputs: a NestedMap or a list of tensors, similar to <code class="xref py py-obj docutils literal notranslate"><span class="pre">processor</span></code>’s
+return,  except every tensor will have an additional dimension 0 that
+represents the batch dimension. The batch size will be
+(num_replicas * bucket_batch_limit[…]), i.e.,
+kwargs[‘bucket_batch_limit’] specifies the per-replica batch size.</p></li>
+<li><p>bucket_keys: a tf.int32 vector.</p></li>
+</ul>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>A tuple of (outputs, bucket_keys)</p>
+</dd>
+</dl>
+</dd></dl>
+
 </div>
 
 
