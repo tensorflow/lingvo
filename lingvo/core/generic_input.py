@@ -127,3 +127,44 @@ def GenericInput(processor, **kwargs):
   outputs = output_tmpl.Pack(flat_outputs).out_values
   tf.logging.debug('x_ops.generic_input outputs=%s', outputs)
   return outputs, bucket_keys
+
+
+def ReplicatedGenericInput(processor, num_replicas, replica_device_fn,
+                           **kwargs):
+  """Builds a replicated input pipeline.
+
+  This is similar to GenericInput, except that the input processing can be
+  distributed across devices and then concatenated at the current device.
+
+  Args:
+    processor: see comments for GenericInput.
+    num_replicas: the number of input processing replicas. Usually set to number
+      of infeed hosts.
+    replica_device_fn: a int -> string function that takes the replica index in
+      range [0, num_replicas) and returns a TF device string, e.g.,
+      lambda i: '/task:{}/device:CPU:0'.format(i)
+    **kwargs: additional keyword args for x_ops.generic_input.
+
+  Returns:
+    A tuple of (outputs, bucket_keys):
+
+    - outputs: a NestedMap or a list of tensors, similar to `processor`'s
+      return,  except every tensor will have an additional dimension 0 that
+      represents the batch dimension. The batch size will be
+      (num_replicas * bucket_batch_limit[...]), i.e.,
+      kwargs['bucket_batch_limit'] specifies the per-replica batch size.
+    - bucket_keys: a tf.int32 vector.
+  """
+  if num_replicas > 1 and 'bucket_batch_limit' in kwargs:
+    assert all(b == max(kwargs['bucket_batch_limit'])
+               for b in kwargs['bucket_batch_limit'])
+  replica_outputs = []
+  for replica_i in range(num_replicas):
+    replica_device = replica_device_fn(replica_i)
+    with tf.device(replica_device):
+      replica_outputs.append(GenericInput(processor, **kwargs))
+  output_nmaps, output_bucket_keys = zip(*replica_outputs)
+  concat_nmap = tf.nest.map_structure(lambda *t: tf.concat(t, axis=0),
+                                      *output_nmaps)
+  concat_bucket_keys = tf.concat(output_bucket_keys, axis=0)
+  return concat_nmap, concat_bucket_keys
