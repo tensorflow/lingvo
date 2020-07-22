@@ -599,8 +599,12 @@ class _Recurrent:
 
   def Compute(self):
     """Run the computation."""
-    run = py_utils.CallDefun(self._forward, self._fwd_args, self._backward,
-                             self._implicit_captures, self._caller_device)
+    run = py_utils.CallDefun(
+        self._forward,
+        self._fwd_args,
+        bak=self._backward,
+        implicit_captures=self._implicit_captures,
+        device=self._caller_device)
 
     if self._accumulator_layer:
       # Restore the accumulators from the final recurrent state.
