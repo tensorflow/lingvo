@@ -433,7 +433,7 @@ class PipeliningLayer(SeqLayer):
     """
     # TODO(huangyp): handle optional None inputs.
     p = self.params
-    if self.do_eval:
+    if self.do_eval and self.cluster.num_devices_per_split == 1:
       outputs = copy.copy(args)
       for (name, l) in self._before_layers + self._cells:
         outputs = _ToTuple(outputs)
