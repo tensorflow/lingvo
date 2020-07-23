@@ -1748,7 +1748,7 @@ def CreateVariable(name,
       return next_creator(**kwargs)
     except ValueError:  # Possibly the variable already exists
       if GetOpportunisticVariableReuse():
-        with tf.variable_scope(tf.get_variable_scope(), reuse=True):
+        with tf.variable_scope(tf.get_variable_scope(), reuse=tf.AUTO_REUSE):
           return next_creator(**kwargs)
       else:
         raise
