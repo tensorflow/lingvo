@@ -1925,6 +1925,52 @@ used.</p></li>
 
 </dd></dl>
 
+<dl class="py class">
+<dt id="lingvo.core.batch_major_attention.LmBuilder">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LmBuilder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.Builder" title="lingvo.core.batch_major_attention.Builder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.Builder</span></code></a></p>
+<p>Langange model builder with causal padding.</p>
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder.Feedforward">
+<code class="sig-name descname">Feedforward</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder.Feedforward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder.Feedforward" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._Attention">
+<code class="sig-name descname">_Attention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Attention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Attention" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes self attention with optional stride.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – name of this layer.</p></li>
+<li><p><strong>is_causal</strong> – If true, add cause per_step padding to the attention layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A self attention layer params.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder.TransformerEncoderLayer">
+<code class="sig-name descname">TransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder.TransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder.TransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – the string name of the encoder layer params.</p></li>
+<li><p><strong>is_causal</strong> – If true, add cause per_step padding to the attention layer.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A transformer encoder layer params that supports optional stride.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
 </div>
 
 

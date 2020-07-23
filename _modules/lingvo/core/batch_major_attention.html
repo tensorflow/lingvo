@@ -2588,6 +2588,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;model_dim&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Model dim of this layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of heads in the atten layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ff_hidden_dim&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Hidden dim of the feedforward layer&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_hidden_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Hidden dim of the attention layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;residual_dropout_prob&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span>
              <span class="s1">&#39;Dropout prob to the output of each sub-layer before it is added &#39;</span>
              <span class="s1">&#39;to the sub-layer input.&#39;</span><span class="p">)</span>
@@ -2683,7 +2685,7 @@
     <span class="n">atten_p</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
         <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
         <span class="n">enable_value_proj</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span><span class="p">,</span>
@@ -3002,6 +3004,94 @@
     <span class="p">]</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">Stack</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">)</span></div></div>
 <span class="c1"># pyformat: enable</span>
+
+
+<div class="viewcode-block" id="LmBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder">[docs]</a><span class="k">class</span> <span class="nc">LmBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Langange model builder with causal padding.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="LmBuilder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="n">ff_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">ff_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">))</span>
+    <span class="n">ff_list</span> <span class="o">+=</span> <span class="p">[</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_activation_fn</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;relu_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relu_dropout_prob</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span>
+    <span class="p">]</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="n">ff_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">))</span>
+    <span class="n">ff_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))</span>
+
+    <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_feedforward&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;feedforward&#39;</span><span class="p">,</span> <span class="o">*</span><span class="n">ff_list</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;added&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span>
+                                                     <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;added,i.paddings-&gt;o.vec&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Pad</span><span class="p">(</span><span class="s1">&#39;pad&#39;</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)),</span>
+    <span class="p">]</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings}</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings}</span>
+        <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmBuilder._Attention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Attention">[docs]</a>  <span class="k">def</span> <span class="nf">_Attention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes self attention with optional stride.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: name of this layer.</span>
+<span class="sd">      is_causal: If true, add cause per_step padding to the attention layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A self attention layer params.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">tr_atten_p</span> <span class="o">=</span> <span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="s1">&#39;transformer_atten&#39;</span><span class="p">,</span>
+        <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
+        <span class="n">is_masked</span><span class="o">=</span><span class="n">is_causal</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">residual_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">,</span>
+        <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
+        <span class="n">fprop_dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">,</span>
+        <span class="n">add_unnormalized_input</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">selfatten_add_unnormalized_input</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">use_bias</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">enable_value_proj</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">enable_per_dim_scale</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
+      <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+      <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;i&#39;</span><span class="p">],</span>  <span class="c1"># input NestedMap with {vec, paddings}</span>
+        <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings}</span>
+        <span class="p">(</span><span class="s1">&#39;i.vec,i.vec,i.paddings-&gt;o.vec,unused_prob&#39;</span><span class="p">,</span> <span class="n">tr_atten_p</span><span class="p">),</span>
+        <span class="p">(</span><span class="s1">&#39;i.paddings-&gt;o.paddings&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Id</span><span class="p">(</span><span class="s1">&#39;id&#39;</span><span class="p">)))</span></div>
+
+<div class="viewcode-block" id="LmBuilder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;(inputs, paddings) -&gt; (encoded, paddings).</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      name: the string name of the encoder layer params.</span>
+<span class="sd">      is_causal: If true, add cause per_step padding to the attention layer.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A transformer encoder layer params that supports optional stride.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># Hack to be compatible with ckpt generated by self._rep</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="s1">&#39;block&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Attention</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="n">is_causal</span><span class="p">),</span>
+                  <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">)))</span></div></div>
 </pre></div>
 
            </div>
