@@ -203,14 +203,13 @@ class BaseInputGenerator(base_layer.BaseLayer):
     assert num_tpu_hosts > 0, ('num_tpu_hosts: %d' % num_tpu_hosts)
     if (cluster.num_devices_per_split > num_cores_per_host and
         p.use_per_host_infeed):
-      tf.logging.fatal(
-          'Doesn\'t support per host infeed mode when '
-          'num_devices_per_split({}) > num_cores_per_host({})'.format(
-              cluster.num_devices_per_split, num_cores_per_host))
-    num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
+      tf.logging.fatal('Doesn\'t support per host infeed mode when '
+                       'num_devices_per_split({}) > num_cores_per_host({}).'
+                       'Each host must be able to accommodate >= 1 split when '
+                       'using per_host_infeed.'.format(
+                           cluster.num_devices_per_split, num_cores_per_host))
 
-    shards = (cluster.total_worker_devices //
-              num_infeed_hosts) // cluster.num_devices_per_split
+    shards = self.tpu_number_of_shards
     tf.logging.info('shards {}'.format(shards))
 
     input_ops_list = []
@@ -228,8 +227,9 @@ class BaseInputGenerator(base_layer.BaseLayer):
         list(tpu_embedding.feature_to_config_dict.keys())
         if tpu_embedding is not None else [])
     tf.logging.info('tpu_emb_input_keys: %r', tpu_emb_input_keys)
-    tf.logging.info('num_infeed_hosts: %d', num_infeed_hosts)
 
+    num_infeed_hosts = num_tpu_hosts if p.use_per_host_infeed else 1
+    tf.logging.info('num_infeed_hosts: %d', num_infeed_hosts)
     for task_id in range(num_infeed_hosts):
       host_device = '/task:{}/device:CPU:0'.format(task_id)
       with tf.device(host_device):
