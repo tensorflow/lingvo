@@ -351,14 +351,13 @@
     <span class="k">assert</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;num_tpu_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">num_tpu_hosts</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span> <span class="o">&gt;</span> <span class="n">num_cores_per_host</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">):</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span>
-          <span class="s1">&#39;Doesn</span><span class="se">\&#39;</span><span class="s1">t support per host infeed mode when &#39;</span>
-          <span class="s1">&#39;num_devices_per_split(</span><span class="si">{}</span><span class="s1">) &gt; num_cores_per_host(</span><span class="si">{}</span><span class="s1">)&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
-              <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">num_cores_per_host</span><span class="p">))</span>
-    <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Doesn</span><span class="se">\&#39;</span><span class="s1">t support per host infeed mode when &#39;</span>
+                       <span class="s1">&#39;num_devices_per_split(</span><span class="si">{}</span><span class="s1">) &gt; num_cores_per_host(</span><span class="si">{}</span><span class="s1">).&#39;</span>
+                       <span class="s1">&#39;Each host must be able to accommodate &gt;= 1 split when &#39;</span>
+                       <span class="s1">&#39;using per_host_infeed.&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                           <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span><span class="p">,</span> <span class="n">num_cores_per_host</span><span class="p">))</span>
 
-    <span class="n">shards</span> <span class="o">=</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">total_worker_devices</span> <span class="o">//</span>
-              <span class="n">num_infeed_hosts</span><span class="p">)</span> <span class="o">//</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
+    <span class="n">shards</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tpu_number_of_shards</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;shards </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shards</span><span class="p">))</span>
 
     <span class="n">input_ops_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -376,8 +375,9 @@
         <span class="nb">list</span><span class="p">(</span><span class="n">tpu_embedding</span><span class="o">.</span><span class="n">feature_to_config_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="k">if</span> <span class="n">tpu_embedding</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[])</span>
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;tpu_emb_input_keys: </span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tpu_emb_input_keys</span><span class="p">)</span>
-    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_infeed_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">)</span>
 
+    <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;num_infeed_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">num_infeed_hosts</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">task_id</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_infeed_hosts</span><span class="p">):</span>
       <span class="n">host_device</span> <span class="o">=</span> <span class="s1">&#39;/task:</span><span class="si">{}</span><span class="s1">/device:CPU:0&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">task_id</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">host_device</span><span class="p">):</span>
