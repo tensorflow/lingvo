@@ -218,8 +218,8 @@ class MatplotlibFigureSummary:
     plot_func = functools.partial(plot_func, **merged_kwargs)
     self._subplots.append(_SubplotMetadata(tensor_list, plot_func))
 
-  def Finalize(self):
-    """Finishes creation of the overall figure, returning the image summary."""
+  def FinalizeImage(self):
+    """Finishes creation of the overall figure, returning the image tensor."""
     subplot_grid_shape = self._subplot_grid_shape
     if subplot_grid_shape is None:
       subplot_grid_shape = (len(self._subplots), 1)
@@ -250,8 +250,12 @@ class MatplotlibFigureSummary:
         tf.assert_equal(
             batch_sizes, [batch_sizes[0]] * num_tensors, summarize=num_tensors)
     ]):
-      rendered = tf.py_func(
+      return tf.py_func(
           func, flattened_tensors, tf.uint8, name='RenderMatplotlibFigures')
+
+  def Finalize(self):
+    """Finishes creation of the overall figure, returning the image summary."""
+    rendered = self.FinalizeImage()
     return tf.summary.image(self._name, rendered, max_outputs=self._max_outputs)
 
 
