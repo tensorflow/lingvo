@@ -4197,11 +4197,15 @@ def _DefineDefun(fwd,
 
     python_grad_func = Grad
 
+  def _SetShape(dst_list, shape_list):
+    for dst, shape in zip(dst_list, shape_list):
+      if isinstance(dst, tf.Tensor):
+        dst.set_shape(shape)
+
   @tf.Defun(*arg_dtypes, python_grad_func=python_grad_func, noinline=noinline)
   def Forward(*args):
     """The forward function."""
-    for arg, shape in zip(args, arg_shapes):
-      arg.set_shape(shape)
+    _SetShape(args, arg_shapes)
     with RemoveAssertContext(remove=noinline), tf.device(device):
       rets = fwd(Pack(fwd_sig, args))
     sigs.ret_dtypes = Transform(get_dtype, rets)
@@ -4219,11 +4223,9 @@ def _DefineDefun(fwd,
       dys = args[xs_len + ys_len:]
       assert len(dys) == ys_len
 
-      for x, shape in zip(xs, arg_shapes):
-        x.set_shape(shape)
-      for y, dy, shape in zip(ys, dys, Flatten(sigs.ret_shapes)):
-        y.set_shape(shape)
-        dy.set_shape(shape)
+      _SetShape(xs, arg_shapes)
+      _SetShape(ys, Flatten(sigs.ret_shapes))
+      _SetShape(dys, Flatten(sigs.ret_shapes))
 
       xs = Pack(fwd_sig, xs)
       ys = Pack(sigs.ret_dtypes, ys)
