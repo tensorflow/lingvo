@@ -419,9 +419,6 @@ class TransformerMultiSourceAttentionLayer(TransformerAttentionLayer):
     p.is_masked = False
     return p
 
-  def __init__(self, params):
-    super().__init__(params)
-
   def _InitAttention(self, atten_tpl):
     p = self.params
     source_atten_tpls = []

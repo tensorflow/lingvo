@@ -437,8 +437,8 @@ class SequentialLayer(base_layer.BaseLayer):
     total = 0
     for _ in range(p.repeat):
       for sub in p.sub:
-        tf.logging.vlog(1, '  seq abs fprop %s %s %d %s', sub.name,
-                             sub.cls, len(args), str(args))
+        tf.logging.vlog(1, '  seq abs fprop %s %s %d %s', sub.name, sub.cls,
+                        len(args), str(args))
         meta = sub.cls.FPropMeta(sub, *args)
         py_utils.CheckShapes(meta.out_shapes)
         total += meta.flops
@@ -851,8 +851,8 @@ class GraphLayer(base_layer.BaseLayer):
         packed = template.Transform(graph_tensors.GetTensor)
         input_args = packed.inputs
         tf.logging.vlog(1, 'signature: %s', p.sub[i][0])
-        tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name,
-                             ch, len(input_args), str(input_args))
+        tf.logging.vlog(1, 'GraphLayer: call %s %s %d %s', ch.params.name, ch,
+                        len(input_args), str(input_args))
         ch_out = ch.FProp(th, *input_args)
         if len(sig.outputs) == 1:
           ch_out = (ch_out,)
@@ -946,7 +946,7 @@ class ParallelLayer(base_layer.BaseLayer):
     outputs = []
     for sub in p.sub:
       tf.logging.vlog(1, '  par abs fprop %s %s %d %s', sub.name, sub.cls,
-                           len(args), str(args))
+                      len(args), str(args))
       meta = sub.cls.FPropMeta(sub, *args)
       py_utils.CheckShapes(meta.out_shapes)
       meta.VLog(
