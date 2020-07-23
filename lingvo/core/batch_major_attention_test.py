@@ -1206,6 +1206,38 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       ctx1, ctx2 = sess.run([ctx_vec1, ctx_vec2])
       self.assertAllClose(ctx1, ctx2)
 
+  def testTransformerAttentionLayerNoLayernorm(self):
+    """Verify if Transformer attention allows no layernorm in FProp and Extend."""
+    with self.session(use_gpu=True) as sess:
+      query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
+      paddings = tf.zeros([2, 5])
+      cached_key = tf.zeros([5, 2, 2, 2])
+      cached_value = tf.zeros([5, 2, 2, 2])
+      prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
+
+      p = attention.TransformerAttentionLayer.Params().Set(
+          name='transformer_atten',
+          input_dim=4,
+          is_masked=True,
+          num_heads=2,
+          ln_tpl=None)  # Set ln_tpl to None.
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+
+      ctx_vec1, _ = l.FProp(l.theta, query_vec, None, paddings)
+
+      ctx_vec2 = []
+      for i in range(5):
+        ctx_vec, prefix_states = l.ExtendStep(
+            l.theta, tf.expand_dims(query_vec[:, i, :], 1), prefix_states, i,
+            False)
+        ctx_vec2.append(tf.squeeze(ctx_vec, 1))
+      ctx_vec2 = tf.transpose(tf.stack(ctx_vec2), [1, 0, 2])
+
+      tf.global_variables_initializer().run()
+      ctx1, ctx2 = sess.run([ctx_vec1, ctx_vec2])
+      self.assertAllClose(ctx1, ctx2)
+
   def _ConstructTransformerDecoderLayer(self, use_relative_atten=False):
     p = attention.TransformerDecoderLayer.Params()
     p.name = 'transformer_decoder_layer'

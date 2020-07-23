@@ -1508,7 +1508,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_heads', 8, 'Number of attention heads.')
     p.Define('is_masked', False, 'If set, uses masked MultiHededAttention.')
-    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define('ln_tpl', layers.LayerNorm.Params(),
+             'Layer norm default params. No layernorm if set to None.')
     p.Define('atten_tpl',
              MultiHeadedAttention.Params().Set(),
              'Multi-Headed Dot-Product Attention default params')
@@ -1553,10 +1554,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     self.CreateChild('atten', params)
 
     # Initialize attention layer normalization.
-    params = p.ln_tpl.Copy()
-    params.name = 'atten_ln'
-    params.input_dim = p.input_dim
-    self.CreateChild('layer_norm', params)
+    if p.ln_tpl:
+      params = p.ln_tpl.Copy()
+      params.name = 'atten_ln'
+      params.input_dim = p.input_dim
+      self.CreateChild('layer_norm', params)
 
     # Initialize residual dropout.
     dropout_tpl = p.dropout_tpl.Copy()
@@ -1591,7 +1593,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     unnormalized_query_vec = query_vec
 
     # Layer normalization.
-    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+    if p.ln_tpl:
+      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     # For self-attention: keys = queries.
     if source_vecs is None:
@@ -1674,7 +1677,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     per_step_padding = tf.expand_dims(per_step_padding, 1)
 
     # Layer normalization.
-    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+    if p.ln_tpl:
+      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     # Multiheaded masked/causal self-attention.
     ctx_vec, updated_key_vec, updated_value_vec = self.atten.ExtendStep(
