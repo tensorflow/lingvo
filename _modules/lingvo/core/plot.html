@@ -366,8 +366,8 @@
     <span class="n">plot_func</span> <span class="o">=</span> <span class="n">functools</span><span class="o">.</span><span class="n">partial</span><span class="p">(</span><span class="n">plot_func</span><span class="p">,</span> <span class="o">**</span><span class="n">merged_kwargs</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_SubplotMetadata</span><span class="p">(</span><span class="n">tensor_list</span><span class="p">,</span> <span class="n">plot_func</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="MatplotlibFigureSummary.Finalize"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.Finalize">[docs]</a>  <span class="k">def</span> <span class="nf">Finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Finishes creation of the overall figure, returning the image summary.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="MatplotlibFigureSummary.FinalizeImage"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.FinalizeImage">[docs]</a>  <span class="k">def</span> <span class="nf">FinalizeImage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finishes creation of the overall figure, returning the image tensor.&quot;&quot;&quot;</span>
     <span class="n">subplot_grid_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_subplot_grid_shape</span>
     <span class="k">if</span> <span class="n">subplot_grid_shape</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">subplot_grid_shape</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_subplots</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
@@ -398,8 +398,12 @@
         <span class="n">tf</span><span class="o">.</span><span class="n">assert_equal</span><span class="p">(</span>
             <span class="n">batch_sizes</span><span class="p">,</span> <span class="p">[</span><span class="n">batch_sizes</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">*</span> <span class="n">num_tensors</span><span class="p">,</span> <span class="n">summarize</span><span class="o">=</span><span class="n">num_tensors</span><span class="p">)</span>
     <span class="p">]):</span>
-      <span class="n">rendered</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span>
-          <span class="n">func</span><span class="p">,</span> <span class="n">flattened_tensors</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;RenderMatplotlibFigures&#39;</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">py_func</span><span class="p">(</span>
+          <span class="n">func</span><span class="p">,</span> <span class="n">flattened_tensors</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">uint8</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;RenderMatplotlibFigures&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="MatplotlibFigureSummary.Finalize"><a class="viewcode-back" href="../../../lingvo.core.plot.html#lingvo.core.plot.MatplotlibFigureSummary.Finalize">[docs]</a>  <span class="k">def</span> <span class="nf">Finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Finishes creation of the overall figure, returning the image summary.&quot;&quot;&quot;</span>
+    <span class="n">rendered</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FinalizeImage</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">summary</span><span class="o">.</span><span class="n">image</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_name</span><span class="p">,</span> <span class="n">rendered</span><span class="p">,</span> <span class="n">max_outputs</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_max_outputs</span><span class="p">)</span></div></div>
 
 
