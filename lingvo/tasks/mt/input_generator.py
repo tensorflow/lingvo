@@ -520,6 +520,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     p.Define('target_language', '', 'Language on target side.')
     p.Define('mass_layer', None, 'If not None, use the specified layer to do '
              'MASS masking.')
+    p.Define(
+        'mass_task_ids', None, 'List of task IDs for MASS. If None, apply '
+        'MASS to all tasks, otherwise only apply to the specified tasks.')
     return p
 
   def __init__(self, params):
@@ -573,9 +576,6 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
                                base_input_generator.DEFAULT_TOKENIZER_KEY)
     self._tgt_tokenizer = self.tokenizer_dict[self._tgt_tokenizer_key]
 
-    if p.single_column_input and p.mass_layer is None:
-      raise NotImplementedError(
-          'Single column input works only with MASS for now.')
     # TODO(alisonlui): Support single-column Sentence proto input.
     if p.single_column_input and p.input_file_type == 'sentence_proto':
       raise NotImplementedError(
@@ -652,10 +652,14 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
     # non-padded id. Unlike weights, it will not mutate and can be used for
     # determining actual sequence length, for example.
     features.src.ids_indicator = 1 - src_paddings
+    features.src.weights = 1 - src_paddings
+    features.src.paddings = src_paddings
     features.tgt = py_utils.NestedMap()
     features.tgt.ids = tgt_ids
     features.tgt.labels = tgt_labels
     features.tgt.ids_indicator = 1 - tgt_paddings
+    features.tgt.weights = 1 - tgt_paddings
+    features.tgt.paddings = tgt_paddings
 
     src_task_id, tgt_task_id = self._GetTaskIds(source_id)
     # task_ids are padded with zeros.
@@ -671,13 +675,9 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
   def _ProcessMASSInput(self, source_id, src):
     """Perform MASS input processing."""
-    # TODO(yuancao): By doing so we assume that right now for monolingual
-    # eval/dev sets (xx->xx) are in double-column format (since it bypasses
-    # the Mass op). Ideally we should add a dedicated eval/dev processing
-    # procedure for unsupervised MT cases, so that single-column eval/devs sets
-    # are also supported. This should not be handled by any specific ops like
-    # Mass, but inside the TextPackedInput class.
-    assert not self.do_eval, 'MASS input can only be used for training.'
+    if self.do_eval or self.mass_layer is None:
+      # At eval time, we copy src to tgt
+      return self._ProcessSingleInput(source_id, src, src)
 
     _, labels, paddings = self.StringsToIds(
         tf.reshape(src, [1]), is_source=True, key=self._src_tokenizer_key)
@@ -764,17 +764,41 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
 
     def Processor(source_id, record):
       """Parses a record, which is a line of text."""
+
       if self.params.input_file_type == 'tsv':
-        if self.params.single_column_input:
+
+        def _ApplyMass(source_id):
+          if self.params.file_pattern_task_ids:
+            file_task_ids = tf.constant(
+                self.params.file_pattern_task_ids, dtype=tf.int32)
+            task_id = tf.gather(file_task_ids, source_id)
+          else:
+            task_id = source_id
+          mass_task_ids = tf.constant(self.params.mass_task_ids, dtype=tf.int32)
+          return tf.reduce_any(tf.equal(task_id, mass_task_ids))
+
+        def _MASSInput():
           src, filtered = self._ReadRecordTsvSingleColumn(record)
-          features = self._ProcessMASSInput(source_id, src)
-        else:
+          return self._ProcessMASSInput(source_id, src), filtered
+
+        def _SingleInput():
           src, tgt, filtered = self._ReadRecordTsv(record)
-          features = self._ProcessSingleInput(source_id, src, tgt)
+          return self._ProcessSingleInput(source_id, src, tgt), filtered
+
+        if self.params.single_column_input:
+          if self.params.mass_task_ids is not None:
+            cond = _ApplyMass(source_id)
+            features, filtered = tf.cond(cond, _MASSInput, _SingleInput)
+          else:
+            features, filtered = _MASSInput()
+        else:
+          features, filtered = _SingleInput()
+
       else:
         src, tgt = self._ReadRecordSentencePairProto(record)
         filtered = tf.constant(False, dtype=tf.bool)
         features = self._ProcessSingleInput(source_id, src, tgt)
+
       return features, self._GetBucketKey(features, filtered)
 
     return generic_input.GenericInput(
@@ -834,7 +858,10 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         return ops.apply_packing(x, '\t', src_segment_ids, src_indices_in_input)
       return ops.apply_packing(x, 0, src_segment_ids, src_indices_in_input)
 
+    src_paddings = ops.apply_packing(batch.src.paddings, 1, src_segment_ids,
+                                     src_indices_in_input)
     batch.src = batch.src.Transform(ApplyPackingToSource)
+    batch.src.paddings = src_paddings
     batch.src.segment_ids = tf.cast(src_segment_ids, tf.float32)
     batch.src.segment_pos = src_segment_pos
 
@@ -843,7 +870,10 @@ class TextPackedInput(base_input_generator.BaseSequenceInputGenerator):
         return ops.apply_packing(x, '\t', tgt_segment_ids, tgt_indices_in_input)
       return ops.apply_packing(x, 0, tgt_segment_ids, tgt_indices_in_input)
 
+    tgt_paddings = ops.apply_packing(batch.tgt.paddings, 1, tgt_segment_ids,
+                                     tgt_indices_in_input)
     batch.tgt = batch.tgt.Transform(ApplyPackingToTarget)
+    batch.tgt.paddings = tgt_paddings
     batch.tgt.segment_ids = tf.cast(tgt_segment_ids, tf.float32)
     batch.tgt.segment_pos = tgt_segment_pos
 
