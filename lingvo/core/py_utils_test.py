@@ -28,6 +28,7 @@ import lingvo.compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder_layers
 from lingvo.core import cluster_factory
+from lingvo.core import hyperparams
 from lingvo.core import py_utils
 from lingvo.core import recurrent
 from lingvo.core import symbolic
@@ -48,6 +49,10 @@ class PyUtilsTest(test_utils.TestCase):
   def testIsDefaultParamInit(self):
     p = py_utils.DefaultParamInit()
     self.assertTrue(py_utils.IsDefaultParamInit(p))
+    p = hyperparams.Params.FromProto(p.ToProto())
+    self.assertTrue(py_utils.IsDefaultParamInit(p))
+    p = py_utils.WeightInit.Xavier(scale=1.)
+    self.assertFalse(py_utils.IsDefaultParamInit(p))
 
   def testNestedMapFromNestedDict(self):
     a = {'a1': 1, 'a2': 2}

@@ -1324,9 +1324,10 @@ def DefaultParamInit():
   return WeightInit.Xavier(_DEFAULT_XAVIER_INIT)
 
 
+# TODO(rpang, jonathanasdf): explore adding _is_default to hyperparams.Param.
 def IsDefaultParamInit(p):
-  return (p.method == 'xavier' and p.scale == _DEFAULT_XAVIER_INIT and
-          p.seed is None)
+  return (p.method == 'xavier' and
+          abs(p.scale - _DEFAULT_XAVIER_INIT) < 1e-7 and p.seed is None)
 
 
 def WeightParams(shape, init=None, dtype=None, collections=None):
