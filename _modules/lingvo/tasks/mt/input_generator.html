@@ -668,6 +668,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;target_language&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span> <span class="s1">&#39;Language on target side.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;mass_layer&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;If not None, use the specified layer to do &#39;</span>
              <span class="s1">&#39;MASS masking.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;mass_task_ids&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;List of task IDs for MASS. If None, apply &#39;</span>
+        <span class="s1">&#39;MASS to all tasks, otherwise only apply to the specified tasks.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -721,9 +724,6 @@
                                <span class="n">base_input_generator</span><span class="o">.</span><span class="n">DEFAULT_TOKENIZER_KEY</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_tgt_tokenizer</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tokenizer_dict</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_tgt_tokenizer_key</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">single_column_input</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
-          <span class="s1">&#39;Single column input works only with MASS for now.&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(alisonlui): Support single-column Sentence proto input.</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">single_column_input</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">input_file_type</span> <span class="o">==</span> <span class="s1">&#39;sentence_proto&#39;</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
@@ -800,10 +800,14 @@
     <span class="c1"># non-padded id. Unlike weights, it will not mutate and can be used for</span>
     <span class="c1"># determining actual sequence length, for example.</span>
     <span class="n">features</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">ids_indicator</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">src_paddings</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">src_paddings</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">src_paddings</span>
     <span class="n">features</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
     <span class="n">features</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids</span> <span class="o">=</span> <span class="n">tgt_ids</span>
     <span class="n">features</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">tgt_labels</span>
     <span class="n">features</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">ids_indicator</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tgt_paddings</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">weights</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">tgt_paddings</span>
+    <span class="n">features</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
 
     <span class="n">src_task_id</span><span class="p">,</span> <span class="n">tgt_task_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetTaskIds</span><span class="p">(</span><span class="n">source_id</span><span class="p">)</span>
     <span class="c1"># task_ids are padded with zeros.</span>
@@ -819,13 +823,9 @@
 
 <div class="viewcode-block" id="TextPackedInput._ProcessMASSInput"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.input_generator.html#lingvo.tasks.mt.input_generator.TextPackedInput._ProcessMASSInput">[docs]</a>  <span class="k">def</span> <span class="nf">_ProcessMASSInput</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Perform MASS input processing.&quot;&quot;&quot;</span>
-    <span class="c1"># TODO(yuancao): By doing so we assume that right now for monolingual</span>
-    <span class="c1"># eval/dev sets (xx-&gt;xx) are in double-column format (since it bypasses</span>
-    <span class="c1"># the Mass op). Ideally we should add a dedicated eval/dev processing</span>
-    <span class="c1"># procedure for unsupervised MT cases, so that single-column eval/devs sets</span>
-    <span class="c1"># are also supported. This should not be handled by any specific ops like</span>
-    <span class="c1"># Mass, but inside the TextPackedInput class.</span>
-    <span class="k">assert</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span><span class="p">,</span> <span class="s1">&#39;MASS input can only be used for training.&#39;</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">mass_layer</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="c1"># At eval time, we copy src to tgt</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
 
     <span class="n">_</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StringsToIds</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">src</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="n">is_source</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_src_tokenizer_key</span><span class="p">)</span>
@@ -912,17 +912,41 @@
 
     <span class="k">def</span> <span class="nf">Processor</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">record</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Parses a record, which is a line of text.&quot;&quot;&quot;</span>
+
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_file_type</span> <span class="o">==</span> <span class="s1">&#39;tsv&#39;</span><span class="p">:</span>
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">single_column_input</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">_ApplyMass</span><span class="p">(</span><span class="n">source_id</span><span class="p">):</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern_task_ids</span><span class="p">:</span>
+            <span class="n">file_task_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">file_pattern_task_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">task_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">file_task_ids</span><span class="p">,</span> <span class="n">source_id</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">task_id</span> <span class="o">=</span> <span class="n">source_id</span>
+          <span class="n">mass_task_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mass_task_ids</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+          <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_any</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">task_id</span><span class="p">,</span> <span class="n">mass_task_ids</span><span class="p">))</span>
+
+        <span class="k">def</span> <span class="nf">_MASSInput</span><span class="p">():</span>
           <span class="n">src</span><span class="p">,</span> <span class="n">filtered</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReadRecordTsvSingleColumn</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
-          <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessMASSInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">)</span>
-        <span class="k">else</span><span class="p">:</span>
+          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessMASSInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">),</span> <span class="n">filtered</span>
+
+        <span class="k">def</span> <span class="nf">_SingleInput</span><span class="p">():</span>
           <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">,</span> <span class="n">filtered</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReadRecordTsv</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
-          <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+          <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">),</span> <span class="n">filtered</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">single_column_input</span><span class="p">:</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">mass_task_ids</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">cond</span> <span class="o">=</span> <span class="n">_ApplyMass</span><span class="p">(</span><span class="n">source_id</span><span class="p">)</span>
+            <span class="n">features</span><span class="p">,</span> <span class="n">filtered</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">cond</span><span class="p">,</span> <span class="n">_MASSInput</span><span class="p">,</span> <span class="n">_SingleInput</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">features</span><span class="p">,</span> <span class="n">filtered</span> <span class="o">=</span> <span class="n">_MASSInput</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="n">features</span><span class="p">,</span> <span class="n">filtered</span> <span class="o">=</span> <span class="n">_SingleInput</span><span class="p">()</span>
+
       <span class="k">else</span><span class="p">:</span>
         <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ReadRecordSentencePairProto</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
         <span class="n">filtered</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="kc">False</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">)</span>
         <span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ProcessSingleInput</span><span class="p">(</span><span class="n">source_id</span><span class="p">,</span> <span class="n">src</span><span class="p">,</span> <span class="n">tgt</span><span class="p">)</span>
+
       <span class="k">return</span> <span class="n">features</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBucketKey</span><span class="p">(</span><span class="n">features</span><span class="p">,</span> <span class="n">filtered</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">generic_input</span><span class="o">.</span><span class="n">GenericInput</span><span class="p">(</span>
@@ -982,7 +1006,10 @@
         <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">src_segment_ids</span><span class="p">,</span> <span class="n">src_indices_in_input</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">src_segment_ids</span><span class="p">,</span> <span class="n">src_indices_in_input</span><span class="p">)</span>
 
+    <span class="n">src_paddings</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">src_segment_ids</span><span class="p">,</span>
+                                     <span class="n">src_indices_in_input</span><span class="p">)</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">src</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyPackingToSource</span><span class="p">)</span>
+    <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">src_paddings</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">src_segment_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">src</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">src_segment_pos</span>
 
@@ -991,7 +1018,10 @@
         <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">tgt_segment_ids</span><span class="p">,</span> <span class="n">tgt_indices_in_input</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tgt_segment_ids</span><span class="p">,</span> <span class="n">tgt_indices_in_input</span><span class="p">)</span>
 
+    <span class="n">tgt_paddings</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">apply_packing</span><span class="p">(</span><span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">tgt_segment_ids</span><span class="p">,</span>
+                                     <span class="n">tgt_indices_in_input</span><span class="p">)</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span> <span class="o">=</span> <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="n">ApplyPackingToTarget</span><span class="p">)</span>
+    <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">paddings</span> <span class="o">=</span> <span class="n">tgt_paddings</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tgt_segment_ids</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
     <span class="n">batch</span><span class="o">.</span><span class="n">tgt</span><span class="o">.</span><span class="n">segment_pos</span> <span class="o">=</span> <span class="n">tgt_segment_pos</span></div>
 
