@@ -1429,14 +1429,14 @@
 
 <div class="viewcode-block" id="NormalizedLSTMCellSimple.Params"><a class="viewcode-back" href="../../../lingvo.core.rnn_cell.html#lingvo.core.rnn_cell.NormalizedLSTMCellSimple.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">NormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">cls</span><span class="p">)</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;norm_layer_tpl&#39;</span><span class="p">,</span>
              <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-8</span><span class="p">),</span>
              <span class="s1">&#39;The normalization layer param&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">(</span><span class="n">NormalizedLSTMCellSimple</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">gates_name</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;i_i&#39;</span><span class="p">,</span> <span class="s1">&#39;i_g&#39;</span><span class="p">,</span> <span class="s1">&#39;f_g&#39;</span><span class="p">,</span> <span class="s1">&#39;o_g&#39;</span><span class="p">]</span>
     <span class="k">for</span> <span class="n">gate</span> <span class="ow">in</span> <span class="n">gates_name</span><span class="p">:</span>
