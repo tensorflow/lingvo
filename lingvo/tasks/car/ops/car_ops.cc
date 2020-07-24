@@ -173,10 +173,13 @@ prediction_imageid: [M]. M image ids for the predicted bounding boxes.
 prediction_score: [M]. M scores for each predicted bounding box.
 prediction_ignore: [N]. The ignore types for predictions. Currently only used by
   the KITTI AP. Valid values are 0 - Don't ignore; 1 - Ignore the first match.
-average_precision: A scalar. The AP metric.
-precision_recall: [num_recall_points, 2]. List of PR points.
-score_and_hit: [M, 2] Prediction score and corresponding binary indication
-  whether a prediction detected a ground truth item.
+average_precision:
+  A scalar. The AP metric.
+precision_recall:
+  [num_recall_points, 2]. List of PR points.
+score_and_hit:
+  [M, 2] Prediction score and corresponding binary indication whether a
+  prediction detected a ground truth item.
 algorithm: string. One of ["KITTI", "VOC"]. See this paper "Supervised
   learning and evaluation of KITTI's cars detector with DPM", Section III.A for
   the differences between KITTI AP and VOC AP.

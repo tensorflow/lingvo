@@ -798,44 +798,16 @@ REGISTER_OP("PackSequences")
 Produces a packing pattern for the (src, tgt) input pair with the provided
 lengths, according to the given packed shape.
 
-src_actual_seq_len: A tensor of shape [N], where N is the input batch size.
-  This tensor contains the actual lengths for the src sequence.
-tgt_actual_seq_len: A tensor of shape [N], where N is the input batch size.
-  This tensor contains the actual lengths for the tgt sequence.
-packed_batch_size: A scalar. The output batch size. The packed output will
-  be of shape [packed_batch_size, packed_{src,tgt}_seq_len] for src and tgt,
-  respectively.
-packed_src_seq_len: A scalar. The output sequence length for src. A src input
-  with shape [N, src_input_seq_len] will be packed into an output with shape
-  [packed_batch_size, packed_src_seq_len].
-packed_tgt_seq_len: A scalar. The output sequence length for tgt. A tgt input
-  with shape [N, tgt_input_seq_len] will be packed into an output with shape
-  [packed_batch_size, packed_tgt_seq_len].
+For example, the following input::
 
-{src,tgt}_segment_ids: A tensor of shape [packed_batch_size,
-  packed_{src,tgt}_seq_len]. Incrementing from 1 to indicate each segment in the
-  packed output, for src and tgt, respectively. Zero is reserved for indicating
-  padding at the end of each row.
-{src,tgt}_segment_pos: A tensor of shape [packed_batch_size,
-  packed_{src,tgt}_seq_len]. Zero-based index to indicate relative position
-  within each segment, for src and tgt, respectively. Zero is also used to
-  indicate padding. When needed, use `{src,tgt}_segment_ids` to disambiguate.
-{src,tgt}_indices_in_input: A tensor of shape [packed_batch_size,
-  packed_{src,tgt}_seq_len]. For each segment in the packed output, it contains
-  the original (zero-based) row index of each segment found in
-  `{src,tgt}_actual_seq_len`, respectively. Zero is also used to indicate
-  padding. When needed, use `{src,tgt}_segment_ids` to disambiguate.
-
-seed: Seed for random number generator, which is used when we need to drop
-  excessive input sequences. If seed is zero, use completely random seed.
-
-For example, the following input:
   src_actual_seq_len = [3, 2, 1]
   tgt_actual_seq_len = [4, 1, 5]
   packed_batch_size = 2
   packed_src_seq_len = 5
   packed_tgt_seq_len = 5
-will result in:
+
+will result in::
+
   src_segment_ids = [ [1, 1, 1, 2, 2], [1, 0, 0, 0, 0] ]
   src_segment_pos = [ [0, 1, 2, 0, 1], [0, 0, 0, 0, 0] ]
   src_indices_in_input = [ [0, 0, 0, 1, 1], [2, 0, 0, 0, 0] ]
@@ -844,13 +816,16 @@ will result in:
   tgt_indices_in_input = [ [0, 0, 0, 0, 1], [2, 2, 2, 2, 2] ]
 
 The packed sequence length can be different between src and tgt. For example,
-the following input:
+the following input::
+
   src_actual_seq_len = [3, 2, 1]
   tgt_actual_seq_len = [4, 1, 5]
   packed_batch_size = 2
   packed_src_seq_len = 4
   packed_tgt_seq_len = 6
-will result in:
+
+will result in::
+
   src_segment_ids = [ [1, 1, 1, 0], [1, 1, 2, 0] ]
   src_segment_pos = [ [0, 1, 2, 0], [0, 1, 0, 0] ]
   src_indices_in_input = [ [0, 0, 0, 0], [1, 1, 2, 0] ]
@@ -864,7 +839,49 @@ the remaining elements in the output.
 If there are too many input sequences to pack into `output_shape`, the op drops
 input sequences. The dropping is done randomly uniformly on the input sequences
 to not bias the distribution of sequence lengths in the packed output.
- )doc");
+
+src_actual_seq_len: A tensor of shape [N], where N is the input batch size.
+  This tensor contains the actual lengths for the src sequence.
+tgt_actual_seq_len: A tensor of shape [N], where N is the input batch size.
+  This tensor contains the actual lengths for the tgt sequence.
+packed_batch_size: A scalar. The output batch size. The packed output will
+  be of shape [packed_batch_size, packed_{src,tgt}_seq_len] for src and tgt,
+  respectively.
+packed_src_seq_len: A scalar. The output sequence length for src. A src input
+  with shape [N, src_input_seq_len] will be packed into an output with shape
+  [packed_batch_size, packed_src_seq_len].
+packed_tgt_seq_len: A scalar. The output sequence length for tgt. A tgt input
+  with shape [N, tgt_input_seq_len] will be packed into an output with shape
+  [packed_batch_size, packed_tgt_seq_len].
+src_segment_ids:
+  A tensor of shape [packed_batch_size, packed_src_seq_len]. Incrementing from 1
+  to indicate each segment in the packed output for src. Zero is reserved for
+  indicating padding at the end of each row.
+tgt_segment_ids:
+  A tensor of shape [packed_batch_size, packed_tgt_seq_len]. Incrementing from 1
+  to indicate each segment in the packed output for tgt. Zero is reserved for
+  indicating padding at the end of each row.
+src_segment_pos:
+  A tensor of shape [packed_batch_size, packed_src_seq_len]. Zero-based index to
+  indicate relative position within each segment for src. Zero is also used to
+  indicate padding. When needed, use `src_segment_ids` to disambiguate.
+tgt_segment_pos:
+  A tensor of shape [packed_batch_size, packed_tgt_seq_len]. Zero-based index to
+  indicate relative position within each segment for tgt. Zero is also used to
+  indicate padding. When needed, use `tgt_segment_ids` to disambiguate.
+src_indices_in_input:
+  A tensor of shape [packed_batch_size, packed_src_seq_len]. For each segment in
+  the packed output, it contains the original (zero-based) row index of each
+  segment found in `src_actual_seq_len`. Zero is also used to indicate padding.
+  When needed, use `src_segment_ids` to disambiguate.
+tgt_indices_in_input:
+  A tensor of shape [packed_batch_size, packed_tgt_seq_len]. For each segment in
+  the packed output, it contains the original (zero-based) row index of each
+  segment found in `tgt_actual_seq_len`. Zero is also used to indicate padding.
+  When needed, use `tgt_segment_ids` to disambiguate.
+seed: Seed for random number generator, which is used when we need to drop
+  excessive input sequences. If seed is zero, use completely random seed.
+)doc");
 
 REGISTER_OP("ApplyPacking")
     .Input("input: T")
@@ -879,6 +896,13 @@ Applies a packing pattern on the input to obtain a packed output.
 A slightly different semantics when T is tf.string type: the output joins the
 strings that are packed on the same row, separated by `padding`.
 
+The inputs `segment_ids` and `indices_in_input` can be obtained from the outputs
+of an `PackSequence` op (though only the src or the tgt tensors are needed).
+
+Note that ApplyPacking is done on a per column basis (either on the src or on
+the tgt), as opposed to in PackSequences, when both src and tgt columns must be
+processed together within the same op.
+
 input: A tensor of shape [N, seq_len]. The input to apply the packing to.
   For tf.string typed input, a vector of shape [N] is expected.
 padding: A scalar to indicate the padding value. This is typically the zero
@@ -889,17 +913,11 @@ padding: A scalar to indicate the padding value. This is typically the zero
 segment_ids: A rank 2 tensor of shape `output_shape`.
 indices_in_input: A rank 2 tensor of shape `output_shape`.
 
-output: A tensor of shape `output_shape`. For tf.string typed input, the output
+output:
+  A tensor of shape `output_shape`. For tf.string typed input, the output
   is a vector of strings where its length is the same as the number of rows in
   `output_shape`.
-
-The inputs `segment_ids` and `indices_in_input` can be obtained from the outputs
-of an `PackSequence` op (though only the src or the tgt tensors are needed).
-
-Note that ApplyPacking is done on a per column basis (either on the src or on
-the tgt), as opposed to in PackSequences, when both src and tgt columns must be
-processed together within the same op.
- )doc");
+)doc");
 
 REGISTER_OP("Mass")
     .Input("ids: int32")
@@ -937,9 +955,12 @@ those across the src.
 random_start_prob: The probability that the placement of masked segments will be
   entirely random. The remaining cases are split evenly between masking at the
   beginning and at the end of the src.
-keep_prob/rand_prob/mask_prob: The probability that a token to be masked will
-be unchanged, replaced with a random token in the vocab, or replaced with the
-mask_id, respectively. Must sum to 1.
+keep_prob: The probability that a token to be masked will be unchanged.
+  `keep_prob + rand_prob + mask_prob` must sum to 1.
+rand_prob: The probability that a token to be masked will be replaced with a
+  random token in the vocab. `keep_prob + rand_prob + mask_prob` must sum to 1.
+mask_prob: The probability that a token to be masked will be replaced with the
+  mask_id. `keep_prob + rand_prob + mask_prob` must sum to 1.
 mask_target: whether to mask the target (the mask will be the inverse of that of
   the src).
 vocab_size: Vocab size used when selecting a random token to replace a masked
@@ -947,12 +968,16 @@ vocab_size: Vocab size used when selecting a random token to replace a masked
 first_unreserved_id: Tokens greater than or equal to this may be selected at
   random to replace a masked token.
 
-src_ids: Masked ids. E.g. s1 s2 s3 m m </s>
-tgt_ids: Right-shifted ids with BOS token added, where the mask is the
+src_ids:
+  Masked ids. E.g. `s1 s2 s3 m m </s>`
+tgt_ids:
+  Right-shifted ids with BOS token added, where the mask is the
   positional inverse of that of the source unless mask_target=False.
-  E.g. m m m s3 s4 m
-tgt_labels: E.g. s1 s2 s3 s4 s5 </s>
-tgt_weights: weights are zeroed wherever the target is masked.
+  E.g. `m m m s3 s4 m`
+tgt_labels:
+  E.g. `s1 s2 s3 s4 s5 </s>`
+tgt_weights:
+  weights are zeroed wherever the target is masked.
 )doc");
 
 }  // namespace
