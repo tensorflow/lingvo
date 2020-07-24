@@ -1671,6 +1671,38 @@ class BuilderTest(test_utils.TestCase, parameterized.TestCase):
       actual_enc_out = sess.run(enc_out)
       self.assertAllEqual([bs, out_seq_len, d], actual_enc_out.shape)
 
+  def testEncoderLayerWithPerLayerParam(self):
+    with self.session(use_gpu=False) as sess:
+      bs = 2
+      sl = 10
+      d = 16
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      heads = [1, 2, 4]
+      ff_dims = [16, 32, 16]
+      atten_builder = attention.Builder.Params().Set(
+          model_dim=16, num_heads=heads, ff_hidden_dim=ff_dims).Instantiate()
+      layers = []
+      for layer_i, (head, ff_dim) in enumerate(zip(heads, ff_dims)):
+        layers.append(
+            atten_builder.TransformerEncoderLayer(
+                name='atten_{}'.format(layer_i),
+                ff_hidden_dim=ff_dim,
+                num_heads=head,
+                stride=1 if layer_i < 2 else 0))
+      p = atten_builder.Seq('model', *layers)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      input_embs = tf.constant(
+          np.random.random(size=[bs, sl, d]), dtype=np.float)
+      paddings = tf.zeros([bs, sl])
+      l_out = l.FPropDefaultTheta(
+          py_utils.NestedMap(vec=input_embs, paddings=paddings))
+      out = tf.reduce_sum(l_out.vec)
+      tf.global_variables_initializer().run()
+      actual_out = sess.run(out)
+      self.assertAllClose(actual_out, 17.40516)
+
 
 class LmBuilderTest(test_utils.TestCase):
 
