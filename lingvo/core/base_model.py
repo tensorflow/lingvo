@@ -319,7 +319,7 @@ class BaseTask(base_layer.BaseLayer):
   def CreateVariables(self):
     with py_utils.GlobalStepContext(
         tf.identity(self._global_step_var, name='global_step_tensor')):
-      super(BaseTask, self).CreateVariables()
+      super().CreateVariables()
 
   def _SetLearnerFromLegacyParams(self, tp):
     """Sets tp.learner based on legacy params."""

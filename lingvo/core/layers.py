@@ -3827,7 +3827,7 @@ class CategoricalLayerNorm(LayerNorm):
 
   @classmethod
   def Params(cls):
-    p = super(CategoricalLayerNorm, cls).Params()
+    p = super().Params()
     p.Define('num_classes', 1,
              'Number of privatized copies of layer norm params.')
     return p
@@ -3837,7 +3837,7 @@ class CategoricalLayerNorm(LayerNorm):
     return [p.num_classes, p.input_dim]
 
   def __init__(self, params):
-    super(CategoricalLayerNorm, self).__init__(params)
+    super().__init__(params)
     p = self.params
     assert isinstance(p.num_classes, int)
     assert p.num_classes > 0

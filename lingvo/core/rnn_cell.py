@@ -1281,14 +1281,14 @@ class NormalizedLSTMCellSimple(LSTMCellSimple):
 
   @classmethod
   def Params(cls):
-    p = super(NormalizedLSTMCellSimple, cls).Params()
+    p = super().Params()
     p.Define('norm_layer_tpl',
              layers.LayerNorm.Params().Set(epsilon=1e-8),
              'The normalization layer param')
     return p
 
   def __init__(self, params):
-    super(NormalizedLSTMCellSimple, self).__init__(params)
+    super().__init__(params)
     p = self.params
     gates_name = ['i_i', 'i_g', 'f_g', 'o_g']
     for gate in gates_name:
