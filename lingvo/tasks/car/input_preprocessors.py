@@ -24,7 +24,6 @@ from lingvo.tasks.car import geometry
 from lingvo.tasks.car import ops
 import numpy as np
 # pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 # pylint:enable=g-direct-tensorflow-import
 
@@ -2352,23 +2351,27 @@ class RandomBBoxTransform(Preprocessor):
     actual_num_bboxes = tf.reduce_sum(
         tf.cast(features.labels.bboxes_3d_mask, tf.int32))
 
-    (_, _, _, _, _, _, out_bbox_xyz, out_bbox_feature,
-     out_bbox_mask) = functional_ops.For(
-         start=0,
-         limit=actual_num_bboxes,
-         delta=1,
-         inputs=[
-             points_xyz, points_feature, real_bboxes_3d, points_in_bbox_mask,
-             rotation, translate_pose, out_bbox_xyz, out_bbox_feature,
-             out_bbox_mask
-         ],
-         body=transform_fn)
+    ret = py_utils.ForLoop(
+        body=transform_fn,
+        start=0,
+        limit=actual_num_bboxes,
+        delta=1,
+        loop_state=py_utils.NestedMap(
+            points_xyz=points_xyz,
+            points_feature=points_feature,
+            bboxes_3d=real_bboxes_3d,
+            points_in_bbox_mask=points_in_bbox_mask,
+            rotation=rotation,
+            translate_pose=translate_pose,
+            out_bbox_points=out_bbox_xyz,
+            out_bbox_feature=out_bbox_feature,
+            out_bbox_mask=out_bbox_mask))
 
     # Gather all of the transformed points and features
-    out_bbox_xyz = tf.reshape(out_bbox_xyz, [-1, 3])
+    out_bbox_xyz = tf.reshape(ret.out_bbox_points, [-1, 3])
     num_features = features.lasers.points_feature.shape[-1]
-    out_bbox_feature = tf.reshape(out_bbox_feature, [-1, num_features])
-    out_bbox_mask = tf.cast(tf.reshape(out_bbox_mask, [-1]), tf.bool)
+    out_bbox_feature = tf.reshape(ret.out_bbox_feature, [-1, num_features])
+    out_bbox_mask = tf.cast(tf.reshape(ret.out_bbox_mask, [-1]), tf.bool)
     fg_xyz = tf.boolean_mask(out_bbox_xyz, out_bbox_mask)
     fg_feature = tf.boolean_mask(out_bbox_feature, out_bbox_mask)
     return fg_xyz, fg_feature
@@ -2413,18 +2416,14 @@ class RandomBBoxTransform(Preprocessor):
 
     num_features = features.lasers.points_feature.shape[-1]
 
-    @tf.Defun(tf.int32, tf.float32, tf.float32, tf.float32, tf.bool, tf.float32,
-              tf.float32, tf.float32, tf.float32, tf.float32)
-    def Transform(i, points_xyz, points_feature, bboxes_3d, points_in_bbox_mask,
-                  rotation, translate_pose, out_bbox_points, out_bbox_feature,
-                  out_bbox_mask):
+    def Transform(i, state):
       """Transform the points in bounding box `i`."""
-      points_xyz = tf.reshape(points_xyz, [-1, 3])
-      bbox_mask = tf.reshape(points_in_bbox_mask[:, i], [-1])
+      state.points_xyz = tf.reshape(state.points_xyz, [-1, 3])
+      bbox_mask = tf.reshape(state.points_in_bbox_mask[:, i], [-1])
 
       # Fetch only the points in the bounding box.
-      points_xyz_masked = tf.boolean_mask(points_xyz, bbox_mask)
-      points_feature_masked = tf.boolean_mask(points_feature, bbox_mask)
+      points_xyz_masked = tf.boolean_mask(state.points_xyz, bbox_mask)
+      points_feature_masked = tf.boolean_mask(state.points_feature, bbox_mask)
 
       num_points = tf.shape(points_xyz_masked)[0]
 
@@ -2433,16 +2432,16 @@ class RandomBBoxTransform(Preprocessor):
       #
       # Translate the box to the origin, then rotate the desired
       # rotation angle.
-      translation_vec = bboxes_3d[i, 0:3]
-      rotation_vec = [rotation[i], 0., 0.]
+      translation_vec = state.bboxes_3d[i, 0:3]
+      rotation_vec = [state.rotation[i], 0., 0.]
       pose = tf.concat([-translation_vec, rotation_vec], axis=0)
       points_xyz_adj = geometry.CoordinateTransform(points_xyz_masked, pose)
       if p.max_scaling is not None or p.max_shearing is not None:
         # Translate the points in the bounding box by moving dz/2 so that the
         # bottom of the bounding box is at Z = 0 when any of the two
         # (max_scaling or max_shearing) is not None
-        translation_scale_or_shear = tf.stack([0., 0., bboxes_3d[i, 5] / 2],
-                                              axis=0)
+        translation_scale_or_shear = tf.stack(
+            [0., 0., state.bboxes_3d[i, 5] / 2], axis=0)
         pose1 = tf.concat([translation_scale_or_shear, [0., 0., 0.]], axis=0)
         points_xyz_adj = geometry.CoordinateTransform(points_xyz_adj, pose1)
       else:
@@ -2507,7 +2506,8 @@ class RandomBBoxTransform(Preprocessor):
 
       # Translate the points back, adding noise if needed.
       translation_with_noise = (
-          translation_vec - translation_scale_or_shear + translate_pose[i])
+          translation_vec - translation_scale_or_shear +
+          state.translate_pose[i])
       pose2 = tf.concat([translation_with_noise, [0., 0., 0.]], axis=0)
       final_points_xyz = geometry.CoordinateTransform(points_xyz_adj, pose2)
 
@@ -2521,16 +2521,14 @@ class RandomBBoxTransform(Preprocessor):
           points_feature_masked, [p.max_num_points_per_bbox, num_features])
       points_mask = py_utils.PadOrTrimTo(points_mask,
                                          [p.max_num_points_per_bbox])
-      out_bbox_points = inplace_ops.alias_inplace_update(
-          out_bbox_points, [i], tf.expand_dims(final_points_xyz, 0))
-      out_bbox_feature = inplace_ops.alias_inplace_update(
-          out_bbox_feature, [i], tf.expand_dims(final_points_feature, 0))
-      out_bbox_mask = inplace_ops.alias_inplace_update(
-          out_bbox_mask, [i], tf.expand_dims(points_mask, 0))
+      state.out_bbox_points = inplace_ops.alias_inplace_update(
+          state.out_bbox_points, [i], tf.expand_dims(final_points_xyz, 0))
+      state.out_bbox_feature = inplace_ops.alias_inplace_update(
+          state.out_bbox_feature, [i], tf.expand_dims(final_points_feature, 0))
+      state.out_bbox_mask = inplace_ops.alias_inplace_update(
+          state.out_bbox_mask, [i], tf.expand_dims(points_mask, 0))
 
-      return (points_xyz, points_feature, bboxes_3d, points_in_bbox_mask,
-              rotation, translate_pose, out_bbox_points, out_bbox_feature,
-              out_bbox_mask)
+      return state
 
     # Get the points and features that reside in boxes.
     if 'points_padding' in features.lasers:

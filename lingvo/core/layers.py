@@ -37,7 +37,6 @@ import numpy as np
 import sympy
 
 # pylint:disable=g-direct-tensorflow-import
-from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.tpu import tpu_embedding as tpu_embedding_lib
 # pylint:enable=g-direct-tensorflow-import
@@ -2388,9 +2387,6 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         'fprop_mode must be one of %r' % valid_fprop_modes)
     emb_shape_suf, weight_shape = self._GetWeightShape()
 
-    # flags passed to @tf.Defun
-    compiled = py_utils.use_xla()
-
     @tf.Defun(py_utils.FPropDtype(p), tf.int32, py_utils.FPropDtype(p))
     def EmbBprop(embs, ids_vec, drets):
       """Embedding backprop.
@@ -2420,24 +2416,22 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
         drets_shape = tf.shape(drets)
         drets = tf.reshape(drets, [drets_shape[0]] + emb_shape_suf)
 
-      @tf.Defun(tf.int32, tf.int32, py_utils.FPropDtype(p),
-                py_utils.FPropDtype(p))
-      def EmbBpropLoop(i, ids_vec, drets, dembs):
-        # row_id = ids_vec[i]
-        row_id = tf.gather(ids_vec, i)
-        # row = drets[i]
-        row = tf.reshape(tf.gather(drets, i), [1] + emb_shape_suf)
-        # dembs[row_id] = row
-        dembs = inplace_ops.alias_inplace_add(dembs, [row_id], row)
-        return ids_vec, drets, dembs
+      def EmbBpropLoop(i, state):
+        # row_id = state.ids_vec[i]
+        row_id = tf.gather(state.ids_vec, i)
+        # row = state.drets[i]
+        row = tf.reshape(tf.gather(state.drets, i), [1] + emb_shape_suf)
+        # state.dembs[row_id] = row
+        state.dembs = inplace_ops.alias_inplace_add(state.dembs, [row_id], row)
+        return state
 
-      _, _, dembs = functional_ops.For(
+      dembs = py_utils.ForLoop(
+          body=EmbBpropLoop,
           start=0,
           limit=num,
           delta=1,
-          inputs=[ids_vec, drets, dembs],
-          body=EmbBpropLoop,
-          rewrite_with_while=compiled)
+          loop_state=py_utils.NestedMap(
+              ids_vec=ids_vec, drets=drets, dembs=dembs)).dembs
 
       if p.scale_sqrt_depth:
         dembs *= p.embedding_dim**0.5
@@ -2471,24 +2465,22 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
       num = tf.shape(ids_vec)[0]
       rets = inplace_ops.empty([num] + emb_shape_suf, py_utils.FPropDtype(p))
 
-      @tf.Defun(tf.int32, py_utils.FPropDtype(p), tf.int32,
-                py_utils.FPropDtype(p))
-      def EmbFpropLoop(i, embs, ids_vec, rets):
-        # row_id = ids_vec[i]
-        row_id = tf.gather(ids_vec, i)
-        # row = embs[row_id]
-        row = tf.reshape(tf.gather(embs, row_id), [1] + emb_shape_suf)
-        # rets[i] = row
-        rets = inplace_ops.alias_inplace_update(rets, [i], row)
-        return embs, ids_vec, rets
+      def EmbFpropLoop(i, state):
+        # row_id = state.ids_vec[i]
+        row_id = tf.gather(state.ids_vec, i)
+        # row = state.embs[row_id]
+        row = tf.reshape(tf.gather(state.embs, row_id), [1] + emb_shape_suf)
+        # state.rets[i] = row
+        state.rets = inplace_ops.alias_inplace_update(state.rets, [i], row)
+        return state
 
-      _, _, rets = functional_ops.For(
+      rets = py_utils.ForLoop(
+          body=EmbFpropLoop,
           start=0,
           limit=num,
           delta=1,
-          inputs=[embs, ids_vec, rets],
-          body=EmbFpropLoop,
-          rewrite_with_while=compiled)
+          loop_state=py_utils.NestedMap(embs=embs, ids_vec=ids_vec,
+                                        rets=rets)).rets
       if len(weight_shape) > 2:
         rets = tf.reshape(rets, [num, symbolic.ToStatic(p.embedding_dim)])
       return rets
