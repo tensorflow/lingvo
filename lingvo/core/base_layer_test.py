@@ -37,8 +37,8 @@ def EvalAndFlatten(nmap):
 
 class TestLayer(base_layer.BaseLayer):
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     self.CreateVariable(
         'w',

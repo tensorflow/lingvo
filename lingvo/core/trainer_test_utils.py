@@ -71,8 +71,8 @@ class IdentityRegressionTask(base_model.BaseTask):
     self.metrics = []
     self.result_per_example_tensors = []
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.CreateVariable(
         'm',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))

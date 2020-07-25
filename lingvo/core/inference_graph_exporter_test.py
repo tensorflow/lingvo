@@ -169,8 +169,8 @@ class LinearModel(base_model.BaseTask):
     p.name = 'linear_model'
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w = py_utils.WeightParams(
         shape=[3],

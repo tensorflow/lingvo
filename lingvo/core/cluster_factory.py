@@ -97,7 +97,7 @@ def SetEval(mode):
   return Current().params.Copy().Set(do_eval=mode).Instantiate()
 
 
-def SetImmediatelyCreateVariables(mode):
+def SetImmediatelyInstantiateVariables(mode):
   """Returns a cluster with immediately_create_variables option turned on/off.
 
   Args:

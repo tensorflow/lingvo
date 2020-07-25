@@ -258,7 +258,7 @@ class BaseTask(base_layer.BaseLayer):
           py_utils.GetGlobalVariableScope()):
         var_name = p.name + '_global_step'
         # Create the variable immediately.
-        self._CreateVariable(
+        self._CreateVariableInternal(
             var_name,
             base_layer.CreateVariableMeta(
                 var_params=py_utils.WeightParams(
@@ -316,10 +316,10 @@ class BaseTask(base_layer.BaseLayer):
           self.CreateChildren('learners', [tp.learner])
     self._UpdateVnConfig()
 
-  def CreateVariables(self):
+  def InstantiateVariables(self):
     with py_utils.GlobalStepContext(
         tf.identity(self._global_step_var, name='global_step_tensor')):
-      super().CreateVariables()
+      super().InstantiateVariables()
 
   def _SetLearnerFromLegacyParams(self, tp):
     """Sets tp.learner based on legacy params."""
@@ -644,9 +644,9 @@ class BaseTask(base_layer.BaseLayer):
   def ApplyExponentialMovingAverage(self, ema):
     """Wraps `self.train_op` with an op updating exponential moving average."""
     if (self._create_variables_status !=
-        base_layer._CreateVariablesStatus.COMPLETED):  # pylint: disable=protected-access
+        base_layer._CreateLayerVariablesStatus.COMPLETED):  # pylint: disable=protected-access
       raise ValueError(
-          'ApplyExponentialMovingAverage called before CreateVariables!')
+          'ApplyExponentialMovingAverage called before InstantiateVariables!')
     # TODO(rpang): raise an exception if this is called in the eval mode.
     p = self.params
     # We need to apply EMA to trainable and moving average variable of this
@@ -1218,9 +1218,9 @@ class SingleTaskModel(SingleTaskBase):
     self.CreateChild('_task', self.params.task)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
-    self._task.CreateVariables()
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
+    self._task.InstantiateVariables()
     super()._CreateChildrenVariables()
 
 
@@ -1248,9 +1248,9 @@ class MultiTaskSubModel(SingleTaskBase):
     self._task = self._model.children.Get(p.task_name)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
-    self._model.CreateVariables()
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
+    self._model.InstantiateVariables()
     super()._CreateChildrenVariables()
 
 
@@ -1343,10 +1343,10 @@ class MultiTaskModel(BaseModel):
       for task_name, task in zip(self.task_names, self.tasks):
         if self.params.task_name_var_scope:
           with tf.variable_scope(task_name):
-            task.CreateVariables()
+            task.InstantiateVariables()
         else:
-          task.CreateVariables()
-      self.task_schedule.CreateVariables()
+          task.InstantiateVariables()
+      self.task_schedule.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   @property

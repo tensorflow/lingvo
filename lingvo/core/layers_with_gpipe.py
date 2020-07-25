@@ -710,10 +710,10 @@ class GPipeTransformerStack(PipeliningLayer):
       self.CreateChild('smoother', p.label_smoothing)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     if self.params.label_smoothing:
-      self.smoother.CreateVariables()
+      self.smoother.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def Logits(self, theta, inputs):
@@ -936,8 +936,8 @@ class DeterministicWeightsLayer(base_layer.BaseLayer):
     p.dropout_tpl.name = 'dropout'
     self.CreateChild('weighted_merger_dropout', p.dropout_tpl)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     params_init = py_utils.WeightInit.Constant(0.0)
     # Weights to be learned.

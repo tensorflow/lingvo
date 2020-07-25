@@ -200,9 +200,9 @@ class RnnStackStep(step.Step):
     self.CreateChild('stack', stack_params)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
-    self.stack.CreateVariables()
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
+    self.stack.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def PrepareExternalInputs(self, theta, external_inputs):

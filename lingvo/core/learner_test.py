@@ -25,8 +25,8 @@ from lingvo.core import test_utils
 
 class TestLayer(base_layer.BaseLayer):
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     pc = py_utils.WeightParams(
         shape=[],
         init=py_utils.WeightInit.Constant(0),

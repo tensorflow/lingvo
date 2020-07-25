@@ -72,8 +72,8 @@ class PerDimScaleLayer(base_layer.BaseLayer):
     p.Define('dim', 0, 'Number of individual dims .')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
         shape=[p.dim],
@@ -128,8 +128,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     p.Define('use_bias', True, 'If to add bias in projection.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
         shape=[p.input_dim, p.num_heads, p.dim_per_head],
@@ -757,8 +757,8 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
         use_bias=False)
     self.CreateChild('pos_proj', pos_proj_tpl)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     params = self.params
 
     dim_per_head = params.hidden_dim // params.num_heads
@@ -916,7 +916,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
         reuse=tf.AUTO_REUSE if self.params.use_global_emb else False):
       for child in ['key_emb', 'key_pos_proj', 'value_emb', 'value_pos_proj']:
         if child in self.children:
-          self.children[child].CreateVariables()
+          self.children[child].InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def _RelativePositionValueEmb(self, theta, key):
@@ -1310,8 +1310,8 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
         use_bias=False)
     self.CreateChild('pos_proj', pos_proj_tpl)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     params = self.params
 
     dim_per_head = params.hidden_dim // params.num_heads

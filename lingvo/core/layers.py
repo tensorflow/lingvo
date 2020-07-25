@@ -73,8 +73,8 @@ class DeconvLayer(base_layer.BaseLayer):
     assert all(x > 0 for x in p.filter_shape)
     assert all(x > 0 for x in p.filter_stride)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,
@@ -322,8 +322,8 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
 
     # TODO(yonghui): implement the variational noise logic.
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,
@@ -355,10 +355,10 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
         self.TrackQTensor('pre_activation')
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     if self.params.batch_norm:
-      self.bn.CreateVariables()
+      self.bn.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   @property
@@ -939,8 +939,8 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=[p.input_dim, p.output_dim],
@@ -1011,10 +1011,10 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.TrackQTensor(self._pre_activation_qt_name)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     if self.params.batch_norm:
-      self.bn.CreateVariables()
+      self.bn.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   @classmethod
@@ -1641,8 +1641,8 @@ class PoolingLayer(quant_utils.QuantizableLayer):
     assert all([x > 0 for x in p.window_stride])
     assert p.pooling_type in ['MAX', 'AVG']
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.TrackQTensor('output')
 
   def OutShape(self, in_shape):
@@ -1843,8 +1843,8 @@ class SingleShardEmbeddingLayer(base_layer.BaseLayer):
     assert p.embedding_dim > 0
     assert p.name
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=[p.vocab_size, p.embedding_dim],
@@ -1918,8 +1918,8 @@ class EmbeddingLayer(base_layer.BaseLayer):
     self._ids_per_shard = int(
         math.ceil(float(p.vocab_size) / self._actual_shards))
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=[self._ids_per_shard, p.embedding_dim],
@@ -2037,7 +2037,7 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
     self._load_op_list = []
     self._retrieve_op_list = []
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=[self._ids_per_shard, p.embedding_dim],
@@ -2218,14 +2218,14 @@ class TPUEmbeddingLayer(base_layer.BaseLayer):
     self.CreateChildren('tables', p.tables)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     for table in self.tables:
-      table.CreateVariables()
+      table.InstantiateVariables()
     super()._CreateChildrenVariables()
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
 
     load_op_list = []
     retrieve_op_list = []
@@ -2522,8 +2522,8 @@ class SimpleEmbeddingLayer(quant_utils.QuantizableLayer):
     weight_shape = [p.vocab_size] + emb_shape_suf
     return emb_shape_suf, weight_shape
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     _, weight_shape = self._GetWeightShape()
 
@@ -2715,8 +2715,8 @@ class PositionalEmbeddingLayer(base_layer.BaseLayer):
     assert p.max_timescale
     assert p.embedding_dim % 2 == 0
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     if p.trainable_scaling:
       pc = py_utils.WeightParams(
@@ -2843,8 +2843,8 @@ class RelativePositionalEmbeddingLayer(base_layer.BaseLayer):
       raise ValueError('params.dim must be a positive int, but is %s' %
                        params.radius)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     pc = py_utils.WeightParams(
         shape=[2 * self.params.radius + 1, self.params.dim],
         init=py_utils.WeightInit.Constant(0.0),
@@ -3066,8 +3066,8 @@ class SimpleFullSoftmax(SoftmaxLayer):
     # We shard params across the class dimension.
     assert p.num_classes % p.num_shards == 0
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     num_classes_per_shard = p.num_classes // p.num_shards
@@ -3601,9 +3601,9 @@ class ConvSoftmax(quant_utils.QuantizableLayer):
     p.Define('num_classes', 0, 'Total number of target classes.')
     return p
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     """Constructs a SimpleFullSoftmax layer."""
-    super()._CreateVariables()
+    super()._CreateLayerVariables()
     p = self.params
     if p.hidden_dim:
       w_proj_pc = py_utils.WeightParams(
@@ -3750,8 +3750,8 @@ class LayerNorm(base_layer.BaseLayer):
   def _GetNormalizationParamShape(self):
     return [self.params.input_dim]
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
         shape=self._GetNormalizationParamShape(),
@@ -3902,8 +3902,8 @@ class ConvSetLayer(quant_utils.QuantizableLayer):
       params_conv_set.append(conv_p)
     self.CreateChildren('conv_set', params_conv_set)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     # The same QTensor is used for all inputs to the concat.
     self.TrackQTensor('activation')
 
@@ -4266,8 +4266,8 @@ class GradNormTracker(base_layer.BaseLayer):
     super().__init__(params)
     self._decay = params.decay
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
 
     pc = py_utils.WeightParams(
         shape=[],
@@ -4384,8 +4384,8 @@ class WeightedSumLayer(base_layer.BaseLayer):
     else:
       self.CreateChild('weighted_merger_dropout', IdentityLayer.Params())
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     params_init = py_utils.WeightInit.Constant(0.0)
     # Weights to be learned.
@@ -4460,8 +4460,8 @@ class GatedAverageLayer(base_layer.BaseLayer):
     assert p.num_nodes > 0, 'Number of dimensions should be greater than 0.'
     assert p.num_inputs > 0, 'Number of inputs should be greater than 0.'
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     in_size = p.num_inputs * p.num_nodes
 
@@ -4528,8 +4528,8 @@ class LHUCLayer(base_layer.BaseLayer):
     assert p.name
     assert p.input_dim > 0
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
         shape=[p.input_dim],
@@ -4668,8 +4668,8 @@ class Conv2DLayerNoPadding(base_layer.BaseLayer):
     assert len(p.dilations) == 2
     assert all(x > 0 for x in p.filter_stride)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,

@@ -118,7 +118,7 @@ class RepeatLayer(base_layer.BaseLayer):
   def _CreateChildrenVariables(self):
     with tf.variable_scope(self.params.name):
       with py_utils.VariableShapePrefixContext(self.params.repeat):
-        self.body.CreateVariables()
+        self.body.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def FProp(self, theta, *args):
@@ -232,11 +232,11 @@ class SoftCondLayer(base_layer.BaseLayer):
       # Prepends p.num_experts to the tensor shape of every variable created
       # by p.body.
       with py_utils.VariableShapePrefixContext(self.params.num_experts):
-        self.body.CreateVariables()
+        self.body.InstantiateVariables()
     super()._CreateChildrenVariables()
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     # Create Variables for task weight mapping.
     collections = [
@@ -1004,8 +1004,8 @@ class LinearLayer(base_layer.BaseLayer):
     p.Define('output_dims', 0, 'Depth of the output.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     self.CreateVariable(
         'w',
@@ -1055,8 +1055,8 @@ class BiasLayer(base_layer.BaseLayer):
     p.Define('dims', 0, 'Depth of the input.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     self.CreateVariable(
         'b',

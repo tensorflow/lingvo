@@ -42,8 +42,8 @@ class TestTask(base_model.BaseTask):
     super().__init__(params)
     self.CreateChild('x', layers.BatchNormLayer.Params().Set(name='x', dim=1))
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.CreateVariable(
         'a',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -182,8 +182,8 @@ class BaseTaskTest(test_utils.TestCase):
 
 class TeacherTask(base_model.BaseTask):
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.CreateVariable(
         'x',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
@@ -194,8 +194,8 @@ class TeacherTask(base_model.BaseTask):
 
 class StudentTask(base_model.BaseTask):
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.CreateVariable(
         'x',
         py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Uniform()))

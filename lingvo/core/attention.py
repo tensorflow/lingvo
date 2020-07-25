@@ -216,8 +216,8 @@ class BaseAttentionLayer(quant_utils.QuantizableLayer):
 
     self._source_init_done = False
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     self.TrackQTensor('logits', domain='fullyconnected')
 
   def InitForSourcePacked(self,
@@ -676,8 +676,8 @@ class AdditiveAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
         shape=[p.source_dim, p.hidden_dim],
@@ -997,8 +997,8 @@ class DotProductAttention(BaseAttentionLayer):
 
     self._ctx_vec = Atten
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     pc = py_utils.WeightParams(
@@ -1223,8 +1223,8 @@ class MultiHeadedAttention(BaseAttentionLayer, quant_utils.QuantizableLayer):
     if p.attention_head_prob_index >= 0:
       assert p.attention_head_prob_index < p.num_attention_heads
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     def InitProj(layer_dim, bias=False):
@@ -2038,8 +2038,8 @@ class LocationSensitiveAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     pc = py_utils.WeightParams(
@@ -2346,8 +2346,8 @@ class MonotonicAttention(BaseAttentionLayer):
 
     self._encode_source = EncodeSource
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     # source is the weight matrix for the memory/encoder states
@@ -2976,8 +2976,8 @@ class MergerLayer(base_layer.BaseLayer):
       params.num_inputs = p.num_sources
       self.CreateChild('gated_average', params)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     if p.merger_op == 'weighted_sum':
@@ -2993,15 +2993,15 @@ class MergerLayer(base_layer.BaseLayer):
       self.CreateVariable('sum_weight', pw)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     if 'atten' in self.children:
-      self.atten.CreateVariables()
+      self.atten.InstantiateVariables()
     if 'gated_average' in self.children:
-      self.gated_average.CreateVariables()
+      self.gated_average.InstantiateVariables()
     if 'pre_proj' in self.children:
       for proj in self.pre_proj:
-        proj.CreateVariables()
+        proj.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def FProp(self, theta, inputs, query_vec=None):

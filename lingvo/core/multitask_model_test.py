@@ -103,8 +103,8 @@ class MultiTaskModelTest(test_utils.TestCase):
       p.name = 'test_task'
       return p
 
-    def _CreateVariables(self):
-      super()._CreateVariables()
+    def _CreateLayerVariables(self):
+      super()._CreateLayerVariables()
       pc = py_utils.WeightParams(shape=[10, 10], dtype=tf.float32)
       self.CreateVariable('weight', pc)
 

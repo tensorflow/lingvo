@@ -293,8 +293,8 @@ class LSTMCellSimple(RNNCell):
 
     self._timestep = -1
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     # Define weights.
     wm_pc = py_utils.WeightParams(
@@ -783,8 +783,8 @@ class LSTMCellSimpleDeterministic(LSTMCellSimple):
     p = super().Params()
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     self.CreateVariable(
         name='lstm_step_counter',
@@ -913,8 +913,8 @@ class QuantizedLSTMCell(RNNCell):
 
     self._timestep = -1
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     # Define weights.
@@ -1036,8 +1036,8 @@ class LayerNormalizedLSTMCell(RNNCell):
 
     self._timestep = -1
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     # Define weights.
@@ -1206,9 +1206,9 @@ class LayerNormalizedLSTMCellSimple(LSTMCellSimple):
     p.Define('layer_norm_epsilon', 1e-8, 'Tiny value to guard rsqr against.')
     return p
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     """Initializes LayerNormalizedLSTMCellSimple."""
-    super()._CreateVariables()
+    super()._CreateLayerVariables()
     p = self.params
 
     add_biases = ['add_bias_{}'.format(i) for i in range(self.num_gates)]
@@ -1383,8 +1383,8 @@ class LayerNormalizedLSTMCellLean(RNNCell):
           'p.cell_value_cap should be a int/float if not None, but got {}'
           .format(p.cell_value_cap))
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     # Define weights.
     wm_pc = py_utils.WeightParams(
@@ -1560,8 +1560,8 @@ class DoubleProjectionLSTMCell(RNNCell):
     p.params_init = py_utils.WeightInit.GeoMeanXavier()
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     def _WeightInit(shape):
@@ -1746,8 +1746,8 @@ class ConvLSTMCell(RNNCell):
     assert p.inputs_shape[2] == p.cell_shape[2]
     assert isinstance(p.cell_value_cap, (int, float))
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     in_channels = p.inputs_shape[3] + p.cell_shape[3]
@@ -1919,8 +1919,8 @@ class SRUCell(RNNCell):
 
     self._timestep = -1
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     # Define weights.
     wm_pc = py_utils.WeightParams(
@@ -2409,8 +2409,8 @@ class GRUCell(RNNCell):
 
     self._timestep = -1
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     def CreateVarHelper(variable_name, shape_to_init, params_to_init):

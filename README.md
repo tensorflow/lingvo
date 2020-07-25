@@ -63,11 +63,11 @@ Details for older releases are unavailable.
     *   `base_layer.initializer` has been removed. Subclasses no longer need to
         decorate their `__init__` function.
     *   Trying to call self.CreateVariable outside of `__init__` or
-        `_CreateVariables` now raises an error.
+        `_CreateLayerVariables` now raises an error.
     *   It is no longer possible to access self.vars or self.theta inside of
         `__init__`. Refactor by moving the variable creation and access to
-        `_CreateVariables`. The variable scope is set automatically according to
-        the layer name in `_CreateVariables`.
+        `_CreateLayerVariables`. The variable scope is set automatically according to
+        the layer name in `_CreateLayerVariables`.
 
 <details><summary>
 <b>Older releases</b>

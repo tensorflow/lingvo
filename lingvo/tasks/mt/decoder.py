@@ -569,10 +569,10 @@ class MTDecoderV1(MTBaseDecoder, quant_utils.QuantizableLayer):
       else:
         emb_device = ''
       with tf.device(emb_device):
-        self.emb.CreateVariables()
-        self.frnn_with_atten.CreateVariables()
+        self.emb.InstantiateVariables()
+        self.frnn_with_atten.InstantiateVariables()
         for frnn in self.frnn:
-          frnn.CreateVariables()
+          frnn.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def ApplyDropout(self, x_in):
@@ -1096,7 +1096,7 @@ class TransformerDecoder(MTBaseDecoder):
       # Taking shared emb/softmax layer out of the decoder variable scope so
       # that it can also be shared by encoder if needed.
       with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.CreateVariables()
+        self.softmax.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def _RemoveEOSProbs(self, p, probs, source_enc_len):
@@ -2139,7 +2139,7 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:
       with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.CreateVariables()
+        self.softmax.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def _MaybeTransposeEncoderOutputs(self, encoder_outputs, target_data_format):

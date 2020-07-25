@@ -130,7 +130,7 @@ def _BaseLayerInitWrapper(func):  # pylint: disable=invalid-name
     if not stack:
       # Outermost layer just finished __init__.
       if self.cluster.immediately_create_variables:
-        self.CreateVariables()
+        self.InstantiateVariables()
 
   return Wrapper
 
@@ -192,7 +192,7 @@ CreateVariableMeta = collections.namedtuple(
     'CreateVariableMeta', ['var_params', 'theta_fn', 'kwargs'])
 
 
-class _CreateVariablesStatus(enum.Enum):
+class _CreateLayerVariablesStatus(enum.Enum):
   NOT_CALLED = 1
   IN_PROGRESS = 2
   COMPLETED = 3
@@ -349,7 +349,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     self._is_variable_free = False
     self._variables_to_create = {}
-    self._create_variables_status = _CreateVariablesStatus.NOT_CALLED
+    self._create_variables_status = _CreateLayerVariablesStatus.NOT_CALLED
 
   def SetVariableFree(self, value=True):
     """Marks this layer as having no variables.
@@ -359,10 +359,10 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     Args:
       value: True to set layer as variable free.
     """
-    if self._create_variables_status != _CreateVariablesStatus.NOT_CALLED:
+    if self._create_variables_status != _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
-          'Variable free status for %s must be set before CreateVariables().' %
-          self.params.cls)
+          'Variable free status for %s must be set before InstantiateVariables().'
+          % self.params.cls)
     if self._variables_to_create:
       raise ValueError('Cannot set layer %s with variables as variable free.' %
                        self.params.cls)
@@ -478,8 +478,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
   @property
   def global_step(self):
-    if self._create_variables_status == _CreateVariablesStatus.NOT_CALLED:
-      raise ValueError('Cannot access global_step before CreateVariables().')
+    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
+      raise ValueError(
+          'Cannot access global_step before InstantiateVariables().')
     return self._global_step
 
   def __getattr__(self, name):
@@ -526,7 +527,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Returns variables of this layer and its children in a `.NestedMap`."""
     if self._is_variable_free:
       return self._private_children.Transform(lambda _: py_utils.NestedMap())
-    if self._create_variables_status == _CreateVariablesStatus.NOT_CALLED:
+    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access vars for layer %s before they have been created.' %
           self.params.cls)
@@ -540,7 +541,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """Returns theta of this layer and its children in a `.NestedMap`."""
     if self._is_variable_free:
       return self._private_children.Transform(lambda _: py_utils.NestedMap())
-    if self._create_variables_status == _CreateVariablesStatus.NOT_CALLED:
+    if self._create_variables_status == _CreateLayerVariablesStatus.NOT_CALLED:
       raise ValueError(
           'Cannot access theta for layer %s before they have been created.' %
           self.params.cls)
@@ -712,7 +713,7 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
 
     In some contexts, eg. TPU training, variables may not be created immediately
     but rather the creation request will be cached and created later via a call
-    to layer.CreateVariables().
+    to layer.InstantiateVariables().
 
     Args:
       name: Variable name which is used as the key into vars/theta.
@@ -724,10 +725,11 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
     """
     if self._is_variable_free:
       raise ValueError('Cannot create variable in variable free layer.')
-    if self._create_variables_status == _CreateVariablesStatus.COMPLETED:
+    if self._create_variables_status == _CreateLayerVariablesStatus.COMPLETED:
       raise ValueError(
           'CreateVariable call after variable creation has completed! '
-          'CreateVariable should be called in __init__ or _CreateVariables.')
+          'CreateVariable should be called in __init__ or _CreateLayerVariables.'
+      )
     self._CheckName(name)
     if (self.params.skip_lp_regularization and
         py_utils.SKIP_LP_REGULARIZATION not in var_params.collections):
@@ -742,14 +744,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
         var_params=var_params.Copy(),
         theta_fn=theta_fn,
         kwargs=kwargs)
-    if self._create_variables_status == _CreateVariablesStatus.IN_PROGRESS:
-      # If CreateVariables has been called, create the variable immediately.
-      self._CreateVariable(name, meta)
+    if self._create_variables_status == _CreateLayerVariablesStatus.IN_PROGRESS:
+      # If InstantiateVariables has been called, create variable immediately.
+      self._CreateVariableInternal(name, meta)
     else:
       # Otherwise cache the variable to be created.
       self._variables_to_create[name] = meta
 
-  def _CreateVariable(self, name, meta):
+  def _CreateVariableInternal(self, name, meta):
     """Immediately creates the variable described by `meta`.
 
     DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use
@@ -771,14 +773,14 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
       value = meta.theta_fn(value)
     self._private_theta[name] = value
 
-  def CreateVariables(self):
+  def InstantiateVariables(self):
     """Create variables for this layer and child layers.
 
-    DO NOT OVERRIDE. Override self._CreateVariables instead.
+    DO NOT OVERRIDE. Override self._CreateLayerVariables instead.
     """
-    if self._create_variables_status != _CreateVariablesStatus.NOT_CALLED:
+    if self._create_variables_status != _CreateLayerVariablesStatus.NOT_CALLED:
       return
-    self._create_variables_status = _CreateVariablesStatus.IN_PROGRESS
+    self._create_variables_status = _CreateLayerVariablesStatus.IN_PROGRESS
 
     stack_size = len(_CREATE_VARIABLES_STACK.stack)
     _CREATE_VARIABLES_STACK.stack.append(self)
@@ -792,32 +794,32 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
             py_utils.SanitizeScopeKey(self.params.name),
             auxiliary_name_scope=False):
           for name, meta in list(self._variables_to_create.items()):
-            self._CreateVariable(name, meta)
-          self._CreateVariables()
+            self._CreateVariableInternal(name, meta)
+          self._CreateLayerVariables()
     finally:
       assert _CREATE_VARIABLES_STACK.stack[-1] is self
       _CREATE_VARIABLES_STACK.stack.pop()
       assert len(_CREATE_VARIABLES_STACK.stack) == stack_size
 
-    self._create_variables_status = _CreateVariablesStatus.COMPLETED
+    self._create_variables_status = _CreateLayerVariablesStatus.COMPLETED
 
     if not _CREATE_VARIABLES_STACK.stack:
-      # Outermost layer just finished CreateVariables.
+      # Outermost layer just finished InstantiateVariables.
       self._VerifyVarsAndTheta()
 
   def _CreateChildrenVariables(self):
     """Create variables for child layers.
 
     Should be rarely overridden, only in cases when control over the context of
-    children CreateVariables calls are needed. eg, if children variables need to
-    be created inside of a specific context manager.
+    children InstantiateVariables calls are needed. eg, if children variables
+    need to be created inside of a specific context manager.
 
     There are a few cases of this in the codebase marked as for backwards
     compability. This is only to ensure that variable scopes remain compatible
     through the code migration. New layers should not copy that pattern, and
     instead follow the standard pattern of self.CreateChild() in __init__() and
-    self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-    old checkpoints, you can go ahead and delete those functions.
+    self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+    breaking old checkpoints, you can go ahead and delete those functions.
     """
     with tf.variable_scope(
         py_utils.SanitizeScopeKey(self.params.name),
@@ -828,9 +830,9 @@ class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
               'Variable free layer %s(%s) child %s(%s) has variables.' %
               (self.params.name, self.params.cls, child.params.name,
                child.params.cls))
-        child.CreateVariables()
+        child.InstantiateVariables()
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     """Actually create variables for this layer.
 
     Subclasses should override this function.

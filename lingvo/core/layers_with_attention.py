@@ -1334,8 +1334,8 @@ class StyleLayer(base_layer.BaseLayer):
         enable_ctx_post_proj=p.enable_ctx_post_proj)
     self.CreateChild('atten', atten_p)
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     # The styles table.
     w_shape = [p.num_styles, 1, p.output_dim]

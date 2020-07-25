@@ -630,9 +630,9 @@ class RecurrentStepWrapper(base_layer.BaseLayer):
     self.CreateChild('step', self.params.step)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
-    self.step.CreateVariables()
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
+    self.step.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def PrepareExternalInputs(self, theta, external_inputs):

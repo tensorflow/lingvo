@@ -292,10 +292,10 @@ class TrainProgram(BaseProgram):
     self._eval_metrics = metrics.TpuEvalMetrics()
     data_parallelism = self.data_parallelism
 
-    with cluster_factory.SetImmediatelyCreateVariables(False):
+    with cluster_factory.SetImmediatelyInstantiateVariables(False):
       self._model = self._task_params.Instantiate()
     self._task = self._model.GetTask()
-    self._task.input.CreateVariables()
+    self._task.input.InstantiateVariables()
     self._task.input.CreateTpuEnqueueOps()
 
     def TpuTrainStep(*args):
@@ -308,7 +308,7 @@ class TrainProgram(BaseProgram):
         New summed metrics values and a train_op.
       """
       with py_utils.OpportunisticVariableReuseScope(True):
-        self._model.CreateVariables()
+        self._model.InstantiateVariables()
         self._model.ConstructFPropBPropGraph()
       per_step_eval_metrics = self._eval_metrics.SetMetrics(
           self._task.eval_metrics, args)
@@ -426,10 +426,10 @@ class EvalProgram(BaseProgram):
     with cluster_factory.SetEval(True):
       self._eval_metrics = metrics.TpuEvalMetrics()
       data_parallelism = self.data_parallelism
-      with cluster_factory.SetImmediatelyCreateVariables(False):
+      with cluster_factory.SetImmediatelyInstantiateVariables(False):
         self._model = self._task_params.Instantiate()
       self._task = self._model.GetTask()
-      self._task.input.CreateVariables()
+      self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
 
       def TpuEvalStep(*args):
@@ -442,7 +442,7 @@ class EvalProgram(BaseProgram):
           Summed eval metrics.
         """
         with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.CreateVariables()
+          self._model.InstantiateVariables()
           self._model.ConstructFPropGraph()
         per_step_eval_metrics = self._eval_metrics.SetMetrics(
             self._task.eval_metrics, args)
@@ -504,16 +504,16 @@ class DecodeProgram(BaseProgram):
     py_utils.ResetStepSeed()
 
     with cluster_factory.SetEval(True):
-      with cluster_factory.SetImmediatelyCreateVariables(False):
+      with cluster_factory.SetImmediatelyInstantiateVariables(False):
         self._model = self._task_params.Instantiate()
       self._task = self._model.GetTask()
-      self._task.input.CreateVariables()
+      self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
 
       def _DecodeFn():
         """Decode call to be compiled for TPU."""
         with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.CreateVariables()
+          self._model.InstantiateVariables()
           input_batch = self._task.input.TpuDequeueBatch()
           metrics_dict = self._task.Decode(input_batch)
         self.metrics_nm = py_utils.NestedMap(metrics_dict)
@@ -580,16 +580,16 @@ class ExperimentalDecodeProgram(DecodeProgram):
     device_assignment = py_utils.GetTpuDeviceAssignment()
     self.spmd = self._task_params.input.use_partitioned_infeed_queue
     with cluster_factory.SetEval(True):
-      with cluster_factory.SetImmediatelyCreateVariables(False):
+      with cluster_factory.SetImmediatelyInstantiateVariables(False):
         self._model = self._task_params.Instantiate()
       self._task = self._model.GetTask()
-      self._task.input.CreateVariables()
+      self._task.input.InstantiateVariables()
       self._task.input.CreateTpuEnqueueOps()
 
       def _DecodeStep():
         """Decode call to be compiled for TPU."""
         with py_utils.OpportunisticVariableReuseScope(True):
-          self._model.CreateVariables()
+          self._model.InstantiateVariables()
           input_batch = self._task.input.TpuDequeueBatch()
           metrics_dict = self._task.Decode(input_batch)
         self.metrics_nm = py_utils.NestedMap(metrics_dict)
@@ -713,10 +713,10 @@ class MLPerfTrainDecodeProgram(BaseProgram):
 
     self._eval_metrics = metrics.TpuEvalMetrics()
     data_parallelism = self.data_parallelism
-    with cluster_factory.SetImmediatelyCreateVariables(False):
+    with cluster_factory.SetImmediatelyInstantiateVariables(False):
       self._train_model = self._train_task_params.Instantiate()
     self._train_task = self._train_model.GetTask()
-    self._train_task.input.CreateVariables()
+    self._train_task.input.InstantiateVariables()
     self._train_task.input.CreateTpuEnqueueOps()
     self._model = self._train_model
 
@@ -729,7 +729,7 @@ class MLPerfTrainDecodeProgram(BaseProgram):
        [train_op].
       """
       with py_utils.OpportunisticVariableReuseScope(True):
-        self._train_model.CreateVariables()
+        self._train_model.InstantiateVariables()
         self._train_model.ConstructFPropBPropGraph()
       return [self._train_task.train_op]
 
@@ -744,16 +744,16 @@ class MLPerfTrainDecodeProgram(BaseProgram):
     py_utils.ResetStepSeed()
 
     with cluster_factory.SetEval(True):
-      with cluster_factory.SetImmediatelyCreateVariables(False):
+      with cluster_factory.SetImmediatelyInstantiateVariables(False):
         self._decode_model = self._decode_task_params.Instantiate()
       self._decode_task = self._decode_model.GetTask()
-      self._decode_task.input.CreateVariables()
+      self._decode_task.input.InstantiateVariables()
       self._decode_task.input.CreateTpuEnqueueOps()
 
       def _DecodeFn():
         """Decode call to be compiled for TPU."""
         with py_utils.OpportunisticVariableReuseScope(True):
-          self._decode_model.CreateVariables()
+          self._decode_model.InstantiateVariables()
           input_batch = self._decode_task.input.TpuDequeueBatch()
           metrics_dict = self._decode_task.Decode(input_batch)
         self.metrics_nm = py_utils.NestedMap(metrics_dict)

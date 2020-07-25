@@ -108,12 +108,12 @@ class Learner(base_layer.BaseLayer):
     self.CreateChild('optimizer', p.optimizer)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
     if self.params.grad_norm_tracker:
-      self.grad_norm_tracker.CreateVariables()
-    self.lr_schedule.CreateVariables()
-    self.optimizer.CreateVariables()
+      self.grad_norm_tracker.InstantiateVariables()
+    self.lr_schedule.InstantiateVariables()
+    self.optimizer.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def GetVarGrads(self):

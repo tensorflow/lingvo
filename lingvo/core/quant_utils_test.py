@@ -36,8 +36,8 @@ class SampleQuantizedProjectionLayer(quant_utils.QuantizableLayer):
     p.Define('output_dim', 3, 'Depth of the output.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     w_pc = py_utils.WeightParams(

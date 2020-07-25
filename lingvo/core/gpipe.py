@@ -287,11 +287,11 @@ class SeqLayer(base_layer.BaseLayer):
 
     for unused_name, l in self._before_layers:
       with tf.device(before_tpl_device):
-        l.CreateVariables()
+        l.InstantiateVariables()
 
     for i, (unused_name, l) in enumerate(self._cells):
       with tf.device(cell_devices[i]):
-        l.CreateVariables()
+        l.InstantiateVariables()
 
     super()._CreateChildrenVariables()
 

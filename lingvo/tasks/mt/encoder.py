@@ -607,8 +607,8 @@ class TransformerEncoder(base_layer.BaseLayer):
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:
       with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.CreateVariables()
-    self.transformer_stack.CreateVariables()
+        self.softmax.InstantiateVariables()
+    self.transformer_stack.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def FProp(self, theta, input_batch):
@@ -823,7 +823,7 @@ class TransformerBatchMajorEncoder(base_layer.BaseLayer):
   def _CreateChildrenVariables(self):
     if self.params.shared_emb:
       with tf.variable_scope('shared_emb', reuse=tf.AUTO_REUSE):
-        self.softmax.CreateVariables()
+        self.softmax.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def FProp(self, theta, input_batch):

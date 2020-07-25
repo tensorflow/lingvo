@@ -49,9 +49,9 @@ class SharedEncoderModel(base_model.MultiTaskModel):
     with tf.name_scope(self.params.name):
       if self.params.task_name_var_scope:
         with tf.variable_scope(task_name):
-          self.GetTask(task_name).CreateVariables()
+          self.GetTask(task_name).InstantiateVariables()
       else:
-        self.GetTask(task_name).CreateVariables()
+        self.GetTask(task_name).InstantiateVariables()
     super()._CreateChildrenVariables()
 
 
@@ -113,11 +113,11 @@ class RegExSharedVariableModel(base_model.MultiTaskModel):
       with py_utils.VariableRenameScope(params.variable_renaming_rules):
         super().__init__(params)
 
-  def CreateVariables(self):
+  def InstantiateVariables(self):
     # Enable variable sharing.
     with py_utils.OpportunisticVariableReuseScope():
       with py_utils.VariableRenameScope(self.params.variable_renaming_rules):
-        super().CreateVariables()
+        super().InstantiateVariables()
 
   def ConstructFPropBPropGraph(self):
     # We need to override this since constructing the BPropGraph

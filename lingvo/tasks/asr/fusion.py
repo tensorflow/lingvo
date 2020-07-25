@@ -48,9 +48,9 @@ class FusionBase(base_layer.BaseLayer):
     self.CreateChild('lm', p.lm)
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: manually call child.CreateVariables() outside of
-    # tf.variable_scope(p.name).
-    self.lm.CreateVariables()
+    # Backwards compatibility: manually call child.InstantiateVariables()
+    # outside of tf.variable_scope(p.name).
+    self.lm.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def zero_state(self, theta, batch_size):

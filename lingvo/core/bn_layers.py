@@ -158,7 +158,7 @@ class BatchNormLayer(base_layer.BaseLayer):
   def _GetWeightShape(self):
     return [self.params.dim]
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     p = self.params
 
     pc = py_utils.WeightParams(
@@ -494,8 +494,8 @@ class BatchNormLayerNoPadding(base_layer.BaseLayer):
     assert p.name, 'Name of BatchNormLayerNoPadding is not set.'
     p.fprop_dtype = None
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     # Skip L-P regularization for these variables.
@@ -682,8 +682,8 @@ class GroupNormLayer(base_layer.BaseLayer):
                                              p.dim, p.num_groups)
     self._epsilon = 0.001
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
 
     collections = [

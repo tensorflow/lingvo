@@ -378,8 +378,8 @@ class Conv2DLayerWithPadding(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,
@@ -492,8 +492,8 @@ class DepthwiseConv2DLayer(BaseConv2DLayerWithPadding):
     p.Define('bias', False, 'Whether or not to apply a bias before activation.')
     return p
 
-  def _CreateVariables(self):
-    super()._CreateVariables()
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
     p = self.params
     w_pc = py_utils.WeightParams(
         shape=p.filter_shape,

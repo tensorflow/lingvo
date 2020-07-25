@@ -144,11 +144,11 @@ class QuantizableLayer(base_layer.BaseLayer):
     self._AddQuantizationFunctions()
 
   def _CreateChildrenVariables(self):
-    # Backwards compatibility: call child.CreateVariables() in custom scope.
+    # Backwards compatibility: child.InstantiateVariables() in custom scope.
     p = self.params
     with tf.variable_scope(p.name + '/q'):
       for qdomain in self._qdomains.values():
-        qdomain.CreateVariables()
+        qdomain.InstantiateVariables()
     super()._CreateChildrenVariables()
 
   def QRTanh(self, t, domain='actf'):
@@ -189,7 +189,7 @@ class QuantizableLayer(base_layer.BaseLayer):
     r"""Creates one or more QTensors for later use.
 
     Any tensor that will later be quantized must be created first, preferably
-    in _CreateVariables().
+    in _CreateLayerVariables().
 
     Along with a list of tensor names to create, they can be associated with
     a 'domain'. Most layers are simple enough to only have a single quantization
@@ -976,7 +976,7 @@ class PassiveAsymQDomain(QDomain):
     self._t_names = set()  # set of known t_name (from CreateTensor)
     self._qvars = py_utils.NestedMap()  # var_name -> tf.Variable
 
-  def _CreateVariables(self):
+  def _CreateLayerVariables(self):
     # Save a scope for lazily created variables.
     with tf.variable_scope('q'):
       self._qvars_scope = tf.get_variable_scope()
