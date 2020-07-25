@@ -1631,6 +1631,15 @@ py_library(
     ],
 )
 
+py_library(
+    name = "tpu_summary",
+    srcs = ["tpu_summary.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+    ],
+)
+
 py_test(
     name = "wpm_tokenizer_test",
     srcs = ["wpm_tokenizer_test.py"],
@@ -1822,6 +1831,18 @@ py_library(
     deps = [
         "//lingvo:compat",
         # Implicit sympy dependency.
+    ],
+)
+
+py_test(
+    name = "tpu_summary_test",
+    srcs = ["tpu_summary_test.py"],
+    python_version = "PY3",
+    srcs_version = "PY3",
+    deps = [
+        ":test_utils",
+        ":tpu_summary",
+        "//lingvo:compat",
     ],
 )
 
