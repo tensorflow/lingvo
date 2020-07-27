@@ -1365,6 +1365,31 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     p.random_seed = 12345
     return p.Instantiate()
 
+  def testStackedTransformerGetSplitForLayer(self):
+    cls = attention.StackedTransformerLayers
+
+    buckets = [2, 4, 5, 6, 9, 11, 15]
+    ys = [cls.GetSplitForLayer(buckets, i) for i in range(16)]
+    self.assertEqual(0, ys[0])
+    self.assertEqual(0, ys[1])
+    self.assertEqual(0, ys[2])
+    self.assertEqual(1, ys[3])
+
+    self.assertEqual(1, ys[4])
+    self.assertEqual(2, ys[5])
+    self.assertEqual(3, ys[6])
+    self.assertEqual(4, ys[7])
+
+    self.assertEqual(4, ys[8])
+    self.assertEqual(4, ys[9])
+    self.assertEqual(5, ys[10])
+    self.assertEqual(5, ys[11])
+
+    self.assertEqual(6, ys[12])
+    self.assertEqual(6, ys[13])
+    self.assertEqual(6, ys[14])
+    self.assertEqual(6, ys[15])
+
   def testTransformerEncoderLayerStackFProp(self):
     with self.session(use_gpu=True) as sess:
       (query_vec, paddings, _, _) = self._TransformerAttentionLayerInputs()

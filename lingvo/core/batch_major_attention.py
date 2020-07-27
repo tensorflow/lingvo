@@ -19,6 +19,7 @@
     https://arxiv.org/pdf/1706.03762.pdf Section 3.
 """
 
+import bisect
 from lingvo import compat as tf
 from lingvo.core import base_layer
 from lingvo.core import builder
@@ -2132,9 +2133,20 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
     p.Define('use_fused_layernorm', False, 'Whether to use fused layernorm.')
+    p.Define(
+        'splits', None, 'None or a list of layer indices. If None, all layers '
+        'are placed on the same and only one partition. Else, len(splits) is '
+        'the number of partitions the stack is sliced into. layer_i is placed '
+        'on the kth partition (0-based) where split[k] < i <= split[k+1].')
     return p
 
   def __init__(self, params):
+    if not params.splits:
+      params.splits = [params.num_layers - 1]
+    else:
+      assert all(x <= params.num_layers - 1 for x in params.splits)
+      # Assert p.splits is strictly monotonically increasing.
+      assert sorted(list(set(params.splits))) == params.splits
     super().__init__(params)
     p = self.params
 
@@ -2147,7 +2159,7 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     def _LayerParams(ii):
       """Construct ii-th layer params."""
       p_ii = p.transformer_layer_params_tpl.Copy()
-      p.name = 'layer_%d' % ii
+      p_ii.name = 'layer_%d' % ii
       p_ii.has_aux_atten = p.has_aux_atten
       p_ii.mask_self_atten = p.mask_self_atten
       p_ii.input_dim = p.mdl_dim
@@ -2170,6 +2182,13 @@ class StackedTransformerLayers(base_layer.BaseLayer):
       final_ln_p = layers.LayerNorm.Params().Set(
           input_dim=p.mdl_dim, use_fused_layernorm=p.use_fused_layernorm)
       self.CreateChild('final_ln', final_ln_p)
+
+  @classmethod
+  def GetSplitForLayer(cls, buckets, layer_index):
+    assert layer_index <= buckets[-1], (
+        f'layer_index:{layer_index} > buckets[-1]:{buckets[-1]}')
+    #  Return index of the smallest element greater than or equal to layer_index
+    return bisect.bisect_left(buckets, layer_index)
 
   def FProp(self,
             theta,
@@ -2196,14 +2215,23 @@ class StackedTransformerLayers(base_layer.BaseLayer):
     """
     p = self.params
     x_out = query_vec
+    cluster = self.cluster
+
     with tf.name_scope(p.name):
       for i in range(p.num_layers):
         x_in = x_out
-        x_out, _ = self.x_layers[i].FProp(theta.x_layers[i], x_in, paddings,
-                                          aux_vec, aux_paddings, segment_mask,
-                                          aux_segment_mask)
+        with tf.device(
+            cluster.WorkerDeviceInModelSplit(
+                self.GetSplitForLayer(self.params.splits, i))):
+          x_out, _ = self.x_layers[i].FProp(theta.x_layers[i], x_in, paddings,
+                                            aux_vec, aux_paddings, segment_mask,
+                                            aux_segment_mask)
     if p.final_layer_norm:
-      x_out = self.final_ln.FProp(theta.final_ln, x_out)
+      # Place on the last device.
+      with tf.device(
+          cluster.WorkerDeviceInModelSplit(
+              self.GetSplitForLayer(self.params.splits, p.num_layers - 1))):
+        x_out = self.final_ln.FProp(theta.final_ln, x_out)
     return x_out, paddings
 
   def InitStates(self, theta, *args, **kwargs):
