@@ -3747,14 +3747,11 @@ class LayerNorm(base_layer.BaseLayer):
     assert p.name
     assert p.input_dim > 0
 
-  def _GetNormalizationParamShape(self):
-    return [self.params.input_dim]
-
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
     pc = py_utils.WeightParams(
-        shape=self._GetNormalizationParamShape(),
+        shape=[p.input_dim],
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=[self.__class__.__name__ + '_vars'] +
@@ -3832,9 +3829,27 @@ class CategoricalLayerNorm(LayerNorm):
              'Number of privatized copies of layer norm params.')
     return p
 
-  def _GetNormalizationParamShape(self):
+  def _CreateLayerVariables(self):
+    # Skip LayerNorm's _CreateVariables() as bias and scale variables will be
+    # created in this function.
+    super(LayerNorm, self)._CreateLayerVariables()  # pylint: disable=bad-super-call
     p = self.params
-    return [p.num_classes, p.input_dim]
+    self._biases = []
+    self._scales = []
+    pc = py_utils.WeightParams(
+        shape=[self.params.input_dim],
+        init=py_utils.WeightInit.Constant(0.0),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'] +
+        [py_utils.SKIP_LP_REGULARIZATION])
+    for i in range(p.num_classes):
+      bias_name = 'bias_' + str(i)
+      self.CreateVariable(bias_name, pc)
+      self._biases.append(self.vars[bias_name])
+
+      scale_name = 'scale_' + str(i)
+      self.CreateVariable(scale_name, pc)
+      self._scales.append(self.vars[scale_name])
 
   def __init__(self, params):
     super().__init__(params)
@@ -3845,11 +3860,10 @@ class CategoricalLayerNorm(LayerNorm):
 
   def _GetScaleAndBias(self, theta):
     p = self.params
-    self.tmp_tag = tf.identity(theta.class_index)
     with tf.control_dependencies(
         [py_utils.assert_between(theta.class_index, 0, p.num_classes)]):
-      cur_scale = tf.gather(theta.scale, theta.class_index)
-      cur_bias = tf.gather(theta.bias, theta.class_index)
+      cur_scale = tf.gather(self._scales, theta.class_index)
+      cur_bias = tf.gather(self._biases, theta.class_index)
       return cur_scale, cur_bias
 
 
