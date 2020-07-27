@@ -32,7 +32,116 @@ from lingvo.core import py_utils
 from lingvo.core import relative_atten_util
 from lingvo.core import symbolic
 from lingvo.core import tshape
-from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
+# pylint: disable=g-direct-tensorflow-import
+from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
+from tensorflow.python.ops import inplace_ops
+
+# pylint: enable=g-direct-tensorflow-import
+
+
+# TODO(shibow, huangyp): Remove  Split, VarLayer, and ShardedVarLayer copies
+# once moe_layers.py is added to lingvo.
+def Split(x,
+          split_dimension,
+          num_devices,
+          use_sharding_op=True,
+          input_shape=None):
+  """Wrapper for xla_sharding.split.
+
+  Args:
+    x: Tensor to annotate.
+    split_dimension: xla_sharding.split arg.
+    num_devices: xla_sharding.split arg.
+    use_sharding_op: If true, adds a sharding op to set the sharding. Cited from
+      hyouklee@ use_sharding_op=False "It adds the sharding attribute to the op
+      itself. The outcome is that, that information could be lost by TF graph
+      transformations. Also, directly attaching the sharding annotation to the
+      op caused some compilation failures in the past (due to incompatible
+      shardings), so the plan is to make use_sharding_op to be the default."
+      "The only case I would set it to False today is when annotating weights.
+      Weight annotation does some special handling, so there may be some changes
+      needed in that logic if we add separate sharding op."
+    input_shape: The shape of the original tensor.
+
+  Returns:
+    Tensor conditionally annotated with sharding.
+  """
+  if not py_utils.use_tpu() or num_devices is None or num_devices <= 1:
+    return x
+  return xla_sharding.split(
+      x,
+      split_dimension,
+      num_devices,
+      input_shape=input_shape,
+      use_sharding_op=use_sharding_op,
+  )
+
+
+class VarLayer(base_layer.BaseLayer):
+  """Container for variables."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('weights', None, '[(name, WeightParams)..] list.')
+    p.name = p.name or 'w'
+    return p
+
+  def __init__(self, params):
+    super().__init__(params)
+    name = self.params.name
+    with tf.variable_scope(name):
+      for k, v in self.params.weights:
+        vp = v.Copy()
+        if vp.init is None:
+          vp.init = self.params.params_init
+        self.CreateVariable(k, vp)
+
+  def FProp(self, theta, *args, **kwargs):
+
+    def MaybeCastToFPropDtype(x):
+      if (x is None or not x.dtype.is_floating or
+          x.dtype == self._params.fprop_dtype):
+        return x
+      if self._params.fprop_dtype is None:
+        return x
+      return tf.cast(x, self._params.fprop_dtype)
+
+    # TODO(lepikhin): MoEBuilder.Embedding can not use '->emb' rule without
+    # returning single element  of list of one element below.
+    retval = [MaybeCastToFPropDtype(theta[k]) for k, _ in self.params.weights]
+    return retval[0] if len(retval) == 1 else retval
+
+
+class ShardedVarLayer(VarLayer):
+  """Container for variables whose values shared across different devices."""
+
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('split_dimension', 0, 'Dimension to split')
+    p.Define('num_devices', None,
+             'The number of cores to split weights and computation over.')
+    p.Define('cast_to_fprop_dtype', True,
+             'Whether to cast variables to fprop_dtype')
+    return p
+
+  def FProp(self, theta, *args, **kwargs):
+    p = self.params
+
+    # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
+    def MaybeWeightSplitAndCastToFPropDtype(k):
+      x = self.vars[k].read_value()
+      if x is None:
+        return None
+      x = Split(x, p.split_dimension, p.num_devices, use_sharding_op=False)
+      if (p.cast_to_fprop_dtype and x.dtype.is_floating and
+          x.dtype != p.fprop_dtype and p.fprop_dtype):
+        x = tf.cast(x, p.fprop_dtype)
+      return x
+
+    retval = [MaybeWeightSplitAndCastToFPropDtype(k) for k, _ in p.weights]
+    return retval[0] if len(retval) == 1 else retval
 
 
 def CausalPadding(slen, dtype=tf.float32):
@@ -127,6 +236,7 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
         '"BTD,DNH->BTNH" for query,key,value projection. Otherwise we use '
         '"BTNH,DNH->BTD" for output projection.')
     p.Define('use_bias', True, 'If to add bias in projection.')
+    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
     return p
 
   def _CreateLayerVariables(self):
@@ -167,6 +277,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
       [batch_size, time_steps, num_heads, dim_per_head].
     """
     p = self.params
+    if p.xla_num_partitions:
+      theta.w = Split(theta.w, 1, p.xla_num_partitions, use_sharding_op=True)
     if p.is_output_projection:
       inputs = py_utils.HasShape(
           inputs, [-1, -1, p.num_heads,
@@ -177,6 +289,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
           inputs, [-1, -1, symbolic.ToStatic(p.input_dim)])
       ret = tf.einsum('BTD,DNH->BTNH', inputs, theta.w)
     if p.use_bias:
+      if p.xla_num_partitions and not p.is_output_projection:
+        theta.b = Split(theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
       ret += theta.b
     return ret
 
@@ -233,6 +347,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
              'projection layer.')
     p.Define('packed_input', False, 'Whether there is packed input.')
     p.Define('use_bias', True, 'Whether to use bias for projection layers.')
+    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
     return p
 
   def __init__(self, params):
@@ -252,7 +367,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
           input_dim=p.input_dim,
           num_heads=p.num_heads,
           dim_per_head=dim_per_head,
-          use_bias=p.use_bias)
+          use_bias=p.use_bias,
+          xla_num_partitions=p.xla_num_partitions)
 
     self.CreateChild('key', ProjectInput())
     self.CreateChild('query', ProjectInput())
@@ -272,7 +388,8 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             num_heads=p.num_heads,
             dim_per_head=dim_per_head,
             is_output_projection=True,
-            use_bias=p.use_bias))
+            use_bias=p.use_bias,
+            xla_num_partitions=p.xla_num_partitions))
 
   def _AttenLogits(self, theta, query, key, per_step_padding):
     """Computes attention logits.
@@ -2905,19 +3022,75 @@ class Builder(builder.Base):
 class LmBuilder(Builder):
   """Langange model builder with causal padding."""
 
+  @classmethod
+  def Params(cls):
+    p = super().Params()
+    p.Define('xla_num_partitions', None, 'Number of SPMD partitions.')
+    p.Define('dtype', tf.float32, 'Datatype to use.')
+    return p
+
+  def _ShardedVar(self, name, weights, split_dim):
+    return ShardedVarLayer.Params().Set(
+        name=name,
+        weights=weights,
+        split_dimension=split_dim,
+        num_devices=self.params.xla_num_partitions)
+
+  def _LinearWeight(self, name, input_dim, output_dim, split_dim):
+    return self._ShardedVar(
+        name=name,
+        weights=[('w',
+                  py_utils.WeightParams(
+                      shape=[input_dim, output_dim],
+                      init=py_utils.WeightInit.Uniform((3. / input_dim)**0.5),
+                      dtype=self.params.dtype))],
+        split_dim=split_dim)
+
+  def _Linear(self, name, input_dim, output_dim, split_dim=0):
+    return self._Graph(
+        name,
+        ['inputs'],
+        ['outputs'],
+        ('->w', self._LinearWeight('w', input_dim, output_dim, split_dim)),
+        ('inputs,w->outputs',
+         self._Fn(
+             'linear',
+             fn=lambda inputs, w: tf.einsum('BLI,IO->BLO', inputs, w))),
+    )
+
+  def _BiasWeight(self, name, dim):
+    return self._ShardedVar(
+        name=name,
+        weights=[('b',
+                  py_utils.WeightParams(
+                      shape=[dim],
+                      init=py_utils.WeightInit.Constant(0.0),
+                      dtype=self.params.dtype))],
+        split_dim=0)
+
+  def _Bias(self, name, dim):
+    return self._Graph(
+        name,
+        ['inputs'],
+        ['outputs'],
+        ('->b', self._BiasWeight('b', dim)),
+        ('inputs,b->outputs', self._Fn('bias',
+                                       fn=lambda inputs, b: inputs + b)),
+    )
+
   def Feedforward(self, name):
     p = self.params
 
     ff_list = [
         self._LN('ln', p.model_dim, use_fused_layernorm=p.use_fused_layernorm),
-        self._Linear('linear01', p.model_dim, p.ff_hidden_dim)
+        self._Linear('linear01', p.model_dim, p.ff_hidden_dim, split_dim=1)
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias01', p.ff_hidden_dim))
     ff_list += [
         self._Activation('act', p.ff_activation_fn),
         self._Dropout('relu_dropout', p.relu_dropout_prob),
-        self._Linear('linear02', p.ff_hidden_dim, p.model_dim)
+        self._Linear('linear02', p.ff_hidden_dim, p.model_dim, split_dim=0)
     ]
     if p.use_bias:
       ff_list.append(self._Bias('bias02', p.model_dim))
@@ -2962,6 +3135,7 @@ class LmBuilder(Builder):
     tr_atten_p.atten_tpl.use_bias = p.use_bias
     tr_atten_p.atten_tpl.enable_value_proj = p.selfatten_enable_value_proj
     tr_atten_p.atten_tpl.enable_per_dim_scale = p.enable_per_dim_scale
+    tr_atten_p.atten_tpl.xla_num_partitions = p.xla_num_partitions
     if p.deterministic_dropout:
       tr_atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()
       tr_atten_p.atten_p.dropout_tpl = layers.DeterministicDropoutLayer.Params()

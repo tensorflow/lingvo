@@ -1735,7 +1735,7 @@ class LmBuilderTest(test_utils.TestCase):
     tf.random.set_seed(398847392)
     np.random.seed(12345)
     atten_builder = attention.LmBuilder.Params().Set(
-        model_dim=4, num_heads=2, ff_hidden_dim=16)
+        model_dim=4, num_heads=2, ff_hidden_dim=16, dtype=dtype)
     params = atten_builder.Instantiate().TransformerEncoderStack(
         name='xformer', num_layers=2)
     params.dtype = dtype
@@ -1754,7 +1754,7 @@ class LmBuilderTest(test_utils.TestCase):
       l_out = tf.reduce_sum(l_out)
       tf.global_variables_initializer().run()
       l_out_eval = sess.run(l_out)
-      self.assertAllClose(35.050835, l_out_eval)
+      self.assertAllClose(36.04808, l_out_eval)
 
   def testBProp(self):
     with self.session(use_gpu=True) as sess:
