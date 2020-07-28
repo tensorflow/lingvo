@@ -25,6 +25,27 @@ from lingvo.core import schedule
 import numpy as np
 
 
+def TopKAccuracy(k, logits, labels, weights):
+  """Compute top-k accuracy.
+
+  Args:
+    k: An int scalar. Top-k.
+    logits: A [N, C] float tensor.
+    labels: A [N] int vector.
+    weights: A [N] float vector.
+
+  Returns:
+    A float scalar. The accuracy at precision k.
+  """
+  logits = py_utils.HasRank(logits, 2)
+  n, _ = tf.unstack(tf.shape(logits), 2)
+  labels = py_utils.HasShape(labels, [n])
+  weights = py_utils.HasShape(weights, [n])
+  correct = tf.nn.in_top_k(targets=labels, predictions=logits, k=k)
+  return tf.reduce_sum(tf.cast(correct, weights.dtype) * weights) / tf.maximum(
+      1e-8, tf.reduce_sum(weights))
+
+
 class BaseClassifier(base_model.BaseTask):
   """Base class for image classifier."""
 
@@ -74,13 +95,7 @@ class BaseClassifier(base_model.BaseTask):
     Returns:
       A float scalar. The accuracy at precision k.
     """
-    logits = py_utils.HasRank(logits, 2)
-    n, _ = tf.unstack(tf.shape(logits), 2)
-    labels = py_utils.HasShape(labels, [n])
-    weights = py_utils.HasShape(weights, [n])
-    correct = tf.nn.in_top_k(targets=labels, predictions=logits, k=k)
-    return tf.reduce_sum(tf.cast(correct, weights.dtype) *
-                         weights) / tf.maximum(1e-8, tf.reduce_sum(weights))
+    return TopKAccuracy(k, logits, labels, weights)
 
 
 class ModelV1(BaseClassifier):
