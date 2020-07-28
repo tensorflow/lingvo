@@ -136,7 +136,7 @@ def ConvertSubgraphDictToProto(subgraphs_dict):
     # Rewrite fetches and feeds to map to their tensor name instead of
     # Tensor instance.
     named_fetches = {k: v.name for k, v in fetches.items() if v is not None}
-    named_feeds = {k: v.name for k, v in feeds.items()}
+    named_feeds = {k: v.name for k, v in feeds.items() if v is not None}
 
     # Export as subgraph.
     inference_graph_proto.subgraphs[subgraph_name].fetches.update(named_fetches)
