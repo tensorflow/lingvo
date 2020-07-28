@@ -68,6 +68,7 @@ py_library(
         ":hyperparams",
         ":layers",
         ":layers_with_attention",
+        ":moe_layers",
         ":py_utils",
         ":relative_atten_util",
         ":symbolic",

@@ -28,120 +28,15 @@ from lingvo.core import gpipe
 from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import layers_with_attention
+from lingvo.core import moe_layers
 from lingvo.core import py_utils
 from lingvo.core import relative_atten_util
 from lingvo.core import symbolic
 from lingvo.core import tshape
 # pylint: disable=g-direct-tensorflow-import
-from tensorflow.compiler.xla.experimental.xla_sharding import xla_sharding
 from tensorflow.python.ops import inplace_ops
 
 # pylint: enable=g-direct-tensorflow-import
-
-
-# TODO(shibow, huangyp): Remove  Split, VarLayer, and ShardedVarLayer copies
-# once moe_layers.py is added to lingvo.
-def Split(x,
-          split_dimension,
-          num_devices,
-          use_sharding_op=True,
-          input_shape=None):
-  """Wrapper for xla_sharding.split.
-
-  Args:
-    x: Tensor to annotate.
-    split_dimension: xla_sharding.split arg.
-    num_devices: xla_sharding.split arg.
-    use_sharding_op: If true, adds a sharding op to set the sharding. Cited from
-      hyouklee@ use_sharding_op=False "It adds the sharding attribute to the op
-      itself. The outcome is that, that information could be lost by TF graph
-      transformations. Also, directly attaching the sharding annotation to the
-      op caused some compilation failures in the past (due to incompatible
-      shardings), so the plan is to make use_sharding_op to be the default."
-      "The only case I would set it to False today is when annotating weights.
-      Weight annotation does some special handling, so there may be some changes
-      needed in that logic if we add separate sharding op."
-    input_shape: The shape of the original tensor.
-
-  Returns:
-    Tensor conditionally annotated with sharding.
-  """
-  if not py_utils.use_tpu() or num_devices is None or num_devices <= 1:
-    return x
-  return xla_sharding.split(
-      x,
-      split_dimension,
-      num_devices,
-      input_shape=input_shape,
-      use_sharding_op=use_sharding_op,
-  )
-
-
-class VarLayer(base_layer.BaseLayer):
-  """Container for variables."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('weights', None, '[(name, WeightParams)..] list.')
-    p.name = p.name or 'w'
-    return p
-
-  def __init__(self, params):
-    super().__init__(params)
-    name = self.params.name
-    with tf.variable_scope(name):
-      for k, v in self.params.weights:
-        vp = v.Copy()
-        if vp.init is None:
-          vp.init = self.params.params_init
-        self.CreateVariable(k, vp)
-
-  def FProp(self, theta, *args, **kwargs):
-
-    def MaybeCastToFPropDtype(x):
-      if (x is None or not x.dtype.is_floating or
-          x.dtype == self._params.fprop_dtype):
-        return x
-      if self._params.fprop_dtype is None:
-        return x
-      return tf.cast(x, self._params.fprop_dtype)
-
-    # TODO(lepikhin): MoEBuilder.Embedding can not use '->emb' rule without
-    # returning single element  of list of one element below.
-    retval = [MaybeCastToFPropDtype(theta[k]) for k, _ in self.params.weights]
-    return retval[0] if len(retval) == 1 else retval
-
-
-class ShardedVarLayer(VarLayer):
-  """Container for variables whose values shared across different devices."""
-
-  @classmethod
-  def Params(cls):
-    p = super().Params()
-    p.Define('split_dimension', 0, 'Dimension to split')
-    p.Define('num_devices', None,
-             'The number of cores to split weights and computation over.')
-    p.Define('cast_to_fprop_dtype', True,
-             'Whether to cast variables to fprop_dtype')
-    return p
-
-  def FProp(self, theta, *args, **kwargs):
-    p = self.params
-
-    # TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.
-    def MaybeWeightSplitAndCastToFPropDtype(k):
-      x = self.vars[k].read_value()
-      if x is None:
-        return None
-      x = Split(x, p.split_dimension, p.num_devices, use_sharding_op=False)
-      if (p.cast_to_fprop_dtype and x.dtype.is_floating and
-          x.dtype != p.fprop_dtype and p.fprop_dtype):
-        x = tf.cast(x, p.fprop_dtype)
-      return x
-
-    retval = [MaybeWeightSplitAndCastToFPropDtype(k) for k, _ in p.weights]
-    return retval[0] if len(retval) == 1 else retval
 
 
 def CausalPadding(slen, dtype=tf.float32):
@@ -278,7 +173,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
     """
     p = self.params
     if p.xla_num_partitions:
-      theta.w = Split(theta.w, 1, p.xla_num_partitions, use_sharding_op=True)
+      theta.w = moe_layers.Split(
+          theta.w, 1, p.xla_num_partitions, use_sharding_op=True)
     if p.is_output_projection:
       inputs = py_utils.HasShape(
           inputs, [-1, -1, p.num_heads,
@@ -290,7 +186,8 @@ class MultiHeadedProjectionLayer(base_layer.BaseLayer):
       ret = tf.einsum('BTD,DNH->BTNH', inputs, theta.w)
     if p.use_bias:
       if p.xla_num_partitions and not p.is_output_projection:
-        theta.b = Split(theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
+        theta.b = moe_layers.Split(
+            theta.b, 0, p.xla_num_partitions, use_sharding_op=True)
       ret += theta.b
     return ret
 
@@ -3030,7 +2927,7 @@ class LmBuilder(Builder):
     return p
 
   def _ShardedVar(self, name, weights, split_dim):
-    return ShardedVarLayer.Params().Set(
+    return moe_layers.ShardedVarLayer.Params().Set(
         name=name,
         weights=weights,
         split_dimension=split_dim,
