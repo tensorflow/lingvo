@@ -1310,7 +1310,7 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
     super().__init__(params)
     params = self.params
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
-      raise ValueError('Invalide rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
+      raise ValueError('Invalid rel_pos_emb_dim: %s' % params.rel_pos_emb_dim)
 
     emb_params = layers.PositionalEmbeddingLayer.Params().Set(
         embedding_dim=params.rel_pos_emb_dim)
