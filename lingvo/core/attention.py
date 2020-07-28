@@ -2924,6 +2924,8 @@ class MergerLayer(base_layer.BaseLayer):
              'Configs template for the gated average layer.')
     p.Define('num_sources', 0, 'If merger_op=weighted_sum, then must specify '
              'num of sources.')
+    p.Define('post_proj', None,
+             'Post projection for the merged context vector.')
     return p
 
   # Merging operation keys supported by this layer.
@@ -2975,6 +2977,9 @@ class MergerLayer(base_layer.BaseLayer):
       params.num_nodes = p.source_dim
       params.num_inputs = p.num_sources
       self.CreateChild('gated_average', params)
+
+    if p.post_proj:
+      self.CreateChild('post_proj', p.post_proj)
 
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
@@ -3097,6 +3102,9 @@ class MergerLayer(base_layer.BaseLayer):
 
     else:
       raise ValueError('Unrecognized merge op!')
+
+    if p.post_proj:
+      output = self.post_proj.FProp(theta.post_proj, output)
 
     return output
 

@@ -19,6 +19,7 @@ import math
 from absl.testing import parameterized
 import lingvo.compat as tf
 from lingvo.core import attention
+from lingvo.core import layers
 from lingvo.core import py_utils
 from lingvo.core import quant_utils
 from lingvo.core import test_utils
@@ -2019,6 +2020,48 @@ class AttentionTest(test_utils.TestCase, parameterized.TestCase):
       # pyformat: enable
       # pylint: enable=bad-whitespace
       self.assertEqual(actual_ctx.shape, (batch, n_sources * depth))
+      self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
+
+  def testMergerLayerConcatPostProj(self):
+    with self.session(use_gpu=True):
+      np.random.seed(505837249)
+      depth = 4
+      batch = 5
+      n_sources = 3
+      ctxs = [
+          tf.constant(np.random.rand(batch, depth), dtype=tf.float32)
+          for _ in range(n_sources)
+      ]
+      p = attention.MergerLayer.Params()
+      p.name = 'merger_layer'
+      p.merger_op = 'concat'
+      p.source_dim = depth
+      # Post projection to a dimensionality of 4.
+      p.post_proj = layers.ProjectionLayer.Params().Set(
+          name='post_proj',
+          batch_norm=False,
+          weight_norm=False,
+          has_bias=True,
+          input_dim=12,
+          output_dim=4)
+      merger = p.Instantiate()
+      ctx = merger.FProp(merger.theta, ctxs)
+      self.evaluate(tf.global_variables_initializer())
+      actual_ctx = self.evaluate([ctx])[0]
+
+      # pylint: disable=bad-whitespace
+      # pyformat: disable
+      expected_ctx = [
+          [0.05845007, 0.14603308, 2.099096  , 0.03618803],
+          [0.50603   , 0.1128372 , 1.0714196 , 0.3054366 ],
+          [0.        , 0.17477296, 0.        , 0.        ],
+          [0.34721488, 0.        , 0.9593564 , 0.6714128 ],
+          [0.012324  , 0.        , 1.3537602 , 0.16794051]]
+
+      # pyformat: enable
+      # pylint: enable=bad-whitespace
+      tf.logging.info(np.array_repr(actual_ctx))
+      self.assertEqual(actual_ctx.shape, (batch, depth))
       self.assertAllClose(expected_ctx, actual_ctx, rtol=1e-05, atol=1e-05)
 
   def testMergerLayerConcatPreProjections(self):
