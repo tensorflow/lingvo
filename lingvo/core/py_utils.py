@@ -462,32 +462,6 @@ def GetRank(tensor):
     return tf.rank(tensor)  # Tensor
 
 
-def HasShape(tensor, expected_shape, ndims=None):
-  """Syntactic sugar for asserting that tensor has the expected shape.
-
-  Args:
-    tensor: A Tensor.
-    expected_shape: A Python list or a 1D tensor.
-    ndims: If not None, check only the first `ndims` dimensions of `tensor`.
-      Must be equal to the length of `expected_shape` if not None.
-
-  Returns:
-    The input `tensor`
-  Raises:
-    A runtime error if the assertion fails.
-  """
-  if _FromGlobal('enable_asserts'):
-    filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
-    msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
-                                                 filepath), line, func)
-    return with_dependencies([
-        ops.assert_shape_match(
-            tf.shape(tensor)[:ndims], expected_shape, msg=msg)
-    ], tensor)
-  else:
-    return tensor
-
-
 def GetShape(tensor, ndims=None):
   """Returns tensor's shape as a list which can be unpacked, unlike tf.shape.
 
@@ -521,6 +495,113 @@ def GetShape(tensor, ndims=None):
       for x in range(ndims)
   ]
   return shapes
+
+
+def HasShape(tensor, expected_shape, ndims=None):
+  """Syntactic sugar for asserting that tensor has the expected shape.
+
+  Args:
+    tensor: A Tensor.
+    expected_shape: A Python list or a 1D tensor. Elements of expected_shape can
+      be -1 which indicate that any size is valid for that dimension.
+    ndims: If not None, check only the first `ndims` dimensions of `tensor`.
+      Must be equal to the length of `expected_shape` if not None.
+
+  Returns:
+    The input `tensor` with control dependencies that will raise a runtime
+    error if dynamic shape checks fail.
+
+  Raises:
+    ValueError: A value error if the assertion fails at static shape checks.
+  """
+  if not _FromGlobal('enable_asserts'):
+    return tensor
+
+  filepath, line, func, _ = traceback.extract_stack(limit=3)[-2]
+  msg = 'LINGVO ASSERT %s:%s(%s)' % (re.sub(r'.*/', '',
+                                               filepath), line, func)
+
+  tensor_shape = GetShape(tensor)
+
+  # If expected_shape is a Tensor, then we are unable to perform static checks.
+  # In this case, we can do a dynamic check and return.
+  if isinstance(expected_shape, tf.Tensor):
+    if ndims is not None:
+      tensor_shape = tensor_shape[:ndims]
+    return with_dependencies([
+        tf.Assert(
+            tf.reduce_all(
+                tf.logical_or(
+                    tf.math.equal(
+                        tf.cast(tensor_shape, tf.int32),
+                        tf.cast(expected_shape, tf.int32)),
+                    tf.math.equal(expected_shape, -1))),
+            [
+                msg, 'Tensor does not match expected shape:', 'Tensor shape: ',
+                tensor_shape, ' Expected shape: ', expected_shape
+            ])
+    ], tensor)
+
+  # Infer ranks from the inputs.
+  expected_rank = len(expected_shape)
+  if isinstance(tensor_shape, tf.Tensor):
+    tensor_rank = tensor.shape.ndims
+  else:
+    tensor_rank = len(tensor_shape)
+
+  # If ndims is None, then either one of the ranks should not be None, or they
+  # should both match. If both ranks are None, then they are both tensors and
+  # should be caught by the earlier short-circuit.
+  if ndims is None:
+    if (tensor_rank is not None) and (expected_rank != tensor_rank):
+      raise ValueError('Tensor does not match rank of expected shape.\n'
+                       'Tensor shape: {} Expected shape: {}'.format(
+                           tensor_shape, expected_shape))
+    # Both tensors can be assumed to be of same rank.
+    ndims = expected_rank
+  else:
+    if (tensor_rank is not None) and (tensor_rank < ndims):
+      raise ValueError('Tensor has fewer dimensions than ndims.\n'
+                       'Tensor shape: {} ndims: {}'.format(tensor_shape, ndims))
+    if expected_rank != ndims:
+      raise ValueError(
+          'Expected shape must have number of dimensions equal to ndims.\n'
+          'Expected shape: {} ndims: {}'.format(expected_shape, ndims))
+
+  # Ensure that both tensor_shape and expected_shape are both lists.
+  tensor_shape = tensor_shape[:ndims]
+  if isinstance(tensor_shape, tf.Tensor):
+    tensor_shape = tf.unstack(tensor_shape, num=ndims)
+
+  # Map tf.Dimension values to their held values.
+  tensor_shape = [
+      v.value if isinstance(v, tf.Dimension) else v for v in tensor_shape
+  ]
+  expected_shape = [
+      v.value if isinstance(v, tf.Dimension) else v for v in expected_shape
+  ]
+
+  assert_ops = []
+  for idx, (dim, expected_dim) in enumerate(zip(tensor_shape, expected_shape)):
+    if expected_dim == -1:
+      continue
+    if isinstance(dim, tf.Tensor) or isinstance(expected_dim, tf.Tensor):
+      assert_ops.append(
+          tf.Assert(
+              tf.logical_or(
+                  tf.math.equal(
+                      tf.cast(dim, tf.int32), tf.cast(expected_dim, tf.int32)),
+                  tf.math.equal(expected_dim, -1)), [
+                      msg, 'Tensor does not match expected shape on dimension:',
+                      idx, 'Tensor shape: ', tensor_shape, ' Expected shape: ',
+                      expected_shape
+                  ]))
+    elif dim != expected_dim:
+      raise ValueError('Tensor does not match expected shape on dimension {}.\n'
+                       'Tensor shape: {} Expected shape: {}'.format(
+                           idx, tensor_shape, expected_shape))
+
+  return with_dependencies(assert_ops, tensor)
 
 
 def GetSize(tensor):

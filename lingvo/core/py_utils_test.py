@@ -3079,5 +3079,162 @@ class TpuSummaryTensorsTest(test_utils.TestCase):
       self.assertAllEqual(expected_value, actual_value)
 
 
+class HasShapeTest(test_utils.TestCase):
+
+  def testFullyDynamicShapesMatchesOk(self):
+    x_pl = tf.placeholder(tf.float32)
+    y_pl = tf.placeholder(tf.float32)
+    x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+    with self.session() as sess:
+      sess.run(
+          x,
+          feed_dict={
+              x_pl: np.random.rand(1, 2, 3),
+              y_pl: np.random.rand(1, 2, 3),
+          })
+
+  def testFullyDynamicShapesMismatchRaisesError(self):
+    x_pl = tf.placeholder(tf.float32)
+    y_pl = tf.placeholder(tf.float32)
+    x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+    with self.session() as sess:
+      with self.assertRaisesRegexp(
+          tf.errors.InvalidArgumentError,
+          r'.*Tensor does not match expected shape:.*'):
+        sess.run(
+            x,
+            feed_dict={
+                x_pl: np.random.rand(1, 2, 3),
+                y_pl: np.random.rand(4, 5, 6),
+            })
+
+  def testFullyDynamicRankMismatchRaisesError(self):
+    x_pl = tf.placeholder(tf.float32)
+    y_pl = tf.placeholder(tf.float32)
+    x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+    with self.session() as sess:
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*Incompatible shapes:.*'):
+        sess.run(
+            x,
+            feed_dict={
+                x_pl: np.random.rand(1, 2),
+                y_pl: np.random.rand(4, 5, 6),
+            })
+
+  def testFullyConstantShapesMatchesOk(self):
+    x_pl = tf.placeholder(tf.float32)
+    x = py_utils.HasShape(x_pl, tf.constant([1, 2, -1]))
+    with self.session() as sess:
+      sess.run(
+          x, feed_dict={
+              x_pl: np.random.rand(1, 2, 3),
+          })
+
+  def testFullyConstantShapesMismatchRaisesError(self):
+    x_pl = tf.placeholder(tf.float32)
+    x = py_utils.HasShape(x_pl, tf.constant([1, 2, -1]))
+    with self.session() as sess:
+      with self.assertRaisesRegexp(
+          tf.errors.InvalidArgumentError,
+          r'.*Tensor does not match expected shape:.*'):
+        sess.run(
+            x, feed_dict={
+                x_pl: np.random.rand(2, 2, 3),
+            })
+
+  def testRankMismatchRaisesError(self):
+    with self.assertRaisesRegexp(
+        ValueError, r'Tensor does not match rank of expected shape.*'):
+      py_utils.HasShape(tf.random.uniform((1, 2, 3)), [1, 2])
+
+  def testTensorRankLessThanNDimsRaisesError(self):
+    with self.assertRaisesRegexp(ValueError,
+                                 r'Tensor has fewer dimensions than ndims.*'):
+      py_utils.HasShape(tf.random.uniform((1, 2, 3)), [1, 2, 3, 4], ndims=4)
+
+  def testExpectedShapeRankLessThanNDimsRaisesError(self):
+    with self.assertRaisesRegexp(
+        ValueError,
+        r'Expected shape must have number of dimensions equal to ndims.*'):
+      py_utils.HasShape(tf.random.uniform((1, 2, 3, 4)), [1, 2, 3], ndims=4)
+
+  def testTensorStaticShapeMismatchRaisesError(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3))
+    y_pl = tf.placeholder(tf.float32, (3, 1, None))
+    with self.assertRaisesRegexp(
+        ValueError, r'Tensor does not match expected shape on dimension 1.*'):
+      py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+
+  def testTensorShapeMatchesOk(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
+    y_pl = tf.placeholder(tf.float32, (3, 2, None, None))
+    x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+    with self.session() as sess:
+      sess.run(
+          x,
+          feed_dict={
+              x_pl: np.random.rand(3, 2, 3, 4),
+              y_pl: np.random.rand(3, 2, 3, 4),
+          })
+
+  def testTensorShapeMatchesWithMinus1Ok(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
+    x = py_utils.HasShape(x_pl, [-1, -1, 3, -1])
+    with self.session() as sess:
+      sess.run(
+          x, feed_dict={
+              x_pl: np.random.rand(3, 2, 3, 4),
+          })
+
+  def testTensorShapeWithMinus1MismatchRaises(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
+    x = py_utils.HasShape(x_pl, [-1, -1, 3, 5])
+    with self.session() as sess:
+      with self.assertRaisesRegexp(
+          tf.errors.InvalidArgumentError,
+          r'.*Tensor does not match expected shape on dimension.*'):
+        sess.run(
+            x, feed_dict={
+                x_pl: np.random.rand(3, 2, 3, 4),
+            })
+
+  def testTensorShapeMatchesWithTensorExpectedShape(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
+    x = py_utils.HasShape(x_pl, tf.constant([-1, -1, 3, -1]))
+    with self.session() as sess:
+      sess.run(
+          x, feed_dict={
+              x_pl: np.random.rand(3, 2, 3, 4),
+          })
+
+  def testTensorShapeMismatchWithTensorExpectedShapeRaises(self):
+    x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
+    x = py_utils.HasShape(x_pl, [-1, tf.constant(-1), 3, tf.constant(5)])
+    with self.session() as sess:
+      with self.assertRaisesRegexp(
+          tf.errors.InvalidArgumentError,
+          r'.*Tensor does not match expected shape on dimension.*'):
+        sess.run(
+            x, feed_dict={
+                x_pl: np.random.rand(3, 2, 3, 4),
+            })
+
+  def testTensorStaticShapeMatchDynamicMismatchRaises(self):
+    x_pl = tf.placeholder(tf.float32, (None, None, 2, 3, None))
+    y_pl = tf.placeholder(tf.float32, (None, 3, 2, None, None))
+    x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
+    with self.session() as sess:
+      with self.assertRaisesRegexp(
+          tf.errors.InvalidArgumentError,
+          r'.*Tensor does not match expected shape on dimension.*'):
+        sess.run(
+            x,
+            feed_dict={
+                x_pl: np.random.rand(1, 3, 2, 3, 4),
+                y_pl: np.random.rand(2, 3, 2, 5, 4),
+            })
+
+
 if __name__ == '__main__':
   tf.test.main()
