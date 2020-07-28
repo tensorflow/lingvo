@@ -166,6 +166,35 @@ class BatchNormLayerTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(2.6593573, sig1.eval(), atol=1e-5)
       self.assertAllClose(15.464208, sig2.eval())
 
+  def testBatchNormLayerFPropWithUpdateUseGlobalStatsForTraining(self):
+    with self.session(use_gpu=True):
+      tf.random.set_seed(398847392)
+      np.random.seed(12345)
+      params = layers.BatchNormLayer.Params()
+      params.name = 'bn'
+      params.dim = 3
+      params.use_moving_avg_in_training = True
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+
+      bn_layer = layers.BatchNormLayer(params)
+      in_padding1 = tf.zeros([2, 8, 1], dtype=tf.float32)
+      bn_in1 = tf.constant(
+          np.random.normal(0.1, 0.5, [2, 8, 3]), dtype=tf.float32)
+
+      bn_out = bn_layer.FPropDefaultTheta(bn_in1, in_padding1)
+      sig1 = tf.reduce_sum(bn_out)
+      sig2 = tf.reduce_sum(bn_out * bn_out)
+
+      # get updates which should be invoked during training step
+      # but we call them here, so that UpdateBatchNormVars is tested too
+      bn_update_dict = py_utils._get_batch_norm_updates_dict()
+      bn_update_list = list(bn_update_dict.keys())
+
+      self.evaluate(tf.global_variables_initializer())
+      self.evaluate(bn_update_list)
+      self.assertAllClose(2.6575434, sig1.eval(), atol=1e-5)
+      self.assertAllClose(15.473802, sig2.eval())
+
   def testBatchNormLayerMomentsForConv(self):
     with self.session(use_gpu=True):
       tf.random.set_seed(398847392)
