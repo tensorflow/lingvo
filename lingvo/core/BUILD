@@ -1825,6 +1825,17 @@ py_library(
 )
 
 py_library(
+    name = "moe_layers",
+    srcs = ["moe_layers.py"],
+    deps = [
+        ":base_layer",
+        ":py_utils",
+        ":tpu_summary",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
     name = "tshape",
     srcs = ["tshape.py"],
     srcs_version = "PY3",
