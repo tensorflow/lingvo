@@ -3829,13 +3829,17 @@ class CategoricalLayerNorm(LayerNorm):
              'Number of privatized copies of layer norm params.')
     return p
 
+  def _BiasVarName(self, i):
+    return 'bias_' + str(i)
+
+  def _ScaleVarName(self, i):
+    return 'scale_' + str(i)
+
   def _CreateLayerVariables(self):
     # Skip LayerNorm's _CreateVariables() as bias and scale variables will be
     # created in this function.
     super(LayerNorm, self)._CreateLayerVariables()  # pylint: disable=bad-super-call
     p = self.params
-    self._biases = []
-    self._scales = []
     pc = py_utils.WeightParams(
         shape=[self.params.input_dim],
         init=py_utils.WeightInit.Constant(0.0),
@@ -3843,13 +3847,8 @@ class CategoricalLayerNorm(LayerNorm):
         collections=[self.__class__.__name__ + '_vars'] +
         [py_utils.SKIP_LP_REGULARIZATION])
     for i in range(p.num_classes):
-      bias_name = 'bias_' + str(i)
-      self.CreateVariable(bias_name, pc)
-      self._biases.append(self.vars[bias_name])
-
-      scale_name = 'scale_' + str(i)
-      self.CreateVariable(scale_name, pc)
-      self._scales.append(self.vars[scale_name])
+      self.CreateVariable(self._BiasVarName(i), pc)
+      self.CreateVariable(self._ScaleVarName(i), pc)
 
   def __init__(self, params):
     super().__init__(params)
@@ -3862,8 +3861,10 @@ class CategoricalLayerNorm(LayerNorm):
     p = self.params
     with tf.control_dependencies(
         [py_utils.assert_between(theta.class_index, 0, p.num_classes)]):
-      cur_scale = tf.gather(self._scales, theta.class_index)
-      cur_bias = tf.gather(self._biases, theta.class_index)
+      biases = [theta[self._BiasVarName(i)] for i in range(p.num_classes)]
+      cur_bias = tf.gather(biases, theta.class_index)
+      scales = [theta[self._ScaleVarName(i)] for i in range(p.num_classes)]
+      cur_scale = tf.gather(scales, theta.class_index)
       return cur_scale, cur_bias
 
 
