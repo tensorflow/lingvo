@@ -3101,9 +3101,8 @@ class HasShapeTest(test_utils.TestCase):
     y_pl = tf.placeholder(tf.float32)
     x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
     with self.session() as sess:
-      with self.assertRaisesRegexp(
-          tf.errors.InvalidArgumentError,
-          r'.*Tensor does not match expected shape:.*'):
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x,
             feed_dict={
@@ -3117,7 +3116,7 @@ class HasShapeTest(test_utils.TestCase):
     x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
     with self.session() as sess:
       with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
-                                   r'.*Incompatible shapes:.*'):
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x,
             feed_dict={
@@ -3138,9 +3137,8 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32)
     x = py_utils.HasShape(x_pl, tf.constant([1, 2, -1]))
     with self.session() as sess:
-      with self.assertRaisesRegexp(
-          tf.errors.InvalidArgumentError,
-          r'.*Tensor does not match expected shape:.*'):
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x, feed_dict={
                 x_pl: np.random.rand(2, 2, 3),
@@ -3194,9 +3192,8 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
     x = py_utils.HasShape(x_pl, [-1, -1, 3, 5])
     with self.session() as sess:
-      with self.assertRaisesRegexp(
-          tf.errors.InvalidArgumentError,
-          r'.*Tensor does not match expected shape on dimension.*'):
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x, feed_dict={
                 x_pl: np.random.rand(3, 2, 3, 4),
@@ -3215,9 +3212,8 @@ class HasShapeTest(test_utils.TestCase):
     x_pl = tf.placeholder(tf.float32, (None, 2, 3, None))
     x = py_utils.HasShape(x_pl, [-1, tf.constant(-1), 3, tf.constant(5)])
     with self.session() as sess:
-      with self.assertRaisesRegexp(
-          tf.errors.InvalidArgumentError,
-          r'.*Tensor does not match expected shape on dimension.*'):
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x, feed_dict={
                 x_pl: np.random.rand(3, 2, 3, 4),
@@ -3228,9 +3224,8 @@ class HasShapeTest(test_utils.TestCase):
     y_pl = tf.placeholder(tf.float32, (None, 3, 2, None, None))
     x = py_utils.HasShape(x_pl, py_utils.GetShape(y_pl))
     with self.session() as sess:
-      with self.assertRaisesRegexp(
-          tf.errors.InvalidArgumentError,
-          r'.*Tensor does not match expected shape on dimension.*'):
+      with self.assertRaisesRegexp(tf.errors.InvalidArgumentError,
+                                   r'.*mismatch shape:.*'):
         sess.run(
             x,
             feed_dict={
