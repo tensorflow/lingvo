@@ -181,7 +181,7 @@ class BreakdownMetric:
     Returns:
       nothing
     """
-    assert np.issubdtype(statistics.dtype, int)
+    assert np.issubdtype(statistics.dtype, np.integer)
     if not statistics.size:
       return
     p = self.params
