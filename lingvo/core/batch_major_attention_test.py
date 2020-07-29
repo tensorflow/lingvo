@@ -895,7 +895,7 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
     self.assertAllClose(expected_ctx, actual_ctx)
 
 
-class LocalCausalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
+class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   """Test local causual self attention."""
 
   def _LocalCasualPadding(self, b, t, l, r):
@@ -965,10 +965,10 @@ class LocalCausalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       # Use the reference implementation + local casual padding to verify
       # correctness.
       if pos_emb_dim == 0:
-        p_cls = attention.LocalCausalSelfAttention
+        p_cls = attention.LocalSelfAttention
         expected_p_cls = attention.MultiHeadedAttention
       else:
-        p_cls = attention.LocalCausalSelfAttentionXL
+        p_cls = attention.LocalSelfAttentionXL
         expected_p_cls = attention.MultiHeadedAttentionXL
       p = p_cls.Params().Set(
           name='self_atten',
@@ -1027,7 +1027,7 @@ class LocalCausalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
   def testFPropWithDropout(self):
     with self.session(use_gpu=True) as sess:
       query_vec, _, paddings, _, _, _, _, _ = _AttentionInputs(input_dim=4)
-      p = attention.LocalCausalSelfAttention.Params().Set(
+      p = attention.LocalSelfAttention.Params().Set(
           name='self_atten',
           num_heads=2,
           input_dim=4,
@@ -1801,8 +1801,8 @@ class RelativeAttentionHelperTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('MultiHeadedAttentionXL', attention.MultiHeadedAttentionXL,
        attention.MultiHeadedAttention),
-      ('LocalCausalSelfAttentionXL', attention.LocalCausalSelfAttentionXL,
-       attention.LocalCausalSelfAttention))
+      ('LocalSelfAttentionXL', attention.LocalSelfAttentionXL,
+       attention.LocalSelfAttention))
   def testClearRelativeAttentionInTransformerLayer(self, atten_cls,
                                                    expected_atten_cls):
     """Tests scenarios in clear relative attention in transformer layer."""
@@ -1857,8 +1857,8 @@ class RelativeAttentionHelperTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('MultiHeadedAttention', attention.MultiHeadedAttention,
        attention.MultiHeadedAttentionXL, attention.ATTEN_TRANSFORMER_XL),
-      ('LocalCausalSelfAttention', attention.LocalCausalSelfAttention,
-       attention.LocalCausalSelfAttentionXL, attention.ATTEN_TRANSFORMER_XL),
+      ('LocalSelfAttention', attention.LocalSelfAttention,
+       attention.LocalSelfAttentionXL, attention.ATTEN_TRANSFORMER_XL),
       ('MultiHeadedAttentionRPE', attention.MultiHeadedAttention,
        attention.MultiHeadedAttentionRPE, attention.ATTEN_RPE))
   def testUseRelativeAttentionInTransformerLayer(self, atten_cls,

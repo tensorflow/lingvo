@@ -1080,7 +1080,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     return NotImplementedError()
 
 
-class LocalCausalSelfAttention(MultiHeadedAttention):
+class LocalSelfAttention(MultiHeadedAttention):
   """Dot-product causal self attention using a sliding window.
 
   We use the following capital letters to denote certain
@@ -1120,7 +1120,7 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
 
   @classmethod
   def Params(cls):
-    """Params for LocalCausalSelfAttention."""
+    """Params for LocalSelfAttention."""
     p = super().Params()
     p.Define(
         'block_size', None, 'Size of a processing block, if unset, default to '
@@ -1132,7 +1132,7 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
     return p
 
   def __init__(self, params):
-    """Constructs a LocalCausalSelfAttention object."""
+    """Constructs a LocalSelfAttention object."""
     super().__init__(params)
 
     p = self.params
@@ -1293,7 +1293,7 @@ class LocalCausalSelfAttention(MultiHeadedAttention):
     raise NotImplementedError()
 
 
-class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
+class LocalSelfAttentionXL(LocalSelfAttention):
   """Local causal version of transformer-xl self attention."""
 
   @classmethod
@@ -1306,7 +1306,7 @@ class LocalCausalSelfAttentionXL(LocalCausalSelfAttention):
     return p
 
   def __init__(self, params):
-    """Constructs a LocalCausalSelfAttentionXL object."""
+    """Constructs a LocalSelfAttentionXL object."""
     super().__init__(params)
     params = self.params
     if params.rel_pos_emb_dim is None or params.rel_pos_emb_dim <= 0:
@@ -2050,15 +2050,15 @@ def UseRelativeAttentionInTransformerLayer(transformer_params,
 
   # If already using relative attention class.
   if atten_tpl.cls in (MultiHeadedAttentionRPE, MultiHeadedAttentionXL,
-                       LocalCausalSelfAttentionXL):
+                       LocalSelfAttentionXL):
     atten_tpl.rel_pos_emb_dim = rel_pos_emb_dim
     return trans_params_copy
 
   if atten_type == ATTEN_TRANSFORMER_XL:
     if atten_tpl.cls == MultiHeadedAttention:
       rel_atten_tpl = MultiHeadedAttentionXL.Params()
-    elif atten_tpl.cls == LocalCausalSelfAttention:
-      rel_atten_tpl = (LocalCausalSelfAttentionXL.Params())
+    elif atten_tpl.cls == LocalSelfAttention:
+      rel_atten_tpl = (LocalSelfAttentionXL.Params())
     else:
       raise ValueError('Unsupported attention: %s' % atten_tpl.cls)
   elif atten_type == ATTEN_RPE:
@@ -2089,8 +2089,8 @@ def ClearRelativeAttentionInTransformerLayer(transformer_params):
   attention_tpl = trans_params_copy.tr_self_atten_tpl.atten_tpl
   if attention_tpl.cls == MultiHeadedAttentionXL:
     new_attention_tpl = MultiHeadedAttention.Params()
-  elif attention_tpl.cls == (LocalCausalSelfAttentionXL):
-    new_attention_tpl = LocalCausalSelfAttention.Params()
+  elif attention_tpl.cls == (LocalSelfAttentionXL):
+    new_attention_tpl = LocalSelfAttention.Params()
   else:
     raise ValueError('Unsupported attention params: %s' % attention_tpl.cls)
 
