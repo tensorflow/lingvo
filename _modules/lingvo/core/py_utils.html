@@ -4513,11 +4513,12 @@
   <span class="k">assert</span> <span class="n">fwd</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
   <span class="n">noinline</span> <span class="o">=</span> <span class="ow">not</span> <span class="n">use_xla</span><span class="p">()</span>
 
-  <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
+  <span class="n">fwd_sig_no_captures</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">)</span>
   <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
     <span class="c1"># With custom_gradient, implicit captures need to be part of the input.</span>
-    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)]</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="p">[</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">implicit_captures</span><span class="p">)]</span>
   <span class="k">else</span><span class="p">:</span>
+    <span class="n">fwd_sig</span> <span class="o">=</span> <span class="n">fwd_sig_no_captures</span>
     <span class="n">implicit_captures</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">()</span>
 
   <span class="c1"># Only used to hold the output signature of fwd in sigs.rets, which will be</span>
@@ -4544,9 +4545,9 @@
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
-      <span class="n">xs_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">))</span>
+      <span class="n">xs_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">))</span>
       <span class="n">ys_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">))</span>
-      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">[:</span><span class="n">xs_len</span><span class="p">])</span>
+      <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">args</span><span class="p">[:</span><span class="n">xs_len</span><span class="p">])</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="n">xs_len</span><span class="p">:(</span><span class="n">xs_len</span> <span class="o">+</span> <span class="n">ys_len</span><span class="p">)])</span>
       <span class="n">dys</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="n">xs_len</span> <span class="o">+</span> <span class="n">ys_len</span><span class="p">:])</span>
       <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
@@ -4556,7 +4557,7 @@
     <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
       <span class="n">backward</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span>
           <span class="n">Backward</span><span class="p">,</span>
-          <span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">([</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">]),</span>
+          <span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">([</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">]),</span>
           <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
       <span class="c1"># Add the backward function to graph so it&#39;s invoked under the same</span>
       <span class="c1"># context as forward. This is necessary if the function body captures any</span>
