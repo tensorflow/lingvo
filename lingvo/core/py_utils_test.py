@@ -2818,7 +2818,8 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('_defun', False, False),
       ('_defun_bakasfunction', False, True),
-      ('_tf_function', True, False),
+      ('_function', True, False),
+      ('_function_bakasfunction', True, True),
   )
   def testSimple(self, use_tf_function, bak_as_function):
     # TODO(laigd): remove this check when 312743821 is in the release.
@@ -2852,7 +2853,8 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('_defun', False, False),
       ('_defun_bakasfunction', False, True),
-      ('_tf_function', True, False),
+      ('_function', True, False),
+      ('_function_bakasfunction', True, True),
   )
   def testPreserveStaticShape(self, use_tf_function, bak_as_function):
     # TODO(laigd): remove this check when 312743821 is in the release.
@@ -2885,7 +2887,8 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
   @parameterized.named_parameters(
       ('_defun', False, False),
       ('_defun_bakasfunction', False, True),
-      ('_tf_function', True, False),
+      ('_function', True, False),
+      ('_function_bakasfunction', True, True),
   )
   def testNestedMap(self, use_tf_function, bak_as_function):
     # TODO(laigd): remove this check when 312743821 is in the release.
