@@ -4365,11 +4365,12 @@ def _DefineFunction(fwd,
   assert fwd is not None
   noinline = not use_xla()
 
-  fwd_sig = _TensorSpecs(fwd_sig)
+  fwd_sig_no_captures = _TensorSpecs(fwd_sig)
   if implicit_captures:
     # With custom_gradient, implicit captures need to be part of the input.
-    fwd_sig = [fwd_sig, _TensorSpecs(implicit_captures)]
+    fwd_sig = [fwd_sig_no_captures, _TensorSpecs(implicit_captures)]
   else:
+    fwd_sig = fwd_sig_no_captures
     implicit_captures = NestedMap()
 
   # Only used to hold the output signature of fwd in sigs.rets, which will be
@@ -4396,9 +4397,9 @@ def _DefineFunction(fwd,
   if bak:
 
     def Backward(*args):
-      xs_len = len(Flatten(fwd_sig))
+      xs_len = len(Flatten(fwd_sig_no_captures))
       ys_len = len(Flatten(sigs.rets))
-      xs = Pack(fwd_sig, args[:xs_len])
+      xs = Pack(fwd_sig_no_captures, args[:xs_len])
       ys = Pack(sigs.rets, args[xs_len:(xs_len + ys_len)])
       dys = Pack(sigs.rets, args[xs_len + ys_len:])
       with RemoveAssertContext(remove=noinline), tf.device(device):
@@ -4408,7 +4409,7 @@ def _DefineFunction(fwd,
     if bak_as_function:
       backward = tf.function(
           Backward,
-          input_signature=Flatten([fwd_sig, sigs.rets, sigs.rets]),
+          input_signature=Flatten([fwd_sig_no_captures, sigs.rets, sigs.rets]),
           autograph=False)
       # Add the backward function to graph so it's invoked under the same
       # context as forward. This is necessary if the function body captures any
