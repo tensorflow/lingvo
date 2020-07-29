@@ -221,8 +221,8 @@
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">)</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DeconvLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="DeconvLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.DeconvLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
@@ -470,8 +470,8 @@
 
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
-<div class="viewcode-block" id="BaseConv2DLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="BaseConv2DLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
@@ -503,10 +503,10 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;pre_activation&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseConv2DLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
   <span class="nd">@property</span>
@@ -1087,8 +1087,8 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
-<div class="viewcode-block" id="ProjectionLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="ProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
@@ -1159,10 +1159,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_pre_activation_qt_name</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">bn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="ProjectionLayer.NumOutputNodes"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer.NumOutputNodes">[docs]</a>  <span class="nd">@classmethod</span>
@@ -1427,6 +1427,11 @@
         <span class="s1">&#39; tuple/list of strings having the same length as the number&#39;</span>
         <span class="s1">&#39; of layers.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;has_bias&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Whether or not to use bias for projection layers.&#39;</span>
+        <span class="s1">&#39;This can be a None, single bool or a tuple/list of bools having the &#39;</span>
+        <span class="s1">&#39;same length as the number of layers. If None, the has_bias is set to &#39;</span>
+        <span class="s1">&#39;True whenever batch_norm is False for each projection layer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;weight_norm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
         <span class="s1">&#39;Whether or not to apply weight normalization to weights. This can be &#39;</span>
         <span class="s1">&#39;a single bool or a tuple/list of bools having the same length as the &#39;</span>
@@ -1462,6 +1467,15 @@
       <span class="n">activation</span> <span class="o">=</span> <span class="p">[</span><span class="n">activation</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="n">has_bias</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">has_bias</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">has_bias</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">has_bias</span> <span class="o">=</span> <span class="p">[</span><span class="n">has_bias</span><span class="p">]</span> <span class="o">*</span> <span class="n">num_layers</span>
+    <span class="c1"># Set has_bias to (not batch_norm) if None.</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_layers</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
     <span class="n">params_dropout_layers</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">params_dropout_layers</span><span class="p">)</span> <span class="o">==</span> <span class="n">num_layers</span>
@@ -1479,7 +1493,7 @@
       <span class="n">params_i</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">projection</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">batch_norm</span><span class="o">=</span><span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">weight_norm</span><span class="o">=</span><span class="n">weight_norm</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
-          <span class="n">has_bias</span><span class="o">=</span><span class="p">(</span><span class="ow">not</span> <span class="n">batch_norm</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span>
+          <span class="n">has_bias</span><span class="o">=</span><span class="n">has_bias</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">activation</span><span class="o">=</span><span class="n">activation</span><span class="p">[</span><span class="n">i</span><span class="p">],</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">in_dim</span><span class="p">,</span>
           <span class="n">output_dim</span><span class="o">=</span><span class="n">proj_out_dim</span><span class="p">,</span>
@@ -1789,8 +1803,8 @@
     <span class="k">assert</span> <span class="nb">all</span><span class="p">([</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">window_stride</span><span class="p">])</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">pooling_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;MAX&#39;</span><span class="p">,</span> <span class="s1">&#39;AVG&#39;</span><span class="p">]</span>
 
-<div class="viewcode-block" id="PoolingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="PoolingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;output&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PoolingLayer.OutShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PoolingLayer.OutShape">[docs]</a>  <span class="k">def</span> <span class="nf">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
@@ -1991,8 +2005,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
 
-<div class="viewcode-block" id="SingleShardEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="SingleShardEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SingleShardEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
@@ -2066,8 +2080,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span>
         <span class="n">math</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">)</span> <span class="o">/</span> <span class="bp">self</span><span class="o">.</span><span class="n">_actual_shards</span><span class="p">))</span>
 
-<div class="viewcode-block" id="EmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="EmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.EmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
@@ -2185,7 +2199,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="TPUEmbeddingTable._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="TPUEmbeddingTable._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingTable._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ids_per_shard</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">],</span>
@@ -2247,8 +2261,12 @@
                 <span class="n">tf</span><span class="o">.</span><span class="n">assign</span><span class="p">(</span><span class="n">accumulator_var</span><span class="p">,</span> <span class="n">retrieved_accumulator</span><span class="p">))</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_op_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">retrieve_parameters_op</span><span class="p">)</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedding_table_vars</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">embedding_table_vars</span><span class="p">]</span></div>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="c1"># We dont&#39;t want to add this for TrainerTpu, otherwise the identity</span>
+      <span class="c1"># reference leads to copying the embedding to the TPU for no reason.</span>
+      <span class="c1"># However, this is needed for CPU (eval/decode/controller).</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_private_vars</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">embedding_table_vars</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="s1">&#39;wm&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">embedding_table_vars</span><span class="p">]</span></div>
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">table_config</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -2366,14 +2384,14 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;tables&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">tables</span><span class="p">)</span>
 
 <div class="viewcode-block" id="TPUEmbeddingLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">for</span> <span class="n">table</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">tables</span><span class="p">:</span>
-      <span class="n">table</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="n">table</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="TPUEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="TPUEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.TPUEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
 
     <span class="n">load_op_list</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="n">retrieve_op_list</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2670,8 +2688,8 @@
     <span class="n">weight_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">]</span> <span class="o">+</span> <span class="n">emb_shape_suf</span>
     <span class="k">return</span> <span class="n">emb_shape_suf</span><span class="p">,</span> <span class="n">weight_shape</span></div>
 
-<div class="viewcode-block" id="SimpleEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="SimpleEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">weight_shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetWeightShape</span><span class="p">()</span>
 
@@ -2863,8 +2881,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">max_timescale</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="PositionalEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="PositionalEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.PositionalEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">trainable_scaling</span><span class="p">:</span>
       <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -2991,8 +3009,8 @@
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;params.dim must be a positive int, but is </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
                        <span class="n">params</span><span class="o">.</span><span class="n">radius</span><span class="p">)</span>
 
-<div class="viewcode-block" id="RelativePositionalEmbeddingLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="RelativePositionalEmbeddingLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
@@ -3214,8 +3232,8 @@
     <span class="c1"># We shard params across the class dimension.</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span> <span class="o">==</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="SimpleFullSoftmax._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="SimpleFullSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">num_classes_per_shard</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_shards</span>
@@ -3749,9 +3767,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_classes&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Total number of target classes.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="ConvSoftmax._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSoftmax._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="ConvSoftmax._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSoftmax._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Constructs a SimpleFullSoftmax layer.&quot;&quot;&quot;</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">:</span>
       <span class="n">w_proj_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -3895,14 +3913,11 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="LayerNorm._GetNormalizationParamShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._GetNormalizationParamShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNormalizationParamShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span></div>
-
-<div class="viewcode-block" id="LayerNorm._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="LayerNorm._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LayerNorm._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_GetNormalizationParamShape</span><span class="p">(),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
@@ -3980,9 +3995,26 @@
              <span class="s1">&#39;Number of privatized copies of layer norm params.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="CategoricalLayerNorm._GetNormalizationParamShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._GetNormalizationParamShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetNormalizationParamShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CategoricalLayerNorm._BiasVarName"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._BiasVarName">[docs]</a>  <span class="k">def</span> <span class="nf">_BiasVarName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;bias_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CategoricalLayerNorm._ScaleVarName"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._ScaleVarName">[docs]</a>  <span class="k">def</span> <span class="nf">_ScaleVarName</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s1">&#39;scale_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CategoricalLayerNorm._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="c1"># Skip LayerNorm&#39;s _CreateVariables() as bias and scale variables will be</span>
+    <span class="c1"># created in this function.</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>  <span class="c1"># pylint: disable=bad-super-call</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]</span></div>
+    <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">]</span> <span class="o">+</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_BiasVarName</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">pc</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_ScaleVarName</span><span class="p">(</span><span class="n">i</span><span class="p">),</span> <span class="n">pc</span><span class="p">)</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
@@ -3993,11 +4025,12 @@
 
 <div class="viewcode-block" id="CategoricalLayerNorm._GetScaleAndBias"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._GetScaleAndBias">[docs]</a>  <span class="k">def</span> <span class="nf">_GetScaleAndBias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">tmp_tag</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_between</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]):</span>
-      <span class="n">cur_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">scale</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
-      <span class="n">cur_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">bias</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
+      <span class="n">biases</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_BiasVarName</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]</span>
+      <span class="n">cur_bias</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">biases</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
+      <span class="n">scales</span> <span class="o">=</span> <span class="p">[</span><span class="n">theta</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_ScaleVarName</span><span class="p">(</span><span class="n">i</span><span class="p">)]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_classes</span><span class="p">)]</span>
+      <span class="n">cur_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">scales</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">class_index</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">cur_scale</span><span class="p">,</span> <span class="n">cur_bias</span></div></div>
 
 
@@ -4050,8 +4083,8 @@
       <span class="n">params_conv_set</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">conv_p</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;conv_set&#39;</span><span class="p">,</span> <span class="n">params_conv_set</span><span class="p">)</span>
 
-<div class="viewcode-block" id="ConvSetLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="ConvSetLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ConvSetLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="c1"># The same QTensor is used for all inputs to the concat.</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">)</span></div>
 
@@ -4414,8 +4447,8 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_decay</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">decay</span>
 
-<div class="viewcode-block" id="GradNormTracker._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GradNormTracker._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="GradNormTracker._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GradNormTracker._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[],</span>
@@ -4532,8 +4565,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;weighted_merger_dropout&#39;</span><span class="p">,</span> <span class="n">IdentityLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
 
-<div class="viewcode-block" id="WeightedSumLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.WeightedSumLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="WeightedSumLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.WeightedSumLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
     <span class="c1"># Weights to be learned.</span>
@@ -4608,8 +4641,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_nodes</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of dimensions should be greater than 0.&#39;</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of inputs should be greater than 0.&#39;</span>
 
-<div class="viewcode-block" id="GatedAverageLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatedAverageLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="GatedAverageLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.GatedAverageLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">in_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">*</span> <span class="n">p</span><span class="o">.</span><span class="n">num_nodes</span>
 
@@ -4676,8 +4709,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">&gt;</span> <span class="mi">0</span>
 
-<div class="viewcode-block" id="LHUCLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LHUCLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="LHUCLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.LHUCLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">],</span>
@@ -4816,8 +4849,8 @@
     <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dilations</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
     <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">)</span>
 
-<div class="viewcode-block" id="Conv2DLayerNoPadding._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="Conv2DLayerNoPadding._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.Conv2DLayerNoPadding._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>

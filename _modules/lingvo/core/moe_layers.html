@@ -1,0 +1,1554 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.moe_layers &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.moe_layers</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.moe_layers</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Layers and utilities that facilitate building MOE models.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tpu_summary</span>
+
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.compiler.xla.experimental.xla_sharding</span> <span class="kn">import</span> <span class="n">xla_sharding</span>
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
+
+
+<div class="viewcode-block" id="Split"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.Split">[docs]</a><span class="k">def</span> <span class="nf">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span>
+          <span class="n">split_dimension</span><span class="p">,</span>
+          <span class="n">num_devices</span><span class="p">,</span>
+          <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+          <span class="n">input_shape</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wrapper for xla_sharding.split.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: Tensor to annotate.</span>
+<span class="sd">    split_dimension: xla_sharding.split arg.</span>
+<span class="sd">    num_devices: xla_sharding.split arg.</span>
+<span class="sd">    use_sharding_op: If true, adds a sharding op to set the sharding:</span>
+<span class="sd">      tensor = gen_xla_ops.xla_sharding(tensor)</span>
+<span class="sd">      See http://cs/search/?q=XlaSharding+file:xla_ops.cc</span>
+
+<span class="sd">      hyouklee@: use_sharding_op=False</span>
+<span class="sd">        &quot;It adds the sharding attribute to the op itself. The outcome is that,</span>
+<span class="sd">        that information could be lost by TF graph transformations. Also,</span>
+<span class="sd">        directly attaching the sharding annotation to the op caused some</span>
+<span class="sd">        compilation failures in the past (due to incompatible shardings), so the</span>
+<span class="sd">        plan is to make use_sharding_op to be the default.&quot;</span>
+
+<span class="sd">        &quot;The only case I would set it to False today is when annotating weights.</span>
+<span class="sd">        Weight annotation does some special handling, so there may be some</span>
+<span class="sd">        changes needed in that logic if we add separate sharding op.&quot;</span>
+<span class="sd">    input_shape: The shape of the original tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Tensor conditionally annotated with sharding.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">()</span> <span class="ow">or</span> <span class="n">num_devices</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">x</span>
+  <span class="k">return</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">split</span><span class="p">(</span>
+      <span class="n">x</span><span class="p">,</span>
+      <span class="n">split_dimension</span><span class="p">,</span>
+      <span class="n">num_devices</span><span class="p">,</span>
+      <span class="n">input_shape</span><span class="o">=</span><span class="n">input_shape</span><span class="p">,</span>
+      <span class="n">use_sharding_op</span><span class="o">=</span><span class="n">use_sharding_op</span><span class="p">,</span>
+  <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="VarLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer">[docs]</a><span class="k">class</span> <span class="nc">VarLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Container for variables.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="VarLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;weights&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;[(name, WeightParams)..] list.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="ow">or</span> <span class="s1">&#39;w&#39;</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weights</span><span class="p">:</span>
+        <span class="n">vp</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
+        <span class="k">if</span> <span class="n">vp</span><span class="o">.</span><span class="n">init</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="n">vp</span><span class="o">.</span><span class="n">init</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">params_init</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">vp</span><span class="p">)</span>
+
+<div class="viewcode-block" id="VarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.VarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">or</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">x</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_params</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+
+    <span class="c1"># TODO(lepikhin): MoEBuilder.Embedding can not use &#39;-&gt;emb&#39; rule without</span>
+    <span class="c1"># returning single element  of list of one element below.</span>
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeCastToFPropDtype</span><span class="p">(</span><span class="n">theta</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
+
+
+<div class="viewcode-block" id="ShardedVarLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedVarLayer">[docs]</a><span class="k">class</span> <span class="nc">ShardedVarLayer</span><span class="p">(</span><span class="n">VarLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Container for variables whose values shared across different devices.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ShardedVarLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedVarLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;split_dimension&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension to split&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;The number of cores to split weights and computation over.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cast_to_fprop_dtype&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to cast variables to fprop_dtype&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="ShardedVarLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.ShardedVarLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+
+    <span class="c1"># TODO(huangyp, lepikhin): Maybe cast to fprop dtype as well.</span>
+    <span class="k">def</span> <span class="nf">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">[</span><span class="n">k</span><span class="p">]</span><span class="o">.</span><span class="n">read_value</span><span class="p">()</span>
+      <span class="k">if</span> <span class="n">x</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">None</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">split_dimension</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_devices</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">if</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">cast_to_fprop_dtype</span> <span class="ow">and</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span> <span class="ow">and</span>
+          <span class="n">x</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">):</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+    <span class="n">retval</span> <span class="o">=</span> <span class="p">[</span><span class="n">MaybeWeightSplitAndCastToFPropDtype</span><span class="p">(</span><span class="n">k</span><span class="p">)</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">p</span><span class="o">.</span><span class="n">weights</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">retval</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">retval</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">retval</span></div></div>
+
+
+<div class="viewcode-block" id="StateLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer">[docs]</a><span class="k">class</span> <span class="nc">StateLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Container for recurrent state for incremental decoding.</span>
+
+<span class="sd">  It has two operation modes.</span>
+
+<span class="sd">  During training, it does nothing.</span>
+<span class="sd">  It expects that FProp(x, t) is called with t=None, and returns x unchanged.</span>
+
+<span class="sd">  During decoding, it expects:</span>
+
+<span class="sd">    t: an int32 scalar and</span>
+<span class="sd">    x: a tensor of shape `[batch, 1, ...]`.</span>
+
+<span class="sd">  It updates state `x_full[:, t, :] &lt;- x[:, 0, :]` and returns x_full.</span>
+<span class="sd">  The shape of x_full is then `[batch, time, ...]`.</span>
+
+<span class="sd">  The state is stored as theta.state attribute.</span>
+
+<span class="sd">  To construct initial state, call InitState classmethod on the root layer.</span>
+<span class="sd">  InitState() will traverse root layer children recursively, will initialize</span>
+<span class="sd">  internal state for each StateLayer instance, and will return a nested</span>
+<span class="sd">  tuple of states.</span>
+
+<span class="sd">  For incremental iteration the static methods work as follows::</span>
+
+<span class="sd">    dec = builder.DecoderLayerStack(...).Instantiate()</span>
+<span class="sd">    state0 = StateLayer.InitState(dec, shape=[tgt_batch, max_len])</span>
+<span class="sd">    theta0 = StateLayer.UpdateTheta(dec, dec.theta, state0, t=0)</span>
+<span class="sd">    # (FProp in nested StateLayer now has access to &#39;state0&#39; and &#39;t&#39;)</span>
+<span class="sd">    dec.FProp(theta0, ...)</span>
+<span class="sd">    # FProp will  modify theta0 in-place</span>
+<span class="sd">    state1 = state0.copy()</span>
+<span class="sd">    state1 = StateLayer.UpdateState(dec, theta0, state1)</span>
+
+<span class="sd">  (see `moe_builder_test.py` for a more complete example.)</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">_for_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
+
+<div class="viewcode-block" id="StateLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;shape&#39;</span><span class="p">,</span> <span class="p">[</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">],</span> <span class="s1">&#39;batch, time, etc...&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="StateLayer.NewState"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.NewState">[docs]</a>  <span class="k">def</span> <span class="nf">NewState</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns initial state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      shape: [batch, time] for beam_search_tpu_helper or [batch, beam, time] for</span>
+<span class="sd">        flat_beam_search.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      zero-initialized state tensor with shape [batch, time, ...] for</span>
+<span class="sd">        beam_search_tpu_helper or [time, batch, beam, ...] for flat_beam_search.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: the length of shape is not 2 or 3.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+      <span class="c1"># For use with beam_search_tpu_helper batch_major_compute=1</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">shape</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">+</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+      <span class="c1"># For use with flat_beam_search</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+      <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
+          <span class="p">[</span><span class="n">max_steps</span><span class="p">,</span> <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">]</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+      <span class="k">return</span> <span class="n">state</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;bad shape: </span><span class="si">%r</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">shape</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="StateLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">x</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">t</span>
+    <span class="k">if</span> <span class="n">t</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+    <span class="k">assert</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="s1">&#39;state&#39;</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">state</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;p.name=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;x=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
+
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span><span class="p">:</span>
+        <span class="c1"># For tpu_beam_search_helper</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
+          <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">x</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span><span class="p">:</span>
+        <span class="c1"># For flat beam search</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="c1"># [T,B,L,...]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="c1"># [T, B, L, ...] -&gt; [B, T, L, ...]</span>
+        <span class="n">perm</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)))</span>
+        <span class="n">perm</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">perm</span><span class="p">)</span>
+        <span class="c1"># [B, T, L, ...] -&gt; [B, T*L, ...]</span>
+        <span class="n">y_shape</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">y</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+        <span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span> <span class="o">*</span> <span class="nb">int</span><span class="p">(</span><span class="n">y_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])]</span>
+        <span class="n">y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">y_shape</span><span class="p">)</span>
+    <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+
+    <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;y=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">y</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">y</span></div>
+
+<div class="viewcode-block" id="StateLayer.InitState"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.InitState">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">InitState</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">shape</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns new state with leading shape=[batch, time].&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="n">state</span> <span class="o">=</span> <span class="kc">None</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">StateLayer</span><span class="p">):</span>
+        <span class="k">assert</span> <span class="ow">not</span> <span class="n">layer</span><span class="o">.</span><span class="n">children</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="n">layer</span><span class="o">.</span><span class="n">NewState</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">state</span>
+      <span class="k">for</span> <span class="n">c_name</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="n">c_state</span> <span class="o">=</span> <span class="n">Rec</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">c_state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+          <span class="k">if</span> <span class="n">state</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+          <span class="n">state</span><span class="p">[</span><span class="n">c_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">c_state</span>
+      <span class="k">return</span> <span class="n">state</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="n">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">)</span>
+    <span class="k">assert</span> <span class="n">state</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+    <span class="k">return</span> <span class="n">state</span></div>
+
+<div class="viewcode-block" id="StateLayer.UpdateTheta"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.UpdateTheta">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateTheta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns theta with state.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">StateLayer</span><span class="p">):</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">state</span> <span class="o">=</span> <span class="n">state</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">t</span> <span class="o">=</span> <span class="n">t</span>
+        <span class="k">return</span>
+      <span class="k">for</span> <span class="n">c_name</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="n">c_name</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+          <span class="n">Rec</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="n">c_name</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="n">c_name</span><span class="p">])</span>
+
+    <span class="n">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">theta</span></div>
+
+<div class="viewcode-block" id="StateLayer.UpdateState"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.UpdateState">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">UpdateState</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns updated state from theta.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">):</span>  <span class="c1"># pylint: disable=missing-docstring</span>
+      <span class="k">for</span> <span class="n">c_name</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">layer</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">StateLayer</span><span class="p">):</span>
+          <span class="n">state</span><span class="p">[</span><span class="n">c_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">theta</span><span class="p">[</span><span class="n">c_name</span><span class="p">]</span><span class="o">.</span><span class="n">state</span>
+        <span class="k">elif</span> <span class="n">c_name</span> <span class="ow">in</span> <span class="n">state</span><span class="p">:</span>
+          <span class="n">Rec</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">theta</span><span class="p">[</span><span class="n">c_name</span><span class="p">],</span> <span class="n">state</span><span class="p">[</span><span class="n">c_name</span><span class="p">])</span>
+
+    <span class="n">Rec</span><span class="p">(</span><span class="n">layer</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span></div></div>
+
+
+<div class="viewcode-block" id="OverrideLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.OverrideLayer">[docs]</a><span class="k">class</span> <span class="nc">OverrideLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Allows to override arbitrary tensors in the graph.</span>
+
+<span class="sd">  If key is not set in the global context, FProp does nothing.</span>
+<span class="sd">  Otherwise it returns value associated to &#39;key&#39;.</span>
+
+<span class="sd">  To override a tensor during my_layer.FProp:</span>
+
+<span class="sd">    OverrideLayer.Set(key, value)</span>
+<span class="sd">    out_with_override = my_layer.FProp(...)</span>
+<span class="sd">    OverrideLayer.Clear()</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="n">_OVERRIDE</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="OverrideLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.OverrideLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Context key&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="OverrideLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.OverrideLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">key</span> <span class="ow">and</span> <span class="n">p</span><span class="o">.</span><span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OVERRIDE</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_OVERRIDE</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">key</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span></div>
+
+<div class="viewcode-block" id="OverrideLayer.Set"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.OverrideLayer.Set">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Set</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_OVERRIDE</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span></div>
+
+<div class="viewcode-block" id="OverrideLayer.Clear"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.OverrideLayer.Clear">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Clear</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">_OVERRIDE</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div></div>
+
+
+<div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SharedEmbeddingSoftmaxLayer">[docs]</a><span class="k">class</span> <span class="nc">SharedEmbeddingSoftmaxLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Shared weights for embemdding lookup and softmax.&quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SharedEmbeddingSoftmaxLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;vocab_size&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Num tokens in vocab.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;max_len&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Num of token in the sequence.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;embedding_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;z_loss_coef&#39;</span><span class="p">,</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s1">&#39;Label smoothing.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_devices&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Number of devices for sharding.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;logits_abs_max&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Logits clipping.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;label_smoothing&#39;</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s1">&#39;Label smoothing.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_tgt_labels_size_as_loss_denominator&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
+        <span class="s1">&#39;False to use total number of non-padding tokens instead of &#39;</span>
+        <span class="s1">&#39;fixed tgt_labels tensor size.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">emb_p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+    <span class="n">pos_emb_p</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span> <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="p">])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;embedding&#39;</span><span class="p">,</span> <span class="n">emb_p</span><span class="p">)</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;pos_emb&#39;</span><span class="p">,</span> <span class="n">pos_emb_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer._MaybeSplit"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SharedEmbeddingSoftmaxLayer._MaybeSplit">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeSplit</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="kc">True</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+    <span class="k">return</span> <span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_devices</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SharedEmbeddingSoftmaxLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">segment_pos</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">fprop_dtype</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="n">ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">ids</span><span class="p">)</span>
+    <span class="n">segment_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">)</span>
+
+    <span class="n">one_hot_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">ids</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">one_hot_ids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">one_hot_ids</span><span class="p">)</span>
+
+    <span class="n">one_hot_pos</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">segment_pos</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">max_len</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+    <span class="n">one_hot_pos</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">one_hot_pos</span><span class="p">)</span>
+
+    <span class="n">token_emb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">embedding</span><span class="p">,</span> <span class="n">one_hot_ids</span><span class="p">)</span>
+    <span class="n">token_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">token_emb</span><span class="p">)</span>
+
+    <span class="n">pos_emb</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;VH,BLV-&gt;BLH&#39;</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">pos_emb</span><span class="p">,</span> <span class="n">one_hot_pos</span><span class="p">)</span>
+    <span class="n">pos_emb</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">pos_emb</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">token_emb</span> <span class="o">+</span> <span class="n">pos_emb</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SharedEmbeddingSoftmaxLayer.ComputeLoss"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SharedEmbeddingSoftmaxLayer.ComputeLoss">[docs]</a>  <span class="k">def</span> <span class="nf">ComputeLoss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">segment_ids</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">activation</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">activation</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">embedding_dim</span><span class="o">**-</span><span class="mf">0.5</span><span class="p">))</span>
+    <span class="n">softmax_weights</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">embedding</span>
+    <span class="k">if</span> <span class="n">activation</span><span class="o">.</span><span class="n">dtype</span> <span class="o">!=</span> <span class="n">softmax_weights</span><span class="o">.</span><span class="n">dtype</span><span class="p">:</span>
+      <span class="n">softmax_weights</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">softmax_weights</span><span class="p">,</span> <span class="n">activation</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLM,VM-&gt;BLV&#39;</span><span class="p">,</span> <span class="n">activation</span><span class="p">,</span> <span class="n">softmax_weights</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_abs_max</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">logits</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">clip_by_value</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">logits_abs_max</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">logits_abs_max</span><span class="p">))</span>
+
+    <span class="n">off_value</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">/</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span>
+    <span class="n">on_value</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span> <span class="o">+</span> <span class="n">off_value</span>
+    <span class="n">soft_targets</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+            <span class="n">labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">,</span> <span class="n">on_value</span><span class="o">=</span><span class="n">on_value</span><span class="p">,</span> <span class="n">off_value</span><span class="o">=</span><span class="n">off_value</span><span class="p">))</span>
+    <span class="n">xent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">vocab_size</span><span class="p">),</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">))</span>
+    <span class="n">loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax_cross_entropy_with_logits</span><span class="p">(</span>
+            <span class="n">labels</span><span class="o">=</span><span class="n">soft_targets</span><span class="p">,</span> <span class="n">logits</span><span class="o">=</span><span class="n">logits</span><span class="p">))</span>
+    <span class="n">soft_targets_xent</span> <span class="o">=</span> <span class="n">loss</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">z_loss_coef</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">log_z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_logsumexp</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">z_loss_inc</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">z_loss_coef</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">log_z</span><span class="p">)</span>
+      <span class="n">loss</span> <span class="o">+=</span> <span class="n">z_loss_inc</span>
+
+    <span class="n">non_padding</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">not_equal</span><span class="p">(</span><span class="n">segment_ids</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="p">)))</span>
+
+    <span class="n">per_token_loss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">loss</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">z_loss_coef</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">:</span>
+      <span class="n">per_token_z_loss_inc</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">z_loss_inc</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_tgt_labels_size_as_loss_denominator</span><span class="p">:</span>
+      <span class="c1"># E.g. loss is going to be tiny if inputs are not packed and only a</span>
+      <span class="c1"># fraction of tgt_labels are non-padding.</span>
+      <span class="n">loss_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">non_padding</span><span class="p">))</span>
+      <span class="n">per_example_loss_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">loss_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)</span>
+      <span class="n">per_example_loss_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">avg_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_token_loss</span><span class="p">)</span> <span class="o">/</span> <span class="n">loss_denom</span>
+    <span class="n">avg_z_loss_inc</span> <span class="o">=</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_token_z_loss_inc</span><span class="p">)</span> <span class="o">/</span>
+                      <span class="n">loss_denom</span><span class="p">)</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">z_loss_coef</span> <span class="o">&gt;</span> <span class="mf">0.0</span> <span class="k">else</span> <span class="mf">0.0</span>
+
+    <span class="n">soft_targets_xent</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">soft_targets_xent</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">))</span> <span class="o">/</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">))</span>
+
+    <span class="c1"># TODO(lepikhin): consider returning</span>
+    <span class="c1">#   {&#39;loss&#39;: (unnormalized per_token_loss, tf.reduce_sum(non_padding))}</span>
+    <span class="n">per_example_loss</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">per_token_loss</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">per_example_loss_denom</span>
+    <span class="p">}</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;mean_xent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">xent</span> <span class="o">*</span> <span class="n">non_padding</span><span class="p">))</span> <span class="o">/</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
+        <span class="s1">&#39;soft_targets_xent&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">soft_targets_xent</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">)),</span>
+        <span class="s1">&#39;weight&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">non_padding</span><span class="p">),</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="s1">&#39;loss&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_loss</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+        <span class="s1">&#39;avg_z_loss_inc&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">avg_z_loss_inc</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span>
+    <span class="p">},</span> <span class="n">per_example_loss</span></div></div>
+
+
+<div class="viewcode-block" id="Top2GatingOnLogits"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.Top2GatingOnLogits">[docs]</a><span class="k">def</span> <span class="nf">Top2GatingOnLogits</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span>
+                       <span class="n">paddings</span><span class="p">,</span>
+                       <span class="n">logits</span><span class="p">,</span>
+                       <span class="n">num_devices</span><span class="p">,</span>
+                       <span class="n">experts_dim</span><span class="p">,</span>
+                       <span class="n">expert_capacity_dim</span><span class="p">,</span>
+                       <span class="n">fprop_dtype</span><span class="p">,</span>
+                       <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                       <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                       <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                       <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                       <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
+
+<span class="sd">  There are two expected usages of this function:</span>
+
+<span class="sd">  1. used with xla_sharding. In this case, &#39;inputs&#39; corresponds to a sharded</span>
+<span class="sd">     tensor across multiple tpu cores. The operations within this function are</span>
+<span class="sd">     automatically sharded/replicated across tpu cores.</span>
+<span class="sd">  2. used within ML-Pathways. In this case, &#39;inputs&#39; is always local to one tpu</span>
+<span class="sd">     core. All computations below are carried out on one tpu core only. This</span>
+<span class="sd">     function tries to dispatch examples across tpu cores in such a way that</span>
+<span class="sd">     each expert is assigned no more than &#39;expert_capacity_dim&#39; number of</span>
+<span class="sd">     examples.</span>
+
+<span class="sd">  Below ` indicates common way of splitting along mesh dimension.</span>
+
+<span class="sd">  Dimensions cheat sheet:</span>
+
+<span class="sd">    G: group_dim</span>
+<span class="sd">    S: group_size_dim</span>
+<span class="sd">    E: number of experts</span>
+<span class="sd">    C: capacity per expert</span>
+<span class="sd">    M: model_dim (same as input_dim, same as output_dim)</span>
+<span class="sd">    B: original batch_dim</span>
+<span class="sd">    L: original sequence_length_dim</span>
+
+<span class="sd">  Note that for local_dispatch original batch BLM is reshaped into GSM, each</span>
+<span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    paddings: G`S Tensor.</span>
+<span class="sd">    logits: G`SE Tensor.</span>
+<span class="sd">    num_devices: number of MoE devices for local dispatch</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    expert_capacity_dim: number of examples per minibatch(group) per expert.</span>
+<span class="sd">      Each example is typically a vector of size input_dim, representing</span>
+<span class="sd">      embedded token or an element of Transformer layer output.</span>
+<span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">      case.</span>
+<span class="sd">    second_expert_policy: &#39;all&#39;, &#39;sampling&#39; or &#39;random&#39;.</span>
+
+<span class="sd">      - &#39;all&#39;: we greedily pick the 2nd expert.</span>
+<span class="sd">      - &#39;sampling&#39;: we sample the 2nd expert from the softmax.</span>
+<span class="sd">      - &#39;random&#39;: we optionally &#39;random&#39;-ize dispatch to second-best expert</span>
+<span class="sd">        proportional to (weight / second_expert_threshold).</span>
+
+<span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
+<span class="sd">      second_expert_policy == &#39;random&#39;.</span>
+<span class="sd">    legacy_mtf_behavior: bool, True if to match legacy mtf behavior exactly.</span>
+<span class="sd">    capacity_factor: if set, increases expert_capacity_dim to at least</span>
+<span class="sd">      (group_size * capacity_factor) / experts_dim</span>
+<span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
+<span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+
+<span class="sd">  TODO(lepikhin): get rid of the legacy_mtf_behavior flag.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (aux_loss, combine_tensor, dispatch_tensor).</span>
+
+<span class="sd">    - aux_loss: auxiliary loss, for equalizing the expert assignment ratios.</span>
+<span class="sd">    - combine_tensor: G`SEC Tensor for combining expert outputs.</span>
+<span class="sd">    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">del</span> <span class="n">inputs</span>  <span class="c1"># inputs is currently not used.</span>
+  <span class="n">raw_gates</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span>  <span class="c1"># along E dim</span>
+
+  <span class="k">if</span> <span class="n">capacity_factor</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="c1"># Determine expert capacity automatically depedning on the input size.</span>
+    <span class="n">group_size_dim</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">auto_expert_capacity</span> <span class="o">=</span> <span class="nb">int</span><span class="p">((</span><span class="n">group_size_dim</span> <span class="o">*</span> <span class="n">capacity_factor</span><span class="p">)</span> <span class="o">/</span> <span class="n">experts_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">expert_capacity_dim</span> <span class="o">&lt;</span> <span class="n">auto_expert_capacity</span><span class="p">:</span>
+      <span class="n">expert_capacity_dim</span> <span class="o">=</span> <span class="n">auto_expert_capacity</span>
+      <span class="c1"># Round up to a multiple of 4 to avoid possible padding.</span>
+      <span class="k">while</span> <span class="n">expert_capacity_dim</span> <span class="o">%</span> <span class="mi">4</span><span class="p">:</span>
+        <span class="n">expert_capacity_dim</span> <span class="o">+=</span> <span class="mi">1</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+          <span class="s1">&#39;Setting expert_capacity_dim=</span><span class="si">%r</span><span class="s1"> (capacity_factor=</span><span class="si">%r</span><span class="s1"> &#39;</span>
+          <span class="s1">&#39;group_size_dim=</span><span class="si">%r</span><span class="s1"> experts_dim=</span><span class="si">%r</span><span class="s1"> name_scope=</span><span class="si">%r</span><span class="s1">)&#39;</span><span class="p">,</span>
+          <span class="n">expert_capacity_dim</span><span class="p">,</span> <span class="n">capacity_factor</span><span class="p">,</span> <span class="n">group_size_dim</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">get_default_graph</span><span class="p">()</span><span class="o">.</span><span class="n">get_name_scope</span><span class="p">())</span>
+    <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;expert_capacity&#39;</span><span class="p">,</span> <span class="n">expert_capacity_dim</span><span class="p">)</span>
+
+  <span class="c1"># top first and second gate value and expert index for each input</span>
+  <span class="c1">#</span>
+  <span class="c1"># GSK Tensors, K=2</span>
+  <span class="k">def</span> <span class="nf">_MaybeSplit</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">use_xla_sharding</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">Split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">x</span>
+
+  <span class="k">def</span> <span class="nf">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask</span><span class="p">,</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="n">over_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="n">over_capacity_ratio</span> <span class="o">=</span> <span class="n">over_capacity</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">)</span>
+    <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">,</span> <span class="n">while_loop_reduce</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
+
+  <span class="c1"># As pointed out by zhifengc@ this method needs to be refactored. lepikhin@</span>
+  <span class="c1"># and krikun@ will:</span>
+  <span class="c1">#   - expand moe_spmd_test to compare Adafactor updates, slots on TPU</span>
+  <span class="c1">#   including 2x2 with sharding</span>
+  <span class="c1">#</span>
+  <span class="c1">#   - add more tests for policy=&quot;random&quot;</span>
+  <span class="c1">#</span>
+  <span class="c1">#   - add single step test for full size WMT model on CPU</span>
+  <span class="c1">#</span>
+  <span class="c1"># and then break this function into modules.</span>
+  <span class="c1">#</span>
+  <span class="c1"># GS</span>
+  <span class="n">index_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">raw_gates</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">index_1</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">index_1</span><span class="p">)</span>
+  <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;index_1&#39;</span><span class="p">,</span> <span class="n">index_1</span><span class="p">)</span>
+
+  <span class="c1"># GSE</span>
+  <span class="n">mask_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">index_1</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="n">mask_1</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">raw_gates</span>
+
+  <span class="n">importance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">mask_1</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">importance</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
+    <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">density_1_proxy</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">gate_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">raw_gates</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="n">gates_without_top_1</span> <span class="o">=</span> <span class="n">raw_gates</span> <span class="o">*</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">mask_1</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;sampling&#39;</span><span class="p">:</span>
+    <span class="c1"># We directly sample the 2nd expert index from the softmax over of the 2nd</span>
+    <span class="c1"># expert by getting rid of the 1st expert already selected above. To do so,</span>
+    <span class="c1"># we set a very negative value to the logit corresponding to the 1st expert.</span>
+    <span class="c1"># Then we sample from the softmax (categorical) distribution using the</span>
+    <span class="c1"># Gumbel max trick.</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">logits</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+    <span class="c1"># Generates standard Gumbel(0, 1) noise, GSE Tensors</span>
+    <span class="n">noise</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">noise</span><span class="p">))</span>
+    <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
+         <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">)))</span>
+    <span class="c1"># Gets rid of the first expert by setting its logit to be very negative</span>
+    <span class="n">updated_logits</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">mask_1</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">))</span>
+    <span class="c1"># Adds the Gumbel noise to the updated logits</span>
+    <span class="n">noised_logits</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">updated_logits</span> <span class="o">+</span> <span class="n">noise</span><span class="p">)</span>
+    <span class="c1"># Picks the index of the largest noised logit as the 2nd expert. This is</span>
+    <span class="c1"># equivalent to sampling from the softmax over the 2nd experts.</span>
+    <span class="n">index_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">noised_logits</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">index_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">gates_without_top_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">output_type</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+  <span class="n">index_2</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">index_2</span><span class="p">)</span>
+  <span class="n">mask_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">index_2</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="n">mask_2</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">mask_2</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">importance</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="n">gate_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">gates_without_top_1</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">legacy_mtf_behavior</span><span class="p">:</span>
+    <span class="c1"># cl/298510175 moved this branch for gate_{1,2} denom calculation here.</span>
+    <span class="c1">#</span>
+    <span class="c1"># For policy=random, it&#39;s better to nomalize gate_{1,2} before taking</span>
+    <span class="c1"># capacity  into account and before potentially dropping second expert.</span>
+    <span class="c1">#</span>
+    <span class="c1"># According to mean_xent (http://short/_NzbZ5rINr5):</span>
+    <span class="c1">#   MoE_512_102xen_PolicyAll_298510175</span>
+    <span class="c1">#   MoE_512_102xen_PolicyRandom_298510175</span>
+    <span class="c1">#</span>
+    <span class="c1"># vs pre-cl/298510175</span>
+    <span class="c1">#   MoE_512_102xen_PolicyRandom</span>
+    <span class="c1">#   MoE_512_102xen_PolicyAll</span>
+    <span class="c1">#</span>
+    <span class="c1"># it substantially improves policy=random with threshold=0.5 which</span>
+    <span class="c1"># historically was better than policy=&quot;all&quot;</span>
+    <span class="c1">#</span>
+    <span class="c1"># Also confirmed this by decoding</span>
+    <span class="c1">#   nmt_train/m4/data/es_en/test.txt</span>
+    <span class="c1">#   nmt_train/m4/data/ru_en/test.txt</span>
+    <span class="c1">#   nmt_train/m4/data/zh_en/test.txt</span>
+    <span class="c1"># and improving BLEU</span>
+    <span class="c1">#</span>
+    <span class="c1"># moe_decode.MoE_512_102xen_PolicyRandom_298510175-160000.batch1024.beam4.c_dim4.ln0.8.rkv.mteval102</span>
+    <span class="c1">#   0.421443</span>
+    <span class="c1">#   0.327102</span>
+    <span class="c1">#   0.315693</span>
+    <span class="c1"># vs</span>
+    <span class="c1"># moe_decode.feb18_non_fig_snapshot_2626_MoE_512_102xen_PolicyRandom-190000.batch1024.beam4.c_dim4.ln0.8.rkv.mteval102</span>
+    <span class="c1">#   0.399232</span>
+    <span class="c1">#   0.310606</span>
+    <span class="c1">#   0.288229</span>
+    <span class="c1">#</span>
+    <span class="c1"># Additional comparison, see mean_xent http://short/_YHccOhQtdu with</span>
+    <span class="c1"># legacy_mtf_behavior=False models</span>
+    <span class="c1">#   3 - MoE_512_102xen_PolicyAll_LegacyFalse</span>
+    <span class="c1">#   6 - MoE_512_102xen_PolicyRandom_LegacyFalse</span>
+    <span class="c1"># shows that policy=&quot;random&quot; gets worse with legacy_mtf_behavior=False, and</span>
+    <span class="c1"># is similar to pre-cl/298510175</span>
+    <span class="c1">#   4 - MoE_512_102xen_PolicyRandom</span>
+    <span class="c1">#</span>
+    <span class="c1"># gate_1 can become 0 due to Expert being out of capacity.</span>
+    <span class="c1">#</span>
+    <span class="c1"># gate_2 can become 0 due to</span>
+    <span class="c1">#   second_expert_policy == &#39;random&#39;</span>
+    <span class="c1"># or &quot;out of capacity&quot; scenario.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Here we renormalize regardless of cases above.</span>
+    <span class="n">denom</span> <span class="o">=</span> <span class="n">gate_1</span> <span class="o">+</span> <span class="n">gate_2</span> <span class="o">+</span> <span class="mf">1e-9</span>
+    <span class="n">gate_1</span> <span class="o">/=</span> <span class="n">denom</span>
+    <span class="n">gate_2</span> <span class="o">/=</span> <span class="n">denom</span>
+
+  <span class="c1"># We reshape the mask as [X*S, E], and compute cumulative sums of</span>
+  <span class="c1"># assignment indicators for each expert index e \in 0..E-1 independently.</span>
+  <span class="c1"># First occurrence of assignment indicator is excluded, see exclusive=True</span>
+  <span class="c1"># flag below.</span>
+  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># GS Tensor</span>
+  <span class="n">capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expert_capacity_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">position_in_expert_1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="c1"># GE Tensor (reducing S out of GSE tensor mask_1)</span>
+  <span class="c1"># density_1[:, e] represents assignment ratio (num assigned / total) to</span>
+  <span class="c1"># expert e as top_1 expert without taking capacity into account.</span>
+  <span class="k">if</span> <span class="n">legacy_mtf_behavior</span><span class="p">:</span>
+    <span class="n">density_denom</span> <span class="o">=</span> <span class="mf">1.0</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">density_denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span>
+        <span class="n">importance</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">))[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span> <span class="mf">1e-6</span>
+  <span class="n">density_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">density_denom</span>
+  <span class="c1"># density_1_proxy[:, e] represents mean of raw_gates for expert e, including</span>
+  <span class="c1"># those of examples not assigned to e with top_k.</span>
+  <span class="n">density_1_proxy</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">/</span> <span class="n">density_denom</span>
+
+  <span class="c1"># The MoE paper (https://arxiv.org/pdf/1701.06538.pdf) uses an aux loss of</span>
+  <span class="c1"># reduce_mean(density_1_proxy * density_1_proxy). Here we replace one of</span>
+  <span class="c1"># the density_1_proxy with the discrete density_1 following</span>
+  <span class="c1"># mesh_tensorflow/transformer/moe.py?rcl=283569345.</span>
+  <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">density_1_proxy</span> <span class="o">*</span> <span class="n">density_1</span><span class="p">)</span>  <span class="c1"># element-wise</span>
+  <span class="n">aux_loss</span> <span class="o">*=</span> <span class="n">experts_dim</span> <span class="o">*</span> <span class="n">experts_dim</span>  <span class="c1"># const coefficient</span>
+
+  <span class="c1"># Add the over capacity ratio for expert 1</span>
+  <span class="n">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask_1</span><span class="p">,</span> <span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span>
+                                  <span class="s1">&#39;over_capacity_1_ratio&#39;</span><span class="p">)</span>
+
+  <span class="n">mask_1</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask_1</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">position_in_expert_1</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+
+  <span class="c1"># How many examples in this sequence go to this expert</span>
+  <span class="n">mask_1_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE-&gt;GE&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+  <span class="c1"># [batch, group] - mostly ones, but zeros where something didn&#39;t fit</span>
+  <span class="n">mask_1_flat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">mask_1</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;all&#39;</span> <span class="ow">or</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;sampling&#39;</span><span class="p">:</span>
+    <span class="k">pass</span>
+  <span class="k">elif</span> <span class="n">second_expert_policy</span> <span class="o">==</span> <span class="s1">&#39;random&#39;</span><span class="p">:</span>
+    <span class="c1"># gate_2 is between 0 and 1, reminder:</span>
+    <span class="c1">#</span>
+    <span class="c1">#   raw_gates = tf.nn.softmax(logits)</span>
+    <span class="c1">#   index_1 = tf.math.argmax(raw_gates, axis=-1, output_type=tf.int32)</span>
+    <span class="c1">#   mask_1 = tf.one_hot(index_1, experts_dim, dtype=fprop_dtype)</span>
+    <span class="c1">#   gate_1 = tf.einsum(&#39;GSE,GSE-&gt;GS&#39;, raw_gates, mask_1)</span>
+    <span class="c1">#</span>
+    <span class="c1"># E.g. if gate_2 exceeds second_expert_threshold, then we definitely</span>
+    <span class="c1"># dispatch to second-best expert. Otherwise we dispatch with probability</span>
+    <span class="c1"># proportional to (gate_2 / threshold).</span>
+    <span class="c1">#</span>
+    <span class="n">sampled_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span>
+        <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">gate_2</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">gate_2</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
+        <span class="p">(</span><span class="n">gate_2</span> <span class="o">/</span> <span class="nb">max</span><span class="p">(</span><span class="n">second_expert_threshold</span><span class="p">,</span> <span class="mf">1e-9</span><span class="p">)))</span>
+    <span class="n">gate_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">sampled_2</span><span class="p">,</span> <span class="n">gate_2</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sampled_2</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">),</span> <span class="n">mask_2</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">second_expert_policy</span><span class="p">)</span>
+
+  <span class="n">position_in_expert_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(</span>
+      <span class="n">mask_2</span><span class="p">,</span> <span class="n">exclusive</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mask_1_count</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Add the over capacity ratio for expert 2</span>
+  <span class="n">_CreateOverCapacityRatioSummary</span><span class="p">(</span><span class="n">mask_2</span><span class="p">,</span> <span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">capacity</span><span class="p">,</span>
+                                  <span class="s1">&#39;over_capacity_2_ratio&#39;</span><span class="p">)</span>
+
+  <span class="n">mask_2</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">less</span><span class="p">(</span><span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">mask_2</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">position_in_expert_2</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSE,GSE-&gt;GS&#39;</span><span class="p">,</span> <span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">mask_2</span><span class="p">)</span>
+  <span class="n">mask_2_flat</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask_2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Equivalent non-einsum implementation:</span>
+  <span class="c1">#</span>
+  <span class="c1"># position_in_expert_2 *= mask_2</span>
+  <span class="c1"># position_in_expert_2 = tf.reduce_sum(</span>
+  <span class="c1">#     position_in_expert_2, axis=-1, name=&#39;position_in_expert_2&#39;)</span>
+
+  <span class="n">gate_1</span> <span class="o">*=</span> <span class="n">mask_1_flat</span>
+  <span class="n">gate_2</span> <span class="o">*=</span> <span class="n">mask_2_flat</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">legacy_mtf_behavior</span><span class="p">:</span>
+    <span class="n">denom</span> <span class="o">=</span> <span class="n">gate_1</span> <span class="o">+</span> <span class="n">gate_2</span>
+    <span class="c1"># To avoid divide by 0.</span>
+    <span class="n">denom</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">denom</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">denom</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">denom</span><span class="p">))</span>
+    <span class="n">gate_1</span> <span class="o">/=</span> <span class="n">denom</span>
+    <span class="n">gate_2</span> <span class="o">/=</span> <span class="n">denom</span>
+
+  <span class="c1"># GSC Tensor</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">position_in_expert_1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="n">expert_capacity_dim</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">,</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;one_hot_b_0&#39;</span><span class="p">)</span>
+  <span class="c1"># GSE Tensor</span>
+  <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">gate_1</span> <span class="o">*</span> <span class="n">mask_1_flat</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+      <span class="n">index_1</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="c1"># GSEC Tensor</span>
+  <span class="n">first_part_of_combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+      <span class="s1">&#39;GSE,GSC-&gt;GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;first_part_of_combine_tensor&#39;</span><span class="p">)</span>
+
+  <span class="c1"># GSC Tensor</span>
+  <span class="n">b</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">position_in_expert_2</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+      <span class="n">expert_capacity_dim</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">,</span>
+      <span class="n">name</span><span class="o">=</span><span class="s1">&#39;one_hot_b_1&#39;</span><span class="p">)</span>
+  <span class="c1"># GSE Tensor</span>
+  <span class="n">a</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">gate_2</span> <span class="o">*</span> <span class="n">mask_2_flat</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+      <span class="n">index_2</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="n">second_part_of_combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span>
+      <span class="s1">&#39;GSE,GSC-&gt;GSEC&#39;</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;second_part_of_combine_tensor&#39;</span><span class="p">)</span>
+
+  <span class="c1"># GSEC Tensor</span>
+  <span class="n">combine_tensor</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">first_part_of_combine_tensor</span> <span class="o">+</span> <span class="n">second_part_of_combine_tensor</span><span class="p">)</span>
+  <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">combine_tensor</span><span class="p">)</span>
+
+  <span class="c1"># GSEC Tensor</span>
+  <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">bool</span><span class="p">),</span> <span class="n">fprop_dtype</span><span class="p">)</span>
+  <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">_MaybeSplit</span><span class="p">(</span><span class="n">dispatch_tensor</span><span class="p">)</span>
+
+  <span class="c1"># TODO(yonghui): compute and return per-group aux_loss.</span>
+  <span class="k">return</span> <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span></div>
+
+
+<div class="viewcode-block" id="Top2Gating"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.Top2Gating">[docs]</a><span class="k">def</span> <span class="nf">Top2Gating</span><span class="p">(</span><span class="n">w</span><span class="p">,</span>
+               <span class="n">inputs</span><span class="p">,</span>
+               <span class="n">paddings</span><span class="p">,</span>
+               <span class="n">num_devices</span><span class="p">,</span>
+               <span class="n">experts_dim</span><span class="p">,</span>
+               <span class="n">expert_capacity_dim</span><span class="p">,</span>
+               <span class="n">local_dispatch</span><span class="p">,</span>
+               <span class="n">fprop_dtype</span><span class="p">,</span>
+               <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+               <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+               <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+               <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes Top-2 gating for Mixture-of-Experts.</span>
+
+<span class="sd">  See Top2GatingOnLogits for more details.</span>
+
+<span class="sd">  Note that for local_dispatch original batch BLM is reshaped into GSM, each</span>
+<span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    w: gating weights for each experts.</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    paddings: G`S Tensor.</span>
+<span class="sd">    num_devices: number of MoE devices for local dispatch</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    expert_capacity_dim: number of examples per minibatch(group) per expert.</span>
+<span class="sd">      Each example is typically a vector of size input_dim, representing</span>
+<span class="sd">      embedded token or an element of Transformer layer output.</span>
+<span class="sd">    local_dispatch: whether dispatch is local to the group (G dim)</span>
+<span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">        case.</span>
+<span class="sd">    second_expert_policy: &#39;all&#39; or &#39;random&#39;, we optionally &#39;random&#39;-ize dispatch</span>
+<span class="sd">      to second-best expert proportional to (weight / second_expert_threshold).</span>
+<span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
+<span class="sd">      second_expert_policy == &#39;random&#39;.</span>
+<span class="sd">    legacy_mtf_behavior: True for legacy behavior with no re-normalization of</span>
+<span class="sd">      expert assignment weights if we go over capacity or randomly decide to not</span>
+<span class="sd">      dispatch to second expert.</span>
+<span class="sd">    capacity_factor: if set, increases expert_capacity_dim to at least</span>
+<span class="sd">      `(group_size * capacity_factor) / experts_dim`</span>
+<span class="sd">      where `group_size` is the size of G dimension of `inputs`. If the</span>
+<span class="sd">      value of expert_capacity_dim is already big enough no change is made.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (dispatch_tensor, combine_tensor, aux_loss).</span>
+
+<span class="sd">    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">    - combine_tensor: G`SEC Tensor.</span>
+<span class="sd">      combining expert outputs.</span>
+<span class="sd">    - aux_loss: auxiliary loss, equalizing the expert assignment ratios.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+
+  <span class="n">top1_expert_per_example</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">tpu_summary</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="s1">&#39;top1_expert&#39;</span><span class="p">,</span> <span class="n">top1_expert_per_example</span><span class="p">)</span>
+
+  <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
+      <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span> <span class="n">expert_capacity_dim</span><span class="p">,</span>
+      <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">second_expert_policy</span><span class="p">,</span>
+      <span class="n">second_expert_threshold</span><span class="p">,</span> <span class="n">legacy_mtf_behavior</span><span class="p">,</span> <span class="n">capacity_factor</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">dispatch_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">combine_tensor</span><span class="o">=</span><span class="n">combine_tensor</span><span class="p">,</span>
+      <span class="n">dispatch_tensor</span><span class="o">=</span><span class="n">dispatch_tensor</span><span class="p">,</span>
+      <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="FeedForwardNetworksApplyGating"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.FeedForwardNetworksApplyGating">[docs]</a><span class="k">def</span> <span class="nf">FeedForwardNetworksApplyGating</span><span class="p">(</span><span class="n">gating</span><span class="p">,</span>
+                                   <span class="n">inputs</span><span class="p">,</span>
+                                   <span class="n">reshaped_inputs</span><span class="p">,</span>
+                                   <span class="n">wi_split</span><span class="p">,</span>
+                                   <span class="n">wo_split</span><span class="p">,</span>
+                                   <span class="n">num_devices</span><span class="p">,</span>
+                                   <span class="n">num_groups</span><span class="p">,</span>
+                                   <span class="n">bi_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">bo_split</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                                   <span class="n">dropout_rate</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply top_2 gating to feedforward networks.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    gating: returns from Top2Gating consisting of: dispatch_tensor, G`SEC</span>
+<span class="sd">      Tensor, scattering/dispatching inputs to experts. combine_tensor, G`SEC</span>
+<span class="sd">      Tensor, combining expert outputs. aux_loss. auxiliary loss, equalizing the</span>
+<span class="sd">      expert assignment ratios</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    reshaped_inputs: [G*S/E, M] Tensor.</span>
+<span class="sd">    wi_split: First projection weights [E, M, H] of the feedforward networks.</span>
+<span class="sd">    wo_split: Last projection weights [E, H, M] of the feedforward networks.</span>
+<span class="sd">    num_devices: number of devices.</span>
+<span class="sd">    num_groups: number of groups (generally matches to or proportional to</span>
+<span class="sd">      num_devices).</span>
+<span class="sd">    bi_split: First projection bias [E, 1, H] of the feedforward networks.</span>
+<span class="sd">    bo_split: Last projection bias [E, 1, M] of the feedforward networks.</span>
+<span class="sd">    dropout_rate: Dropout rate.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    outputs: G`SM Tensor.</span>
+<span class="sd">    aux_loss: scalar auxilliar loss.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="c1"># dispatch_tensor  G`SEC</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSEC,GSM-&gt;EGCM&#39;</span><span class="p">,</span>
+                            <span class="n">Split</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">dispatch_tensor</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span>
+                            <span class="n">Split</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">))</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="n">M</span> <span class="o">=</span> <span class="n">reshaped_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">E</span> <span class="o">=</span> <span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+
+  <span class="c1"># combine_tensor: G`SEC</span>
+  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">G</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="k">assert</span> <span class="n">num_groups</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">dimension_value</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+  <span class="n">C</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># pylint: disable=invalid-name</span>
+  <span class="n">A</span> <span class="o">=</span> <span class="n">G</span> <span class="o">*</span> <span class="n">C</span>
+  <span class="c1"># pylint: enable=invalid-name</span>
+
+  <span class="c1"># Reshaping EGCM =&gt; EAM where A = G*C, e.g.</span>
+  <span class="c1">#</span>
+  <span class="c1"># with E=512, G=1024</span>
+  <span class="c1">#</span>
+  <span class="c1"># (512, 1024, 4, 1024) =&gt; (512, 4096, 1024)</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">expert_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
+  <span class="n">expert_inputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_inputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAM,EMH-&gt;EAH&#39;</span><span class="p">,</span> <span class="n">expert_inputs</span><span class="p">,</span> <span class="n">wi_split</span><span class="p">)</span>
+  <span class="n">h</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">bi_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">h</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bi_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">relu</span><span class="p">(</span><span class="n">h</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">dropout_rate</span><span class="p">:</span>
+    <span class="c1"># we generally do not use stateless dropout in MoE since it introduces</span>
+    <span class="c1"># large uint32 tensor broadcast (per dehao@ study)</span>
+    <span class="n">h</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">dropout</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="n">dropout_rate</span><span class="p">)</span>
+
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EAH,EHM-&gt;EAM&#39;</span><span class="p">,</span> <span class="n">Split</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span> <span class="n">wo_split</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">bo_split</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">expert_outputs</span> <span class="o">+=</span> <span class="n">Split</span><span class="p">(</span><span class="n">bo_split</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="p">[</span><span class="n">E</span><span class="p">,</span> <span class="n">G</span><span class="p">,</span> <span class="n">C</span><span class="p">,</span> <span class="n">M</span><span class="p">])</span>
+
+  <span class="c1"># same as tf.transpose</span>
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;EGCM-&gt;GECM&#39;</span><span class="p">,</span> <span class="n">expert_outputs</span><span class="p">)</span>
+
+  <span class="n">expert_outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">expert_outputs</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="c1"># split by G dim</span>
+  <span class="n">combined_outputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSEC,GECM-&gt;GSM&#39;</span><span class="p">,</span>
+                               <span class="n">Split</span><span class="p">(</span><span class="n">gating</span><span class="o">.</span><span class="n">combine_tensor</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">),</span>
+                               <span class="n">expert_outputs</span><span class="p">)</span>
+
+  <span class="n">outputs</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">combined_outputs</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">),</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+  <span class="n">aux_loss</span> <span class="o">=</span> <span class="n">gating</span><span class="o">.</span><span class="n">aux_loss</span>
+  <span class="k">return</span> <span class="n">outputs</span><span class="p">,</span> <span class="n">aux_loss</span></div>
+
+
+<div class="viewcode-block" id="GatherK"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.GatherK">[docs]</a><span class="k">def</span> <span class="nf">GatherK</span><span class="p">(</span><span class="n">selected_pos</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">num_devices</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Gather up to k elements from given tensors at selected pos under SPMD.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    # Input</span>
+<span class="sd">    k = 3</span>
+
+<span class="sd">    selected_pos = [</span>
+<span class="sd">        [0, 0, 1, 1],</span>
+<span class="sd">        [0, 1, 1, 0],</span>
+<span class="sd">        [0, 0, 0, 0],</span>
+<span class="sd">        [1, 1, 1, 0],</span>
+<span class="sd">        [1, 1, 1, 1],  # topk(k=3) largest indices are selected in this row.</span>
+<span class="sd">    ]</span>
+
+<span class="sd">    value_2d = [</span>
+<span class="sd">        [1, 3, 5, 7],</span>
+<span class="sd">        [9, 11, 13, 15],</span>
+<span class="sd">        [17, 19, 21, 23],</span>
+<span class="sd">        [25, 27, 29, 31],</span>
+<span class="sd">        [33, 35, 37, 39],</span>
+<span class="sd">    ]</span>
+
+<span class="sd">    # Output:</span>
+<span class="sd">    output = [</span>
+<span class="sd">        [0, 5, 7],</span>
+<span class="sd">        [0, 11, 13],</span>
+<span class="sd">        [0, 0, 0],</span>
+<span class="sd">        [25, 27, 29],</span>
+<span class="sd">        [35, 37, 39],</span>
+<span class="sd">    ]</span>
+
+<span class="sd">    # Output padding:</span>
+<span class="sd">    output_padding = [</span>
+<span class="sd">        [1, 0, 0],</span>
+<span class="sd">        [1, 0, 0],</span>
+<span class="sd">        [1, 1, 1],</span>
+<span class="sd">        [0, 0, 0],</span>
+<span class="sd">        [0, 0, 0],</span>
+<span class="sd">    ]</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    selected_pos: a 0/1 2D tf.int32 tensor of shape [batch, time].</span>
+<span class="sd">    values: a list of tensors, the rank of each is at least rank=2. [batch,</span>
+<span class="sd">      time, ...].</span>
+<span class="sd">    k: a scalar tf.int32 tensor or a Python int. On TPU, k must be a</span>
+<span class="sd">      compile-time constant.</span>
+<span class="sd">    num_devices: number of TPU devices used in xla_sharding SPMD.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (output, padding).</span>
+
+<span class="sd">    - output: a list of tensors of shape [batch, k, ...].</span>
+<span class="sd">    - padding: a 2D 0/1 tensor of shape [batch, k], &#39;1&#39;s are padded locations.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">global_batch</span><span class="p">,</span> <span class="n">seq_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">selected_pos</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="k">if</span> <span class="n">num_devices</span><span class="p">:</span>
+    <span class="n">device_batch</span> <span class="o">=</span> <span class="n">global_batch</span> <span class="o">//</span> <span class="n">num_devices</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">device_batch</span> <span class="o">=</span> <span class="n">global_batch</span>
+
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">values</span><span class="p">)):</span>
+    <span class="c1"># Assert the first 2 dim of values[i] is [global_batch, seq_len]</span>
+    <span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="p">[</span><span class="n">global_batch</span><span class="p">,</span> <span class="n">seq_len</span><span class="p">],</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="c1"># indices are 1-based for now, to distinguish between padding and selected</span>
+  <span class="c1"># locations.</span>
+  <span class="n">indices</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="c1"># [1, seq_len]</span>
+  <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+  <span class="c1"># if 0, the position is not selected.</span>
+  <span class="c1"># [1, seq_len] * [global_batch, seq_len] =&gt; [global_batch, t]</span>
+  <span class="c1"># -- topk --&gt; [global_batch, k]</span>
+  <span class="n">topk_indices</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span>
+      <span class="n">indices</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">selected_pos</span><span class="p">,</span> <span class="n">indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">k</span><span class="p">)</span>
+
+  <span class="c1"># [global_batch, k], sorted in ascending order.</span>
+  <span class="n">indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reverse</span><span class="p">(</span><span class="n">topk_indices</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># [global_batch, k], padded positions are &#39;1&#39;s.</span>
+  <span class="n">padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">indices</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">values</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="n">padding</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">padding</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="c1"># [global_batch, k], zero_based_indices</span>
+  <span class="n">mp_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">indices</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+  <span class="n">mp_idx</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">mp_idx</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+
+  <span class="c1"># [device_batch, k]</span>
+  <span class="k">if</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+    <span class="n">mp_idx</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">auto_to_manual_spmd_partition</span><span class="p">(</span>
+        <span class="n">mp_idx</span><span class="p">,</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">get_op_sharding</span><span class="p">(</span><span class="n">mp_idx</span><span class="o">.</span><span class="n">op</span><span class="p">))</span>
+  <span class="c1"># [device_batch, k, 1]</span>
+  <span class="n">mp_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">mp_idx</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># [device_batch]</span>
+  <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">device_batch</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="c1"># [device_batch, 1, 1]</span>
+  <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">batch_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">device_batch</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># [device_batch, k, 1]</span>
+  <span class="n">batch_ids</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">batch_ids</span><span class="p">,</span> <span class="p">[</span><span class="n">device_batch</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+  <span class="c1"># [device_batch, k, 2]</span>
+  <span class="n">final_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">batch_ids</span><span class="p">,</span> <span class="n">mp_idx</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="n">output</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+    <span class="c1"># Begin manually partition gather.</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">Split</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">)</span>
+    <span class="n">v_shape</span> <span class="o">=</span> <span class="n">v</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">as_list</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">op_sharding</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">get_op_sharding</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">op</span><span class="p">)</span>
+      <span class="n">v</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">auto_to_manual_spmd_partition</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">op_sharding</span><span class="p">)</span>
+    <span class="c1"># Returns [global_batch, k, ...]</span>
+    <span class="n">v_out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">final_indices</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">num_devices</span> <span class="o">&gt;</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">v_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">k</span>
+      <span class="n">v_out</span> <span class="o">=</span> <span class="n">xla_sharding</span><span class="o">.</span><span class="n">manual_to_auto_spmd_partition</span><span class="p">(</span>
+          <span class="n">v_out</span><span class="p">,</span> <span class="n">op_sharding</span><span class="p">,</span> <span class="n">full_shape</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">TensorShape</span><span class="p">(</span><span class="n">v_shape</span><span class="p">))</span>
+    <span class="n">output</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v_out</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">padding</span></div>
+
+
+<div class="viewcode-block" id="GetSentenceEmbeddings"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.GetSentenceEmbeddings">[docs]</a><span class="k">def</span> <span class="nf">GetSentenceEmbeddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Returns the average sentence embedding to gate by.</span>
+
+<span class="sd">  Example::</span>
+
+<span class="sd">    inputs: &lt;tf.Variable &#39;Variable:0&#39; shape=(10, 3) dtype=float64, numpy=</span>
+<span class="sd">             array([[0.41258181, 0.61071571, 0.63777673],</span>
+<span class="sd">                    [0.65571443, 0.54297766, 0.10288261],</span>
+<span class="sd">                    [0.8577837 , 0.81915847, 0.61996602],</span>
+<span class="sd">                    [0.46897136, 0.92662692, 0.32942232],</span>
+<span class="sd">                    [0.60162383, 0.3385829 , 0.3408632 ],</span>
+<span class="sd">                    [0.40774807, 0.86139635, 0.00927162],</span>
+<span class="sd">                    [0.56126334, 0.51748817, 0.07791397],</span>
+<span class="sd">                    [0.06595223, 0.95529216, 0.34458149],</span>
+<span class="sd">                    [0.1238971 , 0.49897169, 0.25216722],</span>
+<span class="sd">                    [0.11221774, 0.50284604, 0.84106974]])&gt;</span>
+<span class="sd">    segment_id: &lt;tf.Variable &#39;Variable:0&#39; shape=(10,) dtype=int64,</span>
+<span class="sd">                 numpy=array([1, 1, 2, 0, 0, 3, 3, 3, 3, 0])&gt;</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    segment_id: G`S Tensor.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    sentence_embeddings: GSM Tensor that is an average of the input embeddings</span>
+<span class="sd">    per segment.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">reshaped_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]])</span>
+
+  <span class="c1"># We set num_segments to a large value so that shape is known at compile time.</span>
+  <span class="n">max_segments</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+  <span class="c1"># We change the padding to be max_segments - 1 instead of 0 because</span>
+  <span class="c1"># tf.math.unsorted_segment_mean because it only accepts values between 1 and</span>
+  <span class="c1"># max_segments.</span>
+  <span class="n">modified_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+      <span class="n">segment_id</span> <span class="o">+</span> <span class="n">max_segments</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">segment_id</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">as_dtype</span><span class="p">(</span><span class="n">segment_id</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span> <span class="o">-</span>
+      <span class="mi">1</span><span class="p">,</span>
+      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+  <span class="n">reshaped_segment_id</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">modified_segment_id</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="c1"># Takes the mean of all segments, w/ 0s for the padding.</span>
+  <span class="n">params</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">unsorted_segment_mean</span><span class="p">(</span><span class="n">reshaped_inputs</span><span class="p">,</span> <span class="n">reshaped_segment_id</span><span class="p">,</span>
+                                    <span class="n">max_segments</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="n">reshaped_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">reshaped_inputs</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+  <span class="p">],</span>
+                     <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+  <span class="n">raw_sentence_embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">params</span><span class="p">,</span> <span class="n">modified_segment_id</span><span class="p">)</span>
+
+  <span class="c1"># sentence_embedding: &lt;tf.Tensor: shape=(10, 3), dtype=float64, numpy=</span>
+  <span class="c1">#                     array([[0.92657252, 0.40264503, 0.55494457],</span>
+  <span class="c1">#                            [0.92657252, 0.40264503, 0.55494457],</span>
+  <span class="c1">#                            [0.08002721, 0.02360659, 0.63688627],</span>
+  <span class="c1">#                            [0.        , 0.        , 0.        ],</span>
+  <span class="c1">#                            [0.        , 0.        , 0.        ],</span>
+  <span class="c1">#                            [0.8138629 , 0.54451293, 0.48802852],</span>
+  <span class="c1">#                            [0.8138629 , 0.54451293, 0.48802852],</span>
+  <span class="c1">#                            [0.8138629 , 0.54451293, 0.48802852],</span>
+  <span class="c1">#                            [0.8138629 , 0.54451293, 0.48802852],</span>
+  <span class="c1">#                            [0.        , 0.        , 0.        ]])&gt;</span>
+  <span class="n">sentence_embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">raw_sentence_embeddings</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">sentence_embeddings</span></div>
+
+
+<div class="viewcode-block" id="SentenceTop2Gating"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.SentenceTop2Gating">[docs]</a><span class="k">def</span> <span class="nf">SentenceTop2Gating</span><span class="p">(</span><span class="n">w</span><span class="p">,</span>
+                       <span class="n">inputs</span><span class="p">,</span>
+                       <span class="n">paddings</span><span class="p">,</span>
+                       <span class="n">segment_id</span><span class="p">,</span>
+                       <span class="n">num_devices</span><span class="p">,</span>
+                       <span class="n">experts_dim</span><span class="p">,</span>
+                       <span class="n">expert_capacity_dim</span><span class="p">,</span>
+                       <span class="n">local_dispatch</span><span class="p">,</span>
+                       <span class="n">fprop_dtype</span><span class="p">,</span>
+                       <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                       <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                       <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                       <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                       <span class="n">embedding_type</span><span class="o">=</span><span class="s1">&#39;sentence&#39;</span><span class="p">,</span>
+                       <span class="n">capacity_factor</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes Top-2 sentence gating for Mixture-of-Experts.</span>
+
+<span class="sd">  Instead of using the each token, this function uses embedding_type to return a</span>
+<span class="sd">  sentence-wise embedding to create dispatch and combine tensors that gate</span>
+<span class="sd">  the entire sentence.</span>
+
+<span class="sd">  See SentenceTop2GatingOnLogits for more details.</span>
+
+<span class="sd">  Note that for local_dispatch original batch BLM is reshaped into GSM, each</span>
+<span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    w: gating weights for each experts.</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    paddings: G`S Tensor.</span>
+<span class="sd">    segment_id: G`SM Tensor used for differentiating different sentences in an</span>
+<span class="sd">      input example.</span>
+<span class="sd">    num_devices: number of MoE devices for local dispatch</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    expert_capacity_dim: number of examples per minibatch(group) per expert.</span>
+<span class="sd">      Each example is typically a vector of size input_dim, representing</span>
+<span class="sd">      embedded token or an element of Transformer layer output.</span>
+<span class="sd">    local_dispatch: whether dispatch is local to the group (G dim)</span>
+<span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">      case.</span>
+<span class="sd">    second_expert_policy: &#39;all&#39; or &#39;random&#39;, we optionally &#39;random&#39;-ize dispatch</span>
+<span class="sd">      to second-best expert proportional to (weight / second_expert_threshold).</span>
+<span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
+<span class="sd">      second_expert_policy == &#39;random&#39;.</span>
+<span class="sd">    legacy_mtf_behavior: True for legacy behavior with no re-normalization of</span>
+<span class="sd">      expert assignment weights if we go over capacity or randomly decide to not</span>
+<span class="sd">      dispatch to second expert.</span>
+<span class="sd">    embedding_type: &#39;sentence&#39; by default. Options: &#39;sentence&#39;. Setting this</span>
+<span class="sd">      option calls GetSentenceEmbeddings.</span>
+<span class="sd">    capacity_factor: if set, increases expert_capacity_dim to at least</span>
+<span class="sd">      (group_size * capacity_factor) / experts_dim where `group_size` is the</span>
+<span class="sd">      size of G dimension of `inputs`. If the value of expert_capacity_dim is</span>
+<span class="sd">      already big enough no change is made.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (dispatch_tensor, combine_tensor, aux_loss).</span>
+
+<span class="sd">    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">    - combine_tensor: G`SEC Tensor.</span>
+<span class="sd">      combining expert outputs.</span>
+<span class="sd">    - aux_loss: auxiliary loss, equalizing the expert assignment ratios.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">assert</span> <span class="n">embedding_type</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;sentence&#39;</span><span class="p">]</span>
+  <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="k">if</span> <span class="n">embedding_type</span> <span class="o">==</span> <span class="s1">&#39;sentence&#39;</span><span class="p">:</span>
+    <span class="n">sentence_embeddings</span> <span class="o">=</span> <span class="n">GetSentenceEmbeddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">segment_id</span><span class="p">)</span>
+
+  <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">sentence_embeddings</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+  <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
+      <span class="n">sentence_embeddings</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span>
+      <span class="n">expert_capacity_dim</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">second_expert_policy</span><span class="p">,</span>
+      <span class="n">second_expert_threshold</span><span class="p">,</span> <span class="n">legacy_mtf_behavior</span><span class="p">,</span> <span class="n">capacity_factor</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">dispatch_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">combine_tensor</span><span class="o">=</span><span class="n">combine_tensor</span><span class="p">,</span>
+      <span class="n">dispatch_tensor</span><span class="o">=</span><span class="n">dispatch_tensor</span><span class="p">,</span>
+      <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="TaskTop2Gating"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.TaskTop2Gating">[docs]</a><span class="k">def</span> <span class="nf">TaskTop2Gating</span><span class="p">(</span><span class="n">w</span><span class="p">,</span>
+                   <span class="n">inputs</span><span class="p">,</span>
+                   <span class="n">paddings</span><span class="p">,</span>
+                   <span class="n">task_embeddings</span><span class="p">,</span>
+                   <span class="n">num_devices</span><span class="p">,</span>
+                   <span class="n">experts_dim</span><span class="p">,</span>
+                   <span class="n">expert_capacity_dim</span><span class="p">,</span>
+                   <span class="n">local_dispatch</span><span class="p">,</span>
+                   <span class="n">fprop_dtype</span><span class="p">,</span>
+                   <span class="n">use_xla_sharding</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+                   <span class="n">second_expert_policy</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">,</span>
+                   <span class="n">second_expert_threshold</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+                   <span class="n">legacy_mtf_behavior</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes Top-2 sentence gating for Mixture-of-Experts.</span>
+
+<span class="sd">  Instead of using the each token, this function uses embedding_type to return a</span>
+<span class="sd">  sentence-wise embedding to create dispatch and combine tensors that gate</span>
+<span class="sd">  the entire sentence.</span>
+
+<span class="sd">  See SentenceTop2GatingOnLogits for more details.</span>
+
+<span class="sd">  Note that for local_dispatch original batch BLM is reshaped into GSM, each</span>
+<span class="sd">  group `g = 0...G-1` is being dispatched independently.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    w: gating weights for each experts.</span>
+<span class="sd">    inputs: G`SM Tensor.</span>
+<span class="sd">    paddings: G`S Tensor.</span>
+<span class="sd">    task_embeddings: G`SM Tensor.</span>
+<span class="sd">    num_devices: number of MoE devices for local dispatch</span>
+<span class="sd">    experts_dim: number of experts.</span>
+<span class="sd">    expert_capacity_dim: number of examples per minibatch(group) per expert.</span>
+<span class="sd">      Each example is typically a vector of size input_dim, representing</span>
+<span class="sd">      embedded token or an element of Transformer layer output.</span>
+<span class="sd">    local_dispatch: whether dispatch is local to the group (G dim)</span>
+<span class="sd">    fprop_dtype: activations datatype to use.</span>
+<span class="sd">    use_xla_sharding: bool, True if this function is used for the xla_sharding</span>
+<span class="sd">      case.</span>
+<span class="sd">    second_expert_policy: &#39;all&#39; or &#39;random&#39;, we optionally &#39;random&#39;-ize dispatch</span>
+<span class="sd">      to second-best expert proportional to (weight / second_expert_threshold).</span>
+<span class="sd">    second_expert_threshold: threshold for probability normalization for</span>
+<span class="sd">      second_expert_policy == &#39;random&#39;.</span>
+<span class="sd">    legacy_mtf_behavior: True for legacy behavior with no re-normalization of</span>
+<span class="sd">      expert assignment weights if we go over capacity or randomly decide to not</span>
+<span class="sd">      dispatch to second expert.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tuple (dispatch_tensor, combine_tensor, aux_loss):</span>
+
+<span class="sd">    - dispatch_tensor: G`SEC Tensor, scattering/dispatching inputs to</span>
+<span class="sd">      experts.</span>
+<span class="sd">    - combine_tensor: G`SEC Tensor.</span>
+<span class="sd">      combining expert outputs.</span>
+<span class="sd">    - aux_loss: auxiliary loss, equalizing the expert assignment ratios.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">orig_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="n">task_embeddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">task_embeddings</span><span class="p">,</span>
+        <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">task_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="n">task_embeddings</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+  <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;GSM,ME-&gt;GSE&#39;</span><span class="p">,</span> <span class="n">task_embeddings</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+  <span class="n">aux_loss</span><span class="p">,</span> <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">Top2GatingOnLogits</span><span class="p">(</span>
+      <span class="n">task_embeddings</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">num_devices</span><span class="p">,</span> <span class="n">experts_dim</span><span class="p">,</span>
+      <span class="n">expert_capacity_dim</span><span class="p">,</span> <span class="n">fprop_dtype</span><span class="p">,</span> <span class="n">use_xla_sharding</span><span class="p">,</span> <span class="n">second_expert_policy</span><span class="p">,</span>
+      <span class="n">second_expert_threshold</span><span class="p">,</span> <span class="n">legacy_mtf_behavior</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">local_dispatch</span><span class="p">:</span>
+    <span class="n">dispatch_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">dispatch_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">dispatch_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="n">combine_tensor</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">combine_tensor</span><span class="p">,</span> <span class="n">orig_inputs</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">combine_tensor</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+
+  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">combine_tensor</span><span class="o">=</span><span class="n">combine_tensor</span><span class="p">,</span>
+      <span class="n">dispatch_tensor</span><span class="o">=</span><span class="n">dispatch_tensor</span><span class="p">,</span>
+      <span class="n">aux_loss</span><span class="o">=</span><span class="n">aux_loss</span><span class="p">)</span></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

@@ -184,8 +184,8 @@ it’s simpler and more basic than ConvTransposeLayer.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.DeconvLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.DeconvLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#DeconvLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.DeconvLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -316,8 +316,8 @@ padding.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.BaseConv2DLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BaseConv2DLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BaseConv2DLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.BaseConv2DLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BaseConv2DLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BaseConv2DLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -328,14 +328,14 @@ padding.</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#BaseConv2DLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.BaseConv2DLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -641,8 +641,8 @@ expected to be of shape [batch, time].</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.ProjectionLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.ProjectionLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -653,14 +653,14 @@ expected to be of shape [batch, time].</p></li>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ProjectionLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ProjectionLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1069,8 +1069,8 @@ disabled.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.PoolingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PoolingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.PoolingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.PoolingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PoolingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.PoolingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1168,8 +1168,8 @@ small vocabs (e.g. &lt; 1k vocab).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.SingleShardEmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.SingleShardEmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SingleShardEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SingleShardEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1250,8 +1250,8 @@ layer and its children layers.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.EmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.EmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#EmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.EmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1295,8 +1295,8 @@ embs[indices, :] is the embedding vector for ids[indices].</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.TPUEmbeddingTable._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.TPUEmbeddingTable._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingTable._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingTable._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1372,19 +1372,19 @@ Only supports Adagrad.</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.TPUEmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.TPUEmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#TPUEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.TPUEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1438,8 +1438,8 @@ not shard the embeddings.</p>
 <dd></dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.SimpleEmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleEmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleEmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.SimpleEmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1557,8 +1557,8 @@ the Transformer Network.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.PositionalEmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PositionalEmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.PositionalEmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.PositionalEmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#PositionalEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.PositionalEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1652,8 +1652,8 @@ positional embeddings.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#RelativePositionalEmbeddingLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.RelativePositionalEmbeddingLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1802,8 +1802,8 @@ this layer’s dtype.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.SimpleFullSoftmax._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#SimpleFullSoftmax._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.SimpleFullSoftmax._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1996,8 +1996,8 @@ to a matrix.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.ConvSoftmax._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvSoftmax._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvSoftmax._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.ConvSoftmax._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvSoftmax._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvSoftmax._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Constructs a SimpleFullSoftmax layer.</p>
 </dd></dl>
 
@@ -2111,13 +2111,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.LayerNorm._GetNormalizationParamShape">
-<code class="sig-name descname">_GetNormalizationParamShape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LayerNorm._GetNormalizationParamShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.LayerNorm._GetNormalizationParamShape" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
-<dl class="py method">
-<dt id="lingvo.core.layers.LayerNorm._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LayerNorm._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.LayerNorm._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.LayerNorm._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LayerNorm._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.LayerNorm._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2202,9 +2197,22 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.CategoricalLayerNorm._GetNormalizationParamShape">
-<code class="sig-name descname">_GetNormalizationParamShape</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#CategoricalLayerNorm._GetNormalizationParamShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.CategoricalLayerNorm._GetNormalizationParamShape" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.CategoricalLayerNorm._BiasVarName">
+<code class="sig-name descname">_BiasVarName</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">i</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#CategoricalLayerNorm._BiasVarName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.CategoricalLayerNorm._BiasVarName" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.CategoricalLayerNorm._ScaleVarName">
+<code class="sig-name descname">_ScaleVarName</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">i</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#CategoricalLayerNorm._ScaleVarName"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.CategoricalLayerNorm._ScaleVarName" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.layers.CategoricalLayerNorm._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#CategoricalLayerNorm._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.CategoricalLayerNorm._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.layers.CategoricalLayerNorm._GetScaleAndBias">
@@ -2227,8 +2235,8 @@ returns the concatenated outputs.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.ConvSetLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvSetLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvSetLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.ConvSetLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#ConvSetLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.ConvSetLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2443,8 +2451,8 @@ all but the last dimension match.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.GradNormTracker._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#GradNormTracker._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.GradNormTracker._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.GradNormTracker._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#GradNormTracker._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.GradNormTracker._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2487,8 +2495,8 @@ should be aborted completely.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.WeightedSumLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#WeightedSumLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.WeightedSumLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.WeightedSumLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#WeightedSumLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.WeightedSumLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2528,8 +2536,8 @@ Returns g_1 * x_1 + … g_n * x_n.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.GatedAverageLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#GatedAverageLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.GatedAverageLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.GatedAverageLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#GatedAverageLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.GatedAverageLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2573,8 +2581,8 @@ parameters in the model are frozen.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.LHUCLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LHUCLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.LHUCLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.LHUCLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#LHUCLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.LHUCLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -2658,8 +2666,8 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.layers.Conv2DLayerNoPadding._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#Conv2DLayerNoPadding._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.Conv2DLayerNoPadding._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.layers.Conv2DLayerNoPadding._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/layers.html#Conv2DLayerNoPadding._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.layers.Conv2DLayerNoPadding._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>

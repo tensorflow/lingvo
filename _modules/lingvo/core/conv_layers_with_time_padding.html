@@ -340,7 +340,7 @@
 
 
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding">[docs]</a><span class="k">class</span> <span class="nc">BaseConv2DLayerWithPadding</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Base class for 2D convolution layers.</span>
+  <span class="sd">&quot;&quot;&quot;Abstract base class for 2D convolution layers.</span>
 
 <span class="sd">  WARNING: Strided convolutions are buggy. Prefer using v2_padding=True.</span>
 <span class="sd">  &quot;&quot;&quot;</span>
@@ -408,6 +408,10 @@
   <span class="k">def</span> <span class="nf">input_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The number of input channels for this conv layer.&quot;&quot;&quot;</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+
+  <span class="nd">@property</span>
+  <span class="k">def</span> <span class="nf">filter_stride</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">filter_stride</span>
 
 <div class="viewcode-block" id="BaseConv2DLayerWithPadding.OutShape"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.OutShape">[docs]</a>  <span class="k">def</span> <span class="nf">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the output shape given the input shape.&quot;&quot;&quot;</span>
@@ -526,8 +530,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether or not to apply a bias before activation.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="Conv2DLayerWithPadding._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="Conv2DLayerWithPadding._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>
@@ -640,8 +644,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether or not to apply a bias before activation.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="DepthwiseConv2DLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="DepthwiseConv2DLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.conv_layers_with_time_padding.html#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">,</span>

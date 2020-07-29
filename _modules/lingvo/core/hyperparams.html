@@ -995,12 +995,44 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cls&#39;</span><span class="p">,</span> <span class="bp">cls</span><span class="p">,</span> <span class="s1">&#39;Cls that this param object is associated with.&#39;</span><span class="p">)</span>
 
-<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Instantiate an instance that this Params is configured for.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="InstantiableParams.Instantiate"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Instantiate">[docs]</a>  <span class="k">def</span> <span class="nf">Instantiate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Instantiate an instance that this Params is configured for.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">      params = InstantiableParams(cls=MyObject)</span>
+<span class="sd">      params.Define(&#39;weight&#39;, 0.2, &#39;Training weight.&#39;)</span>
+<span class="sd">      params.weight = 0.9</span>
+<span class="sd">      obj = params.Instantiate()</span>
+
+<span class="sd">    It&#39;s common for classes to have a classmethod called Params that returns</span>
+<span class="sd">    a pre-made InstantiableParams, like this:</span>
+
+<span class="sd">      params = MyObject.Params()</span>
+<span class="sd">      params.weight = 0.9</span>
+<span class="sd">      obj = params.Instantiate()</span>
+
+<span class="sd">    By convention, anything that parameterizes the behavior of your class</span>
+<span class="sd">    should be stored in this Params object. However, your class may also use</span>
+<span class="sd">    shared state objects which aren&#39;t really parameters, like a shared lock.</span>
+<span class="sd">    These can be passed as extra arguments to Instantiate.</span>
+
+<span class="sd">    Example:</span>
+<span class="sd">      lock = threading.Lock()</span>
+<span class="sd">      params = MyObject.Params()</span>
+<span class="sd">      obj_a = params.Instantiate(lock=lock)</span>
+<span class="sd">      obj_b = params.Instantiate(lock=lock)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      **args: Additional keyword arguments to pass to the constructor in</span>
+<span class="sd">        addition to this Params object.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      A constructed object where type(object) == cls.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">assert</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 
     <span class="c1"># The class initializer is expected to support initialization using Params.</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cls</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="InstantiableParams.Copy"><a class="viewcode-back" href="../../../lingvo.core.hyperparams.html#lingvo.core.hyperparams.InstantiableParams.Copy">[docs]</a>  <span class="k">def</span> <span class="nf">Copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;See base class.&quot;&quot;&quot;</span>

@@ -364,8 +364,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_source_init_done</span> <span class="o">=</span> <span class="kc">False</span>
 
-<div class="viewcode-block" id="BaseAttentionLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="BaseAttentionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;logits&#39;</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;fullyconnected&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseAttentionLayer.InitForSourcePacked"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.BaseAttentionLayer.InitForSourcePacked">[docs]</a>  <span class="k">def</span> <span class="nf">InitForSourcePacked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
@@ -824,8 +824,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
 
-<div class="viewcode-block" id="AdditiveAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.AdditiveAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="AdditiveAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.AdditiveAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">source_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span><span class="p">],</span>
@@ -1145,8 +1145,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_ctx_vec</span> <span class="o">=</span> <span class="n">Atten</span>
 
-<div class="viewcode-block" id="DotProductAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.DotProductAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="DotProductAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.DotProductAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -1371,8 +1371,8 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_head_prob_index</span> <span class="o">&lt;</span> <span class="n">p</span><span class="o">.</span><span class="n">num_attention_heads</span>
 
-<div class="viewcode-block" id="MultiHeadedAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="MultiHeadedAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MultiHeadedAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">def</span> <span class="nf">InitProj</span><span class="p">(</span><span class="n">layer_dim</span><span class="p">,</span> <span class="n">bias</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
@@ -2186,8 +2186,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
 
-<div class="viewcode-block" id="LocationSensitiveAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="LocationSensitiveAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.LocationSensitiveAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -2494,8 +2494,8 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_encode_source</span> <span class="o">=</span> <span class="n">EncodeSource</span>
 
-<div class="viewcode-block" id="MonotonicAttention._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="MonotonicAttention._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MonotonicAttention._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># source is the weight matrix for the memory/encoder states</span>
@@ -3072,6 +3072,8 @@
              <span class="s1">&#39;Configs template for the gated average layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_sources&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;If merger_op=weighted_sum, then must specify &#39;</span>
              <span class="s1">&#39;num of sources.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;post_proj&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+             <span class="s1">&#39;Post projection for the merged context vector.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="c1"># Merging operation keys supported by this layer.</span>
@@ -3124,8 +3126,11 @@
       <span class="n">params</span><span class="o">.</span><span class="n">num_inputs</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_sources</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gated_average&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MergerLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">post_proj</span><span class="p">:</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;post_proj&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">post_proj</span><span class="p">)</span>
+
+<div class="viewcode-block" id="MergerLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">merger_op</span> <span class="o">==</span> <span class="s1">&#39;weighted_sum&#39;</span><span class="p">:</span>
@@ -3141,15 +3146,15 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;sum_weight&#39;</span><span class="p">,</span> <span class="n">pw</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="MergerLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">if</span> <span class="s1">&#39;atten&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="k">if</span> <span class="s1">&#39;gated_average&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">gated_average</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">gated_average</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="k">if</span> <span class="s1">&#39;pre_proj&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
       <span class="k">for</span> <span class="n">proj</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_proj</span><span class="p">:</span>
-        <span class="n">proj</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="n">proj</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MergerLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.attention.html#lingvo.core.attention.MergerLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">query_vec</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -3245,6 +3250,9 @@
 
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unrecognized merge op!&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">post_proj</span><span class="p">:</span>
+      <span class="n">output</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">post_proj</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">post_proj</span><span class="p">,</span> <span class="n">output</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">output</span></div></div>
 

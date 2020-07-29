@@ -324,23 +324,23 @@ __init__() for classes on the class hierarchy.</p>
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.base_layer._CreateVariablesStatus">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">_CreateVariablesStatus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#_CreateVariablesStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer._CreateVariablesStatus" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer._CreateLayerVariablesStatus">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.base_layer.</code><code class="sig-name descname">_CreateLayerVariablesStatus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#_CreateLayerVariablesStatus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/enum.html#enum.Enum" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">enum.Enum</span></code></a></p>
 <p>An enumeration.</p>
 <dl class="py attribute">
-<dt id="lingvo.core.base_layer._CreateVariablesStatus.NOT_CALLED">
-<code class="sig-name descname">NOT_CALLED</code><em class="property"> = 1</em><a class="headerlink" href="#lingvo.core.base_layer._CreateVariablesStatus.NOT_CALLED" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer._CreateLayerVariablesStatus.NOT_CALLED">
+<code class="sig-name descname">NOT_CALLED</code><em class="property"> = 1</em><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus.NOT_CALLED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="lingvo.core.base_layer._CreateVariablesStatus.IN_PROGRESS">
-<code class="sig-name descname">IN_PROGRESS</code><em class="property"> = 2</em><a class="headerlink" href="#lingvo.core.base_layer._CreateVariablesStatus.IN_PROGRESS" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer._CreateLayerVariablesStatus.IN_PROGRESS">
+<code class="sig-name descname">IN_PROGRESS</code><em class="property"> = 2</em><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus.IN_PROGRESS" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
-<dt id="lingvo.core.base_layer._CreateVariablesStatus.COMPLETED">
-<code class="sig-name descname">COMPLETED</code><em class="property"> = 3</em><a class="headerlink" href="#lingvo.core.base_layer._CreateVariablesStatus.COMPLETED" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer._CreateLayerVariablesStatus.COMPLETED">
+<code class="sig-name descname">COMPLETED</code><em class="property"> = 3</em><a class="headerlink" href="#lingvo.core.base_layer._CreateLayerVariablesStatus.COMPLETED" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 </dd></dl>
@@ -690,7 +690,7 @@ parameter, one can do:</p>
 </div>
 <p>In some contexts, eg. TPU training, variables may not be created immediately
 but rather the creation request will be cached and created later via a call
-to layer.CreateVariables().</p>
+to layer.InstantiateVariables().</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
@@ -706,8 +706,8 @@ new value to be used later for computation. Its signature must be
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_layer.BaseLayer._CreateVariable">
-<code class="sig-name descname">_CreateVariable</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">meta</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateVariable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateVariable" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer.BaseLayer._CreateVariableInternal">
+<code class="sig-name descname">_CreateVariableInternal</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">meta</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateVariableInternal"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateVariableInternal" title="Permalink to this definition">¶</a></dt>
 <dd><p>Immediately creates the variable described by <code class="xref py py-obj docutils literal notranslate"><span class="pre">meta</span></code>.</p>
 <p>DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use
 self.CreateVariable() to create variables.</p>
@@ -722,10 +722,10 @@ self.CreateVariable() to create variables.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_layer.BaseLayer.CreateVariables">
-<code class="sig-name descname">CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer.BaseLayer.InstantiateVariables">
+<code class="sig-name descname">InstantiateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer.InstantiateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer.InstantiateVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for this layer and child layers.</p>
-<p>DO NOT OVERRIDE. Override self._CreateVariables instead.</p>
+<p>DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -733,19 +733,19 @@ self.CreateVariable() to create variables.</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.base_layer.BaseLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.base_layer.BaseLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/base_layer.html#BaseLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.base_layer.BaseLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>

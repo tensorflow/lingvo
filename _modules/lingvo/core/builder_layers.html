@@ -266,7 +266,7 @@
 <div class="viewcode-block" id="RepeatLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">repeat</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="RepeatLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.RepeatLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -380,11 +380,11 @@
       <span class="c1"># Prepends p.num_experts to the tensor shape of every variable created</span>
       <span class="c1"># by p.body.</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VariableShapePrefixContext</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_experts</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="SoftCondLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SoftCondLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="SoftCondLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.SoftCondLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># Create Variables for task weight mapping.</span>
     <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span>
@@ -1152,8 +1152,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;output_dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the output.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="LinearLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="LinearLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.LinearLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
         <span class="s1">&#39;w&#39;</span><span class="p">,</span>
@@ -1203,8 +1203,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dims&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Depth of the input.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="BiasLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="BiasLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.builder_layers.html#lingvo.core.builder_layers.BiasLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span>
         <span class="s1">&#39;b&#39;</span><span class="p">,</span>

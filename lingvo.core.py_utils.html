@@ -379,28 +379,6 @@ these keywards.</p></li>
 </dd></dl>
 
 <dl class="py function">
-<dt id="lingvo.core.py_utils.HasShape">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">HasShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em>, <em class="sig-param"><span class="n">expected_shape</span></em>, <em class="sig-param"><span class="n">ndims</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasShape" title="Permalink to this definition">¶</a></dt>
-<dd><p>Syntactic sugar for asserting that tensor has the expected shape.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
-<dd class="field-odd"><ul class="simple">
-<li><p><strong>tensor</strong> – A Tensor.</p></li>
-<li><p><strong>expected_shape</strong> – A Python list or a 1D tensor.</p></li>
-<li><p><strong>ndims</strong> – If not None, check only the first <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndims</span></code> dimensions of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code>.
-Must be equal to the length of <code class="xref py py-obj docutils literal notranslate"><span class="pre">expected_shape</span></code> if not None.</p></li>
-</ul>
-</dd>
-<dt class="field-even">Returns</dt>
-<dd class="field-even"><p>The input <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code></p>
-</dd>
-<dt class="field-odd">Raises</dt>
-<dd class="field-odd"><p><strong>A runtime error if the assertion fails.</strong> – </p>
-</dd>
-</dl>
-</dd></dl>
-
-<dl class="py function">
 <dt id="lingvo.core.py_utils.GetShape">
 <code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">GetShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em>, <em class="sig-param"><span class="n">ndims</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#GetShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.GetShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns tensor’s shape as a list which can be unpacked, unlike tf.shape.</p>
@@ -412,6 +390,30 @@ some of the outputs will be ints while the rest will be Tensors.</p>
 <li><p><strong>tensor</strong> – The input tensor.</p></li>
 <li><p><strong>ndims</strong> – If not None, returns the shapes for the first <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndims</span></code> dimensions.</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.py_utils.HasShape">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">HasShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">tensor</span></em>, <em class="sig-param"><span class="n">expected_shape</span></em>, <em class="sig-param"><span class="n">ndims</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#HasShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.HasShape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Syntactic sugar for asserting that tensor has the expected shape.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>tensor</strong> – A Tensor.</p></li>
+<li><p><strong>expected_shape</strong> – A Python list or a 1D tensor. Elements of expected_shape can
+be -1 which indicate that any size is valid for that dimension.</p></li>
+<li><p><strong>ndims</strong> – If not None, check only the first <code class="xref py py-obj docutils literal notranslate"><span class="pre">ndims</span></code> dimensions of <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code>.
+Must be equal to the length of <code class="xref py py-obj docutils literal notranslate"><span class="pre">expected_shape</span></code> if not None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The input <code class="xref py py-obj docutils literal notranslate"><span class="pre">tensor</span></code> with control dependencies that will raise a runtime
+error if dynamic shape checks fail.</p>
+</dd>
+<dt class="field-odd">Raises</dt>
+<dd class="field-odd"><p><a class="reference external" href="https://docs.python.org/3.7/library/exceptions.html#ValueError" title="(in Python v3.7)"><strong>ValueError</strong></a> – A value error if the assertion fails at static shape checks.</p>
 </dd>
 </dl>
 </dd></dl>

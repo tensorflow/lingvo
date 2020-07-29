@@ -306,7 +306,7 @@
 <div class="viewcode-block" id="BatchNormLayer._GetWeightShape"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer._GetWeightShape">[docs]</a>  <span class="k">def</span> <span class="nf">_GetWeightShape</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span></div>
 
-<div class="viewcode-block" id="BatchNormLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BatchNormLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -642,8 +642,8 @@
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="s1">&#39;Name of BatchNormLayerNoPadding is not set.&#39;</span>
     <span class="n">p</span><span class="o">.</span><span class="n">fprop_dtype</span> <span class="o">=</span> <span class="kc">None</span>
 
-<div class="viewcode-block" id="BatchNormLayerNoPadding._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="BatchNormLayerNoPadding._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayerNoPadding._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="c1"># Skip L-P regularization for these variables.</span>
@@ -830,8 +830,8 @@
                                              <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span> <span class="o">=</span> <span class="mf">0.001</span>
 
-<div class="viewcode-block" id="GroupNormLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="GroupNormLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span>

@@ -610,32 +610,6 @@
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>  <span class="c1"># Tensor</span></div>
 
 
-<div class="viewcode-block" id="HasShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasShape">[docs]</a><span class="k">def</span> <span class="nf">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-  <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has the expected shape.</span>
-
-<span class="sd">  Args:</span>
-<span class="sd">    tensor: A Tensor.</span>
-<span class="sd">    expected_shape: A Python list or a 1D tensor.</span>
-<span class="sd">    ndims: If not None, check only the first `ndims` dimensions of `tensor`.</span>
-<span class="sd">      Must be equal to the length of `expected_shape` if not None.</span>
-
-<span class="sd">  Returns:</span>
-<span class="sd">    The input `tensor`</span>
-<span class="sd">  Raises:</span>
-<span class="sd">    A runtime error if the assertion fails.</span>
-<span class="sd">  &quot;&quot;&quot;</span>
-  <span class="k">if</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
-    <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
-    <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;.*/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
-                                                 <span class="n">filepath</span><span class="p">),</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">([</span>
-        <span class="n">ops</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span>
-            <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)[:</span><span class="n">ndims</span><span class="p">],</span> <span class="n">expected_shape</span><span class="p">,</span> <span class="n">msg</span><span class="o">=</span><span class="n">msg</span><span class="p">)</span>
-    <span class="p">],</span> <span class="n">tensor</span><span class="p">)</span>
-  <span class="k">else</span><span class="p">:</span>
-    <span class="k">return</span> <span class="n">tensor</span></div>
-
-
 <div class="viewcode-block" id="GetShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetShape">[docs]</a><span class="k">def</span> <span class="nf">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Returns tensor&#39;s shape as a list which can be unpacked, unlike tf.shape.</span>
 
@@ -669,6 +643,113 @@
       <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">ndims</span><span class="p">)</span>
   <span class="p">]</span>
   <span class="k">return</span> <span class="n">shapes</span></div>
+
+
+<div class="viewcode-block" id="HasShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.HasShape">[docs]</a><span class="k">def</span> <span class="nf">HasShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">,</span> <span class="n">ndims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Syntactic sugar for asserting that tensor has the expected shape.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensor: A Tensor.</span>
+<span class="sd">    expected_shape: A Python list or a 1D tensor. Elements of expected_shape can</span>
+<span class="sd">      be -1 which indicate that any size is valid for that dimension.</span>
+<span class="sd">    ndims: If not None, check only the first `ndims` dimensions of `tensor`.</span>
+<span class="sd">      Must be equal to the length of `expected_shape` if not None.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The input `tensor` with control dependencies that will raise a runtime</span>
+<span class="sd">    error if dynamic shape checks fail.</span>
+
+<span class="sd">  Raises:</span>
+<span class="sd">    ValueError: A value error if the assertion fails at static shape checks.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">_FromGlobal</span><span class="p">(</span><span class="s1">&#39;enable_asserts&#39;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">tensor</span>
+
+  <span class="n">filepath</span><span class="p">,</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">traceback</span><span class="o">.</span><span class="n">extract_stack</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">3</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span>
+  <span class="n">msg</span> <span class="o">=</span> <span class="s1">&#39;LINGVO ASSERT </span><span class="si">%s</span><span class="s1">:</span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">sub</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;.*/&#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">,</span>
+                                               <span class="n">filepath</span><span class="p">),</span> <span class="n">line</span><span class="p">,</span> <span class="n">func</span><span class="p">)</span>
+
+  <span class="n">tensor_shape</span> <span class="o">=</span> <span class="n">GetShape</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
+
+  <span class="c1"># If expected_shape is a Tensor, then we are unable to perform static checks.</span>
+  <span class="c1"># In this case, we can do a dynamic check and return.</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">ndims</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">tensor_shape</span> <span class="o">=</span> <span class="n">tensor_shape</span><span class="p">[:</span><span class="n">ndims</span><span class="p">]</span>
+    <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span>
+                        <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">))),</span>
+            <span class="p">[</span>
+                <span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;Tensor does not match expected shape:&#39;</span><span class="p">,</span> <span class="s1">&#39;Tensor shape: &#39;</span><span class="p">,</span>
+                <span class="n">tensor_shape</span><span class="p">,</span> <span class="s1">&#39; Expected shape: &#39;</span><span class="p">,</span> <span class="n">expected_shape</span>
+            <span class="p">])</span>
+    <span class="p">],</span> <span class="n">tensor</span><span class="p">)</span>
+
+  <span class="c1"># Infer ranks from the inputs.</span>
+  <span class="n">expected_rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">)</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">tensor_rank</span> <span class="o">=</span> <span class="n">tensor</span><span class="o">.</span><span class="n">shape</span><span class="o">.</span><span class="n">ndims</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">tensor_rank</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">)</span>
+
+  <span class="c1"># If ndims is None, then either one of the ranks should not be None, or they</span>
+  <span class="c1"># should both match. If both ranks are None, then they are both tensors and</span>
+  <span class="c1"># should be caught by the earlier short-circuit.</span>
+  <span class="k">if</span> <span class="n">ndims</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tensor_rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">expected_rank</span> <span class="o">!=</span> <span class="n">tensor_rank</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Tensor does not match rank of expected shape.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                       <span class="s1">&#39;Tensor shape: </span><span class="si">{}</span><span class="s1"> Expected shape: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                           <span class="n">tensor_shape</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">))</span>
+    <span class="c1"># Both tensors can be assumed to be of same rank.</span>
+    <span class="n">ndims</span> <span class="o">=</span> <span class="n">expected_rank</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">if</span> <span class="p">(</span><span class="n">tensor_rank</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">tensor_rank</span> <span class="o">&lt;</span> <span class="n">ndims</span><span class="p">):</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Tensor has fewer dimensions than ndims.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                       <span class="s1">&#39;Tensor shape: </span><span class="si">{}</span><span class="s1"> ndims: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">ndims</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">expected_rank</span> <span class="o">!=</span> <span class="n">ndims</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Expected shape must have number of dimensions equal to ndims.</span><span class="se">\n</span><span class="s1">&#39;</span>
+          <span class="s1">&#39;Expected shape: </span><span class="si">{}</span><span class="s1"> ndims: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">expected_shape</span><span class="p">,</span> <span class="n">ndims</span><span class="p">))</span>
+
+  <span class="c1"># Ensure that both tensor_shape and expected_shape are both lists.</span>
+  <span class="n">tensor_shape</span> <span class="o">=</span> <span class="n">tensor_shape</span><span class="p">[:</span><span class="n">ndims</span><span class="p">]</span>
+  <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+    <span class="n">tensor_shape</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="n">ndims</span><span class="p">)</span>
+
+  <span class="c1"># Map tf.Dimension values to their held values.</span>
+  <span class="n">tensor_shape</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">v</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Dimension</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">tensor_shape</span>
+  <span class="p">]</span>
+  <span class="n">expected_shape</span> <span class="o">=</span> <span class="p">[</span>
+      <span class="n">v</span><span class="o">.</span><span class="n">value</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Dimension</span><span class="p">)</span> <span class="k">else</span> <span class="n">v</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">expected_shape</span>
+  <span class="p">]</span>
+
+  <span class="n">assert_ops</span> <span class="o">=</span> <span class="p">[]</span>
+  <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">expected_dim</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="n">tensor_shape</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">)):</span>
+    <span class="k">if</span> <span class="n">expected_dim</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+      <span class="k">continue</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">expected_dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">):</span>
+      <span class="n">assert_ops</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+          <span class="n">tf</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span>
+                      <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">expected_dim</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">int32</span><span class="p">)),</span>
+                  <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">equal</span><span class="p">(</span><span class="n">expected_dim</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)),</span> <span class="p">[</span>
+                      <span class="n">msg</span><span class="p">,</span> <span class="s1">&#39;Tensor does not match expected shape on dimension:&#39;</span><span class="p">,</span>
+                      <span class="n">idx</span><span class="p">,</span> <span class="s1">&#39;Tensor shape: &#39;</span><span class="p">,</span> <span class="n">tensor_shape</span><span class="p">,</span> <span class="s1">&#39; Expected shape: &#39;</span><span class="p">,</span>
+                      <span class="n">expected_shape</span>
+                  <span class="p">]))</span>
+    <span class="k">elif</span> <span class="n">dim</span> <span class="o">!=</span> <span class="n">expected_dim</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Tensor does not match expected shape on dimension </span><span class="si">{}</span><span class="s1">.</span><span class="se">\n</span><span class="s1">&#39;</span>
+                       <span class="s1">&#39;Tensor shape: </span><span class="si">{}</span><span class="s1"> Expected shape: </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                           <span class="n">idx</span><span class="p">,</span> <span class="n">tensor_shape</span><span class="p">,</span> <span class="n">expected_shape</span><span class="p">))</span>
+
+  <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">(</span><span class="n">assert_ops</span><span class="p">,</span> <span class="n">tensor</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="GetSize"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.GetSize">[docs]</a><span class="k">def</span> <span class="nf">GetSize</span><span class="p">(</span><span class="n">tensor</span><span class="p">):</span>

@@ -212,8 +212,8 @@ be added to [B, N, T, S] attention logits.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.PerDimScaleLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#PerDimScaleLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.PerDimScaleLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.PerDimScaleLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#PerDimScaleLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.PerDimScaleLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -290,8 +290,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedProjectionLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedProjectionLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -623,8 +623,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -726,14 +726,14 @@ updated_value_vec: [T, B, N, H].</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1083,8 +1083,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -1508,6 +1508,11 @@ value - [target_time, target_batch, num_heads, dim_per_head].</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.StackedTransformerLayers.GetSplitForLayer">
+<em class="property">classmethod </em><code class="sig-name descname">GetSplitForLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">buckets</span></em>, <em class="sig-param"><span class="n">layer_index</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.GetSplitForLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.GetSplitForLayer" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.StackedTransformerLayers.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">aux_vec</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">segment_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">aux_segment_mask</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#StackedTransformerLayers.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.StackedTransformerLayers.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Stacked Transformer layer.</p>
@@ -1768,13 +1773,13 @@ value - [target_time, target_batch, num_heads, dim_per_head].</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._MultiHeadedAtten">
-<code class="sig-name descname">_MultiHeadedAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._MultiHeadedAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_MultiHeadedAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">num_heads</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._MultiHeadedAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a MultiHeadedAttention params.</p>
 </dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder.Feedforward">
-<code class="sig-name descname">Feedforward</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.Feedforward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.Feedforward" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Feedforward</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">is_causal</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">ff_hidden_dim</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.Feedforward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.Feedforward" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -1863,7 +1868,7 @@ used.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder._StridedAttention">
-<code class="sig-name descname">_StridedAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._StridedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._StridedAttention" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_StridedAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_heads</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder._StridedAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder._StridedAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes self attention with optional stride.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1878,6 +1883,7 @@ flag is a no-op. If stride is positive, the output sequence length is
 “(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
 1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
 used.</p></li>
+<li><p><strong>num_heads</strong> – the number of heads.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1888,7 +1894,7 @@ used.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">
-<code class="sig-name descname">TransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.TransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">TransformerEncoderLayer</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">stride</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">first_n</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">ff_hidden_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">num_heads</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#Builder.TransformerEncoderLayer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer" title="Permalink to this definition">¶</a></dt>
 <dd><p>(inputs, paddings) -&gt; (encoded, paddings).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1903,6 +1909,10 @@ flag is a no-op. If stride is positive, the output sequence length is
 “(first_n-1) // stride + 1”. If stride is 0, first_n has to be None or
 1. first_n can’t be 0. If first_n &lt;= stride, only the first token is
 used.</p></li>
+<li><p><strong>ff_hidden_dim</strong> – The feed forward layer’s hidden dimension. If specified,
+this will override p.ff_hidden_dim.</p></li>
+<li><p><strong>num_heads</strong> – The number of heads for the multi-head attention module. If
+specified, this will override p.num_heads.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1930,6 +1940,39 @@ used.</p></li>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LmBuilder</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">params</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.Builder" title="lingvo.core.batch_major_attention.Builder"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.Builder</span></code></a></p>
 <p>Langange model builder with causal padding.</p>
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>The params of this layer.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._ShardedVar">
+<code class="sig-name descname">_ShardedVar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">weights</span></em>, <em class="sig-param"><span class="n">split_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._ShardedVar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._ShardedVar" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._LinearWeight">
+<code class="sig-name descname">_LinearWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">split_dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._LinearWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._LinearWeight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._Linear">
+<code class="sig-name descname">_Linear</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">output_dim</span></em>, <em class="sig-param"><span class="n">split_dim</span><span class="o">=</span><span class="default_value">0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Linear"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Linear" title="Permalink to this definition">¶</a></dt>
+<dd><p>Linear layer. y = matmul([…, idims], [idims, odims]).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._BiasWeight">
+<code class="sig-name descname">_BiasWeight</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._BiasWeight"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._BiasWeight" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.LmBuilder._Bias">
+<code class="sig-name descname">_Bias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">dim</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder._Bias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder._Bias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bias layer. The bias is added to the last dimension of the input.</p>
+</dd></dl>
+
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LmBuilder.Feedforward">
 <code class="sig-name descname">Feedforward</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LmBuilder.Feedforward"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LmBuilder.Feedforward" title="Permalink to this definition">¶</a></dt>

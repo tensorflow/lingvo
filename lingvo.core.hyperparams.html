@@ -506,8 +506,38 @@ initialization using a Params instance.</p>
 class.</p>
 <dl class="py method">
 <dt id="lingvo.core.hyperparams.InstantiableParams.Instantiate">
-<code class="sig-name descname">Instantiate</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams.Instantiate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams.Instantiate" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Instantiate</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">**</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/hyperparams.html#InstantiableParams.Instantiate"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.hyperparams.InstantiableParams.Instantiate" title="Permalink to this definition">¶</a></dt>
 <dd><p>Instantiate an instance that this Params is configured for.</p>
+<p class="rubric">Example</p>
+<p>params = InstantiableParams(cls=MyObject)
+params.Define(‘weight’, 0.2, ‘Training weight.’)
+params.weight = 0.9
+obj = params.Instantiate()</p>
+<p>It’s common for classes to have a classmethod called Params that returns
+a pre-made InstantiableParams, like this:</p>
+<blockquote>
+<div><p>params = MyObject.Params()
+params.weight = 0.9
+obj = params.Instantiate()</p>
+</div></blockquote>
+<p>By convention, anything that parameterizes the behavior of your class
+should be stored in this Params object. However, your class may also use
+shared state objects which aren’t really parameters, like a shared lock.
+These can be passed as extra arguments to Instantiate.</p>
+<p class="rubric">Example</p>
+<p>lock = threading.Lock()
+params = MyObject.Params()
+obj_a = params.Instantiate(lock=lock)
+obj_b = params.Instantiate(lock=lock)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>**args</strong> – Additional keyword arguments to pass to the constructor in
+addition to this Params object.</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A constructed object where type(object) == cls.</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py method">

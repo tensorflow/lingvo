@@ -348,9 +348,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;stack&#39;</span><span class="p">,</span> <span class="n">stack_params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RnnStackStep._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="RnnStackStep.PrepareExternalInputs"><a class="viewcode-back" href="../../../../lingvo.core.steps.rnn_steps.html#lingvo.core.steps.rnn_steps.RnnStackStep.PrepareExternalInputs">[docs]</a>  <span class="k">def</span> <span class="nf">PrepareExternalInputs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">external_inputs</span><span class="p">):</span>

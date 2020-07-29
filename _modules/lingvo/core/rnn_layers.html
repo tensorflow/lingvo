@@ -242,9 +242,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
 
 <div class="viewcode-block" id="RNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.RNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="RNN.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.RNN.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
@@ -386,16 +386,16 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>
 
-<div class="viewcode-block" id="StackedFRNNLayerByLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="StackedFRNNLayerByLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;residual&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StackedFRNNLayerByLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">for</span> <span class="n">rnn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn</span><span class="p">:</span>
-      <span class="n">rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="n">rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="StackedFRNNLayerByLayer.zero_state"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedFRNNLayerByLayer.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
@@ -476,16 +476,16 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;rnn&#39;</span><span class="p">,</span> <span class="n">rnn_params</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout</span><span class="p">)</span>
 
-<div class="viewcode-block" id="StackedBiFRNNLayerByLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="StackedBiFRNNLayerByLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">TrackQTensor</span><span class="p">(</span><span class="s1">&#39;residual&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StackedBiFRNNLayerByLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">for</span> <span class="n">rnn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">rnn</span><span class="p">:</span>
-      <span class="n">rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="n">rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">dropout</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="StackedBiFRNNLayerByLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.StackedBiFRNNLayerByLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
@@ -536,9 +536,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;cell&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">cell</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FRNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.FRNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
   <span class="nd">@property</span>
@@ -660,9 +660,9 @@
       <span class="n">fwd_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
       <span class="n">bwd_device</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">fwd_device</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">bwd_device</span><span class="p">):</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BidirectionalFRNN.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_id</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -761,10 +761,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bak_rnn&#39;</span><span class="p">,</span> <span class="n">params_backward</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BidirectionalRNN._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNN._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BidirectionalRNN.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNN.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
@@ -823,9 +823,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;brnn&#39;</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BidirectionalRNNV2._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNNV2._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">brnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">brnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BidirectionalRNNV2._PadSequenceToLength"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalRNNV2._PadSequenceToLength">[docs]</a>  <span class="k">def</span> <span class="nf">_PadSequenceToLength</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t_input</span><span class="p">,</span> <span class="n">length</span><span class="p">,</span> <span class="n">pad_value</span><span class="p">):</span>
@@ -942,10 +942,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FRNNWithAttention._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.FRNNWithAttention._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">atten</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
   <span class="nd">@property</span>
@@ -1340,12 +1340,12 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;atten_merger&#39;</span><span class="p">,</span> <span class="n">params</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiSourceFRNNWithAttention._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">cell</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="k">for</span> <span class="n">atten</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">attentions</span><span class="p">:</span>
-      <span class="n">atten</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">atten_merger</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="n">atten</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">atten_merger</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MultiSourceFRNNWithAttention.InitAttention"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.MultiSourceFRNNWithAttention.InitAttention">[docs]</a>  <span class="k">def</span> <span class="nf">InitAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">src_encs</span><span class="p">,</span> <span class="n">src_paddings</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>
@@ -1536,10 +1536,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bak_rnn&#39;</span><span class="p">,</span> <span class="n">params_backward</span><span class="p">)</span>
 
 <div class="viewcode-block" id="BidirectionalFRNNQuasi._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNNQuasi._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">fwd_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">bak_rnn</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BidirectionalFRNNQuasi.FProp"><a class="viewcode-back" href="../../../lingvo.core.rnn_layers.html#lingvo.core.rnn_layers.BidirectionalFRNNQuasi.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>

@@ -278,7 +278,7 @@
     <span class="k">if</span> <span class="ow">not</span> <span class="n">stack</span><span class="p">:</span>
       <span class="c1"># Outermost layer just finished __init__.</span>
       <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">immediately_create_variables</span><span class="p">:</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
 
   <span class="k">return</span> <span class="n">Wrapper</span></div>
 
@@ -340,7 +340,7 @@
     <span class="s1">&#39;CreateVariableMeta&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;var_params&#39;</span><span class="p">,</span> <span class="s1">&#39;theta_fn&#39;</span><span class="p">,</span> <span class="s1">&#39;kwargs&#39;</span><span class="p">])</span>
 
 
-<div class="viewcode-block" id="_CreateVariablesStatus"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._CreateVariablesStatus">[docs]</a><span class="k">class</span> <span class="nc">_CreateVariablesStatus</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
+<div class="viewcode-block" id="_CreateLayerVariablesStatus"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer._CreateLayerVariablesStatus">[docs]</a><span class="k">class</span> <span class="nc">_CreateLayerVariablesStatus</span><span class="p">(</span><span class="n">enum</span><span class="o">.</span><span class="n">Enum</span><span class="p">):</span>
   <span class="n">NOT_CALLED</span> <span class="o">=</span> <span class="mi">1</span>
   <span class="n">IN_PROGRESS</span> <span class="o">=</span> <span class="mi">2</span>
   <span class="n">COMPLETED</span> <span class="o">=</span> <span class="mi">3</span></div>
@@ -497,7 +497,7 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span> <span class="o">=</span> <span class="kc">False</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span>
 
 <div class="viewcode-block" id="BaseLayer.SetVariableFree"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.SetVariableFree">[docs]</a>  <span class="k">def</span> <span class="nf">SetVariableFree</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Marks this layer as having no variables.</span>
@@ -507,10 +507,10 @@
 <span class="sd">    Args:</span>
 <span class="sd">      value: True to set layer as variable free.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;Variable free status for </span><span class="si">%s</span><span class="s1"> must be set before CreateVariables().&#39;</span> <span class="o">%</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
+          <span class="s1">&#39;Variable free status for </span><span class="si">%s</span><span class="s1"> must be set before InstantiateVariables().&#39;</span>
+          <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot set layer </span><span class="si">%s</span><span class="s1"> with variables as variable free.&#39;</span> <span class="o">%</span>
                        <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
@@ -626,8 +626,9 @@
 
   <span class="nd">@property</span>
   <span class="k">def</span> <span class="nf">global_step</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot access global_step before CreateVariables().&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Cannot access global_step before InstantiateVariables().&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step</span>
 
   <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
@@ -674,7 +675,7 @@
     <span class="sd">&quot;&quot;&quot;Returns variables of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;Cannot access vars for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
@@ -688,7 +689,7 @@
     <span class="sd">&quot;&quot;&quot;Returns theta of this layer and its children in a `.NestedMap`.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
       <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_private_children</span><span class="o">.</span><span class="n">Transform</span><span class="p">(</span><span class="k">lambda</span> <span class="n">_</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">())</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;Cannot access theta for layer </span><span class="si">%s</span><span class="s1"> before they have been created.&#39;</span> <span class="o">%</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
@@ -860,7 +861,7 @@
 
 <span class="sd">    In some contexts, eg. TPU training, variables may not be created immediately</span>
 <span class="sd">    but rather the creation request will be cached and created later via a call</span>
-<span class="sd">    to layer.CreateVariables().</span>
+<span class="sd">    to layer.InstantiateVariables().</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      name: Variable name which is used as the key into vars/theta.</span>
@@ -872,10 +873,11 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_variable_free</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Cannot create variable in variable free layer.&#39;</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
           <span class="s1">&#39;CreateVariable call after variable creation has completed! &#39;</span>
-          <span class="s1">&#39;CreateVariable should be called in __init__ or _CreateVariables.&#39;</span><span class="p">)</span>
+          <span class="s1">&#39;CreateVariable should be called in __init__ or _CreateLayerVariables.&#39;</span>
+      <span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_CheckName</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">skip_lp_regularization</span> <span class="ow">and</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">var_params</span><span class="o">.</span><span class="n">collections</span><span class="p">):</span>
@@ -890,14 +892,14 @@
         <span class="n">var_params</span><span class="o">=</span><span class="n">var_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">(),</span>
         <span class="n">theta_fn</span><span class="o">=</span><span class="n">theta_fn</span><span class="p">,</span>
         <span class="n">kwargs</span><span class="o">=</span><span class="n">kwargs</span><span class="p">)</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span><span class="p">:</span>
-      <span class="c1"># If CreateVariables has been called, create the variable immediately.</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">==</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span><span class="p">:</span>
+      <span class="c1"># If InstantiateVariables has been called, create variable immediately.</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="c1"># Otherwise cache the variable to be created.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">meta</span></div>
 
-<div class="viewcode-block" id="BaseLayer._CreateVariable"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariable">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer._CreateVariableInternal"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariableInternal">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariableInternal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Immediately creates the variable described by `meta`.</span>
 
 <span class="sd">    DO NOT OVERRIDE. For internal use only. Subclasses of BaseLayer should use</span>
@@ -919,14 +921,14 @@
       <span class="n">value</span> <span class="o">=</span> <span class="n">meta</span><span class="o">.</span><span class="n">theta_fn</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_private_theta</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
 
-<div class="viewcode-block" id="BaseLayer.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create variables for this layer and child layers.</span>
 
-<span class="sd">    DO NOT OVERRIDE. Override self._CreateVariables instead.</span>
+<span class="sd">    DO NOT OVERRIDE. Override self._CreateLayerVariables instead.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">NOT_CALLED</span><span class="p">:</span>
       <span class="k">return</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">IN_PROGRESS</span>
 
     <span class="n">stack_size</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span>
     <span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
@@ -940,32 +942,32 @@
             <span class="n">py_utils</span><span class="o">.</span><span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
             <span class="n">auxiliary_name_scope</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
           <span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">meta</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_variables_to_create</span><span class="o">.</span><span class="n">items</span><span class="p">()):</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">meta</span><span class="p">)</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="k">finally</span><span class="p">:</span>
       <span class="k">assert</span> <span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="ow">is</span> <span class="bp">self</span>
       <span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
       <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">)</span> <span class="o">==</span> <span class="n">stack_size</span>
 
-    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">=</span> <span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">_CREATE_VARIABLES_STACK</span><span class="o">.</span><span class="n">stack</span><span class="p">:</span>
-      <span class="c1"># Outermost layer just finished CreateVariables.</span>
+      <span class="c1"># Outermost layer just finished InstantiateVariables.</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_VerifyVarsAndTheta</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Create variables for child layers.</span>
 
 <span class="sd">    Should be rarely overridden, only in cases when control over the context of</span>
-<span class="sd">    children CreateVariables calls are needed. eg, if children variables need to</span>
-<span class="sd">    be created inside of a specific context manager.</span>
+<span class="sd">    children InstantiateVariables calls are needed. eg, if children variables</span>
+<span class="sd">    need to be created inside of a specific context manager.</span>
 
 <span class="sd">    There are a few cases of this in the codebase marked as for backwards</span>
 <span class="sd">    compability. This is only to ensure that variable scopes remain compatible</span>
 <span class="sd">    through the code migration. New layers should not copy that pattern, and</span>
 <span class="sd">    instead follow the standard pattern of self.CreateChild() in __init__() and</span>
-<span class="sd">    self.CreateVariable() in _CreateVariables(). If you are okay with breaking</span>
-<span class="sd">    old checkpoints, you can go ahead and delete those functions.</span>
+<span class="sd">    self.CreateVariable() in _CreateLayerVariables(). If you are okay with</span>
+<span class="sd">    breaking old checkpoints, you can go ahead and delete those functions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SanitizeScopeKey</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">),</span>
@@ -976,9 +978,9 @@
               <span class="s1">&#39;Variable free layer </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) child </span><span class="si">%s</span><span class="s1">(</span><span class="si">%s</span><span class="s1">) has variables.&#39;</span> <span class="o">%</span>
               <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">,</span> <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
                <span class="n">child</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">cls</span><span class="p">))</span>
-        <span class="n">child</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span></div>
+        <span class="n">child</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="BaseLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Actually create variables for this layer.</span>
 
 <span class="sd">    Subclasses should override this function.</span>

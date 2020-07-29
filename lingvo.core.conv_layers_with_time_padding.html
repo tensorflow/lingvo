@@ -270,7 +270,7 @@ tensor and padded_length is the number paddings.</p>
 <dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding">
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.core.conv_layers_with_time_padding.</code><code class="sig-name descname">BaseConv2DLayerWithPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#BaseConv2DLayerWithPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
-<p>Base class for 2D convolution layers.</p>
+<p>Abstract base class for 2D convolution layers.</p>
 <p>WARNING: Strided convolutions are buggy. Prefer using v2_padding=True.</p>
 <dl class="py method">
 <dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.Params">
@@ -294,6 +294,11 @@ tensor and padded_length is the number paddings.</p>
 <em class="property">property </em><code class="sig-name descname">input_channels</code><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.input_channels" title="Permalink to this definition">¶</a></dt>
 <dd><p>The number of input channels for this conv layer.</p>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.filter_stride">
+<em class="property">property </em><code class="sig-name descname">filter_stride</code><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.filter_stride" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.conv_layers_with_time_padding.BaseConv2DLayerWithPadding.OutShape">
@@ -353,8 +358,8 @@ width dimension as in images.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#Conv2DLayerWithPadding._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.Conv2DLayerWithPadding._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
@@ -410,8 +415,8 @@ width dimension as in images.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/conv_layers_with_time_padding.html#DepthwiseConv2DLayer._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.conv_layers_with_time_padding.DepthwiseConv2DLayer._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>

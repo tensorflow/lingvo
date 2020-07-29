@@ -292,11 +292,11 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddQuantizationFunctions</span><span class="p">()</span>
 
 <div class="viewcode-block" id="QuantizableLayer._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: call child.CreateVariables() in custom scope.</span>
+    <span class="c1"># Backwards compatibility: child.InstantiateVariables() in custom scope.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;/q&#39;</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">qdomain</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_qdomains</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
-        <span class="n">qdomain</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="n">qdomain</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="QuantizableLayer.QRTanh"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.QuantizableLayer.QRTanh">[docs]</a>  <span class="k">def</span> <span class="nf">QRTanh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">domain</span><span class="o">=</span><span class="s1">&#39;actf&#39;</span><span class="p">):</span>
@@ -337,7 +337,7 @@
     <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Creates one or more QTensors for later use.</span>
 
 <span class="sd">    Any tensor that will later be quantized must be created first, preferably</span>
-<span class="sd">    in _CreateVariables().</span>
+<span class="sd">    in _CreateLayerVariables().</span>
 
 <span class="sd">    Along with a list of tensor names to create, they can be associated with</span>
 <span class="sd">    a &#39;domain&#39;. Most layers are simple enough to only have a single quantization</span>
@@ -1124,7 +1124,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_t_names</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>  <span class="c1"># set of known t_name (from CreateTensor)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_qvars</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>  <span class="c1"># var_name -&gt; tf.Variable</span>
 
-<div class="viewcode-block" id="PassiveAsymQDomain._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="PassiveAsymQDomain._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.quant_utils.html#lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Save a scope for lazily created variables.</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="s1">&#39;q&#39;</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_qvars_scope</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_variable_scope</span><span class="p">()</span></div>

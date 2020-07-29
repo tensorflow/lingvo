@@ -269,14 +269,14 @@ output range must have either qt or qmin/qmax specified manually.</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -320,7 +320,7 @@ old checkpoints, you can go ahead and delete those functions.</p>
 <code class="sig-name descname">TrackQTensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">t_names</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#QuantizableLayer.TrackQTensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.QuantizableLayer.TrackQTensor" title="Permalink to this definition">¶</a></dt>
 <dd><p>Creates one or more QTensors for later use.</p>
 <p>Any tensor that will later be quantized must be created first, preferably
-in _CreateVariables().</p>
+in _CreateLayerVariables().</p>
 <p>Along with a list of tensor names to create, they can be associated with
 a ‘domain’. Most layers are simple enough to only have a single quantization
 domain (QDomain), typically ‘default’. However, additional QDomains can
@@ -1145,8 +1145,8 @@ applying them at eval/inference time.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateVariables">
-<code class="sig-name descname">_CreateVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/quant_utils.html#PassiveAsymQDomain._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.quant_utils.PassiveAsymQDomain._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>

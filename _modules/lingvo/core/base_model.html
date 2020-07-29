@@ -406,7 +406,7 @@
           <span class="n">py_utils</span><span class="o">.</span><span class="n">GetGlobalVariableScope</span><span class="p">()):</span>
         <span class="n">var_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">+</span> <span class="s1">&#39;_global_step&#39;</span>
         <span class="c1"># Create the variable immediately.</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariable</span><span class="p">(</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_CreateVariableInternal</span><span class="p">(</span>
             <span class="n">var_name</span><span class="p">,</span>
             <span class="n">base_layer</span><span class="o">.</span><span class="n">CreateVariableMeta</span><span class="p">(</span>
                 <span class="n">var_params</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
@@ -464,10 +464,10 @@
           <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;learners&#39;</span><span class="p">,</span> <span class="p">[</span><span class="n">tp</span><span class="o">.</span><span class="n">learner</span><span class="p">])</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_UpdateVnConfig</span><span class="p">()</span>
 
-<div class="viewcode-block" id="BaseTask.CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="BaseTask.InstantiateVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.InstantiateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">InstantiateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GlobalStepContext</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;global_step_tensor&#39;</span><span class="p">)):</span>
-      <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span></div>
+      <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="BaseTask._SetLearnerFromLegacyParams"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._SetLearnerFromLegacyParams">[docs]</a>  <span class="k">def</span> <span class="nf">_SetLearnerFromLegacyParams</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tp</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Sets tp.learner based on legacy params.&quot;&quot;&quot;</span>
@@ -792,9 +792,9 @@
 <div class="viewcode-block" id="BaseTask.ApplyExponentialMovingAverage"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.ApplyExponentialMovingAverage">[docs]</a>  <span class="k">def</span> <span class="nf">ApplyExponentialMovingAverage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ema</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Wraps `self.train_op` with an op updating exponential moving average.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_create_variables_status</span> <span class="o">!=</span>
-        <span class="n">base_layer</span><span class="o">.</span><span class="n">_CreateVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">base_layer</span><span class="o">.</span><span class="n">_CreateLayerVariablesStatus</span><span class="o">.</span><span class="n">COMPLETED</span><span class="p">):</span>  <span class="c1"># pylint: disable=protected-access</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-          <span class="s1">&#39;ApplyExponentialMovingAverage called before CreateVariables!&#39;</span><span class="p">)</span>
+          <span class="s1">&#39;ApplyExponentialMovingAverage called before InstantiateVariables!&#39;</span><span class="p">)</span>
     <span class="c1"># TODO(rpang): raise an exception if this is called in the eval mode.</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="c1"># We need to apply EMA to trainable and moving average variable of this</span>
@@ -1366,9 +1366,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;_task&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task</span><span class="p">)</span>
 
 <div class="viewcode-block" id="SingleTaskModel._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.SingleTaskModel._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div></div>
 
 
@@ -1396,9 +1396,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">children</span><span class="o">.</span><span class="n">Get</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">task_name</span><span class="p">)</span>
 
 <div class="viewcode-block" id="MultiTaskSubModel._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.MultiTaskSubModel._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div></div>
 
 
@@ -1491,10 +1491,10 @@
       <span class="k">for</span> <span class="n">task_name</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">task_names</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">tasks</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">task_name_var_scope</span><span class="p">:</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">variable_scope</span><span class="p">(</span><span class="n">task_name</span><span class="p">):</span>
-            <span class="n">task</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+            <span class="n">task</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">task</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="n">task</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">task_schedule</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
   <span class="nd">@property</span>

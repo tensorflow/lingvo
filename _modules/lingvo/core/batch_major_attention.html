@@ -167,6 +167,7 @@
 <span class="sd">    https://arxiv.org/pdf/1706.03762.pdf Section 3.</span>
 <span class="sd">&quot;&quot;&quot;</span>
 
+<span class="kn">import</span> <span class="nn">bisect</span>
 <span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">builder</span>
@@ -175,11 +176,15 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">hyperparams</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">moe_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">relative_atten_util</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">symbolic</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">tshape</span>
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
+
+<span class="c1"># pylint: enable=g-direct-tensorflow-import</span>
 
 
 <div class="viewcode-block" id="CausalPadding"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.CausalPadding">[docs]</a><span class="k">def</span> <span class="nf">CausalPadding</span><span class="p">(</span><span class="n">slen</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
@@ -220,8 +225,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of individual dims .&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="PerDimScaleLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PerDimScaleLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="PerDimScaleLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.PerDimScaleLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
@@ -274,10 +279,11 @@
         <span class="s1">&#39;&quot;BTD,DNH-&gt;BTNH&quot; for query,key,value projection. Otherwise we use &#39;</span>
         <span class="s1">&#39;&quot;BTNH,DNH-&gt;BTD&quot; for output projection.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;If to add bias in projection.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of SPMD partitions.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="MultiHeadedProjectionLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="MultiHeadedProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
         <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
@@ -314,6 +320,9 @@
 <span class="sd">      [batch_size, time_steps, num_heads, dim_per_head].</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">:</span>
+      <span class="n">theta</span><span class="o">.</span><span class="n">w</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span>
           <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
@@ -324,6 +333,9 @@
           <span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">symbolic</span><span class="o">.</span><span class="n">ToStatic</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">)])</span>
       <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTD,DNH-&gt;BTNH&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">is_output_projection</span><span class="p">:</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">Split</span><span class="p">(</span>
+            <span class="n">theta</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">,</span> <span class="n">use_sharding_op</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
       <span class="n">ret</span> <span class="o">+=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span>
     <span class="k">return</span> <span class="n">ret</span></div></div>
 
@@ -380,6 +392,7 @@
              <span class="s1">&#39;projection layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether there is packed input.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_bias&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to use bias for projection layers.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of SPMD partitions.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -399,7 +412,8 @@
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span>
           <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
           <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
-          <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">)</span>
+          <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+          <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">)</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;key&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;query&#39;</span><span class="p">,</span> <span class="n">ProjectInput</span><span class="p">())</span>
@@ -419,7 +433,8 @@
             <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
             <span class="n">dim_per_head</span><span class="o">=</span><span class="n">dim_per_head</span><span class="p">,</span>
             <span class="n">is_output_projection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">))</span>
+            <span class="n">use_bias</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">,</span>
+            <span class="n">xla_num_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">))</span>
 
 <div class="viewcode-block" id="MultiHeadedAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">per_step_padding</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes attention logits.</span>
@@ -905,8 +920,8 @@
         <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pos_proj&#39;</span><span class="p">,</span> <span class="n">pos_proj_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="MultiHeadedAttentionXL._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="MultiHeadedAttentionXL._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
@@ -1064,7 +1079,7 @@
         <span class="n">reuse</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">AUTO_REUSE</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">use_global_emb</span> <span class="k">else</span> <span class="kc">False</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">child</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;key_emb&#39;</span><span class="p">,</span> <span class="s1">&#39;key_pos_proj&#39;</span><span class="p">,</span> <span class="s1">&#39;value_emb&#39;</span><span class="p">,</span> <span class="s1">&#39;value_pos_proj&#39;</span><span class="p">]:</span>
         <span class="k">if</span> <span class="n">child</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">:</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">child</span><span class="p">]</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="n">child</span><span class="p">]</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="MultiHeadedAttentionRPE._RelativePositionValueEmb"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._RelativePositionValueEmb">[docs]</a>  <span class="k">def</span> <span class="nf">_RelativePositionValueEmb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
@@ -1443,7 +1458,7 @@
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalide rel_pos_emb_dim: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid rel_pos_emb_dim: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
 
     <span class="n">emb_params</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">PositionalEmbeddingLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">embedding_dim</span><span class="o">=</span><span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span><span class="p">)</span>
@@ -1458,8 +1473,8 @@
         <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pos_proj&#39;</span><span class="p">,</span> <span class="n">pos_proj_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="LocalCausalSelfAttentionXL._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="LocalCausalSelfAttentionXL._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">params</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
@@ -2280,9 +2295,20 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;packed_input&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
              <span class="s1">&#39;If True, each training example may pack multiple sequences.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_fused_layernorm&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use fused layernorm.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;splits&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;None or a list of layer indices. If None, all layers &#39;</span>
+        <span class="s1">&#39;are placed on the same and only one partition. Else, len(splits) is &#39;</span>
+        <span class="s1">&#39;the number of partitions the stack is sliced into. layer_i is placed &#39;</span>
+        <span class="s1">&#39;on the kth partition (0-based) where split[k] &lt; i &lt;= split[k+1].&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">:</span>
+      <span class="n">params</span><span class="o">.</span><span class="n">splits</span> <span class="o">=</span> <span class="p">[</span><span class="n">params</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">x</span> <span class="o">&lt;=</span> <span class="n">params</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">)</span>
+      <span class="c1"># Assert p.splits is strictly monotonically increasing.</span>
+      <span class="k">assert</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">)))</span> <span class="o">==</span> <span class="n">params</span><span class="o">.</span><span class="n">splits</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -2295,7 +2321,7 @@
     <span class="k">def</span> <span class="nf">_LayerParams</span><span class="p">(</span><span class="n">ii</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Construct ii-th layer params.&quot;&quot;&quot;</span>
       <span class="n">p_ii</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">transformer_layer_params_tpl</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
-      <span class="n">p</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span>
+      <span class="n">p_ii</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">ii</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">has_aux_atten</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">mask_self_atten</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mask_self_atten</span>
       <span class="n">p_ii</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">mdl_dim</span>
@@ -2318,6 +2344,13 @@
       <span class="n">final_ln_p</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
           <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">mdl_dim</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;final_ln&#39;</span><span class="p">,</span> <span class="n">final_ln_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="StackedTransformerLayers.GetSplitForLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StackedTransformerLayers.GetSplitForLayer">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">GetSplitForLayer</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">buckets</span><span class="p">,</span> <span class="n">layer_index</span><span class="p">):</span>
+    <span class="k">assert</span> <span class="n">layer_index</span> <span class="o">&lt;=</span> <span class="n">buckets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="p">(</span>
+        <span class="sa">f</span><span class="s1">&#39;layer_index:</span><span class="si">{</span><span class="n">layer_index</span><span class="si">}</span><span class="s1"> &gt; buckets[-1]:</span><span class="si">{</span><span class="n">buckets</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+    <span class="c1">#  Return index of the smallest element greater than or equal to layer_index</span>
+    <span class="k">return</span> <span class="n">bisect</span><span class="o">.</span><span class="n">bisect_left</span><span class="p">(</span><span class="n">buckets</span><span class="p">,</span> <span class="n">layer_index</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="StackedTransformerLayers.FProp"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StackedTransformerLayers.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
             <span class="n">theta</span><span class="p">,</span>
@@ -2344,14 +2377,23 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">x_out</span> <span class="o">=</span> <span class="n">query_vec</span>
+    <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_layers</span><span class="p">):</span>
         <span class="n">x_in</span> <span class="o">=</span> <span class="n">x_out</span>
-        <span class="n">x_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x_in</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
-                                          <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
-                                          <span class="n">aux_segment_mask</span><span class="p">)</span>
+        <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+            <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">GetSplitForLayer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">,</span> <span class="n">i</span><span class="p">))):</span>
+          <span class="n">x_out</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">x_layers</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">x_in</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span>
+                                            <span class="n">aux_vec</span><span class="p">,</span> <span class="n">aux_paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
+                                            <span class="n">aux_segment_mask</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">final_layer_norm</span><span class="p">:</span>
-      <span class="n">x_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">x_out</span><span class="p">)</span>
+      <span class="c1"># Place on the last device.</span>
+      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span>
+          <span class="n">cluster</span><span class="o">.</span><span class="n">WorkerDeviceInModelSplit</span><span class="p">(</span>
+              <span class="bp">self</span><span class="o">.</span><span class="n">GetSplitForLayer</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">splits</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_layers</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))):</span>
+        <span class="n">x_out</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">final_ln</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">final_ln</span><span class="p">,</span> <span class="n">x_out</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">x_out</span><span class="p">,</span> <span class="n">paddings</span></div>
 
 <div class="viewcode-block" id="StackedTransformerLayers.InitStates"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.StackedTransformerLayers.InitStates">[docs]</a>  <span class="k">def</span> <span class="nf">InitStates</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
@@ -2679,14 +2721,16 @@
         <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="n">x</span><span class="p">,</span>
         <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="p">:</span> <span class="mi">2</span> <span class="o">*</span> <span class="nb">max</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">size</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="Builder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._MultiHeadedAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._MultiHeadedAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_MultiHeadedAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a MultiHeadedAttention params.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
     <span class="n">atten_p</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
         <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
         <span class="n">input_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
         <span class="n">hidden_dim</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">attention_hidden_dim</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
-        <span class="n">num_heads</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span>
+        <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">,</span>
         <span class="n">atten_dropout_prob</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">atten_dropout_prob</span><span class="p">,</span>
         <span class="n">enable_value_proj</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span><span class="p">,</span>
         <span class="n">enable_per_dim_scale</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span><span class="p">,</span>
@@ -2698,21 +2742,22 @@
       <span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">atten_p</span></div>
 
-<div class="viewcode-block" id="Builder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_causal</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="k">del</span> <span class="n">is_causal</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
+    <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
     <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_feedforward&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
              <span class="s1">&#39;feedforward&#39;</span><span class="p">,</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
                       <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">),</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_activation_fn</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;relu_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relu_dropout_prob</span><span class="p">),</span>
-             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
+             <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">),</span>
              <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">))),</span>
         <span class="p">(</span><span class="s1">&#39;i.vec,after_feedforward-&gt;added&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Add</span><span class="p">(</span><span class="s1">&#39;add&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_residual_weight</span><span class="p">)),</span>
@@ -2915,7 +2960,7 @@
         <span class="n">fn_out</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">tshape</span><span class="o">.</span><span class="n">Shape</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">//</span> <span class="n">stride</span> <span class="o">+</span> <span class="n">x</span><span class="p">[</span><span class="mi">2</span><span class="p">:]),</span>
         <span class="n">fn_flops</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="mi">1</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder._StridedAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._StridedAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_StridedAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder._StridedAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder._StridedAttention">[docs]</a>  <span class="k">def</span> <span class="nf">_StridedAttention</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes self attention with optional stride.</span>
 
 <span class="sd">    Args:</span>
@@ -2929,6 +2974,7 @@
 <span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
 <span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
 <span class="sd">        used.</span>
+<span class="sd">      num_heads: the number of heads.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A self attention layer params.</span>
@@ -2941,6 +2987,9 @@
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">:</span>
       <span class="n">attention_inputs</span> <span class="o">+=</span> <span class="s1">&#39;,i.segment_mask&#39;</span>
 
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+
     <span class="n">sub_list</span> <span class="o">=</span> <span class="p">[</span>
         <span class="p">(</span><span class="s1">&#39;i.vec-&gt;after_ln&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;LN&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span>
@@ -2948,7 +2997,7 @@
         <span class="p">(</span><span class="s1">&#39;after_ln-&gt;strided_query&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Stride</span><span class="p">(</span><span class="s1">&#39;query_after_stride&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;after_att,prob&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">attention_inputs</span><span class="p">),</span>
-         <span class="bp">self</span><span class="o">.</span><span class="n">_MultiHeadedAtten</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">)),</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_MultiHeadedAtten</span><span class="p">(</span><span class="s1">&#39;atten&#39;</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;after_att-&gt;after_dropout&#39;</span><span class="p">,</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">residual_dropout_prob</span><span class="p">)),</span>
         <span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">-&gt;strided_input&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">input_to_add</span><span class="p">),</span>
@@ -2967,7 +3016,8 @@
         <span class="p">[</span><span class="s1">&#39;o&#39;</span><span class="p">],</span>  <span class="c1"># output NestedMap with {vec, paddings, segment_mask}</span>
         <span class="o">*</span><span class="n">sub_list</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="Builder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Builder.TransformerEncoderLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.TransformerEncoderLayer">[docs]</a>  <span class="k">def</span> <span class="nf">TransformerEncoderLayer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;(inputs, paddings) -&gt; (encoded, paddings).</span>
 
 <span class="sd">    Args:</span>
@@ -2981,16 +3031,24 @@
 <span class="sd">        &quot;(first_n-1) // stride + 1&quot;. If stride is 0, first_n has to be None or</span>
 <span class="sd">        1. first_n can&#39;t be 0. If first_n &lt;= stride, only the first token is</span>
 <span class="sd">        used.</span>
+<span class="sd">      ff_hidden_dim: The feed forward layer&#39;s hidden dimension. If specified,</span>
+<span class="sd">        this will override p.ff_hidden_dim.</span>
+<span class="sd">      num_heads: The number of heads for the multi-head attention module. If</span>
+<span class="sd">        specified, this will override p.num_heads.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      A transformer encoder layer params that supports optional stride.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># Hack to be compatible with ckpt generated by self._rep</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">ff_hidden_dim</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">ff_hidden_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span>
+    <span class="k">if</span> <span class="n">num_heads</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Seq</span><span class="p">(</span>
         <span class="s1">&#39;block&#39;</span><span class="p">,</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_StridedAttention</span><span class="p">(</span>
-            <span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span> <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">)))</span></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_StridedAttention</span><span class="p">(</span><span class="s1">&#39;self_atten&#39;</span><span class="p">,</span> <span class="n">stride</span><span class="o">=</span><span class="n">stride</span><span class="p">,</span>
+                               <span class="n">first_n</span><span class="o">=</span><span class="n">first_n</span><span class="p">,</span> <span class="n">num_heads</span><span class="o">=</span><span class="n">num_heads</span><span class="p">),</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">Feedforward</span><span class="p">(</span><span class="s1">&#39;ff&#39;</span><span class="p">,</span> <span class="n">ff_hidden_dim</span><span class="o">=</span><span class="n">ff_hidden_dim</span><span class="p">)))</span></div>
 
 <div class="viewcode-block" id="Builder.Stack"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.Builder.Stack">[docs]</a>  <span class="k">def</span> <span class="nf">Stack</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">blocks</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Returns a stack of sequential layers.&quot;&quot;&quot;</span>
@@ -3009,19 +3067,75 @@
 <div class="viewcode-block" id="LmBuilder"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder">[docs]</a><span class="k">class</span> <span class="nc">LmBuilder</span><span class="p">(</span><span class="n">Builder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Langange model builder with causal padding.&quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="LmBuilder.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;xla_num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Number of SPMD partitions.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dtype&#39;</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">,</span> <span class="s1">&#39;Datatype to use.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+<div class="viewcode-block" id="LmBuilder._ShardedVar"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._ShardedVar">[docs]</a>  <span class="k">def</span> <span class="nf">_ShardedVar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">weights</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">moe_layers</span><span class="o">.</span><span class="n">ShardedVarLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="n">weights</span><span class="p">,</span>
+        <span class="n">split_dimension</span><span class="o">=</span><span class="n">split_dim</span><span class="p">,</span>
+        <span class="n">num_devices</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">xla_num_partitions</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmBuilder._LinearWeight"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._LinearWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_LinearWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">],</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Uniform</span><span class="p">((</span><span class="mf">3.</span> <span class="o">/</span> <span class="n">input_dim</span><span class="p">)</span><span class="o">**</span><span class="mf">0.5</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))],</span>
+        <span class="n">split_dim</span><span class="o">=</span><span class="n">split_dim</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmBuilder._Linear"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Linear">[docs]</a>  <span class="k">def</span> <span class="nf">_Linear</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;w&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_LinearWeight</span><span class="p">(</span><span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">input_dim</span><span class="p">,</span> <span class="n">output_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,w-&gt;outputs&#39;</span><span class="p">,</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span>
+             <span class="s1">&#39;linear&#39;</span><span class="p">,</span>
+             <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">:</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLI,IO-&gt;BLO&#39;</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">))),</span>
+    <span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmBuilder._BiasWeight"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._BiasWeight">[docs]</a>  <span class="k">def</span> <span class="nf">_BiasWeight</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ShardedVar</span><span class="p">(</span>
+        <span class="n">name</span><span class="o">=</span><span class="n">name</span><span class="p">,</span>
+        <span class="n">weights</span><span class="o">=</span><span class="p">[(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span>
+                  <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+                      <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">dim</span><span class="p">],</span>
+                      <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))],</span>
+        <span class="n">split_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="LmBuilder._Bias"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder._Bias">[docs]</a>  <span class="k">def</span> <span class="nf">_Bias</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">dim</span><span class="p">):</span>
+    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Graph</span><span class="p">(</span>
+        <span class="n">name</span><span class="p">,</span>
+        <span class="p">[</span><span class="s1">&#39;inputs&#39;</span><span class="p">],</span>
+        <span class="p">[</span><span class="s1">&#39;outputs&#39;</span><span class="p">],</span>
+        <span class="p">(</span><span class="s1">&#39;-&gt;b&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BiasWeight</span><span class="p">(</span><span class="s1">&#39;b&#39;</span><span class="p">,</span> <span class="n">dim</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s1">&#39;inputs,b-&gt;outputs&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_Fn</span><span class="p">(</span><span class="s1">&#39;bias&#39;</span><span class="p">,</span>
+                                       <span class="n">fn</span><span class="o">=</span><span class="k">lambda</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">b</span><span class="p">)),</span>
+    <span class="p">)</span></div>
+
 <div class="viewcode-block" id="LmBuilder.Feedforward"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LmBuilder.Feedforward">[docs]</a>  <span class="k">def</span> <span class="nf">Feedforward</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
     <span class="n">ff_list</span> <span class="o">=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_LN</span><span class="p">(</span><span class="s1">&#39;ln&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">use_fused_layernorm</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">use_fused_layernorm</span><span class="p">),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
       <span class="n">ff_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias01&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">))</span>
     <span class="n">ff_list</span> <span class="o">+=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Activation</span><span class="p">(</span><span class="s1">&#39;act&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_activation_fn</span><span class="p">),</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_Dropout</span><span class="p">(</span><span class="s1">&#39;relu_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">relu_dropout_prob</span><span class="p">),</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_Linear</span><span class="p">(</span><span class="s1">&#39;linear02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">ff_hidden_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">,</span> <span class="n">split_dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
     <span class="p">]</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span><span class="p">:</span>
       <span class="n">ff_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_Bias</span><span class="p">(</span><span class="s1">&#39;bias02&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span><span class="p">))</span>
@@ -3066,6 +3180,7 @@
     <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">use_bias</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">use_bias</span>
     <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">enable_value_proj</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">selfatten_enable_value_proj</span>
     <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">enable_per_dim_scale</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">enable_per_dim_scale</span>
+    <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_tpl</span><span class="o">.</span><span class="n">xla_num_partitions</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">xla_num_partitions</span>
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">deterministic_dropout</span><span class="p">:</span>
       <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
       <span class="n">tr_atten_p</span><span class="o">.</span><span class="n">atten_p</span><span class="o">.</span><span class="n">dropout_tpl</span> <span class="o">=</span> <span class="n">layers</span><span class="o">.</span><span class="n">DeterministicDropoutLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>

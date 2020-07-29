@@ -196,9 +196,9 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lm&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lm</span><span class="p">)</span>
 
 <div class="viewcode-block" id="FusionBase._CreateChildrenVariables"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">lm</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="FusionBase.zero_state"><a class="viewcode-back" href="../../../../lingvo.tasks.asr.fusion.html#lingvo.tasks.asr.fusion.FusionBase.zero_state">[docs]</a>  <span class="k">def</span> <span class="nf">zero_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">):</span>

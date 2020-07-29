@@ -1,0 +1,359 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.tpu_summary module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.trainer_test_utils module" href="lingvo.core.trainer_test_utils.html" />
+    <link rel="prev" title="lingvo.core.tokenizers module" href="lingvo.core.tokenizers.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.tpu_summary module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.tpu_summary.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.tpu_summary">
+<span id="lingvo-core-tpu-summary-module"></span><h1>lingvo.core.tpu_summary module<a class="headerlink" href="#module-lingvo.core.tpu_summary" title="Permalink to this headline">¶</a></h1>
+<p>Alternative to tf.summary for TPU without host call and outside compilation.</p>
+<p>To add a summary, in layer implementation code call:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;name&#39;</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then in trainer code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_model</span> <span class="o">=</span> <span class="n">my_model_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">context</span><span class="p">():</span>
+  <span class="n">my_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
+  <span class="n">summaries</span> <span class="o">=</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>If some summaries are created inside a while loop:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">my_model</span> <span class="o">=</span> <span class="n">my_model_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
+<span class="k">with</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">context</span><span class="p">(</span><span class="n">rewrite_while_loop</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="n">output</span> <span class="o">=</span> <span class="n">my_model</span><span class="o">.</span><span class="n">GreedyDecodeIds</span><span class="p">()</span>
+  <span class="n">summaries</span> <span class="o">=</span> <span class="n">tpu_summary</span><span class="o">.</span><span class="n">merge_all</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Note that you must call tpu_summary.merge_all() inside tpu_summary.context(),
+or else it will return nothing.</p>
+<p>Note also that merge_all() returns a dict of tensors, not a serialized proto.
+As such, merge_all() can be used inside tpu rewrite context.
+It is left up to the caller to decide how to return summary tensors from TPU
+and what to do next.</p>
+<dl class="py class">
+<dt id="lingvo.core.tpu_summary.TpuSummaryScalar">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">TpuSummaryScalar</code><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#TpuSummaryScalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryScalar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Plain data object. Much better than namedtuple.</p>
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.TpuSummaryScalar.name">
+<code class="sig-name descname">name</code><em class="property"> = None</em><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryScalar.name" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.TpuSummaryScalar.value">
+<code class="sig-name descname">value</code><em class="property"> = None</em><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryScalar.value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.TpuSummaryScalar.name_scope">
+<code class="sig-name descname">name_scope</code><em class="property"> = None</em><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryScalar.name_scope" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.TpuSummaryScalar.while_loop_reduce">
+<code class="sig-name descname">while_loop_reduce</code><em class="property"> = None</em><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryScalar.while_loop_reduce" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.tpu_summary.TpuSummaryContext">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">TpuSummaryContext</code><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#TpuSummaryContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Non-reentrant context that holds the list of summary tensors.</p>
+<dl class="py attribute">
+<dt id="lingvo.core.tpu_summary.TpuSummaryContext._global_stack">
+<code class="sig-name descname">_global_stack</code><em class="property"> = []</em><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryContext._global_stack" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.tpu_summary.TpuSummaryContext.current">
+<em class="property">classmethod </em><code class="sig-name descname">current</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#TpuSummaryContext.current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.TpuSummaryContext.current" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns current context or None.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.tpu_summary.RewriteLoopContext">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">RewriteLoopContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">max_loop_vars</span><span class="o">=</span><span class="default_value">16</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#RewriteLoopContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.RewriteLoopContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference external" href="https://docs.python.org/3.7/library/functions.html#object" title="(in Python v3.7)"><code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></a></p>
+<p>Context manager. Rewrites tf.while_loop to propagate summary tensors.</p>
+<dl class="py method">
+<dt id="lingvo.core.tpu_summary.RewriteLoopContext.while_loop">
+<code class="sig-name descname">while_loop</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">cond</span></em>, <em class="sig-param"><span class="n">body</span></em>, <em class="sig-param"><span class="n">loop_vars</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#RewriteLoopContext.while_loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.RewriteLoopContext.while_loop" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wrapper for tf.while_loop that adds summary_tensors to loop vars.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.tpu_summary.scalar">
+<code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">scalar</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">while_loop_reduce</span><span class="o">=</span><span class="default_value">'mean'</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#scalar"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.scalar" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds summary scalar.</p>
+<p>Outside of tpu_summary.context() does nothing.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – string name</p></li>
+<li><p><strong>value</strong> – scalar tensor value</p></li>
+<li><p><strong>while_loop_reduce</strong> – optional argument, determines what to do when this
+summary appears inside a tf.while_loop. Can be ‘mean’ or ‘sum’.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.tpu_summary.tensor">
+<code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">tensor</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">name</span></em>, <em class="sig-param"><span class="n">value</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#tensor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.tensor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds summary tensor. Similar to scalar() but allows other shapes.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.tpu_summary.merge_all">
+<code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">merge_all</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#merge_all"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.merge_all" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all summary tensors as a dict of {name: tensor}.</p>
+<p>Note that this is not the same return type as tf.summary.merge_all
+which returns a serialized proto string.</p>
+<p>Outside of tpu_summary.context() returns {}</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.tpu_summary.context">
+<code class="sig-prename descclassname">lingvo.core.tpu_summary.</code><code class="sig-name descname">context</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rewrite_while_loop</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">max_loop_vars</span><span class="o">=</span><span class="default_value">16</span></em>, <em class="sig-param"><span class="n">loop_vars_dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/tpu_summary.html#context"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.tpu_summary.context" title="Permalink to this definition">¶</a></dt>
+<dd><p>TPU summary context.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rewrite_while_loop</strong> – rewrite tf.while_loop to propagate summaries</p></li>
+<li><p><strong>max_loop_vars</strong> – number of loop vars added by rewrite_while_loop</p></li>
+<li><p><strong>loop_vars_dtype</strong> – dtype of loop vars added by rewrite_while_loop</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.trainer_test_utils.html" class="btn btn-neutral float-right" title="lingvo.core.trainer_test_utils module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.tokenizers.html" class="btn btn-neutral float-left" title="lingvo.core.tokenizers module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

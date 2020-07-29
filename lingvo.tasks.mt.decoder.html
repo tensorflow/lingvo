@@ -424,14 +424,14 @@ Example: src_enc_len = [3, 2, 1] and num_hyps_per_beam = 2
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#MTDecoderV1._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.MTDecoderV1._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -568,14 +568,14 @@ this to split computation across subgraph boundaries.</p>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerDecoder._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerDecoder._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1006,14 +1006,14 @@ be the batch index.</p></li>
 <code class="sig-name descname">_CreateChildrenVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/mt/decoder.html#TransformerBatchMajorDecoder._CreateChildrenVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.mt.decoder.TransformerBatchMajorDecoder._CreateChildrenVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Create variables for child layers.</p>
 <p>Should be rarely overridden, only in cases when control over the context of
-children CreateVariables calls are needed. eg, if children variables need to
-be created inside of a specific context manager.</p>
+children InstantiateVariables calls are needed. eg, if children variables
+need to be created inside of a specific context manager.</p>
 <p>There are a few cases of this in the codebase marked as for backwards
 compability. This is only to ensure that variable scopes remain compatible
 through the code migration. New layers should not copy that pattern, and
 instead follow the standard pattern of self.CreateChild() in __init__() and
-self.CreateVariable() in _CreateVariables(). If you are okay with breaking
-old checkpoints, you can go ahead and delete those functions.</p>
+self.CreateVariable() in _CreateLayerVariables(). If you are okay with
+breaking old checkpoints, you can go ahead and delete those functions.</p>
 </dd></dl>
 
 <dl class="py method">

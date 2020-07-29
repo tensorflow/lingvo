@@ -858,10 +858,10 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;smoother&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">)</span>
 
 <div class="viewcode-block" id="GPipeTransformerStack._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerStack._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Backwards compatibility: manually call child.CreateVariables() outside of</span>
-    <span class="c1"># tf.variable_scope(p.name).</span>
+    <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
+    <span class="c1"># outside of tf.variable_scope(p.name).</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">label_smoothing</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">smoother</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateChildrenVariables</span><span class="p">()</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerStack.Logits"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.GPipeTransformerStack.Logits">[docs]</a>  <span class="k">def</span> <span class="nf">Logits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
@@ -1084,8 +1084,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s1">&#39;dropout&#39;</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;weighted_merger_dropout&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="DeterministicWeightsLayer._CreateVariables"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer._CreateVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateVariables</span><span class="p">()</span>
+<div class="viewcode-block" id="DeterministicWeightsLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers_with_gpipe.html#lingvo.core.layers_with_gpipe.DeterministicWeightsLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">params_init</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">)</span>
     <span class="c1"># Weights to be learned.</span>

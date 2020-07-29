@@ -440,10 +440,10 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
     <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
 
-    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
     <span class="k">def</span> <span class="nf">TpuTrainStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -456,7 +456,7 @@
 <span class="sd">        New summed metrics values and a train_op.</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
       <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -574,10 +574,10 @@
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
       <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
-      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
       <span class="k">def</span> <span class="nf">TpuEvalStep</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -590,7 +590,7 @@
 <span class="sd">          Summed eval metrics.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropGraph</span><span class="p">()</span>
         <span class="n">per_step_eval_metrics</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span><span class="o">.</span><span class="n">SetMetrics</span><span class="p">(</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">eval_metrics</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
@@ -652,16 +652,16 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
       <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
         <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
@@ -728,16 +728,16 @@
     <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">spmd</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span>
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
       <span class="k">def</span> <span class="nf">_DecodeStep</span><span class="p">():</span>
         <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>
@@ -861,10 +861,10 @@
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
     <span class="n">data_parallelism</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_parallelism</span>
-    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span>
 
@@ -877,7 +877,7 @@
 <span class="sd">       [train_op].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_train_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
       <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_train_task</span><span class="o">.</span><span class="n">train_op</span><span class="p">]</span>
 
@@ -892,16 +892,16 @@
     <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
 
     <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetEval</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task_params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
 
       <span class="k">def</span> <span class="nf">_DecodeFn</span><span class="p">():</span>
         <span class="sd">&quot;&quot;&quot;Decode call to be compiled for TPU.&quot;&quot;&quot;</span>
         <span class="k">with</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">OpportunisticVariableReuseScope</span><span class="p">(</span><span class="kc">True</span><span class="p">):</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_decode_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
           <span class="n">metrics_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_decode_task</span><span class="o">.</span><span class="n">Decode</span><span class="p">(</span><span class="n">input_batch</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">metrics_nm</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span><span class="n">metrics_dict</span><span class="p">)</span>

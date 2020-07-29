@@ -173,6 +173,27 @@
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 
+<div class="viewcode-block" id="TopKAccuracy"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.TopKAccuracy">[docs]</a><span class="k">def</span> <span class="nf">TopKAccuracy</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute top-k accuracy.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    k: An int scalar. Top-k.</span>
+<span class="sd">    logits: A [N, C] float tensor.</span>
+<span class="sd">    labels: A [N] int vector.</span>
+<span class="sd">    weights: A [N] float vector.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A float scalar. The accuracy at precision k.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+  <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
+  <span class="n">weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
+  <span class="n">correct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">correct</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">weights</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+      <span class="mf">1e-8</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="BaseClassifier"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.BaseClassifier">[docs]</a><span class="k">class</span> <span class="nc">BaseClassifier</span><span class="p">(</span><span class="n">base_model</span><span class="o">.</span><span class="n">BaseTask</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for image classifier.&quot;&quot;&quot;</span>
 
@@ -222,13 +243,7 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      A float scalar. The accuracy at precision k.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">logits</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">logits</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">n</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">logits</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
-    <span class="n">labels</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
-    <span class="n">weights</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">weights</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">])</span>
-    <span class="n">correct</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">in_top_k</span><span class="p">(</span><span class="n">targets</span><span class="o">=</span><span class="n">labels</span><span class="p">,</span> <span class="n">predictions</span><span class="o">=</span><span class="n">logits</span><span class="p">,</span> <span class="n">k</span><span class="o">=</span><span class="n">k</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">correct</span><span class="p">,</span> <span class="n">weights</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span>
-                         <span class="n">weights</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span><span class="mf">1e-8</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">weights</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">TopKAccuracy</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">logits</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">weights</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="ModelV1"><a class="viewcode-back" href="../../../../lingvo.tasks.image.classifier.html#lingvo.tasks.image.classifier.ModelV1">[docs]</a><span class="k">class</span> <span class="nc">ModelV1</span><span class="p">(</span><span class="n">BaseClassifier</span><span class="p">):</span>

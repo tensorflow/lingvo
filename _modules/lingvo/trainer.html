@@ -683,10 +683,10 @@
 
     <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">as_default</span><span class="p">(),</span> <span class="n">tf</span><span class="o">.</span><span class="n">container</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_container_id</span><span class="p">):</span>
       <span class="k">with</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_cluster</span><span class="o">.</span><span class="n">job_spec</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyCreateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">cluster_factory</span><span class="o">.</span><span class="n">SetImmediatelyInstantiateVariables</span><span class="p">(</span><span class="kc">False</span><span class="p">):</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">Instantiate</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">GetTask</span><span class="p">()</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_task</span><span class="o">.</span><span class="n">input</span><span class="o">.</span><span class="n">CreateTpuEnqueueOps</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">TpuEvalMetrics</span><span class="p">()</span>
         <span class="c1"># Needed due to the AddExtraTheta() reference to global_Step when</span>
@@ -702,7 +702,7 @@
 <span class="sd">          Returns:</span>
 <span class="sd">            New summed metrics values and a train_op.</span>
 <span class="sd">          &quot;&quot;&quot;</span>
-          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">CreateVariables</span><span class="p">()</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">InstantiateVariables</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_model</span><span class="o">.</span><span class="n">ConstructFPropBPropGraph</span><span class="p">()</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_load_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">TPU_EMBEDDING_LOAD_OPS</span><span class="p">)</span>
           <span class="bp">self</span><span class="o">.</span><span class="n">_retrieve_ops</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
