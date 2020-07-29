@@ -56,6 +56,14 @@ class TestNamedTuple(collections.namedtuple('TestNamedTuple', ['a', 'b'])):
   pass
 
 
+class InstantiableClass:
+  """Used for testing InstantiableParams."""
+
+  def __init__(self, params, other=None):
+    self.params = params
+    self.other = other
+
+
 class ParamsTest(test_utils.TestCase):
 
   def testEquals(self):
@@ -578,6 +586,27 @@ escaping_single : 'In "quotes"'
         '? d:\n'
         '>   hey: hi\n'
         '<   hey: hello\n')
+
+  def testInstantiate(self):
+    a = _params.InstantiableParams(InstantiableClass)
+    a.Define('new_param', None, 'A meaningless param.')
+    a.new_param = 'hi'
+
+    obj = a.Instantiate()
+    self.assertIsInstance(obj, InstantiableClass)
+    self.assertEqual(obj.params.new_param, 'hi')
+
+  def testInstantiateWithParams(self):
+    a = _params.InstantiableParams(InstantiableClass)
+    a.Define('new_param', None, 'A meaningless param.')
+    a.new_param = 'hi'
+
+    # Same as the previous test, but InstantiableClass should also get
+    # other=15 passed as a keyword argument to the constructor.
+    obj = a.Instantiate(other=15)
+    self.assertIsInstance(obj, InstantiableClass)
+    self.assertEqual(obj.params.new_param, 'hi')
+    self.assertEqual(obj.other, 15)
 
 
 if __name__ == '__main__':

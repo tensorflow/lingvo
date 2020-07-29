@@ -847,12 +847,44 @@ class InstantiableParams(Params):
     super().__init__()
     self.Define('cls', cls, 'Cls that this param object is associated with.')
 
-  def Instantiate(self):
-    """Instantiate an instance that this Params is configured for."""
+  def Instantiate(self, **args):
+    """Instantiate an instance that this Params is configured for.
+
+    Example:
+      params = InstantiableParams(cls=MyObject)
+      params.Define('weight', 0.2, 'Training weight.')
+      params.weight = 0.9
+      obj = params.Instantiate()
+
+    It's common for classes to have a classmethod called Params that returns
+    a pre-made InstantiableParams, like this:
+
+      params = MyObject.Params()
+      params.weight = 0.9
+      obj = params.Instantiate()
+
+    By convention, anything that parameterizes the behavior of your class
+    should be stored in this Params object. However, your class may also use
+    shared state objects which aren't really parameters, like a shared lock.
+    These can be passed as extra arguments to Instantiate.
+
+    Example:
+      lock = threading.Lock()
+      params = MyObject.Params()
+      obj_a = params.Instantiate(lock=lock)
+      obj_b = params.Instantiate(lock=lock)
+
+    Args:
+      **args: Additional keyword arguments to pass to the constructor in
+        addition to this Params object.
+
+    Returns:
+      A constructed object where type(object) == cls.
+    """
     assert self.cls is not None
 
     # The class initializer is expected to support initialization using Params.
-    return self.cls(self)
+    return self.cls(self, **args)
 
   def Copy(self):
     """See base class."""
