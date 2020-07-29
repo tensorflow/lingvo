@@ -149,7 +149,9 @@ class SpectrumAugmenter(base_layer.BaseLayer):
     for field in _SPECAUGMENT_ARGS:
       v = getattr(p, field)
       if isinstance(v, (list, tuple)):
-        assert len(v) == num_domains
+        assert len(v) == num_domains, (
+            'Length: %d of field: %s does not match total domains: %d' %
+            (len(v), field, num_domains))
       else:
         setattr(p, field, [v] * num_domains)
     assert p.freq_mask_max_bins[0] > -1
