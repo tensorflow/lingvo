@@ -880,8 +880,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LocalCausalSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LocalSelfAttention</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.MultiHeadedAttention" title="lingvo.core.batch_major_attention.MultiHeadedAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.MultiHeadedAttention</span></code></a></p>
 <p>Dot-product causal self attention using a sliding window.</p>
 <p>We use the following capital letters to denote certain
@@ -920,14 +920,14 @@ reduced HBM usage on TPU but no speed gains.</p>
 class can only be used for encoder.</p>
 <p>TODO(weihan): add masking based local attention to the base class.</p>
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Params for LocalCausalSelfAttention.</p>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for LocalSelfAttention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention._AttenLogits">
-<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._AttenLogits">
+<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -946,8 +946,8 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention.AttenProbs">
-<code class="sig-name descname">AttenProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">unused_per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention.AttenProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">
+<code class="sig-name descname">AttenProbs</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">unused_per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.AttenProbs"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute attention probability.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -971,8 +971,8 @@ its children layers.</p></li>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention._DotAtten">
-<code class="sig-name descname">_DotAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention._DotAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention._DotAtten" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention._DotAtten">
+<code class="sig-name descname">_DotAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">value</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention._DotAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention._DotAtten" title="Permalink to this definition">¶</a></dt>
 <dd><p>Main attention function.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -998,8 +998,8 @@ atten_probs: [B, N, T, S].</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep">
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This function is used by autoregressive decoding.</p>
 <dl class="field-list simple">
@@ -1034,8 +1034,8 @@ updated_value_vec: [T, B, N, H].</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttention.FPropMeta">
-<em class="property">classmethod </em><code class="sig-name descname">FPropMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttention.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention.FPropMeta" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">
+<em class="property">classmethod </em><code class="sig-name descname">FPropMeta</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">p</span></em>, <em class="sig-param"><span class="o">*</span><span class="n">args</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.FPropMeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns metadata about the <code class="xref py py-obj docutils literal notranslate"><span class="pre">FProp</span></code> computation for this layer.</p>
 <p><strong>Experimental feature.</strong>
 Don’t use or depend on it without consulting Lingvo authors.</p>
@@ -1072,27 +1072,27 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 </dd></dl>
 
 <dl class="py class">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL">
-<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LocalCausalSelfAttentionXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL" title="Permalink to this definition">¶</a></dt>
-<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttention" title="lingvo.core.batch_major_attention.LocalCausalSelfAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.LocalCausalSelfAttention</span></code></a></p>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.batch_major_attention.</code><code class="sig-name descname">LocalSelfAttentionXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#lingvo.core.batch_major_attention.LocalSelfAttention" title="lingvo.core.batch_major_attention.LocalSelfAttention"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.batch_major_attention.LocalSelfAttention</span></code></a></p>
 <p>Local causal version of transformer-xl self attention.</p>
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL.Params">
-<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL.Params" title="Permalink to this definition">¶</a></dt>
-<dd><p>Params for LocalCausalSelfAttention.</p>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params for LocalSelfAttention.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables">
-<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
 <dd><p>Actually create variables for this layer.</p>
 <p>Subclasses should override this function.</p>
 <p>Variables are created inside of tf.variable_scope(self.params.name).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt id="lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._AttenLogits">
-<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalCausalSelfAttentionXL._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dt id="lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogits">
+<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttentionXL._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>

@@ -1228,7 +1228,7 @@
     <span class="k">return</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="LocalCausalSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention">[docs]</a><span class="k">class</span> <span class="nc">LocalCausalSelfAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention">[docs]</a><span class="k">class</span> <span class="nc">LocalSelfAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Dot-product causal self attention using a sliding window.</span>
 
 <span class="sd">  We use the following capital letters to denote certain</span>
@@ -1266,9 +1266,9 @@
 
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LocalSelfAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Params for LocalCausalSelfAttention.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Params for LocalSelfAttention.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;block_size&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Size of a processing block, if unset, default to &#39;</span>
@@ -1280,7 +1280,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructs a LocalCausalSelfAttention object.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Constructs a LocalSelfAttention object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -1293,10 +1293,10 @@
 
     <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span><span class="p">,</span> <span class="s1">&#39;Packed input not implemented yet.&#39;</span>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttention._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BUTNH,BUSNH-&gt;BNUTS&#39;</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="LocalSelfAttention.AttenProbs"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.AttenProbs">[docs]</a>  <span class="k">def</span> <span class="nf">AttenProbs</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
                  <span class="n">query</span><span class="p">,</span>
                  <span class="n">key</span><span class="p">,</span>
@@ -1369,7 +1369,7 @@
     <span class="n">probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">probs</span></div>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="LocalSelfAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                 <span class="n">theta</span><span class="p">,</span>
                 <span class="n">query</span><span class="p">,</span>
                 <span class="n">key</span><span class="p">,</span>
@@ -1424,7 +1424,7 @@
     <span class="n">encoded</span> <span class="o">=</span> <span class="n">encoded</span><span class="p">[:,</span> <span class="p">:</span><span class="n">t0</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">encoded</span><span class="p">,</span> <span class="n">probs</span></div>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+<div class="viewcode-block" id="LocalSelfAttention.ExtendStep"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep">[docs]</a>  <span class="k">def</span> <span class="nf">ExtendStep</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                  <span class="n">theta</span><span class="p">,</span>
                  <span class="n">query_vec</span><span class="p">,</span>
                  <span class="n">cached_key_vec</span><span class="p">,</span>
@@ -1436,15 +1436,15 @@
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="LocalCausalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div></div>
 
 
-<div class="viewcode-block" id="LocalCausalSelfAttentionXL"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL">[docs]</a><span class="k">class</span> <span class="nc">LocalCausalSelfAttentionXL</span><span class="p">(</span><span class="n">LocalCausalSelfAttention</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttentionXL"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL">[docs]</a><span class="k">class</span> <span class="nc">LocalSelfAttentionXL</span><span class="p">(</span><span class="n">LocalSelfAttention</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Local causal version of transformer-xl self attention.&quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LocalCausalSelfAttentionXL.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LocalSelfAttentionXL.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;rel_pos_emb_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
@@ -1454,7 +1454,7 @@
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructs a LocalCausalSelfAttentionXL object.&quot;&quot;&quot;</span>
+    <span class="sd">&quot;&quot;&quot;Constructs a LocalSelfAttentionXL object.&quot;&quot;&quot;</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="n">params</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
@@ -1473,7 +1473,7 @@
         <span class="n">use_bias</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;pos_proj&#39;</span><span class="p">,</span> <span class="n">pos_proj_tpl</span><span class="p">)</span>
 
-<div class="viewcode-block" id="LocalCausalSelfAttentionXL._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttentionXL._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">params</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
@@ -1492,7 +1492,7 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;u&#39;</span><span class="p">,</span> <span class="n">u_pc</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="n">v_pc</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LocalCausalSelfAttentionXL._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalCausalSelfAttentionXL._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+<div class="viewcode-block" id="LocalSelfAttentionXL._AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttentionXL._AttenLogits">[docs]</a>  <span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
     <span class="n">b</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
     <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
     <span class="n">n</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">num_heads</span>
@@ -2198,15 +2198,15 @@
 
   <span class="c1"># If already using relative attention class.</span>
   <span class="k">if</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="ow">in</span> <span class="p">(</span><span class="n">MultiHeadedAttentionRPE</span><span class="p">,</span> <span class="n">MultiHeadedAttentionXL</span><span class="p">,</span>
-                       <span class="n">LocalCausalSelfAttentionXL</span><span class="p">):</span>
+                       <span class="n">LocalSelfAttentionXL</span><span class="p">):</span>
     <span class="n">atten_tpl</span><span class="o">.</span><span class="n">rel_pos_emb_dim</span> <span class="o">=</span> <span class="n">rel_pos_emb_dim</span>
     <span class="k">return</span> <span class="n">trans_params_copy</span>
 
   <span class="k">if</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="n">ATTEN_TRANSFORMER_XL</span><span class="p">:</span>
     <span class="k">if</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">MultiHeadedAttention</span><span class="p">:</span>
       <span class="n">rel_atten_tpl</span> <span class="o">=</span> <span class="n">MultiHeadedAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">LocalCausalSelfAttention</span><span class="p">:</span>
-      <span class="n">rel_atten_tpl</span> <span class="o">=</span> <span class="p">(</span><span class="n">LocalCausalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
+    <span class="k">elif</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">LocalSelfAttention</span><span class="p">:</span>
+      <span class="n">rel_atten_tpl</span> <span class="o">=</span> <span class="p">(</span><span class="n">LocalSelfAttentionXL</span><span class="o">.</span><span class="n">Params</span><span class="p">())</span>
     <span class="k">else</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported attention: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">atten_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
   <span class="k">elif</span> <span class="n">atten_type</span> <span class="o">==</span> <span class="n">ATTEN_RPE</span><span class="p">:</span>
@@ -2237,8 +2237,8 @@
   <span class="n">attention_tpl</span> <span class="o">=</span> <span class="n">trans_params_copy</span><span class="o">.</span><span class="n">tr_self_atten_tpl</span><span class="o">.</span><span class="n">atten_tpl</span>
   <span class="k">if</span> <span class="n">attention_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="n">MultiHeadedAttentionXL</span><span class="p">:</span>
     <span class="n">new_attention_tpl</span> <span class="o">=</span> <span class="n">MultiHeadedAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
-  <span class="k">elif</span> <span class="n">attention_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="p">(</span><span class="n">LocalCausalSelfAttentionXL</span><span class="p">):</span>
-    <span class="n">new_attention_tpl</span> <span class="o">=</span> <span class="n">LocalCausalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+  <span class="k">elif</span> <span class="n">attention_tpl</span><span class="o">.</span><span class="n">cls</span> <span class="o">==</span> <span class="p">(</span><span class="n">LocalSelfAttentionXL</span><span class="p">):</span>
+    <span class="n">new_attention_tpl</span> <span class="o">=</span> <span class="n">LocalSelfAttention</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
   <span class="k">else</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Unsupported attention params: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">attention_tpl</span><span class="o">.</span><span class="n">cls</span><span class="p">)</span>
 
