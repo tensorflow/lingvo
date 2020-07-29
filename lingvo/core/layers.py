@@ -2113,8 +2113,12 @@ class TPUEmbeddingTable(base_layer.BaseLayer):
                 tf.assign(accumulator_var, retrieved_accumulator))
             self._retrieve_op_list.append(retrieve_parameters_op)
 
-    self._private_vars['wm'] = embedding_table_vars
-    self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
+    if not py_utils.use_tpu():
+      # We dont't want to add this for TrainerTpu, otherwise the identity
+      # reference leads to copying the embedding to the TPU for no reason.
+      # However, this is needed for CPU (eval/decode/controller).
+      self._private_vars['wm'] = embedding_table_vars
+      self._private_theta['wm'] = [tf.identity(v) for v in embedding_table_vars]
 
   @property
   def table_config(self):
