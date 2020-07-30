@@ -3855,8 +3855,8 @@ class CategoricalLayerNorm(LayerNorm):
     return 'scale_' + str(i)
 
   def _CreateLayerVariables(self):
-    # Skip LayerNorm's _CreateVariables() as bias and scale variables will be
-    # created in this function.
+    # Skip LayerNorm's _CreateLayerVariables() as bias and scale variables will
+    # be created in this function.
     super(LayerNorm, self)._CreateLayerVariables()  # pylint: disable=bad-super-call
     p = self.params
     pc = py_utils.WeightParams(
