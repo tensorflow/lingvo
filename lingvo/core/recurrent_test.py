@@ -106,7 +106,7 @@ def Elman(theta, state0, inputs):
 
 def ElmanGrad(theta, state0, inputs, extras, dstate1):
 
-  @tf.Defun()
+  @tf.function(autograph=False)
   def Grad(h0, w, b, x, padding, h1, dh1):
     del b
     dh1_orig = dh1
@@ -574,7 +574,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
   def testNestedCellFn(self):
     """Tests when cell_fn calls another function."""
 
-    @tf.Defun(tf.float32)
+    @tf.function(autograph=False)
     def RandWithCoeff(coeff):
       return coeff * tf.random.uniform(shape=[], dtype=coeff.dtype)
 
@@ -584,7 +584,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
       next_state.value = state.value + RandWithCoeff(inputs.coeff)
       return next_state, py_utils.NestedMap()
 
-    @tf.Defun(tf.float32)
+    @tf.function(autograph=False)
     def Coeff(coeff):
       return coeff * 2
 
@@ -603,7 +603,7 @@ class RecurrentTest(test_utils.TestCase, parameterized.TestCase):
 
       recurrent.Recurrent(
           theta, state, inputs, Deterministic, check_stateful_ops=True)
-      with self.assertRaisesRegex(ValueError, 'stateful.*RandWithCoeff'):
+      with self.assertRaisesRegex(ValueError, 'cell_fn contains stateful ops:'):
         recurrent.Recurrent(theta, state, inputs, Rand, check_stateful_ops=True)
 
   @RecurrentTestParameters

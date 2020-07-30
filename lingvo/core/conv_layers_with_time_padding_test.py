@@ -633,12 +633,17 @@ class ConvLayerTest(parameterized.TestCase, test_utils.TestCase):
 class GlobalPoolingLayerTest(test_utils.TestCase):
   """Tests for GlobalPoolingLayer."""
 
-  def _testHelper(self, pooling_type, inputs, input_paddings, expected_output,
-                  expected_output_padding):
+  def _testHelper(self,
+                  pooling_type,
+                  inputs,
+                  input_paddings,
+                  expected_output,
+                  expected_output_padding,
+                  feed_dict=None):
     param = conv_layers.GlobalPoolingLayer.Params().Set(
         name='test_layer', pooling_type=pooling_type)
     pooling_layer = param.Instantiate()
-    with self.session(use_gpu=True):
+    with self.session(use_gpu=True) as sess:
       inputs = tf.convert_to_tensor(inputs, dtype=tf.float32)
       input_paddings = None if input_paddings is None else tf.convert_to_tensor(
           input_paddings, dtype=tf.float32)
@@ -647,10 +652,10 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
       self.evaluate(tf.global_variables_initializer())
       if input_paddings is None:
         self.assertIsNone(output_paddings)
-        output_val = self.evaluate(output)
+        output_val = sess.run(output, feed_dict=feed_dict)
       else:
-        output_val, output_paddings_val = self.evaluate(
-            [output, output_paddings])
+        output_val, output_paddings_val = sess.run([output, output_paddings],
+                                                   feed_dict=feed_dict)
 
     self.assertAllClose(expected_output, output_val)
     if input_paddings is not None:
@@ -688,9 +693,9 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
   def testPoolingWithUnknowShapeInput(self):
     """Tests GlobalPooling layer with unknown shape tensor."""
 
-    @tf.Defun(tf.float32)
     def remove_shape(tensor):
-      return tensor
+      shape = tf.placeholder(tf.int32, name='removed_shape')
+      return tf.reshape(tensor, shape)
 
     g = tf.Graph()
     with g.as_default(), tf.Session(graph=g) as _:
@@ -705,7 +710,13 @@ class GlobalPoolingLayerTest(test_utils.TestCase):
       input_tensor = remove_shape(input_tensor)
       self.assertIsInstance(py_utils.GetShape(input_tensor), tf.Tensor)
       self.assertIsNone(input_tensor.shape.rank)
-      self._testHelper('AVG', input_tensor, None, expected_avg_output, None)
+      self._testHelper(
+          'AVG',
+          input_tensor,
+          None,
+          expected_avg_output,
+          None,
+          feed_dict={'removed_shape:0': input_shape})
 
 
 if __name__ == '__main__':

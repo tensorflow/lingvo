@@ -340,11 +340,11 @@ class ClippingCapScheduleTest:
       # Move to fully quantized part of schedule
       self.evaluate(tf.assign(py_utils.GetOrCreateGlobalStepVar(), 16))
 
-      @tf.Defun(tf.float32, tf.float32)
+      @tf.function(autograph=False)
       def ExampleFunction8(x, cc_state):
         return cc_schedule.ApplyClippingWithState(cc_state, x, bits=8)
 
-      @tf.Defun(tf.float32, tf.float32)
+      @tf.function(autograph=False)
       def ExampleFunction16(x, cc_state):
         return cc_schedule.ApplyClippingWithState(cc_state, x, bits=16)
 

@@ -15,10 +15,14 @@
 # ==============================================================================
 """Tests for sendrecv."""
 
+from absl.testing import parameterized
 import lingvo.compat as tf
+from lingvo.core import py_utils
 from lingvo.core import sendrecv
 from lingvo.core import test_utils
 import numpy as np
+
+FLAGS = tf.flags.FLAGS
 
 
 def _ListDevices(target):
@@ -31,7 +35,7 @@ def _Target():
   return ""
 
 
-class SendrecvTest(test_utils.TestCase):
+class SendrecvTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBasic(self):
     devices = _ListDevices(_Target())
@@ -55,7 +59,12 @@ class SendrecvTest(test_utils.TestCase):
 
       self.assertAllClose(to_send, val)
 
-  def testInsideFunction(self):
+  @parameterized.named_parameters(
+      ("_defun", False),
+      ("_function", True),
+  )
+  def testInsideFunction(self, use_tf_function):
+    FLAGS.call_defun_use_tf_function = use_tf_function
     devices = _ListDevices(_Target())
     sender, recver = devices[0], devices[-1]
     shape = []
@@ -66,21 +75,20 @@ class SendrecvTest(test_utils.TestCase):
         ch = sendrecv.Channel(dtype, shape, sender, recver, "test")
         with tf.device(sender):
 
-          @tf.Defun()
-          def Send():
+          # py_utils.CallDefun requires non-empty inputs. Same below.
+          def Send(_):
             src_val = tf.constant(to_send)
             ch.Send(src_val)
-            return 1.0
+            return tf.convert_to_tensor(1.0)
 
-          send_op = Send()
+          send_op = py_utils.CallDefun(Send, tf.convert_to_tensor(0))
 
         with tf.device(recver):
 
-          @tf.Defun()
-          def Recv():
+          def Recv(_):
             return ch.Recv()
 
-          recv_val = Recv()
+          recv_val = py_utils.CallDefun(Recv, tf.convert_to_tensor(0))
       return send_op, recv_val, to_send
 
     for dtype in tf.float32, tf.complex64:
