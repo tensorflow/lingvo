@@ -2932,6 +2932,7 @@ class LmBuilder(Builder):
         name=name,
         weights=weights,
         split_dimension=split_dim,
+        fprop_dtype=self.params.fprop_dtype,
         num_devices=self.params.xla_num_partitions)
 
   def _LinearWeight(self, name, input_dim, output_dim, split_dim):
