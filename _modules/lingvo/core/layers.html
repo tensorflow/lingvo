@@ -4003,8 +4003,8 @@
     <span class="k">return</span> <span class="s1">&#39;scale_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">i</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="CategoricalLayerNorm._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.CategoricalLayerNorm._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="c1"># Skip LayerNorm&#39;s _CreateVariables() as bias and scale variables will be</span>
-    <span class="c1"># created in this function.</span>
+    <span class="c1"># Skip LayerNorm&#39;s _CreateLayerVariables() as bias and scale variables will</span>
+    <span class="c1"># be created in this function.</span>
     <span class="nb">super</span><span class="p">(</span><span class="n">LayerNorm</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>  <span class="c1"># pylint: disable=bad-super-call</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
