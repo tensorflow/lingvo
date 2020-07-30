@@ -1,0 +1,507 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.attention_util module &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="lingvo.core.base_decoder module" href="lingvo.core.base_decoder.html" />
+    <link rel="prev" title="lingvo.core.attention module" href="lingvo.core.attention.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="lingvo.html">lingvo package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="lingvo.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="lingvo.core.html">lingvo.core package</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="lingvo.core.html#subpackages">Subpackages</a></li>
+<li class="toctree-l4 current"><a class="reference internal" href="lingvo.core.html#submodules">Submodules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tasks.html">lingvo.tasks package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="lingvo.tools.html">lingvo.tools package</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="lingvo.html#submodules">Submodules</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="lingvo.html">lingvo package</a> &raquo;</li>
+        
+          <li><a href="lingvo.core.html">lingvo.core package</a> &raquo;</li>
+        
+      <li>lingvo.core.attention_util module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/lingvo.core.attention_util.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="module-lingvo.core.attention_util">
+<span id="lingvo-core-attention-util-module"></span><h1>lingvo.core.attention_util module<a class="headerlink" href="#module-lingvo.core.attention_util" title="Permalink to this headline">¶</a></h1>
+<p>Attention related utils, e.g. relative positional embeddings.</p>
+<dl class="py function">
+<dt id="lingvo.core.attention_util.ConvertToBlocks">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">ConvertToBlocks</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">block_size</span></em>, <em class="sig-param"><span class="n">padding_val</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ConvertToBlocks"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.ConvertToBlocks" title="Permalink to this definition">¶</a></dt>
+<dd><p>Turns a sequence to non overlapping blocks.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – a tensor of [batch, time, …].</p></li>
+<li><p><strong>block_size</strong> – int. Number of time frames in a block.</p></li>
+<li><p><strong>padding_val</strong> – float. value on the padded frames.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of [batch, num_blocks, block_size, …], with necessary paddings,
+where output[:, i, …] are x[:, i*block_size:(i+1)*block_size, …].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.ExtractBlockContext">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">ExtractBlockContext</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">block_size</span></em>, <em class="sig-param"><span class="n">left_context</span></em>, <em class="sig-param"><span class="n">right_context</span></em>, <em class="sig-param"><span class="n">padding_val</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#ExtractBlockContext"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.ExtractBlockContext" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extracts temporal context for every block.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – a tensor of [batch, time, …].</p></li>
+<li><p><strong>block_size</strong> – int. Number of time frames in a block.</p></li>
+<li><p><strong>left_context</strong> – int. Left context size.</p></li>
+<li><p><strong>right_context</strong> – int. Right context size.</p></li>
+<li><p><strong>padding_val</strong> – float. value on the padded frames.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of [batch, num_blocks, context_size, …], with necessary paddings,
+where context_size = block_size + (left_context - 1) + right_context,
+and output[:, i, …] are x[:, start-left_context+1:end+right_context, …],
+start = i * block_size, end = (i + 1) * block_size.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.MakeCausalPadding">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">MakeCausalPadding</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">seq_len</span></em>, <em class="sig-param"><span class="n">block_size</span></em>, <em class="sig-param"><span class="n">left_context</span></em>, <em class="sig-param"><span class="n">right_context</span></em>, <em class="sig-param"><span class="n">dtype</span><span class="o">=</span><span class="default_value">tf.float32</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#MakeCausalPadding"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.MakeCausalPadding" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes the causal padding tensor for a full sequence.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>seq_len</strong> – int or scalar int tensor. Sequence length.</p></li>
+<li><p><strong>block_size</strong> – int. Number of time frames in a block.</p></li>
+<li><p><strong>left_context</strong> – int. Left context size.</p></li>
+<li><p><strong>right_context</strong> – int. Right context size.</p></li>
+<li><p><strong>dtype</strong> – tf.dtype, default is tf.float32.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A tensor of [num_blocks, block_size, context_size] taking values in {0, 1},
+where context_size = block_size + (left_context - 1) + right_context.
+Element b, i, j is zero if in the b-th block, the i-th frame can access
+the j-th frame in the context.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.RelShift">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">RelShift</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelShift"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.RelShift" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs relative shift on 4D tensor (first 2 axis are batching dims).</p>
+<p>Given input of shape [?, ?, W, W], this does “relative shifting” for the
+last two dims, s.t. output[b, n, i, j] = 0 if i &gt; j else input[b, n, i, j-i]</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>x</strong> – A Tensor of shape [?, ?, W, W]</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>A Tensor of the same shape as input with its content shifted (as described
+above).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.RelPositionBias">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">RelPositionBias</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">content</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">skip_term_b</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#RelPositionBias"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.RelPositionBias" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute relative position bias.</p>
+<p>This is a subroutine used by variants of self-attentions with relative
+positional embedding.</p>
+<p>B: batch size
+T: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<p>output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]</p>
+<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>content</strong> – [N, H] if skip_term_b else [B, T, N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H], the absolute positional embedding.
+abs_pos_emb[i] is the emb of relative distance i - (T-1).</p></li>
+<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util._AttenLogits">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">positional_bias</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_term_b</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#_AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits from …</p>
+<p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
+self attention with relative position embedding.</p>
+<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<p>B: batch size
+T: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>query</strong> – [B, T, N, H]</p></li>
+<li><p><strong>key</strong> – [B, T, N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from</p></li>
+<li><p><strong>https</strong> – //arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</p></li>
+<li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
+<li><p><strong>content_bias</strong> – [N, H] or None</p></li>
+<li><p><strong>positional_bias</strong> – [N, H] or None</p></li>
+<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The attention logits tensor. [B, N, T, T]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.AttenLogitsTransformerXL">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">AttenLogitsTransformerXL</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em>, <em class="sig-param"><span class="n">content_bias</span></em>, <em class="sig-param"><span class="n">positional_bias</span></em>, <em class="sig-param"><span class="n">skip_term_b</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsTransformerXL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsTransformerXL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits from …</p>
+<p>Transformer-XL(<a class="reference external" href="https://arxiv.org/pdf/1901.02860.pdf">https://arxiv.org/pdf/1901.02860.pdf</a>, section 3.3) version of
+self attention with relative position embedding.</p>
+<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<p>B: batch size
+T: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>query</strong> – [B, T, N, H]</p></li>
+<li><p><strong>key</strong> – [B, T, N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The sinusoid positional embedding from</p></li>
+<li><p><strong>https</strong> – //arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</p></li>
+<li><p><strong>i -</strong> (<em>distance</em>) – </p></li>
+<li><p><strong>content_bias</strong> – [N, H]</p></li>
+<li><p><strong>positional_bias</strong> – [N, H]</p></li>
+<li><p><strong>skip_term_b</strong> – If to skip term_b in section 3.3 equation.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The attention logits tensor. [B, N, T, T]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="lingvo.core.attention_util.AttenLogitsRPE">
+<code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">AttenLogitsRPE</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">abs_pos_emb</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#AttenLogitsRPE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.AttenLogitsRPE" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attention logits from …</p>
+<p><a class="reference external" href="https://arxiv.org/pdf/1803.02155.pdf">https://arxiv.org/pdf/1803.02155.pdf</a> with trainable rel position emb.</p>
+<p>Notice padding is supposed to be masked by the caller of this function.</p>
+<p>B: batch size
+T: sequence length
+N: num of attention heads.
+H: per-head attention dimension.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>of the following shapes</strong> (<em>tensors</em>) – </p></li>
+<li><p><strong>query</strong> – [B, T, N, H]</p></li>
+<li><p><strong>key</strong> – [B, T, N, H]</p></li>
+<li><p><strong>abs_pos_emb</strong> – [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is
+the emb of relative distance i - (T-1).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>The attention logits tensor. [B, N, T, T]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt id="lingvo.core.attention_util.KMeansClusteringForAtten">
+<em class="property">class </em><code class="sig-prename descclassname">lingvo.core.attention_util.</code><code class="sig-name descname">KMeansClusteringForAtten</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="lingvo.core.base_layer.html#lingvo.core.base_layer.BaseLayer" title="lingvo.core.base_layer.BaseLayer"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.core.base_layer.BaseLayer</span></code></a></p>
+<p>Implements k-means clustering with mini-batch updates.</p>
+<p>This is used in the implementation of <a class="reference external" href="https://arxiv.org/pdf/2003.05997">https://arxiv.org/pdf/2003.05997</a>.</p>
+<dl class="simple">
+<dt>We use the following capital letters to denote shape parameters:</dt><dd><p>B = batch size
+L = length of the input squence (referred to as S or T elsewhere)
+N = number of attention heads
+H = dimensions of each attention head
+K = number of clusters</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.Params">
+<em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.Params" title="Permalink to this definition">¶</a></dt>
+<dd><p>Params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables">
+<code class="sig-name descname">_CreateLayerVariables</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten._CreateLayerVariables"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables" title="Permalink to this definition">¶</a></dt>
+<dd><p>Actually create variables for this layer.</p>
+<p>Subclasses should override this function.</p>
+<p>Variables are created inside of tf.variable_scope(self.params.name).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm">
+<em class="property">classmethod </em><code class="sig-name descname">LayerNorm</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">epsilon</span><span class="o">=</span><span class="default_value">1e-06</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.LayerNorm"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm" title="Permalink to this definition">¶</a></dt>
+<dd><p>Performs layer normalization on the last dimension of ‘x’.</p>
+<p>This differs from layers.LayerNorm in that it fixes both scale and bias at
+0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – An input tensor to be normalized.</p></li>
+<li><p><strong>epsilon</strong> – Tiny value used to guard against rsqrt of 0.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>‘x’ with its last dimension normalized.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.attention_util.KMeansClusteringForAtten.FProp">
+<code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">paddings</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">update</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/attention_util.html#KMeansClusteringForAtten.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.attention_util.KMeansClusteringForAtten.FProp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Computes distances of the given input ‘x’ to all centroids.</p>
+<p>This implementation applies layer normalization on ‘x’ internally first,
+and the returned ‘dists’ is computed using the normalized ‘x’.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> of weights’ values of this layer.</p></li>
+<li><p><strong>x</strong> – A tensor of shape [B, L, N, H].</p></li>
+<li><p><strong>paddings</strong> – If not None, a tensor of shape [B, L].</p></li>
+<li><p><strong>update</strong> – bool, whether to update centroids using x.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>“distances” of the given input ‘x’ to all centroids.</dt><dd><p>Shape [B, L, N, K].</p>
+</dd>
+<dt>k_means_loss: the average squared Euclidean distances to the closest</dt><dd><p>centroid, a scalar.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type</dt>
+<dd class="field-odd"><p>dists</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="lingvo.core.base_decoder.html" class="btn btn-neutral float-right" title="lingvo.core.base_decoder module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="lingvo.core.attention.html" class="btn btn-neutral float-left" title="lingvo.core.attention module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

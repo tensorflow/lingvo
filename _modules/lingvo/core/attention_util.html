@@ -1,0 +1,713 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>lingvo.core.attention_util &mdash; Lingvo  documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+        <script src="../../../_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="../../../_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="../../../index.html" class="icon icon-home" alt="Documentation Home"> Lingvo
+          
+
+          
+          </a>
+
+          
+            
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../lingvo.html">lingvo package</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">Lingvo</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+        
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+        
+      <li>lingvo.core.attention_util</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>Source code for lingvo.core.attention_util</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Lint as: python3</span>
+<span class="c1"># Copyright 2020 The TensorFlow Authors. All Rights Reserved.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+<span class="c1"># ==============================================================================</span>
+<span class="sd">&quot;&quot;&quot;Attention related utils, e.g. relative positional embeddings.&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">lingvo</span> <span class="kn">import</span> <span class="n">compat</span> <span class="k">as</span> <span class="n">tf</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">base_layer</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">py_utils</span>
+<span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
+
+
+<div class="viewcode-block" id="ConvertToBlocks"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.ConvertToBlocks">[docs]</a><span class="k">def</span> <span class="nf">ConvertToBlocks</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">padding_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Turns a sequence to non overlapping blocks.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: a tensor of [batch, time, ...].</span>
+<span class="sd">    block_size: int. Number of time frames in a block.</span>
+<span class="sd">    padding_val: float. value on the padded frames.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of [batch, num_blocks, block_size, ...], with necessary paddings,</span>
+<span class="sd">    where output[:, i, ...] are x[:, i*block_size:(i+1)*block_size, ...].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">t</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+  <span class="k">if</span> <span class="n">block_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;block_size must be at least 1, got </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block_size</span><span class="p">))</span>
+  <span class="n">w</span> <span class="o">=</span> <span class="n">block_size</span>
+  <span class="c1"># Pad t to be a multiply of w.</span>
+  <span class="n">num_blocks</span> <span class="o">=</span> <span class="p">(</span><span class="n">t</span> <span class="o">+</span> <span class="n">w</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">w</span>
+  <span class="n">pad_to_length</span> <span class="o">=</span> <span class="n">num_blocks</span> <span class="o">*</span> <span class="n">w</span>
+  <span class="n">padded</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">PadSequenceDimension</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">pad_to_length</span><span class="p">,</span> <span class="n">padding_val</span><span class="p">)</span>
+  <span class="n">reshaped</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">padded</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">num_blocks</span><span class="p">,</span> <span class="n">w</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+  <span class="k">return</span> <span class="n">reshaped</span></div>
+
+
+<div class="viewcode-block" id="ExtractBlockContext"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.ExtractBlockContext">[docs]</a><span class="k">def</span> <span class="nf">ExtractBlockContext</span><span class="p">(</span><span class="n">x</span><span class="p">,</span>
+                        <span class="n">block_size</span><span class="p">,</span>
+                        <span class="n">left_context</span><span class="p">,</span>
+                        <span class="n">right_context</span><span class="p">,</span>
+                        <span class="n">padding_val</span><span class="o">=</span><span class="mf">0.0</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Extracts temporal context for every block.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: a tensor of [batch, time, ...].</span>
+<span class="sd">    block_size: int. Number of time frames in a block.</span>
+<span class="sd">    left_context: int. Left context size.</span>
+<span class="sd">    right_context: int. Right context size.</span>
+<span class="sd">    padding_val: float. value on the padded frames.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of [batch, num_blocks, context_size, ...], with necessary paddings,</span>
+<span class="sd">    where context_size = block_size + (left_context - 1) + right_context,</span>
+<span class="sd">    and output[:, i, ...] are x[:, start-left_context+1:end+right_context, ...],</span>
+<span class="sd">    start = i * block_size, end = (i + 1) * block_size.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">block_size</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;block_size must be at least 1, got </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block_size</span><span class="p">))</span>
+  <span class="k">if</span> <span class="n">left_context</span> <span class="o">&lt;</span> <span class="mi">1</span> <span class="ow">or</span> <span class="n">left_context</span> <span class="o">&gt;</span> <span class="n">block_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;left_context must be at least 1 and at most block_size + 1 = </span><span class="si">{}</span><span class="s1">, &#39;</span>
+        <span class="s1">&#39;got </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block_size</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">left_context</span><span class="p">))</span>
+  <span class="k">if</span> <span class="n">right_context</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">right_context</span> <span class="o">&gt;</span> <span class="n">block_size</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s1">&#39;right_context must be at least 0 and at most block_size = </span><span class="si">{}</span><span class="s1">, &#39;</span>
+        <span class="s1">&#39;got </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">block_size</span><span class="p">,</span> <span class="n">right_context</span><span class="p">))</span>
+
+  <span class="n">block</span> <span class="o">=</span> <span class="n">ConvertToBlocks</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">padding_val</span><span class="p">)</span>
+  <span class="n">concat_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">block</span><span class="p">]</span>
+
+  <span class="k">if</span> <span class="n">left_context</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">block_size</span> <span class="o">==</span> <span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+      <span class="n">left_block</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">x_shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shift</span><span class="o">=</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">x_shift_block</span> <span class="o">=</span> <span class="n">ConvertToBlocks</span><span class="p">(</span><span class="n">x_shift</span><span class="p">,</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">padding_val</span><span class="p">)</span>
+      <span class="n">left_block</span> <span class="o">=</span> <span class="n">x_shift_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">concat_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">left_block</span><span class="p">]</span> <span class="o">+</span> <span class="n">concat_list</span>
+
+  <span class="k">if</span> <span class="n">right_context</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+    <span class="k">if</span> <span class="n">block_size</span> <span class="o">==</span> <span class="n">right_context</span><span class="p">:</span>
+      <span class="n">right_block</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">shift</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">x_shift</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">roll</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">shift</span><span class="o">=-</span><span class="n">right_context</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+      <span class="n">x_shift_block</span> <span class="o">=</span> <span class="n">ConvertToBlocks</span><span class="p">(</span><span class="n">x_shift</span><span class="p">,</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">padding_val</span><span class="p">)</span>
+      <span class="n">right_block</span> <span class="o">=</span> <span class="n">x_shift_block</span><span class="p">[:,</span> <span class="p">:,</span> <span class="o">-</span><span class="n">right_context</span><span class="p">:,</span> <span class="o">...</span><span class="p">]</span>
+    <span class="n">concat_list</span> <span class="o">+=</span> <span class="p">[</span><span class="n">right_block</span><span class="p">]</span>
+
+  <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">concat_list</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="MakeCausalPadding"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.MakeCausalPadding">[docs]</a><span class="k">def</span> <span class="nf">MakeCausalPadding</span><span class="p">(</span><span class="n">seq_len</span><span class="p">,</span>
+                      <span class="n">block_size</span><span class="p">,</span>
+                      <span class="n">left_context</span><span class="p">,</span>
+                      <span class="n">right_context</span><span class="p">,</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Makes the causal padding tensor for a full sequence.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    seq_len: int or scalar int tensor. Sequence length.</span>
+<span class="sd">    block_size: int. Number of time frames in a block.</span>
+<span class="sd">    left_context: int. Left context size.</span>
+<span class="sd">    right_context: int. Right context size.</span>
+<span class="sd">    dtype: tf.dtype, default is tf.float32.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A tensor of [num_blocks, block_size, context_size] taking values in {0, 1},</span>
+<span class="sd">    where context_size = block_size + (left_context - 1) + right_context.</span>
+<span class="sd">    Element b, i, j is zero if in the b-th block, the i-th frame can access</span>
+<span class="sd">    the j-th frame in the context.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">seq_len</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+      <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span>
+          <span class="n">seq_len</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="s1">&#39;seq_len must be at least 1&#39;</span><span class="p">)</span>
+  <span class="p">],</span> <span class="n">seq_len</span><span class="p">)</span>
+
+  <span class="n">num_blocks</span> <span class="o">=</span> <span class="p">(</span><span class="n">seq_len</span> <span class="o">+</span> <span class="n">block_size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="n">block_size</span>
+  <span class="n">context_size</span> <span class="o">=</span> <span class="n">block_size</span> <span class="o">+</span> <span class="p">(</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">+</span> <span class="n">right_context</span>
+
+  <span class="c1"># [num_blocks, block_size]: source positions in the original sequence.</span>
+  <span class="n">src_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">num_blocks</span> <span class="o">*</span> <span class="n">block_size</span><span class="p">),</span> <span class="p">[</span><span class="n">num_blocks</span><span class="p">,</span> <span class="n">block_size</span><span class="p">])</span>
+  <span class="c1"># [num_blocks,]: source positions at the start of each block.</span>
+  <span class="n">block_start_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_blocks</span> <span class="o">*</span> <span class="n">block_size</span><span class="p">,</span> <span class="n">block_size</span><span class="p">)</span>
+  <span class="c1"># [context_size]:  positions relative to the block start.</span>
+  <span class="n">relative_context_positions</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">context_size</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">left_context</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># [num_blocks, context_size]: target positions in the original sequence.</span>
+  <span class="n">tgt_positions</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">block_start_positions</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">+</span>
+      <span class="n">relative_context_positions</span><span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+  <span class="c1"># [num_blocks, block_size, context_size]: position differences between source-</span>
+  <span class="c1"># target pairs.</span>
+  <span class="n">position_diff</span> <span class="o">=</span> <span class="n">src_positions</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="n">tgt_positions</span><span class="p">[:,</span>
+                                                                  <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+  <span class="c1"># [num_blocks, block_size, context_size]: if attention is allowed between</span>
+  <span class="c1"># source-target pairs.</span>
+  <span class="n">valid_atten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="o">-</span><span class="n">right_context</span> <span class="o">&lt;=</span> <span class="n">position_diff</span><span class="p">,</span>
+                                    <span class="n">position_diff</span> <span class="o">&lt;</span> <span class="n">left_context</span><span class="p">)</span>
+
+  <span class="c1"># [num_blocks, block_size]: if the source position is valid, not padded.</span>
+  <span class="n">valid_src</span> <span class="o">=</span> <span class="n">src_positions</span> <span class="o">&lt;</span> <span class="n">seq_len</span>
+  <span class="c1"># [num_blocks, context_size]: if the target position is valid, not padded.</span>
+  <span class="n">valid_tgt</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">tgt_positions</span><span class="p">,</span> <span class="n">tgt_positions</span> <span class="o">&lt;</span> <span class="n">seq_len</span><span class="p">)</span>
+
+  <span class="n">valid_atten</span> <span class="o">&amp;=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">valid_src</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">],</span>
+                                     <span class="n">valid_tgt</span><span class="p">[:,</span> <span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:])</span>
+
+  <span class="n">padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">padding</span></div>
+
+
+<div class="viewcode-block" id="RelShift"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.RelShift">[docs]</a><span class="k">def</span> <span class="nf">RelShift</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Performs relative shift on 4D tensor (first 2 axis are batching dims).</span>
+
+<span class="sd">  Given input of shape [?, ?, W, W], this does &quot;relative shifting&quot; for the</span>
+<span class="sd">  last two dims, s.t. output[b, n, i, j] = 0 if i &gt; j else input[b, n, i, j-i]</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    x: A Tensor of shape [?, ?, W, W]</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    A Tensor of the same shape as input with its content shifted (as described</span>
+<span class="sd">    above).</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">w</span><span class="p">])</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)))</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">w</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">])</span>
+  <span class="n">x</span> <span class="o">=</span> <span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:</span><span class="n">w</span><span class="p">,</span> <span class="p">:]</span>
+  <span class="k">return</span> <span class="n">x</span></div>
+
+
+<div class="viewcode-block" id="RelPositionBias"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.RelPositionBias">[docs]</a><span class="k">def</span> <span class="nf">RelPositionBias</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Compute relative position bias.</span>
+
+<span class="sd">  This is a subroutine used by variants of self-attentions with relative</span>
+<span class="sd">  positional embedding.</span>
+
+<span class="sd">  B: batch size</span>
+<span class="sd">  T: sequence length</span>
+<span class="sd">  N: num of attention heads.</span>
+<span class="sd">  H: per-head attention dimension.</span>
+
+<span class="sd">  output[b][n][i][j] = content[b][i][n] x abs_pos_emb[i-j+T-1][n]</span>
+
+<span class="sd">  Notice padding is supposed to be masked by the caller of this function.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensors of the following shapes:</span>
+<span class="sd">    content:         [N, H] if skip_term_b else [B, T, N, H]</span>
+<span class="sd">    abs_pos_emb:     [2T - 1, N, H], the absolute positional embedding.</span>
+<span class="sd">      abs_pos_emb[i] is the emb of relative distance i - (T-1).</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The attention logits tensor. [N, T, T] if skip_term_b else [B, N, T, T].</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_term_b</span><span class="p">:</span>
+    <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="n">abs_pos_emb</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">abs_pos_emb</span><span class="p">,</span> <span class="p">[</span><span class="n">l</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">content</span><span class="p">)</span>
+    <span class="n">l</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">abs_pos_emb</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">t</span> <span class="o">=</span> <span class="p">(</span><span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+
+  <span class="k">if</span> <span class="ow">not</span> <span class="n">skip_term_b</span><span class="p">:</span>
+    <span class="c1"># [B, N, T, L=2T-1]</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,LNH-&gt;BNTL&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">l</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;flatten&#39;</span><span class="p">)</span>
+    <span class="c1"># [B, N, T * (L + 1)].</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">)))</span>
+    <span class="c1"># [B, N, T, L + 1].</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_bd</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;restore&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_bd</span><span class="p">[:,</span> <span class="p">:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="c1"># [N, L=2T-1]</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;NH,LNH-&gt;NL&#39;</span><span class="p">,</span> <span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span>
+    <span class="c1"># [N, T, L]</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">),</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;tile&#39;</span><span class="p">)</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span> <span class="o">*</span> <span class="n">l</span><span class="p">])</span>
+    <span class="c1"># [N, T * (L + 1)].</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">pad</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">t</span><span class="p">)))</span>
+    <span class="c1"># [N, T, L + 1].</span>
+    <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">l</span> <span class="o">+</span> <span class="mi">1</span><span class="p">],</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;restore&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">term_d</span><span class="p">[:,</span> <span class="p">:,</span> <span class="n">t</span> <span class="o">-</span> <span class="mi">1</span><span class="p">::</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="_AttenLogits"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util._AttenLogits">[docs]</a><span class="k">def</span> <span class="nf">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+                 <span class="n">key</span><span class="p">,</span>
+                 <span class="n">abs_pos_emb</span><span class="p">,</span>
+                 <span class="n">content_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">positional_bias</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
+
+<span class="sd">  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of</span>
+<span class="sd">  self attention with relative position embedding.</span>
+
+<span class="sd">  Notice padding is supposed to be masked by the caller of this function.</span>
+
+<span class="sd">  B: batch size</span>
+<span class="sd">  T: sequence length</span>
+<span class="sd">  N: num of attention heads.</span>
+<span class="sd">  H: per-head attention dimension.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensors of the following shapes:</span>
+<span class="sd">    query:           [B, T, N, H]</span>
+<span class="sd">    key:             [B, T, N, H]</span>
+<span class="sd">    abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from</span>
+<span class="sd">    https://arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</span>
+<span class="sd">    distance i - (T-1).</span>
+<span class="sd">    content_bias:    [N, H] or None</span>
+<span class="sd">    positional_bias: [N, H] or None</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The attention logits tensor. [B, N, T, T]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+
+  <span class="n">key</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+  <span class="k">if</span> <span class="n">content_bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">content_bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">content_bias</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">content_bias</span> <span class="o">=</span> <span class="mi">0</span>
+  <span class="k">if</span> <span class="n">positional_bias</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">positional_bias</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasShape</span><span class="p">(</span><span class="n">positional_bias</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">])</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="n">positional_bias</span> <span class="o">=</span> <span class="mi">0</span>
+
+  <span class="c1"># [B, N, T, S=T]</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_ac&#39;</span><span class="p">):</span>
+    <span class="n">term_ac</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH,BSNH-&gt;BNTS&#39;</span><span class="p">,</span> <span class="n">query</span> <span class="o">+</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+  <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;term_bd&#39;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">skip_term_b</span><span class="p">:</span>
+      <span class="n">content</span> <span class="o">=</span> <span class="n">positional_bias</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">content</span> <span class="o">=</span> <span class="n">query</span> <span class="o">+</span> <span class="n">positional_bias</span>
+    <span class="n">term_bd</span> <span class="o">=</span> <span class="n">RelPositionBias</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">skip_term_b</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div>
+
+
+<div class="viewcode-block" id="AttenLogitsTransformerXL"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.AttenLogitsTransformerXL">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsTransformerXL</span><span class="p">(</span><span class="n">query</span><span class="p">,</span>
+                             <span class="n">key</span><span class="p">,</span>
+                             <span class="n">abs_pos_emb</span><span class="p">,</span>
+                             <span class="n">content_bias</span><span class="p">,</span>
+                             <span class="n">positional_bias</span><span class="p">,</span>
+                             <span class="n">skip_term_b</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
+
+<span class="sd">  Transformer-XL(https://arxiv.org/pdf/1901.02860.pdf, section 3.3) version of</span>
+<span class="sd">  self attention with relative position embedding.</span>
+
+<span class="sd">  Notice padding is supposed to be masked by the caller of this function.</span>
+
+<span class="sd">  B: batch size</span>
+<span class="sd">  T: sequence length</span>
+<span class="sd">  N: num of attention heads.</span>
+<span class="sd">  H: per-head attention dimension.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensors of the following shapes:</span>
+<span class="sd">    query:           [B, T, N, H]</span>
+<span class="sd">    key:             [B, T, N, H]</span>
+<span class="sd">    abs_pos_emb:     [2T - 1, N, H]. The sinusoid positional embedding from</span>
+<span class="sd">    https://arxiv.org/abs/1706.03762. abs_pos_emb[i] is the emb of relative</span>
+<span class="sd">    distance i - (T-1).</span>
+<span class="sd">    content_bias:    [N, H]</span>
+<span class="sd">    positional_bias: [N, H]</span>
+<span class="sd">    skip_term_b:     If to skip term_b in section 3.3 equation.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The attention logits tensor. [B, N, T, T]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">,</span> <span class="n">content_bias</span><span class="p">,</span> <span class="n">positional_bias</span><span class="p">,</span>
+                      <span class="n">skip_term_b</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="AttenLogitsRPE"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.AttenLogitsRPE">[docs]</a><span class="k">def</span> <span class="nf">AttenLogitsRPE</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Attention logits from ...</span>
+
+<span class="sd">  https://arxiv.org/pdf/1803.02155.pdf with trainable rel position emb.</span>
+
+<span class="sd">  Notice padding is supposed to be masked by the caller of this function.</span>
+
+<span class="sd">  B: batch size</span>
+<span class="sd">  T: sequence length</span>
+<span class="sd">  N: num of attention heads.</span>
+<span class="sd">  H: per-head attention dimension.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    tensors of the following shapes:</span>
+<span class="sd">    query:           [B, T, N, H]</span>
+<span class="sd">    key:             [B, T, N, H]</span>
+<span class="sd">    abs_pos_emb:     [2T - 1, N, H]. The trainable embdding. abs_pos_emb[i] is</span>
+<span class="sd">      the emb of relative distance i - (T-1).</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    The attention logits tensor. [B, N, T, T]</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">_AttenLogits</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">abs_pos_emb</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KMeansClusteringForAtten"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten">[docs]</a><span class="k">class</span> <span class="nc">KMeansClusteringForAtten</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Implements k-means clustering with mini-batch updates.</span>
+
+<span class="sd">  This is used in the implementation of https://arxiv.org/pdf/2003.05997.</span>
+
+<span class="sd">  We use the following capital letters to denote shape parameters:</span>
+<span class="sd">    B = batch size</span>
+<span class="sd">    L = length of the input squence (referred to as S or T elsewhere)</span>
+<span class="sd">    N = number of attention heads</span>
+<span class="sd">    H = dimensions of each attention head</span>
+<span class="sd">    K = number of clusters</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="KMeansClusteringForAtten.Params"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_clusters&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of clusters, typically around the square&#39;</span>
+        <span class="s1">&#39; root of the sequence length.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_heads&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Num of attention heads.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dim_per_head&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimensions of each attention head.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="s1">&#39;The decay with which to update centroids.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard against divide by 0.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an instance which tracks its own set of centroids.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span>
+
+<div class="viewcode-block" id="KMeansClusteringForAtten._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># The per-head centroids. Shape [N, K, H].</span>
+    <span class="n">means</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim_per_head</span><span class="p">],</span>
+        <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Gaussian</span><span class="p">(),</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateVariable</span><span class="p">(</span><span class="s1">&#39;means&#39;</span><span class="p">,</span> <span class="n">means</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KMeansClusteringForAtten.LayerNorm"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten.LayerNorm">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">LayerNorm</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Performs layer normalization on the last dimension of &#39;x&#39;.</span>
+
+<span class="sd">    This differs from layers.LayerNorm in that it fixes both scale and bias at</span>
+<span class="sd">    0.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      x: An input tensor to be normalized.</span>
+<span class="sd">      epsilon: Tiny value used to guard against rsqrt of 0.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      &#39;x&#39; with its last dimension normalized.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">mean</span><span class="p">,</span> <span class="n">variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span><span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span>
+                                             <span class="kc">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">mean</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">variance</span> <span class="o">+</span> <span class="n">epsilon</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="KMeansClusteringForAtten.FProp"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.KMeansClusteringForAtten.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes distances of the given input &#39;x&#39; to all centroids.</span>
+
+<span class="sd">    This implementation applies layer normalization on &#39;x&#39; internally first,</span>
+<span class="sd">    and the returned &#39;dists&#39; is computed using the normalized &#39;x&#39;.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` of weights&#39; values of this layer.</span>
+<span class="sd">      x: A tensor of shape [B, L, N, H].</span>
+<span class="sd">      paddings: If not None, a tensor of shape [B, L].</span>
+<span class="sd">      update: bool, whether to update centroids using x.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      dists: &quot;distances&quot; of the given input &#39;x&#39; to all centroids.</span>
+<span class="sd">             Shape [B, L, N, K].</span>
+<span class="sd">      k_means_loss: the average squared Euclidean distances to the closest</span>
+<span class="sd">                    centroid, a scalar.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
+    <span class="c1"># Shape [B, N, 1, 1]</span>
+    <span class="n">paddings_4d</span> <span class="o">=</span> <span class="n">paddings</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="c1"># &#39;x&#39; is normalized (but theta.means is not), we use negative dot product to</span>
+    <span class="c1"># approximate the Euclidean distance here.</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNH, NKH -&gt; BLNK&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
+    <span class="c1"># Shape [B, N, L, K], the same as &#39;dists&#39; above.</span>
+    <span class="n">nearest_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">)</span>
+    <span class="c1"># Same shape as the input &#39;x&#39;.</span>
+    <span class="n">nearest_centroid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNK, NKH -&gt; BLNH&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span>
+                                 <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">squared_difference</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span><span class="n">nearest_centroid</span><span class="p">))</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings_4d</span><span class="p">,</span> <span class="n">diff</span><span class="p">)</span>
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">diff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+    <span class="c1"># The commitment loss which when back proped against encourages the &#39;x&#39;</span>
+    <span class="c1"># values to commit to their chosen centroids.</span>
+    <span class="n">k_means_loss</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">diff</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;k_means/squared_distance_loss&#39;</span><span class="p">,</span> <span class="n">k_means_loss</span><span class="p">)</span>
+
+    <span class="c1"># TODO(zhouwk): investigate normalizing theta.means after each update.</span>
+    <span class="n">means_norm</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;k_means/centroid_l2_norm/min&#39;</span><span class="p">,</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">means_norm</span><span class="p">))</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;k_means/centroid_l2_norm/mean&#39;</span><span class="p">,</span>
+                         <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">reduce_mean</span><span class="p">(</span><span class="n">means_norm</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">update</span><span class="p">:</span>
+      <span class="k">return</span> <span class="n">dists</span><span class="p">,</span> <span class="n">k_means_loss</span>
+
+    <span class="c1"># To update the centroids (self.vars.means), we apply gradient descent on</span>
+    <span class="c1"># the mini-batch of input &#39;x&#39;, which yields the following:</span>
+    <span class="c1">#   new_centroid = centroid + (1 - decay) * (x_mean - centroid)</span>
+    <span class="c1"># where x_mean is the average over all the input vectors closest to this</span>
+    <span class="c1"># centroid.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Note that this approach is equivalent with backprop via</span>
+    <span class="c1">#    loss = tf.math.reduce_mean(</span>
+    <span class="c1">#        tf.math.squared_difference(tf.stop_gradient(x), nearest_centroid)))</span>
+    <span class="c1"># , except that here the learning rate is independently set via &#39;decay&#39;.</span>
+
+    <span class="c1"># Ensure that the padded positions are not used to update the centroids.</span>
+    <span class="n">nearest_one_hot</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ApplyPadding</span><span class="p">(</span><span class="n">paddings_4d</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">)</span>
+
+    <span class="c1"># Sum away batch and sequence length dimensions to get per cluster count.</span>
+    <span class="c1"># Shape: [N, K]</span>
+    <span class="n">per_cluster_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">nearest_one_hot</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">summary_utils</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="s1">&#39;k_means/per_cluster_vec_count&#39;</span><span class="p">,</span> <span class="n">per_cluster_count</span><span class="p">)</span>
+
+    <span class="c1"># Sum of the input &#39;x&#39; per each closest centroid.</span>
+    <span class="n">sum_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNK, BLNH -&gt; NKH&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="n">per_cluster_count</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">per_cluster_count</span><span class="p">)</span>
+      <span class="n">sum_x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tpu</span><span class="o">.</span><span class="n">cross_replica_sum</span><span class="p">(</span><span class="n">sum_x</span><span class="p">)</span>
+
+    <span class="c1"># If per_cluster_count for a cluster is 0, then &#39;nearest_one_hot&#39; in that</span>
+    <span class="c1"># cluster&#39;s position will always be 0, hence &#39;sum_x&#39; in that dimension will</span>
+    <span class="c1"># be 0.</span>
+    <span class="n">new_means</span> <span class="o">=</span> <span class="n">sum_x</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">per_cluster_count</span> <span class="o">+</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># We use exponential moving average. TODO(zhouwk): investigate smooth this</span>
+    <span class="c1"># over an exponentially moving averaged per cluster count.</span>
+    <span class="c1">#</span>
+    <span class="c1"># Note that we intentionally do not normalize the means after this update</span>
+    <span class="c1"># as empirically this works better.</span>
+    <span class="n">update_means_diff</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">decay</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="n">new_means</span> <span class="o">-</span> <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">means</span><span class="p">,</span> <span class="n">update_means_diff</span><span class="p">)],</span>
+        <span class="n">dists</span><span class="p">),</span> <span class="n">k_means_loss</span></div></div>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2018
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
