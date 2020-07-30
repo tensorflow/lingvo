@@ -560,20 +560,21 @@ class BaseTask(base_layer.BaseLayer):
       }
     all_losses = []
     for optimization in self.learners:
-      loss_name = optimization.params.name
+      learner_name = optimization.params.name
+      loss_name = optimization.params.loss_name or learner_name
       metric = self._metrics.get(loss_name, None)
       if metric is None:
         raise ValueError('Loss %s not found in metrics %s' %
                          (loss_name, list(self._metrics.keys())))
       loss = metric[0]
       all_losses.append(loss)
-      train_ops['train/%s' % loss_name], eval_metrics = optimization.Apply(
+      train_ops['train/%s' % learner_name], eval_metrics = optimization.Apply(
           loss,
           vmap,
           gradient_mask=gradient_mask,
           gradient_adjuster=self.AdjustGradients)
       for key, (value, weight) in eval_metrics.items():
-        self.AddEvalMetric(key + '/' + loss_name, value, weight)
+        self.AddEvalMetric(key + '/' + learner_name, value, weight)
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
         all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))

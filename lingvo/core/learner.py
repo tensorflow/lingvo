@@ -43,6 +43,9 @@ class Learner(base_layer.BaseLayer):
         'If not None, L2 regularization to apply to the weights. '
         'Otherwise, disable L2 regularization.')
     p.Define(
+        'loss_name', None, 'Name of the loss this leaner to optimize. '
+        'If not set, use leaner name directly.')
+    p.Define(
         'l1_regularizer_weight', None,
         'If not None, L1 regularization to apply to the weights. '
         'Otherwise, disable L1 regularization.')
