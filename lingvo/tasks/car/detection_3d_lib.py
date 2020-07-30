@@ -123,10 +123,8 @@ class Utils3D:
 
     gt_corners = geometry.BBoxCorners(gt_bboxes)
     predicted_corners = geometry.BBoxCorners(predicted_bboxes)
-    corner_dist = tf.norm(predicted_corners - gt_corners, axis=-1)
-    huber_loss = self.ScaledHuberLoss(
-        labels=tf.zeros_like(corner_dist), predictions=corner_dist)
-    huber_loss = tf.reduce_sum(huber_loss, axis=-1)
+    huber_loss = self.ScaledHuberLoss(gt_corners, predicted_corners)
+    huber_loss = tf.reduce_sum(huber_loss, axis=[-2, -1])
 
     if symmetric:
       # Compute the loss assuming the ground truth is flipped 180, and
@@ -134,12 +132,9 @@ class Utils3D:
       rot = tf.constant([[[0., 0., 0., 0., 0., 0., np.pi]]], dtype=tf.float32)
       rotated_gt_bboxes = gt_bboxes + rot
       rotated_gt_corners = geometry.BBoxCorners(rotated_gt_bboxes)
-      rotated_corner_dist = tf.norm(
-          predicted_corners - rotated_gt_corners, axis=-1)
       rotated_huber_loss = self.ScaledHuberLoss(
-          labels=tf.zeros_like(rotated_corner_dist),
-          predictions=rotated_corner_dist)
-      rotated_huber_loss = tf.reduce_sum(rotated_huber_loss, axis=-1)
+          labels=rotated_gt_corners, predictions=predicted_corners)
+      rotated_huber_loss = tf.reduce_sum(rotated_huber_loss, axis=[-2, -1])
       huber_loss = tf.minimum(huber_loss, rotated_huber_loss)
 
     huber_loss = tf.reshape(huber_loss, bbox_shape[:-1])
