@@ -78,13 +78,11 @@ class VarLayer(base_layer.BaseLayer):
 
   def __init__(self, params):
     super().__init__(params)
-    name = self.params.name
-    with tf.variable_scope(name):
-      for k, v in self.params.weights:
-        vp = v.Copy()
-        if vp.init is None:
-          vp.init = self.params.params_init
-        self.CreateVariable(k, vp)
+    for k, v in self.params.weights:
+      vp = v.Copy()
+      if vp.init is None:
+        vp.init = self.params.params_init
+      self.CreateVariable(k, vp)
 
   def FProp(self, theta, *args, **kwargs):
 
@@ -365,9 +363,8 @@ class SharedEmbeddingSoftmaxLayer(base_layer.BaseLayer):
         shape=[p.vocab_size, p.embedding_dim])
     pos_emb_p = py_utils.WeightParams(
         init=py_utils.WeightInit.Gaussian(), shape=[p.max_len, p.embedding_dim])
-    with tf.variable_scope(p.name):
-      self.CreateVariable('embedding', emb_p)
-      self.CreateVariable('pos_emb', pos_emb_p)
+    self.CreateVariable('embedding', emb_p)
+    self.CreateVariable('pos_emb', pos_emb_p)
 
   def _MaybeSplit(self, x):
     if True or self.params.num_devices <= 1:
