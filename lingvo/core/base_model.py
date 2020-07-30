@@ -248,7 +248,6 @@ class BaseTask(base_layer.BaseLayer):
     self._post_train_ops = []
     self._eval_metrics = {}
     self._per_example = {}
-    self._trainer_verbose_tensors = {}
 
     # Create the gradient mask,
     self._per_input_gradient_mask = None
@@ -804,26 +803,6 @@ class BaseTask(base_layer.BaseLayer):
     if name in self._per_example:
       raise ValueError('Metric %s has already been defined.' % name)
     self._per_example[name] = value
-
-  @property
-  def trainer_verbose_tensors(self):
-    """Return the dict of verbose tensors to eval in the training loop."""
-    return self._trainer_verbose_tensors
-
-  def AddTrainerVerboseTensor(self, name, target):
-    """Add a (set of) tensors to be evaluated in the training loop.
-
-    Args:
-      name: A python string. The name of the target(s).
-      target: A Tensor or a list or dict of Tensors.
-
-    Raises:
-      ValueError: if `name` is already defined.
-
-    """
-    if name in self._trainer_verbose_tensors:
-      raise ValueError('Verbose target %s has already been defined.' % name)
-    self._trainer_verbose_tensors[name] = target
 
   def _UpdateVnConfig(self):
     """Update vn config from the various vn flags."""
