@@ -21,6 +21,7 @@
 
 import bisect
 from lingvo import compat as tf
+from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import builder
 from lingvo.core import conv_layers_builder as conv_layers
@@ -30,7 +31,6 @@ from lingvo.core import layers
 from lingvo.core import layers_with_attention
 from lingvo.core import moe_layers
 from lingvo.core import py_utils
-from lingvo.core import relative_atten_util
 from lingvo.core import symbolic
 from lingvo.core import tshape
 # pylint: disable=g-direct-tensorflow-import
@@ -806,8 +806,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     # [2T - 1, N, H]
     sin_emb = tf.squeeze(sin_emb, 0)
 
-    logits = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, sin_emb, theta.u, theta.v, self.params.skip_term_b)
+    logits = attention_util.AttenLogitsTransformerXL(query, key, sin_emb,
+                                                     theta.u, theta.v,
+                                                     self.params.skip_term_b)
     return logits
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
@@ -990,7 +991,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
     else:
       abs_emb = tf.reshape(abs_emb, [2 * t - 1, n, h])
 
-    return relative_atten_util.AttenLogitsRPE(query, key, abs_emb)
+    return attention_util.AttenLogitsRPE(query, key, abs_emb)
 
   def _AttenLogitsOneStep(self, theta, query, key, time_step):
     """Attention logits for one single target (query) step.
@@ -1176,7 +1177,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     query = py_utils.HasShape(query, [b, t, n, h])
 
     # -> [B, U, C, N, H]
-    key_block_context = relative_atten_util.ExtractBlockContext(
+    key_block_context = attention_util.ExtractBlockContext(
         key,
         block_size=p.block_size,
         left_context=p.left_context,
@@ -1184,12 +1185,12 @@ class LocalSelfAttention(MultiHeadedAttention):
     _, u, c, _, _ = py_utils.GetShape(key_block_context)
 
     # -> [B, U, W, N, H]
-    query_blocks = relative_atten_util.ConvertToBlocks(
+    query_blocks = attention_util.ConvertToBlocks(
         query, block_size=p.block_size)
     _, _, w, _, _ = py_utils.GetShape(query_blocks)
 
     # -> [B, U, C]
-    paddings_block_context = relative_atten_util.ExtractBlockContext(
+    paddings_block_context = attention_util.ExtractBlockContext(
         paddings,
         block_size=p.block_size,
         left_context=p.left_context,
@@ -1202,7 +1203,7 @@ class LocalSelfAttention(MultiHeadedAttention):
 
     # Make local casual paddings.
     # -> [U, W, C]
-    local_causal_padding = relative_atten_util.MakeCausalPadding(
+    local_causal_padding = attention_util.MakeCausalPadding(
         seq_len=t,
         block_size=p.block_size,
         left_context=p.left_context,
@@ -1261,7 +1262,7 @@ class LocalSelfAttention(MultiHeadedAttention):
     probs = self.atten_dropout.FProp(theta.atten_dropout, probs)
 
     # -> [B, U, C, N, H]
-    value_block_context = relative_atten_util.ExtractBlockContext(
+    value_block_context = attention_util.ExtractBlockContext(
         value,
         block_size=p.block_size,
         left_context=p.left_context,

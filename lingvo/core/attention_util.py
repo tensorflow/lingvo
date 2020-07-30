@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Utils for relative positional embeddings."""
+"""Attention related utils, e.g. relative positional embeddings."""
 
 from lingvo import compat as tf
 from lingvo.core import base_layer

@@ -61,6 +61,7 @@ py_library(
     srcs = ["batch_major_attention.py"],
     srcs_version = "PY3",
     deps = [
+        ":attention_util",
         ":base_layer",
         ":builder",
         ":conv_layers_builder",
@@ -70,7 +71,6 @@ py_library(
         ":layers_with_attention",
         ":moe_layers",
         ":py_utils",
-        ":relative_atten_util",
         ":symbolic",
         ":tshape",
         "//lingvo:compat",
@@ -1403,8 +1403,8 @@ lingvo_cuda_py_test(
 )
 
 py_library(
-    name = "relative_atten_util",
-    srcs = ["relative_atten_util.py"],
+    name = "attention_util",
+    srcs = ["attention_util.py"],
     srcs_version = "PY3",
     deps = [
         ":base_layer",
@@ -1425,13 +1425,13 @@ py_library(
 )
 
 py_test(
-    name = "relative_atten_util_test",
-    srcs = ["relative_atten_util_test.py"],
+    name = "attention_util_test",
+    srcs = ["attention_util_test.py"],
     python_version = "PY3",
     srcs_version = "PY3",
     deps = [
+        ":attention_util",
         ":py_utils",
-        ":relative_atten_util",
         ":test_utils",
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",

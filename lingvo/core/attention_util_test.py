@@ -13,12 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""Tests for relative_atten_util."""
+"""Tests for attention_util."""
 
 from absl.testing import parameterized
 
 from lingvo import compat as tf
-from lingvo.core import relative_atten_util
+from lingvo.core import attention_util
 from lingvo.core import test_utils
 
 import numpy as np
@@ -39,8 +39,8 @@ class RelPositionBiasTest(test_utils.TestCase, parameterized.TestCase):
       tf.logging.info('content=%s abs_pos_emb=%s', content.eval(),
                       abs_pos_emb.eval())
       self.assertAllClose([[[[6., 3., 0.], [10., 7., 4.], [14., 11., 8.]]]],
-                          relative_atten_util.RelPositionBias(
-                              content, abs_pos_emb).eval())
+                          attention_util.RelPositionBias(content,
+                                                         abs_pos_emb).eval())
 
 
 def OracleAttentionLogits(query,
@@ -104,8 +104,10 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
      positional_bias) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, content_bias,
                                      positional_bias, skip_term_b)
-    actual_t = relative_atten_util.AttenLogitsTransformerXL(
-        query, key, abs_pos_emb, content_bias, positional_bias, skip_term_b)
+    actual_t = attention_util.AttenLogitsTransformerXL(query, key, abs_pos_emb,
+                                                       content_bias,
+                                                       positional_bias,
+                                                       skip_term_b)
     with self.session() as sess:
       actual = sess.run(actual_t)
     self.assertAllClose(expected, actual)
@@ -113,7 +115,7 @@ class TransformerXLRelativeAttentionTest(test_utils.TestCase,
   def testRPE(self):
     (query, key, abs_pos_emb, _, _) = self._GetTestInputs()
     expected = OracleAttentionLogits(query, key, abs_pos_emb, None, None)
-    actual_t = relative_atten_util.AttenLogitsRPE(query, key, abs_pos_emb)
+    actual_t = attention_util.AttenLogitsRPE(query, key, abs_pos_emb)
     with self.session() as sess:
       actual = sess.run(actual_t)
     self.assertAllClose(expected, actual)
@@ -130,7 +132,7 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
     x_val = np.random.random([2, 6, 2, 3, 4])
     with self.session() as sess:
       x = tf.convert_to_tensor(x_val, tf.float32)
-      x_blocks = relative_atten_util.ConvertToBlocks(x, block_size)
+      x_blocks = attention_util.ConvertToBlocks(x, block_size)
       x_blocks_val = sess.run(x_blocks)
     # Check shape.
     batch_size = x_val.shape[0]
@@ -155,8 +157,9 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
     x_val = np.random.random([2, 6, 2, 3, 4])
     with self.session() as sess:
       x = tf.convert_to_tensor(x_val, tf.float32)
-      x_context = relative_atten_util.ExtractBlockContext(
-          x, block_size, left_context, right_context)
+      x_context = attention_util.ExtractBlockContext(x, block_size,
+                                                     left_context,
+                                                     right_context)
       x_context_val = sess.run(x_context)
     # Check shape.
     batch_size = x_val.shape[0]
@@ -210,9 +213,8 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
                             right_context):
     with self.session() as sess:
       seq_len_t = tf.convert_to_tensor(seq_len)
-      padding = relative_atten_util.MakeCausalPadding(seq_len_t, block_size,
-                                                      left_context,
-                                                      right_context)
+      padding = attention_util.MakeCausalPadding(seq_len_t, block_size,
+                                                 left_context, right_context)
       padding_val = sess.run(padding)
 
     ref_padding = self._getReferenceCausalPadding(seq_len, block_size,
@@ -223,7 +225,7 @@ class BlockUtilsTest(test_utils.TestCase, parameterized.TestCase):
 class KMeansClusteringForAttenTest(test_utils.TestCase):
 
   def testFProp(self):
-    p = relative_atten_util.KMeansClusteringForAtten.Params()
+    p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
     p.num_clusters = 2
     p.dim_per_head = 4
@@ -243,7 +245,7 @@ class KMeansClusteringForAttenTest(test_utils.TestCase):
       self.assertEqual(loss.shape, ())
 
   def testFPropFixedInput(self):
-    p = relative_atten_util.KMeansClusteringForAtten.Params()
+    p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
     p.num_clusters = 3
     p.dim_per_head = 6
@@ -276,7 +278,7 @@ class KMeansClusteringForAttenTest(test_utils.TestCase):
         prev_loss = loss
 
   def testFPropClustering(self):
-    p = relative_atten_util.KMeansClusteringForAtten.Params()
+    p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
     p.num_clusters = 2
     p.dim_per_head = 3
@@ -319,7 +321,7 @@ class KMeansClusteringForAttenTest(test_utils.TestCase):
     self.assertLess(loss, 0.005)
 
   def testFPropPadding(self):
-    p = relative_atten_util.KMeansClusteringForAtten.Params()
+    p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
     p.num_clusters = 2
     p.dim_per_head = 3
@@ -380,7 +382,7 @@ class KMeansClusteringForAttenTest(test_utils.TestCase):
     self.assertAllClose(loss3, 3.0, 1e-4, 1e-4)
 
   def testFPropClusteringEmptyCluster(self):
-    p = relative_atten_util.KMeansClusteringForAtten.Params()
+    p = attention_util.KMeansClusteringForAtten.Params()
     p.name = 'k_means'
     p.num_clusters = 10
     p.dim_per_head = 3
