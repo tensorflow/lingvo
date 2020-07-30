@@ -4473,6 +4473,37 @@
   <span class="k">return</span> <span class="n">Call</span></div>
 
 
+<span class="c1"># Global variable to control rendezvous sharing in tf.function.</span>
+<span class="c1"># If False (default) rendezvous sharing is disabled in tf.function, that is, the</span>
+<span class="c1"># function body use a separate rendezvous and can&#39;t communicate with parent</span>
+<span class="c1"># graph via send/recv.</span>
+<span class="c1"># With _GetSharedRendezvous() == True, the function body share the same</span>
+<span class="c1"># rendezvous with the parent graph and can talk to it using send/recv. This is</span>
+<span class="c1"># useful for layers like StackedRecurrent.</span>
+<span class="n">_SHARED_RENDEZVOUS</span> <span class="o">=</span> <span class="n">ThreadLocalStack</span><span class="p">()</span>
+
+
+<div class="viewcode-block" id="_SharedRendezvousScope"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._SharedRendezvousScope">[docs]</a><span class="nd">@contextlib</span><span class="o">.</span><span class="n">contextmanager</span>
+<span class="k">def</span> <span class="nf">_SharedRendezvousScope</span><span class="p">(</span><span class="n">shared_rendezvous</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+  <span class="n">_SHARED_RENDEZVOUS</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">shared_rendezvous</span><span class="p">)</span>
+  <span class="k">try</span><span class="p">:</span>
+    <span class="k">yield</span>
+  <span class="k">finally</span><span class="p">:</span>
+    <span class="n">_SHARED_RENDEZVOUS</span><span class="o">.</span><span class="n">stack</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="_GetSharedRendezvous"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._GetSharedRendezvous">[docs]</a><span class="k">def</span> <span class="nf">_GetSharedRendezvous</span><span class="p">():</span>
+  <span class="sd">&quot;&quot;&quot;Get the current rendezvous sharing setting.&quot;&quot;&quot;</span>
+  <span class="k">return</span> <span class="n">_SHARED_RENDEZVOUS</span><span class="o">.</span><span class="n">stack</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">_SHARED_RENDEZVOUS</span><span class="o">.</span><span class="n">stack</span> <span class="k">else</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="_ApplySharedRendezvous"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._ApplySharedRendezvous">[docs]</a><span class="k">def</span> <span class="nf">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Apply the rendezvous sharing setting on the given tf.function func.&quot;&quot;&quot;</span>
+  <span class="c1"># pylint: disable=protected-access</span>
+  <span class="n">func</span><span class="o">.</span><span class="n">_shared_rendezvous</span> <span class="o">=</span> <span class="n">_GetSharedRendezvous</span><span class="p">()</span></div>
+  <span class="c1"># pylint: enable=protected-access</span>
+
+
 <div class="viewcode-block" id="_DefineFunction"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._DefineFunction">[docs]</a><span class="k">def</span> <span class="nf">_DefineFunction</span><span class="p">(</span><span class="n">fwd</span><span class="p">,</span>
                     <span class="n">fwd_sig</span><span class="p">,</span>
                     <span class="n">bak</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -4522,9 +4553,8 @@
     <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span> <span class="o">=</span> <span class="n">_TensorSpecs</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">rets</span><span class="p">)</span>
 
-  <span class="c1"># StackedRecurrent need this to perform send/recv across function boundary.</span>
-  <span class="c1"># TODO(laigd): make it an option and only use it in StackedRecurrent.</span>
-  <span class="n">Forward</span><span class="o">.</span><span class="n">_shared_rendezvous</span> <span class="o">=</span> <span class="kc">True</span>  <span class="c1"># pylint: disable=protected-access</span>
+  <span class="n">shared_rendezvous</span> <span class="o">=</span> <span class="n">_GetSharedRendezvous</span><span class="p">()</span>
+  <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">Forward</span><span class="p">)</span>
   <span class="n">forward_cf</span> <span class="o">=</span> <span class="n">Forward</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
   <span class="n">forward_cf</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">()</span>
 
@@ -4545,13 +4575,19 @@
           <span class="n">Backward</span><span class="p">,</span>
           <span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">([</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">,</span> <span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">]),</span>
           <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+      <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">backward</span><span class="p">)</span>
       <span class="c1"># Add the backward function to graph so it&#39;s invoked under the same</span>
       <span class="c1"># context as forward. This is necessary if the function body captures any</span>
       <span class="c1"># non-tensor values from the environment, like symbolic maps.</span>
       <span class="n">backward_cf</span> <span class="o">=</span> <span class="n">backward</span><span class="o">.</span><span class="n">get_concrete_function</span><span class="p">()</span>
       <span class="n">backward_cf</span><span class="o">.</span><span class="n">add_to_graph</span><span class="p">()</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">backward_cf</span> <span class="o">=</span> <span class="n">Backward</span>
+
+      <span class="k">def</span> <span class="nf">BackwardWithSharedRendezvous</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">_SharedRendezvousScope</span><span class="p">(</span><span class="n">shared_rendezvous</span><span class="p">):</span>
+          <span class="k">return</span> <span class="n">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+
+      <span class="n">backward_cf</span> <span class="o">=</span> <span class="n">BackwardWithSharedRendezvous</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">custom_gradient</span>
     <span class="k">def</span> <span class="nf">ForwardWithGrad</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
@@ -4664,6 +4700,8 @@
       <span class="n">ret_dtypes</span><span class="o">.</span><span class="n">else_out</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">Flatten</span><span class="p">(</span><span class="n">out</span><span class="p">)</span>
 
+    <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">ThenBranch</span><span class="p">)</span>
+    <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">ElseBranch</span><span class="p">)</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">If</span><span class="p">(</span>
         <span class="n">cond</span><span class="o">=</span><span class="n">cond</span><span class="p">,</span>
         <span class="n">inputs</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span>
@@ -4733,6 +4771,8 @@
       <span class="n">s</span><span class="o">.</span><span class="n">loop_state</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
 
+    <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">LoopCond</span><span class="p">)</span>
+    <span class="n">_ApplySharedRendezvous</span><span class="p">(</span><span class="n">LoopBody</span><span class="p">)</span>
     <span class="n">new_state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">While</span><span class="p">(</span>
         <span class="n">input_</span><span class="o">=</span><span class="n">state</span><span class="o">.</span><span class="n">Flatten</span><span class="p">(),</span>
         <span class="n">cond</span><span class="o">=</span><span class="n">_GetConcreteFunction</span><span class="p">(</span><span class="n">LoopCond</span><span class="p">,</span> <span class="n">state</span><span class="p">),</span>
