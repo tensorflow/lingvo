@@ -396,7 +396,6 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_post_train_ops</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_eval_metrics</span> <span class="o">=</span> <span class="p">{}</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span> <span class="o">=</span> <span class="p">{}</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span> <span class="o">=</span> <span class="p">{}</span>
 
     <span class="c1"># Create the gradient mask,</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_input_gradient_mask</span> <span class="o">=</span> <span class="kc">None</span>
@@ -952,26 +951,6 @@
     <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span><span class="p">:</span>
       <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Metric </span><span class="si">%s</span><span class="s1"> has already been defined.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_per_example</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
-
-  <span class="nd">@property</span>
-  <span class="k">def</span> <span class="nf">trainer_verbose_tensors</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Return the dict of verbose tensors to eval in the training loop.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span>
-
-<div class="viewcode-block" id="BaseTask.AddTrainerVerboseTensor"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AddTrainerVerboseTensor">[docs]</a>  <span class="k">def</span> <span class="nf">AddTrainerVerboseTensor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Add a (set of) tensors to be evaluated in the training loop.</span>
-
-<span class="sd">    Args:</span>
-<span class="sd">      name: A python string. The name of the target(s).</span>
-<span class="sd">      target: A Tensor or a list or dict of Tensors.</span>
-
-<span class="sd">    Raises:</span>
-<span class="sd">      ValueError: if `name` is already defined.</span>
-
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span><span class="p">:</span>
-      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Verbose target </span><span class="si">%s</span><span class="s1"> has already been defined.&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">)</span>
-    <span class="bp">self</span><span class="o">.</span><span class="n">_trainer_verbose_tensors</span><span class="p">[</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">target</span></div>
 
 <div class="viewcode-block" id="BaseTask._UpdateVnConfig"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._UpdateVnConfig">[docs]</a>  <span class="k">def</span> <span class="nf">_UpdateVnConfig</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Update vn config from the various vn flags.&quot;&quot;&quot;</span>
