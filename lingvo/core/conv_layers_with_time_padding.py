@@ -154,8 +154,9 @@ def _ComputeConvOutputPaddingV2(paddings,
         padding=padding_algorithm,
         strides=[stride])
   out_paddings = tf.squeeze(out_paddings, -1)
-  if slice_len > 0:
-    out_paddings = out_paddings[:, :-slice_len]
+  if stride > 1:
+    slice_end = py_utils.GetShape(out_paddings)[1] - slice_len
+    out_paddings = out_paddings[:, :slice_end]
   return out_paddings
 
 
@@ -184,7 +185,7 @@ def _PadForLengthCompatibleStridesV2(tensor, stride, padding_algorithm,
 
   input_length = py_utils.GetShape(tensor)[1]
   pad_len = ((input_length // stride) + 1) * stride - 1 - input_length
-  if pad_len == 0 or pad_len == stride:
+  if pad_len == 0:
     return tensor, 0
   tensor = py_utils.PadSequenceDimension(tensor, input_length + pad_len,
                                          constant_values)
