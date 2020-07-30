@@ -345,14 +345,15 @@
 <span class="sd">    Args:</span>
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
-<span class="sd">      inputs: The inputs tensor.  Shaped [..., input_dim].</span>
+<span class="sd">      inputs: The input tensor or the input NestedMap.</span>
 <span class="sd">      *args: Arguments to be ignored.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Tensor with the same shape and type of inputs.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span></div>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
+      <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="IdentityLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.IdentityLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
