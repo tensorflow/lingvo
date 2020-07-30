@@ -197,14 +197,15 @@ class IdentityLayer(base_layer.BaseLayer):
     Args:
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
-      inputs: The inputs tensor.  Shaped [..., input_dim].
+      inputs: The input tensor or the input NestedMap.
       *args: Arguments to be ignored.
 
     Returns:
       Tensor with the same shape and type of inputs.
     """
     p = self.params
-    return tf.identity(inputs, name=p.name)
+    with tf.name_scope(p.name):
+      return tf.nest.map_structure(tf.identity, inputs)
 
   @classmethod
   def FPropMeta(cls, p, inputs, *args):

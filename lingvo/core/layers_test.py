@@ -5202,5 +5202,21 @@ class CondScaleShiftFFNLayerTest(test_utils.TestCase):
       self.assertEqual(shift_out.shape, (time_c, batch_c, out_dim_c))
 
 
+class IdentityLayerTest(test_utils.TestCase):
+
+  def testIdentityLayerNestedMap(self):
+    with self.session(use_gpu=False):
+      p = layers.IdentityLayer.Params().Set(name='Nested')
+      layer = p.Instantiate()
+      a = tf.constant(1.0, shape=[20, 10])
+      b = tf.constant(-2.0, shape=[20, 10])
+      inputs = py_utils.NestedMap(a=a, b=b)
+      outputs = layer.FPropDefaultTheta(inputs)
+      self.assertAllEqual(inputs.a.eval(), outputs.a.eval())
+      self.assertAllEqual(inputs.b.eval(), outputs.b.eval())
+      a_copy = layer.FPropDefaultTheta(a)
+      self.assertAllEqual(a.eval(), a_copy.eval())
+
+
 if __name__ == '__main__':
   tf.test.main()
