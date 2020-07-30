@@ -2813,19 +2813,28 @@ class FromGlobalTest(test_utils.TestCase):
     tf.flags.FLAGS(sys.argv)
 
 
-class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
+def CallDefunTestParameters(test_fn):
 
-  @parameterized.named_parameters(
+  def WrappedTestFn(self, use_tf_function, bak_as_function):
+    # TODO(laigd): remove this check when 312743821 is in the release.
+    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
+      return
+    FLAGS.call_defun_use_tf_function = use_tf_function
+    test_fn(self, bak_as_function)
+
+  decorator = parameterized.named_parameters(
       ('_defun', False, False),
       ('_defun_bakasfunction', False, True),
       ('_function', True, False),
       ('_function_bakasfunction', True, True),
   )
-  def testSimple(self, use_tf_function, bak_as_function):
-    # TODO(laigd): remove this check when 312743821 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    FLAGS.call_defun_use_tf_function = use_tf_function
+  return decorator(WrappedTestFn)
+
+
+class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
+
+  @CallDefunTestParameters
+  def testSimple(self, bak_as_function):
     with self.session():
 
       def Bak(xs, ys, dys):
@@ -2850,17 +2859,8 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(dw, (2 * y).dot(b.T) + 100)
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
-  @parameterized.named_parameters(
-      ('_defun', False, False),
-      ('_defun_bakasfunction', False, True),
-      ('_function', True, False),
-      ('_function_bakasfunction', True, True),
-  )
-  def testPreserveStaticShape(self, use_tf_function, bak_as_function):
-    # TODO(laigd): remove this check when 312743821 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    FLAGS.call_defun_use_tf_function = use_tf_function
+  @CallDefunTestParameters
+  def testPreserveStaticShape(self, bak_as_function):
     with self.session():
 
       def Bak(x, y, dy):
@@ -2884,17 +2884,8 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
           py_utils.CallDefun(Fwd, x, bak=Bak, bak_as_function=bak_as_function))
       self.assertAllEqual(y, np.zeros_like(a))
 
-  @parameterized.named_parameters(
-      ('_defun', False, False),
-      ('_defun_bakasfunction', False, True),
-      ('_function', True, False),
-      ('_function_bakasfunction', True, True),
-  )
-  def testNestedMap(self, use_tf_function, bak_as_function):
-    # TODO(laigd): remove this check when 312743821 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    FLAGS.call_defun_use_tf_function = use_tf_function
+  @CallDefunTestParameters
+  def testNestedMap(self, bak_as_function):
     with self.session():
 
       def Bak(xs, ys, dys):
@@ -2919,18 +2910,26 @@ class CallDefunTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllEqual(dx, a.T.dot(2 * y) + 200)
 
 
-class IfTest(test_utils.TestCase, parameterized.TestCase):
+def IfTestParameters(test_fn):
 
-  @parameterized.named_parameters(
-      ('_defun', False),
-      ('_tf_function', True),
-  )
-  def testNestedMapInput(self, use_tf_function):
+  def WrappedTestFn(self, use_tf_function):
     # TODO(laigd): remove this check when 313682500 is in the release.
     if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
       return
     FLAGS.if_use_tf_function = use_tf_function
+    test_fn(self)
 
+  decorator = parameterized.named_parameters(
+      ('_defun', False),
+      ('_tf_function', True),
+  )
+  return decorator(WrappedTestFn)
+
+
+class IfTest(test_utils.TestCase, parameterized.TestCase):
+
+  @IfTestParameters
+  def testNestedMapInput(self):
     g = tf.Graph()
     with g.as_default():
 
@@ -2953,16 +2952,8 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(-1., true_out.value)
     self.assertEqual(1., false_out.value)
 
-  @parameterized.named_parameters(
-      ('_defun', False),
-      ('_tf_function', True),
-  )
-  def testScalarInput(self, use_tf_function):
-    # TODO(laigd): remove this check when 313682500 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    FLAGS.if_use_tf_function = use_tf_function
-
+  @IfTestParameters
+  def testScalarInput(self):
     g = tf.Graph()
     with g.as_default():
 
@@ -2983,16 +2974,8 @@ class IfTest(test_utils.TestCase, parameterized.TestCase):
     self.assertEqual(-1., true_out)
     self.assertEqual(1., false_out)
 
-  @parameterized.named_parameters(
-      ('_defun', False),
-      ('_tf_function', True),
-  )
-  def testListInput(self, use_tf_function):
-    # TODO(laigd): remove this check when 313682500 is in the release.
-    if use_tf_function and tf.compat.v1.__version__ < '2.3.0':
-      return
-    FLAGS.if_use_tf_function = use_tf_function
-
+  @IfTestParameters
+  def testListInput(self):
     g = tf.Graph()
     with g.as_default():
 
