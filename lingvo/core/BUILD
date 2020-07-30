@@ -1407,7 +1407,10 @@ py_library(
     srcs = ["relative_atten_util.py"],
     srcs_version = "PY3",
     deps = [
+        ":base_layer",
+        ":layers",
         ":py_utils",
+        ":summary_utils",
         "//lingvo:compat",
     ],
 )

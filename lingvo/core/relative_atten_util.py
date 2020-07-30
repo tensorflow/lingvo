@@ -16,8 +16,9 @@
 """Utils for relative positional embeddings."""
 
 from lingvo import compat as tf
-
+from lingvo.core import base_layer
 from lingvo.core import py_utils
+from lingvo.core import summary_utils
 
 
 def ConvertToBlocks(x, block_size, padding_val=0.0):
@@ -355,3 +356,161 @@ def AttenLogitsRPE(query, key, abs_pos_emb):
     The attention logits tensor. [B, N, T, T]
   """
   return _AttenLogits(query, key, abs_pos_emb)
+
+
+class KMeansClusteringForAtten(base_layer.BaseLayer):
+  """Implements k-means clustering with mini-batch updates.
+
+  This is used in the implementation of https://arxiv.org/pdf/2003.05997.
+
+  We use the following capital letters to denote shape parameters:
+    B = batch size
+    L = length of the input squence (referred to as S or T elsewhere)
+    N = number of attention heads
+    H = dimensions of each attention head
+    K = number of clusters
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params."""
+    p = super().Params()
+    p.Define(
+        'num_clusters', 0, 'Number of clusters, typically around the square'
+        ' root of the sequence length.')
+    p.Define('num_heads', 1, 'Num of attention heads.')
+    p.Define('dim_per_head', 0, 'Dimensions of each attention head.')
+    p.Define('decay', 0.999, 'The decay with which to update centroids.')
+    p.Define('epsilon', 1e-6, 'Tiny value to guard against divide by 0.')
+    return p
+
+  def __init__(self, params):
+    """Constructs an instance which tracks its own set of centroids."""
+    super().__init__(params)
+    p = self.params
+    assert p.num_clusters
+    assert p.dim_per_head
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    p = self.params
+    # The per-head centroids. Shape [N, K, H].
+    means = py_utils.WeightParams(
+        shape=[p.num_heads, p.num_clusters, p.dim_per_head],
+        init=py_utils.WeightInit.Gaussian(),
+        dtype=p.dtype,
+        collections=[self.__class__.__name__ + '_vars'])
+    self.CreateVariable('means', means)
+
+  @classmethod
+  def LayerNorm(cls, x, epsilon=1e-6):
+    """Performs layer normalization on the last dimension of 'x'.
+
+    This differs from layers.LayerNorm in that it fixes both scale and bias at
+    0.
+
+    Args:
+      x: An input tensor to be normalized.
+      epsilon: Tiny value used to guard against rsqrt of 0.
+
+    Returns:
+      'x' with its last dimension normalized.
+    """
+    counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
+        x, axes=[-1], keepdims=True)
+    mean, variance = tf.nn.normalize_moments(counts, means_ss, variance_ss,
+                                             None)
+    return (x - mean) * tf.math.rsqrt(variance + epsilon)
+
+  def FProp(self, theta, x, paddings=None, update=False):
+    """Computes distances of the given input 'x' to all centroids.
+
+    This implementation applies layer normalization on 'x' internally first,
+    and the returned 'dists' is computed using the normalized 'x'.
+
+    Args:
+      theta: A `.NestedMap` of weights' values of this layer.
+      x: A tensor of shape [B, L, N, H].
+      paddings: If not None, a tensor of shape [B, L].
+      update: bool, whether to update centroids using x.
+
+    Returns:
+      dists: "distances" of the given input 'x' to all centroids.
+             Shape [B, L, N, K].
+      k_means_loss: the average squared Euclidean distances to the closest
+                    centroid, a scalar.
+    """
+    p = self.params
+    if paddings is None:
+      paddings = tf.zeros_like(x[:, :, 0, 0])
+    # Shape [B, N, 1, 1]
+    paddings_4d = paddings[:, :, None, None]
+    x = KMeansClusteringForAtten.LayerNorm(x, p.epsilon)
+
+    # 'x' is normalized (but theta.means is not), we use negative dot product to
+    # approximate the Euclidean distance here.
+    dists = -tf.einsum('BLNH, NKH -> BLNK', x, theta.means)
+    # Shape [B, N, L, K], the same as 'dists' above.
+    nearest_one_hot = tf.one_hot(tf.math.argmin(dists, axis=-1), p.num_clusters)
+    # Same shape as the input 'x'.
+    nearest_centroid = tf.einsum('BLNK, NKH -> BLNH', nearest_one_hot,
+                                 theta.means)
+    diff = tf.math.squared_difference(x, tf.stop_gradient(nearest_centroid))
+    diff = py_utils.ApplyPadding(paddings_4d, diff)
+    diff = tf.math.reduce_mean(diff, axis=2)
+
+    # The commitment loss which when back proped against encourages the 'x'
+    # values to commit to their chosen centroids.
+    k_means_loss = tf.math.reduce_sum(diff) / tf.math.reduce_sum(1.0 - paddings)
+    summary_utils.scalar('k_means/squared_distance_loss', k_means_loss)
+
+    # TODO(zhouwk): investigate normalizing theta.means after each update.
+    means_norm = tf.norm(theta.means)
+    summary_utils.scalar('k_means/centroid_l2_norm/min',
+                         tf.math.reduce_min(means_norm))
+    summary_utils.scalar('k_means/centroid_l2_norm/mean',
+                         tf.math.reduce_mean(means_norm))
+
+    if not update:
+      return dists, k_means_loss
+
+    # To update the centroids (self.vars.means), we apply gradient descent on
+    # the mini-batch of input 'x', which yields the following:
+    #   new_centroid = centroid + (1 - decay) * (x_mean - centroid)
+    # where x_mean is the average over all the input vectors closest to this
+    # centroid.
+    #
+    # Note that this approach is equivalent with backprop via
+    #    loss = tf.math.reduce_mean(
+    #        tf.math.squared_difference(tf.stop_gradient(x), nearest_centroid)))
+    # , except that here the learning rate is independently set via 'decay'.
+
+    # Ensure that the padded positions are not used to update the centroids.
+    nearest_one_hot = py_utils.ApplyPadding(paddings_4d, nearest_one_hot)
+
+    # Sum away batch and sequence length dimensions to get per cluster count.
+    # Shape: [N, K]
+    per_cluster_count = tf.reduce_sum(nearest_one_hot, axis=[0, 1])
+    summary_utils.histogram('k_means/per_cluster_vec_count', per_cluster_count)
+
+    # Sum of the input 'x' per each closest centroid.
+    sum_x = tf.einsum('BLNK, BLNH -> NKH', nearest_one_hot, x)
+
+    if py_utils.use_tpu():
+      per_cluster_count = tf.tpu.cross_replica_sum(per_cluster_count)
+      sum_x = tf.tpu.cross_replica_sum(sum_x)
+
+    # If per_cluster_count for a cluster is 0, then 'nearest_one_hot' in that
+    # cluster's position will always be 0, hence 'sum_x' in that dimension will
+    # be 0.
+    new_means = sum_x / tf.expand_dims(per_cluster_count + p.epsilon, axis=-1)
+
+    # We use exponential moving average. TODO(zhouwk): investigate smooth this
+    # over an exponentially moving averaged per cluster count.
+    #
+    # Note that we intentionally do not normalize the means after this update
+    # as empirically this works better.
+    update_means_diff = (1.0 - p.decay) * (new_means - theta.means)
+    return py_utils.with_dependencies(
+        [tf.assign_add(self.vars.means, update_means_diff)],
+        dists), k_means_loss
