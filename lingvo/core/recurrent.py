@@ -1404,6 +1404,20 @@ def StackedRecurrent(devices,
       - The last layer's output (accumulated states).
       - The list of final state NestedMap. One for each layer.
   """
+  # Enable rendezvous sharing when using tf.function, since it needs to do
+  # send/recv across function boundary.
+  # pylint: disable=protected-access
+  with py_utils._SharedRendezvousScope(shared_rendezvous=True):
+    return _StackedRecurrent(devices, cell_fns, cell_grads, cell_outs,
+                             cell_out_grads, thetas, init_states, inputs,
+                             accumulator_layers, unused_acc_state)
+  # pylint: enable=protected-access
+
+
+def _StackedRecurrent(devices, cell_fns, cell_grads, cell_outs, cell_out_grads,
+                      thetas, init_states, inputs, accumulator_layers,
+                      unused_acc_state):
+  """Implementation of StackedRecurrent, see StackedRecurrent for details."""
   num_layers = len(devices)
   assert num_layers
 

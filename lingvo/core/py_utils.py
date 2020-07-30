@@ -4325,6 +4325,37 @@ def _DefineDefun(fwd,
   return Call
 
 
+# Global variable to control rendezvous sharing in tf.function.
+# If False (default) rendezvous sharing is disabled in tf.function, that is, the
+# function body use a separate rendezvous and can't communicate with parent
+# graph via send/recv.
+# With _GetSharedRendezvous() == True, the function body share the same
+# rendezvous with the parent graph and can talk to it using send/recv. This is
+# useful for layers like StackedRecurrent.
+_SHARED_RENDEZVOUS = ThreadLocalStack()
+
+
+@contextlib.contextmanager
+def _SharedRendezvousScope(shared_rendezvous=True):
+  _SHARED_RENDEZVOUS.stack.append(shared_rendezvous)
+  try:
+    yield
+  finally:
+    _SHARED_RENDEZVOUS.stack.pop()
+
+
+def _GetSharedRendezvous():
+  """Get the current rendezvous sharing setting."""
+  return _SHARED_RENDEZVOUS.stack[-1] if _SHARED_RENDEZVOUS.stack else False
+
+
+def _ApplySharedRendezvous(func):
+  """Apply the rendezvous sharing setting on the given tf.function func."""
+  # pylint: disable=protected-access
+  func._shared_rendezvous = _GetSharedRendezvous()
+  # pylint: enable=protected-access
+
+
 def _DefineFunction(fwd,
                     fwd_sig,
                     bak=None,
@@ -4374,9 +4405,8 @@ def _DefineFunction(fwd,
     sigs.rets = _TensorSpecs(rets)
     return Flatten(rets)
 
-  # StackedRecurrent need this to perform send/recv across function boundary.
-  # TODO(laigd): make it an option and only use it in StackedRecurrent.
-  Forward._shared_rendezvous = True  # pylint: disable=protected-access
+  shared_rendezvous = _GetSharedRendezvous()
+  _ApplySharedRendezvous(Forward)
   forward_cf = Forward.get_concrete_function()
   forward_cf.add_to_graph()
 
@@ -4397,13 +4427,19 @@ def _DefineFunction(fwd,
           Backward,
           input_signature=Flatten([fwd_sig_no_captures, sigs.rets, sigs.rets]),
           autograph=False)
+      _ApplySharedRendezvous(backward)
       # Add the backward function to graph so it's invoked under the same
       # context as forward. This is necessary if the function body captures any
       # non-tensor values from the environment, like symbolic maps.
       backward_cf = backward.get_concrete_function()
       backward_cf.add_to_graph()
     else:
-      backward_cf = Backward
+
+      def BackwardWithSharedRendezvous(*args):
+        with _SharedRendezvousScope(shared_rendezvous):
+          return Backward(*args)
+
+      backward_cf = BackwardWithSharedRendezvous
 
     @tf.custom_gradient
     def ForwardWithGrad(*args):
@@ -4516,6 +4552,8 @@ def If(cond, inputs, then_branch, else_branch):
       ret_dtypes.else_out = Transform(get_dtype, out)
       return Flatten(out)
 
+    _ApplySharedRendezvous(ThenBranch)
+    _ApplySharedRendezvous(ElseBranch)
     ret = tf.If(
         cond=cond,
         inputs=Flatten(inputs),
@@ -4585,6 +4623,8 @@ def WhileLoop(cond, body, loop_state):
       s.loop_state = body(s.loop_state)
       return s.Flatten()
 
+    _ApplySharedRendezvous(LoopCond)
+    _ApplySharedRendezvous(LoopBody)
     new_state = tf.While(
         input_=state.Flatten(),
         cond=_GetConcreteFunction(LoopCond, state),
