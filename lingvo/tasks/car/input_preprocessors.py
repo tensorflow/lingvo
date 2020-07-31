@@ -2127,7 +2127,6 @@ class RandomDropLaserPoints(Preprocessor):
   - lasers.points_xyz of shape [P, 3]
   - lasers.points_feature of shape [P, K]
 
-  It also expects that lasers.points_padding is set to None.
 
   Modifies the following features:
     lasers.points_xyz, lasers.points_feature.
@@ -2141,22 +2140,37 @@ class RandomDropLaserPoints(Preprocessor):
 
   def TransformFeatures(self, features):
     p = self.params
-    num_points, _ = py_utils.GetShape(features.lasers.points_xyz)
-
-    # We assume that the lasers are not padded, and all points are real.
     if 'points_padding' in features.lasers:
-      raise ValueError('RandomDropLaserPoints preprocessor does not support '
-                       'padded lasers.')
+      points_mask = 1 - features.lasers.points_padding
+      points_xyz = tf.boolean_mask(features.lasers.points_xyz, points_mask)
+      points_feature = tf.boolean_mask(features.lasers.points_feature,
+                                       points_mask)
+    else:
+      points_xyz = features.lasers.points_xyz
+      points_feature = features.lasers.points_feature
+
+    num_points, _ = py_utils.GetShape(features.lasers.points_xyz)
 
     pts_keep_sample_prob = tf.random.uniform([num_points],
                                              minval=0,
                                              maxval=1,
                                              seed=p.random_seed)
     pts_keep_mask = pts_keep_sample_prob < p.keep_prob
-    features.lasers.points_xyz = tf.boolean_mask(features.lasers.points_xyz,
-                                                 pts_keep_mask)
-    features.lasers.points_feature = tf.boolean_mask(
-        features.lasers.points_feature, pts_keep_mask)
+
+    points_xyz = tf.boolean_mask(points_xyz, pts_keep_mask)
+    points_feature = tf.boolean_mask(points_feature, pts_keep_mask)
+
+    if 'points_padding' in features.lasers:
+      features.lasers.points_xyz = py_utils.PadOrTrimTo(
+          points_xyz, tf.shape(features.lasers.points_xyz))
+      features.lasers.points_feature = py_utils.PadOrTrimTo(
+          points_feature, tf.shape(features.lasers.points_feature))
+      total_points = tf.shape(points_xyz)[0]
+      features.lasers.points_padding = 1.0 - py_utils.PadOrTrimTo(
+          tf.ones([total_points]), tf.shape(features.lasers.points_padding))
+    else:
+      features.lasers.points_xyz = points_xyz
+      features.lasers.points_feature = points_feature
 
     return features
 
@@ -2654,7 +2668,7 @@ class GroundTruthAugmentor(Preprocessor):
         'groundtruth_database', None,
         'If not None, loads groundtruths from this database and adds '
         'them to the current scene. Groundtruth database is expected '
-        'to be a TFRecord of KITTI crops.')
+        'to be a TFRecord of KITTI or Waymo crops.')
     p.Define(
         'num_db_objects', None,
         'Number of objects in the database. Because we use TFRecord '
@@ -2691,6 +2705,12 @@ class GroundTruthAugmentor(Preprocessor):
         'label_filter', [],
         'A list where if specified, only examples of these label integers will '
         'be included in an example.')
+    p.Define(
+        'batch_mode', False, 'Bool value to control whether the whole'
+        'groundtruth database is loaded or partially loaded to save memory'
+        'usage. Setting to False loads the whole ground truth database into '
+        'memory. Otherwise, only a fraction of the data will be loaded into '
+        'the memory.')
     return p
 
   def _ReadDB(self, file_patterns):
@@ -2728,15 +2748,35 @@ class GroundTruthAugmentor(Preprocessor):
       difficulty = tf.cast(example_data['difficulty'], tf.int32)
       return (points, features, points_mask, bboxes_3d, label, difficulty)
 
-    # Read the entire dataset into memory.
-    dataset = tf.data.Dataset.list_files(file_patterns)
-    dataset = dataset.interleave(
-        tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
-    dataset = dataset.take(p.num_db_objects)
-    dataset = dataset.map(Process, num_parallel_calls=10)
-    # We batch the output of the dataset into a very large Tensor, then cache it
-    # in memory.
-    dataset = dataset.batch(p.num_db_objects).cache().repeat()
+    if p.batch_mode:
+      # Prepare dataset for ground truth bounding boxes. Randomly shuffle the
+      # file patterns.
+      file_count = len(tf.io.gfile.glob(file_patterns))
+      dataset = tf.data.Dataset.list_files(file_patterns).cache()
+      dataset = dataset.shuffle(
+          buffer_size=file_count, reshuffle_each_iteration=True)
+      dataset = dataset.interleave(
+          tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
+      dataset = dataset.repeat()
+      # Only prefetch a few objects from the database to reduce memory
+      # consumption.
+      dataset = dataset.map(Process, num_parallel_calls=10)
+      # We need more bboxes than max_augmented_bboxes in a batch, because some
+      # of the boxes are filtered out.
+      dataset = dataset.batch(p.max_augmented_bboxes * 10)
+      dataset = dataset.cache().prefetch(p.max_augmented_bboxes * 30)
+    else:
+      # Prepare dataset for ground truth bounding boxes.
+      dataset = tf.data.Dataset.list_files(file_patterns)
+      dataset = dataset.interleave(
+          tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
+      # Read the entire dataset into memory.
+      dataset = dataset.take(p.num_db_objects)
+      dataset = dataset.map(Process, num_parallel_calls=10)
+      # We batch the output of the dataset into a very large Tensor, then cache
+      # it in memory.
+      dataset = dataset.batch(p.num_db_objects).cache().repeat()
+
     iterator = dataset.make_one_shot_iterator()
     input_batch = iterator.get_next()
 
@@ -2890,7 +2930,7 @@ class GroundTruthAugmentor(Preprocessor):
     # To reduce the amount of computation, we randomly subsample to slightly
     # more than we want to augment.
     db_idx = tf.random.shuffle(
-        db_idx, seed=p.random_seed)[0:num_augmented_bboxes * 2]
+        db_idx, seed=p.random_seed)[0:num_augmented_bboxes * 5]
 
     # After filtering, further filter out the db boxes that would occlude with
     # other boxes (including other database boxes).
