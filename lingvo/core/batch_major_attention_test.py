@@ -50,7 +50,10 @@ class MultiHeadSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     (input_vecs, input_padding, input_vecs_p,
      input_padding_p) = self._AttentionInputs()
     p = attention.MultiHeadedAttention.Params().Set(
-        name='self_atten', input_dim=4, hidden_dim=4)
+        name='self_atten',
+        input_dim=4,
+        hidden_dim=4,
+        enable_scaling_code_motion=True)
     l = p.Instantiate()
 
     probs, probs_sum = l.AttenProbs(
@@ -297,7 +300,10 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
     (query_vec, key_vec, paddings, per_step_padding, query_vec_p, key_vec_p,
      paddings_p, per_step_padding_p) = _AttentionInputs()
     p = attention.MultiHeadedAttention.Params().Set(
-        name='atten', input_dim=4, hidden_dim=4)
+        name='atten',
+        input_dim=4,
+        hidden_dim=4,
+        enable_scaling_code_motion=True)
     l = p.Instantiate()
     probs, probs_sum = l.AttenProbs(
         l.theta,
@@ -393,7 +399,10 @@ class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
 
     # Two-source attention.
     mha_params = attention.MultiHeadedAttention.Params().Set(
-        name='atten', input_dim=4, hidden_dim=4)
+        name='atten',
+        input_dim=4,
+        hidden_dim=4,
+        enable_scaling_code_motion=True)
     atten_merger_p = tm_attention.MergerLayer.Params().Set(
         params_init=py_utils.WeightInit.Uniform(0.04),
         merger_op='concat',  # concatenate attention
@@ -526,7 +535,8 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
         input_dim=input_dim,
         num_heads=num_heads,
         hidden_dim=input_dim,
-        rel_pos_emb_dim=input_dim)
+        rel_pos_emb_dim=input_dim,
+        enable_scaling_code_motion=True)
 
     l = p.Instantiate()
     query = tf.reshape(input_vecs, (batch, slen, num_heads, atten_dim))
@@ -749,7 +759,8 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
         input_dim=input_dim,
         num_heads=num_heads,
         hidden_dim=input_dim,
-        rel_pos_radius=radius)
+        rel_pos_radius=radius,
+        enable_scaling_code_motion=True)
 
     l = p.Instantiate()
     query = tf.reshape(input_vecs, (batch, slen, num_heads, atten_dim))
