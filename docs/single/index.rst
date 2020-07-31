@@ -1,0 +1,5 @@
+single
+=========
+
+.. automodule:: single 
+   :members:
