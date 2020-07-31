@@ -4320,6 +4320,7 @@ def _DefineDefun(fwd,
     flat_rets = Forward(*Flatten(args))
     if not isinstance(flat_rets, (tuple, list)):
       flat_rets = [flat_rets]
+    _SetShape(flat_rets, Flatten(sigs.ret_shapes))
     return Pack(sigs.ret_dtypes, flat_rets)
 
   return Call
