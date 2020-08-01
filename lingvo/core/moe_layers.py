@@ -166,7 +166,7 @@ class StateLayer(base_layer.BaseLayer):
 
   (see `moe_builder_test.py` for a more complete example.)
   """
-  _for_flat_beam_search = False
+  _use_flat_beam_search = False
 
   @classmethod
   def Params(cls):
@@ -196,7 +196,7 @@ class StateLayer(base_layer.BaseLayer):
       return state
     elif len(shape) == 3:
       # For use with flat_beam_search
-      self._for_flat_beam_search = True
+      self._use_flat_beam_search = True
       p = self.params
       batch, beam, max_steps = shape
       state = tf.Empty(
@@ -221,16 +221,29 @@ class StateLayer(base_layer.BaseLayer):
     tf.logging.info('t=%r', t)
 
     with tf.name_scope(p.name):
-      if not self._for_flat_beam_search:
+      if not self._use_flat_beam_search:
         # For tpu_beam_search_helper
         z = tf.one_hot(t, tf.shape(state)[1])
         z = tf.expand_dims(z, 0)
         while len(z.shape) < len(x.shape):
           z = tf.expand_dims(z, -1)
         y = state = (1 - z) * state + z * x
-      if self._for_flat_beam_search:
-        # For flat beam search
-        state = tf.InplaceUpdate(state, t, x)
+      if self._use_flat_beam_search:
+        state_slice_size = int(state.shape[2])
+        update_slice_size = int(x.shape[1])
+        if update_slice_size == state_slice_size:
+          state = tf.InplaceUpdate(state, t, x)
+        else:
+          # With prefix decoding the first call to decoder can have
+          # sequence length (N * beam_size) with N > 1.
+          # In this special case state tensor update is implemented as multiple
+          # InplaceUpdate ops each for a slice [batch_size, beam_size].
+          div = int(update_slice_size / state_slice_size)
+          assert update_slice_size == state_slice_size * div, (
+              update_slice_size, state_slice_size)
+          for i, x_i in enumerate(tf.split(x, div, 1)):
+            state = tf.InplaceUpdate(state, t + i, x_i)
+        tf.logging.info('state*=%r', state)
         # [T,B,L,...]
         y = state
         # [T, B, L, ...] -> [B, T, L, ...]
@@ -569,7 +582,8 @@ def Top2GatingOnLogits(inputs,
     over_capacity = tf.reduce_sum(
         tf.cast(
             tf.greater_equal(mask * position_in_expert, capacity), mask.dtype))
-    over_capacity_ratio = over_capacity / tf.reduce_sum(mask)
+    over_capacity_ratio = over_capacity / tf.maximum(
+        tf.constant(1.0, dtype=mask.dtype), tf.reduce_sum(mask))
     py_utils.AddTpuSummaryTensor(name, over_capacity_ratio)
     tpu_summary.scalar(name, over_capacity_ratio, while_loop_reduce='mean')
 
