@@ -316,12 +316,15 @@ void RecordBatcher::ProcessorLoop() {
       // Print error message. Some example processors use CANCELLED for data
       // that are filtered out. Print only first 10 such errors.
       if (errors::IsCancelled(s)) {
-        // The counter incrementing is not thread-safe. But we don't really
-        // care.
-        static int log_counter = 0;
-        if (log_counter < 10) {
-          log_counter++;
-          LOG(WARNING) << s;
+        {
+          absl::MutexLock l(&mu_);
+          ++total_records_skipped_;
+
+          static int log_counter = 0;
+          if (log_counter < 10) {
+            log_counter++;
+            LOG(WARNING) << s;
+          }
         }
       } else if (errors::IsNotFound(s)) {
         // Terminates program if an unregistered custome op is used by
