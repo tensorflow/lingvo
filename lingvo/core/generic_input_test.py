@@ -28,34 +28,39 @@ import numpy as np
 
 class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
 
-  def get_test_input(self, path, **kwargs):
+  def get_test_input(self, path, bucket_batch_limit=8, **kwargs):
     return generic_input.GenericInput(
         file_pattern='tfrecord:' + path,
         file_random_seed=0,
         file_buffer_size=32,
         file_parallelism=4,
-        bucket_batch_limit=[8],
+        bucket_batch_limit=[bucket_batch_limit],
         **kwargs)
 
-  @parameterized.named_parameters(('OutputList', False),
-                                  ('OutputNestedMap', True))
-  def testBasic(self, use_nested_map):
-    input_batch = self._RunBasicGraph(use_nested_map=use_nested_map)
+  @parameterized.named_parameters(('OutputList', False, 8),
+                                  ('OutputNestedMap', True, 8),
+                                  ('OutputNestedMap_Batch1', True, 1))
+  def testBasic(self, use_nested_map, bucket_batch_limit):
+    input_batch = self._RunBasicGraph(
+        use_nested_map=use_nested_map, bucket_batch_limit=bucket_batch_limit)
     with self.session():
       record_seen = set()
       for i in range(100):
         ans_input_batch = self.evaluate(input_batch)
         for s in ans_input_batch.record:
           record_seen.add(s)
-        self.assertEqual(ans_input_batch.source_id.shape, (8,))
-        self.assertEqual(ans_input_batch.record.shape, (8,))
-        self.assertEqual(ans_input_batch.num.shape, (8, 2))
+        self.assertEqual(ans_input_batch.source_id.shape, (bucket_batch_limit,))
+        self.assertEqual(ans_input_batch.record.shape, (bucket_batch_limit,))
+        self.assertEqual(ans_input_batch.num.shape, (bucket_batch_limit, 2))
         ans_vals = ans_input_batch.num
         self.assertAllEqual(np.square(ans_vals[:, 0]), ans_vals[:, 1])
       for i in range(100):
         self.assertIn(('%08d' % i).encode('utf-8'), record_seen)
 
-  def _RunBasicGraph(self, use_nested_map, bucket_fn=lambda x: 1):
+  def _RunBasicGraph(self,
+                     use_nested_map,
+                     bucket_fn=lambda x: 1,
+                     bucket_batch_limit=8):
     # Generate a test file w/ 100 records.
     tmp = os.path.join(tf.test.get_temp_dir(), 'basic')
     with tf.python_io.TFRecordWriter(tmp) as w:
@@ -80,7 +85,10 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
     # Samples random records from the data files and processes them
     # to generate batches.
     inputs, _ = self.get_test_input(
-        tmp, bucket_upper_bound=[1], processor=_process)
+        tmp,
+        bucket_batch_limit=bucket_batch_limit,
+        bucket_upper_bound=[1],
+        processor=_process)
     if use_nested_map:
       return inputs
     else:

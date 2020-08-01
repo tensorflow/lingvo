@@ -231,7 +231,8 @@ class GenericInputProcessor : public RecordProcessor {
 
     batch->clear();
     for (int i = 0; i < num_outs; ++i) {
-      DataType dtype = padded_samples[0][i].dtype();
+      const Tensor& src = padded_samples[0][i];
+      DataType dtype = src.dtype();
       switch (dtype) {
         case DT_FLOAT:
         case DT_UINT8:
@@ -246,12 +247,21 @@ class GenericInputProcessor : public RecordProcessor {
         default:
           LOG(FATAL) << DataTypeString(dtype) << " is not supported.";
       }
-      TensorShape shape = padded_samples[0][i].shape();
+      TensorShape shape = src.shape();
       shape.InsertDim(0, num_samples);
       // The merged tensor is 1-rank higher and its 1st dimension
       // is the num_samples.
-      batch->push_back(Tensor(dtype, shape));
+      if (num_samples == 1) {
+        // Avoid memcpy if there is just one sample.
+        Tensor reshaped(dtype);
+        CHECK(reshaped.CopyFrom(src, shape));
+        batch->push_back(reshaped);
+      } else {
+        batch->push_back(Tensor(dtype, shape));
+      }
     }
+    // If there is just one sample, 'batch' already has the copy.
+    if (num_samples == 1) return Status::OK();
 
     Sharder::Do(num_samples /* total */, 1000 /* cost_per_unit */,
                 [&](int64 start, int64 limit) {
