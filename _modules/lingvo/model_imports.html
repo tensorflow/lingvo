@@ -167,6 +167,7 @@
 <span class="sd">&quot;&quot;&quot;</span>
 
 <span class="kn">import</span> <span class="nn">importlib</span>
+<span class="kn">import</span> <span class="nn">re</span>
 <span class="kn">import</span> <span class="nn">sys</span>
 
 
@@ -175,13 +176,11 @@
   <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;model_imports.py: Importing </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
   <span class="k">try</span><span class="p">:</span>
     <span class="n">importlib</span><span class="o">.</span><span class="n">import_module</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;model_imports.py: Imported </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">name</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
     <span class="k">return</span> <span class="kc">True</span>
-  <span class="k">except</span> <span class="ne">ImportError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
-    <span class="c1"># It is expected that some imports may be missing.</span>
-    <span class="nb">print</span><span class="p">(</span>
-        <span class="s1">&#39;model_imports.py: Could not import </span><span class="si">%s</span><span class="s1">: </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">e</span><span class="p">),</span>
-        <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+  <span class="k">except</span> <span class="ne">ModuleNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="n">missing_module</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">match</span><span class="p">(</span><span class="s2">&quot;No module named &#39;(.*?)&#39;&quot;</span><span class="p">,</span> <span class="n">e</span><span class="o">.</span><span class="n">msg</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">missing_module</span><span class="p">):</span>
+      <span class="k">raise</span>
   <span class="k">return</span> <span class="kc">False</span></div>
 
 
@@ -240,17 +239,16 @@
     <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">module_with_params</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
 
   <span class="c1"># Try built-in tasks imports.</span>
-  <span class="n">model_module</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">task_root</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">model_module</span><span class="si">}</span><span class="s1">&#39;</span>
-  <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">model_module</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
+  <span class="n">task_model_module</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">task_root</span><span class="si">}</span><span class="s1">.</span><span class="si">{</span><span class="n">model_module</span><span class="si">}</span><span class="s1">&#39;</span>
+  <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">task_model_module</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
   <span class="c1"># Try all locations of inserting params.</span>
-  <span class="k">for</span> <span class="n">module_with_params</span> <span class="ow">in</span> <span class="n">_InsertParams</span><span class="p">(</span><span class="n">model_module</span><span class="p">):</span>
+  <span class="k">for</span> <span class="n">module_with_params</span> <span class="ow">in</span> <span class="n">_InsertParams</span><span class="p">(</span><span class="n">task_model_module</span><span class="p">):</span>
     <span class="n">success</span> <span class="o">=</span> <span class="n">_Import</span><span class="p">(</span><span class="n">module_with_params</span><span class="p">)</span> <span class="ow">or</span> <span class="n">success</span>
 
   <span class="k">if</span> <span class="n">require_success</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">success</span><span class="p">:</span>
     <span class="k">raise</span> <span class="ne">LookupError</span><span class="p">(</span>
-        <span class="s1">&#39;Could not find any valid import paths for module </span><span class="si">%s</span><span class="s1">. Check the logs &#39;</span>
-        <span class="s1">&#39;above to see if there were errors importing the module, and make sure &#39;</span>
-        <span class="s1">&#39;the relevant params files are linked into the binary.&#39;</span> <span class="o">%</span> <span class="n">model_module</span><span class="p">)</span>
+        <span class="sa">f</span><span class="s1">&#39;Could not find any valid import paths for module </span><span class="si">{</span><span class="n">model_module</span><span class="si">}</span><span class="s1">. &#39;</span>
+        <span class="sa">f</span><span class="s1">&#39;Make sure the relevant params files are linked into the binary.&#39;</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">success</span></div>
 </pre></div>
 
