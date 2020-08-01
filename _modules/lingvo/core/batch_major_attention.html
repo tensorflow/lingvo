@@ -1439,11 +1439,62 @@
                  <span class="n">cached_key_vec</span><span class="p">,</span>
                  <span class="n">cached_value_vec</span><span class="p">,</span>
                  <span class="n">paddings</span><span class="p">,</span>
-                 <span class="n">segment_mask</span><span class="p">,</span>
-                 <span class="n">per_step_padding</span><span class="p">,</span>
-                 <span class="n">time_step</span><span class="p">,</span>
+                 <span class="n">segment_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">per_step_padding</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">time_step</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">use_short_seq_opt</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
-    <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
+    <span class="sd">&quot;&quot;&quot;Computes the value vector given the query of the current step.</span>
+
+<span class="sd">    This function is used by autoregressive decoding.</span>
+
+<span class="sd">    Note: When the context window size is much smaller than target sequence</span>
+<span class="sd">    length, to make it run more efficent, T below can be just the window size.</span>
+<span class="sd">    Then, time_step should be the relative decode step and not bigger than T.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
+<span class="sd">        its children layers.</span>
+<span class="sd">      query_vec:        [B, 1, D].</span>
+<span class="sd">      cached_key_vec:   [T, B, N, H].</span>
+<span class="sd">      cached_value_vec: [T, B, N, H].</span>
+<span class="sd">      paddings:         [B, T], or None if there is no padding.</span>
+<span class="sd">      segment_mask:     [B, 1, T, S] or None. Not used right now.</span>
+<span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
+<span class="sd">        information flow from future (causal padding). It has shape [B, 1, T] if</span>
+<span class="sd">        not None. Not used right now.</span>
+<span class="sd">      time_step: A scalar, the current decode step, 0-based.</span>
+<span class="sd">      use_short_seq_opt: A bool, whether using short sequence optimization. Not</span>
+<span class="sd">        supported right now.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded:           [B, 1, D].</span>
+<span class="sd">      updated_key_vec:   [T, B, N, H].</span>
+<span class="sd">      updated_value_vec: [T, B, N, H].</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">      ValueError: If right_context is non-zero.</span>
+<span class="sd">      NotImplementedError: If use_short_seq_opt is true.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">right_context</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+          <span class="s1">&#39;Right context must be zero for autoregressive decoding.&#39;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">use_short_seq_opt</span><span class="p">:</span>
+      <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s1">&#39;use_short_seq_opt is not supported yet.&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Make local casual paddings, which have shape [B, T].</span>
+    <span class="n">t</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">cached_key_vec</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">b</span><span class="p">,</span> <span class="n">t</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">position_diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">t</span><span class="p">)[</span><span class="n">tf</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:],</span> <span class="p">[</span><span class="n">b</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span> <span class="o">-</span> <span class="n">time_step</span>
+    <span class="n">valid_atten</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_and</span><span class="p">(</span><span class="n">position_diff</span> <span class="o">&gt;</span> <span class="o">-</span><span class="n">p</span><span class="o">.</span><span class="n">left_context</span><span class="p">,</span>
+                                      <span class="n">position_diff</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">local_causal_padding</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">valid_atten</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">query_vec</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">+=</span> <span class="n">local_causal_padding</span>
+
+    <span class="k">return</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">ExtendStep</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">,</span> <span class="n">cached_key_vec</span><span class="p">,</span>
+                              <span class="n">cached_value_vec</span><span class="p">,</span> <span class="n">paddings</span><span class="p">,</span> <span class="n">segment_mask</span><span class="p">,</span>
+                              <span class="n">per_step_padding</span><span class="p">,</span> <span class="n">time_step</span><span class="p">,</span> <span class="n">use_short_seq_opt</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="LocalSelfAttention.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.LocalSelfAttention.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">FPropMeta</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
