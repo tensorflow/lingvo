@@ -206,6 +206,38 @@
 <div class="viewcode-block" id="BaseInputGenerator"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator">[docs]</a><span class="k">class</span> <span class="nc">BaseInputGenerator</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;The abstract base input generator.&quot;&quot;&quot;</span>
 
+<div class="viewcode-block" id="BaseInputGenerator.DefineInfeedParams"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.DefineInfeedParams">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">DefineInfeedParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+    <span class="c1"># TPU related infeed tuning.</span>
+    <span class="c1"># Supported use cases:</span>
+    <span class="c1">#</span>
+    <span class="c1"># Data parallelism (num_partitions=None)</span>
+    <span class="c1">#  - single host (use_per_host_infeed=False, tpu_infeed_parallelism=1))</span>
+    <span class="c1">#  - multi host (use_per_host_infeed=False, tpu_infeed_parallelism&gt;1)</span>
+    <span class="c1">#  - per host (use_per_host_infeed=True)</span>
+    <span class="c1"># Model parallelism (num_partitions&gt;1 where)</span>
+    <span class="c1">#  - non-partitioned infeed (use_partitioned_infeed_queue=False):</span>
+    <span class="c1">#    - Only first partition gets infeed (e.g. manual partition)</span>
+    <span class="c1">#      - single host (use_per_host_infeed=False)</span>
+    <span class="c1">#      - per host (use_per_host_infeed=True)</span>
+    <span class="c1">#    - All partitions gets data parallel infeed (e.g. MoE)</span>
+    <span class="c1">#      - single host not supported</span>
+    <span class="c1">#      - per host (use_per_host_infeed=True, use_per_core_infeed=True)</span>
+    <span class="c1">#        num_partitions should be set to number of partitions per replica</span>
+    <span class="c1">#  - partitioned infeed (use_partitioned_infeed_queue=True)</span>
+    <span class="c1">#    - single host (use_per_host_infeed=False)</span>
+    <span class="c1">#    - per host (use_per_host_infeed=True)</span>
+    <span class="c1">#        num_partitions should be set to number of partitions per replica</span>
+    <span class="c1">#        and all partitions should exist on a single host</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_per_host_infeed&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether run infeed op on each host.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_per_core_infeed&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+             <span class="s1">&#39;Whether to shard the infeed per TPU core instead of per replica&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_infeed_parallelism&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
+             <span class="s1">&#39;Uses these many python threads to drive infeed concurrently.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_partitioned_infeed_queue&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use partitioned infeed&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Num partitions&#39;</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseInputGenerator.Params"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Defaults params for input generators.&quot;&quot;&quot;</span>
@@ -220,14 +252,7 @@
         <span class="s1">&#39;For test/eval dataset, if we want the test/evel job evaluate &#39;</span>
         <span class="s1">&#39;the whole dataset, this param must be set precisely. Otherwise, &#39;</span>
         <span class="s1">&#39;this param is optional.&#39;</span><span class="p">)</span>
-
-    <span class="c1"># TPU related infeed tuning.</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_per_host_infeed&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
-             <span class="s1">&#39;Whether run infeed op on each host.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;tpu_infeed_parallelism&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span>
-             <span class="s1">&#39;Uses these many python threads to drive infeed concurrently.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;use_partitioned_infeed_queue&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Use partitioned infeed&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;num_partitions&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Num partitions&#39;</span><span class="p">)</span>
+    <span class="bp">cls</span><span class="o">.</span><span class="n">DefineInfeedParams</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;remote&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params to configure remote input policy.&#39;</span><span class="p">)</span>
@@ -326,8 +351,9 @@
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_tpu_hosts</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_tpu_hosts</span>
     <span class="n">num_infeed_hosts</span> <span class="o">=</span> <span class="n">num_tpu_hosts</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span> <span class="k">else</span> <span class="mi">1</span>
-    <span class="n">shards</span> <span class="o">=</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">total_worker_devices</span> <span class="o">//</span>
-              <span class="n">num_infeed_hosts</span><span class="p">)</span> <span class="o">//</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
+    <span class="n">shards</span> <span class="o">=</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">total_worker_devices</span> <span class="o">//</span> <span class="n">num_infeed_hosts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">:</span>
+      <span class="n">shards</span> <span class="o">=</span> <span class="n">shards</span> <span class="o">//</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span>
     <span class="k">return</span> <span class="n">shards</span>
 
 <div class="viewcode-block" id="BaseInputGenerator.CreateTpuEnqueueOps"><a class="viewcode-back" href="../../../lingvo.core.base_input_generator.html#lingvo.core.base_input_generator.BaseInputGenerator.CreateTpuEnqueueOps">[docs]</a>  <span class="k">def</span> <span class="nf">CreateTpuEnqueueOps</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -349,6 +375,10 @@
                 <span class="n">num_tpu_hosts</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">))</span>
 
     <span class="k">assert</span> <span class="n">num_tpu_hosts</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="s1">&#39;num_tpu_hosts: </span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">num_tpu_hosts</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">:</span>
+      <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">)</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">use_partitioned_infeed_queue</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;use_per_core_infeed need to have use_per_host_infeed &#39;</span>
+                         <span class="s1">&#39;but not use_partitioned_infeed_queue.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="p">(</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_devices_per_split</span> <span class="o">&gt;</span> <span class="n">num_cores_per_host</span> <span class="ow">and</span>
         <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">):</span>
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">fatal</span><span class="p">(</span><span class="s1">&#39;Doesn</span><span class="se">\&#39;</span><span class="s1">t support per host infeed mode when &#39;</span>
@@ -422,7 +452,13 @@
               <span class="n">tuple_types</span><span class="o">=</span><span class="n">dtypes</span><span class="p">,</span>
               <span class="n">tuple_shapes</span><span class="o">=</span><span class="n">shapes</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-          <span class="n">q</span> <span class="o">=</span> <span class="n">tpu_feed</span><span class="o">.</span><span class="n">InfeedQueue</span><span class="p">(</span><span class="n">tuple_types</span><span class="o">=</span><span class="n">dtypes</span><span class="p">,</span> <span class="n">tuple_shapes</span><span class="o">=</span><span class="n">shapes</span><span class="p">)</span>
+          <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">tpu_feed</span><span class="o">.</span><span class="n">InfeedQueue</span><span class="p">(</span>
+                <span class="n">tuple_types</span><span class="o">=</span><span class="n">dtypes</span><span class="p">,</span>
+                <span class="n">tuple_shapes</span><span class="o">=</span><span class="n">shapes</span><span class="p">,</span>
+                <span class="n">number_of_partitions</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">num_partitions</span><span class="p">)</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">q</span> <span class="o">=</span> <span class="n">tpu_feed</span><span class="o">.</span><span class="n">InfeedQueue</span><span class="p">(</span><span class="n">tuple_types</span><span class="o">=</span><span class="n">dtypes</span><span class="p">,</span> <span class="n">tuple_shapes</span><span class="o">=</span><span class="n">shapes</span><span class="p">)</span>
           <span class="k">assert</span> <span class="n">shards</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
           <span class="n">q</span><span class="o">.</span><span class="n">set_number_of_shards</span><span class="p">(</span><span class="n">shards</span><span class="p">)</span>
 
@@ -433,6 +469,8 @@
         <span class="k">elif</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_host_infeed</span><span class="p">:</span>
           <span class="c1"># TODO(ylc/zhifengc): Add this to a policy module and test it.</span>
           <span class="k">def</span> <span class="nf">TPUOrdinalFunction</span><span class="p">(</span><span class="n">shard_index_in_host</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_per_core_infeed</span><span class="p">:</span>
+              <span class="k">return</span> <span class="n">shard_index_in_host</span>
             <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetTpuDeviceAssignment</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">device_assignment</span><span class="p">:</span>
               <span class="c1"># We put both enqueue/dequeue ops at core 0 in each replica.</span>
