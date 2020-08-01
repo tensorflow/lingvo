@@ -1291,11 +1291,62 @@ class LocalSelfAttention(MultiHeadedAttention):
                  cached_key_vec,
                  cached_value_vec,
                  paddings,
-                 segment_mask,
-                 per_step_padding,
-                 time_step,
+                 segment_mask=None,
+                 per_step_padding=None,
+                 time_step=None,
                  use_short_seq_opt=False):
-    raise NotImplementedError()
+    """Computes the value vector given the query of the current step.
+
+    This function is used by autoregressive decoding.
+
+    Note: When the context window size is much smaller than target sequence
+    length, to make it run more efficent, T below can be just the window size.
+    Then, time_step should be the relative decode step and not bigger than T.
+
+    Args:
+      theta: A `.NestedMap` object containing weights' values of this layer and
+        its children layers.
+      query_vec:        [B, 1, D].
+      cached_key_vec:   [T, B, N, H].
+      cached_value_vec: [T, B, N, H].
+      paddings:         [B, T], or None if there is no padding.
+      segment_mask:     [B, 1, T, S] or None. Not used right now.
+      per_step_padding: A mask used by decoder self-attention to prevent
+        information flow from future (causal padding). It has shape [B, 1, T] if
+        not None. Not used right now.
+      time_step: A scalar, the current decode step, 0-based.
+      use_short_seq_opt: A bool, whether using short sequence optimization. Not
+        supported right now.
+
+    Returns:
+      encoded:           [B, 1, D].
+      updated_key_vec:   [T, B, N, H].
+      updated_value_vec: [T, B, N, H].
+
+    Raises:
+      ValueError: If right_context is non-zero.
+      NotImplementedError: If use_short_seq_opt is true.
+    """
+    p = self.params
+    if p.right_context != 0:
+      raise ValueError(
+          'Right context must be zero for autoregressive decoding.')
+    if use_short_seq_opt:
+      raise NotImplementedError('use_short_seq_opt is not supported yet.')
+
+    # Make local casual paddings, which have shape [B, T].
+    t, b, _, _ = py_utils.GetShape(cached_key_vec, 4)
+    if paddings is None:
+      paddings = tf.zeros([b, t], dtype=query_vec.dtype)
+    position_diff = tf.tile(tf.range(t)[tf.newaxis, :], [b, 1]) - time_step
+    valid_atten = tf.math.logical_and(position_diff > -p.left_context,
+                                      position_diff <= 0)
+    local_causal_padding = 1.0 - tf.cast(valid_atten, dtype=query_vec.dtype)
+    paddings += local_causal_padding
+
+    return super().ExtendStep(theta, query_vec, cached_key_vec,
+                              cached_value_vec, paddings, segment_mask,
+                              per_step_padding, time_step, use_short_seq_opt)
 
   @classmethod
   def FPropMeta(cls, p, *args):

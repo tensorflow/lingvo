@@ -1056,6 +1056,66 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       ctx_vec_val = sess.run(ctx_vec)
       print(ctx_vec_val)
 
+  def _AttentionExtendStepInputs(self,
+                                 batch_size=6,
+                                 input_dim=4,
+                                 num_heads=2,
+                                 dtype=tf.float32):
+    np.random.seed(6348575)
+    seq_len = 6
+    query_vec_p = [np.random.rand(1, input_dim) for _ in range(batch_size)]
+    query_vec = tf.stack([tf.constant(x, dtype=dtype) for x in query_vec_p])
+    source_vecs = tf.zeros(
+        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
+    source_ctxs = tf.zeros(
+        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
+    return source_vecs, source_ctxs, query_vec
+
+  def testExtendStepSelfAttention(self):
+    # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
+    batch_size = 6
+    input_dim = 4
+    num_heads = 2
+    with self.session(use_gpu=True) as sess:
+      source_vecs, source_ctxs, query_vec = (
+          self._AttentionExtendStepInputs(
+              batch_size=batch_size, input_dim=input_dim, num_heads=num_heads))
+      p = attention.LocalSelfAttention.Params().Set(
+          name='self_atten',
+          num_heads=num_heads,
+          input_dim=input_dim,
+          hidden_dim=4,
+          block_size=2,
+          left_context=2,
+          right_context=0,
+          atten_dropout_prob=0.3,
+      )
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      tf.global_variables_initializer().run()
+      ctx_vec, new_src_vecs, _ = l.ExtendStep(
+          l.theta,
+          query_vec,
+          source_vecs,
+          source_ctxs,
+          paddings=None,
+          segment_mask=None,
+          per_step_padding=None,
+          time_step=3,
+          use_short_seq_opt=False)
+      context_vec_out = sess.run(ctx_vec)
+      new_source_vecs = sess.run(new_src_vecs)
+      context_vec_out = np.reshape(context_vec_out, (6, 4))
+
+      tf.logging.info(np.array_repr(np.sum(context_vec_out, axis=1)))
+      self.assertAllClose(
+          [4.2453785, 4.218413, 3.2354772, 2.2528813, 2.2237093, 2.1914895],
+          np.sum(context_vec_out, axis=1))
+      new_source_vecs = np.reshape(new_source_vecs, (6, 24))
+      tf.logging.info(np.array_repr(np.sum(new_source_vecs, axis=1)))
+      self.assertAllClose([0.0, 0.0, 0.0, 4.116683, 0.0, 0.0],
+                          np.sum(new_source_vecs, axis=1))
+
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
   """Test Transformer decoder layers."""
