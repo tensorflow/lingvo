@@ -314,7 +314,7 @@
 
 <span class="sd">  (see `moe_builder_test.py` for a more complete example.)</span>
 <span class="sd">  &quot;&quot;&quot;</span>
-  <span class="n">_for_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
+  <span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">False</span>
 
 <div class="viewcode-block" id="StateLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.moe_layers.html#lingvo.core.moe_layers.StateLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
@@ -344,7 +344,7 @@
       <span class="k">return</span> <span class="n">state</span>
     <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
       <span class="c1"># For use with flat_beam_search</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span> <span class="o">=</span> <span class="kc">True</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
       <span class="n">batch</span><span class="p">,</span> <span class="n">beam</span><span class="p">,</span> <span class="n">max_steps</span> <span class="o">=</span> <span class="n">shape</span>
       <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">Empty</span><span class="p">(</span>
@@ -369,16 +369,29 @@
     <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;t=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">t</span><span class="p">)</span>
 
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span><span class="p">:</span>
+      <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
         <span class="c1"># For tpu_beam_search_helper</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">state</span><span class="p">)[</span><span class="mi">1</span><span class="p">])</span>
         <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
         <span class="k">while</span> <span class="nb">len</span><span class="p">(</span><span class="n">z</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">):</span>
           <span class="n">z</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">state</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">z</span><span class="p">)</span> <span class="o">*</span> <span class="n">state</span> <span class="o">+</span> <span class="n">z</span> <span class="o">*</span> <span class="n">x</span>
-      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_for_flat_beam_search</span><span class="p">:</span>
-        <span class="c1"># For flat beam search</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+      <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_use_flat_beam_search</span><span class="p">:</span>
+        <span class="n">state_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">state</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">update_slice_size</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">x</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span><span class="p">:</span>
+          <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># With prefix decoding the first call to decoder can have</span>
+          <span class="c1"># sequence length (N * beam_size) with N &gt; 1.</span>
+          <span class="c1"># In this special case state tensor update is implemented as multiple</span>
+          <span class="c1"># InplaceUpdate ops each for a slice [batch_size, beam_size].</span>
+          <span class="n">div</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">update_slice_size</span> <span class="o">/</span> <span class="n">state_slice_size</span><span class="p">)</span>
+          <span class="k">assert</span> <span class="n">update_slice_size</span> <span class="o">==</span> <span class="n">state_slice_size</span> <span class="o">*</span> <span class="n">div</span><span class="p">,</span> <span class="p">(</span>
+              <span class="n">update_slice_size</span><span class="p">,</span> <span class="n">state_slice_size</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">div</span><span class="p">,</span> <span class="mi">1</span><span class="p">)):</span>
+            <span class="n">state</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">InplaceUpdate</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">t</span> <span class="o">+</span> <span class="n">i</span><span class="p">,</span> <span class="n">x_i</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;state*=</span><span class="si">%r</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
         <span class="c1"># [T,B,L,...]</span>
         <span class="n">y</span> <span class="o">=</span> <span class="n">state</span>
         <span class="c1"># [T, B, L, ...] -&gt; [B, T, L, ...]</span>
@@ -717,7 +730,8 @@
     <span class="n">over_capacity</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span>
             <span class="n">tf</span><span class="o">.</span><span class="n">greater_equal</span><span class="p">(</span><span class="n">mask</span> <span class="o">*</span> <span class="n">position_in_expert</span><span class="p">,</span> <span class="n">capacity</span><span class="p">),</span> <span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
-    <span class="n">over_capacity_ratio</span> <span class="o">=</span> <span class="n">over_capacity</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+    <span class="n">over_capacity_ratio</span> <span class="o">=</span> <span class="n">over_capacity</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">mask</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_sum</span><span class="p">(</span><span class="n">mask</span><span class="p">))</span>
     <span class="n">py_utils</span><span class="o">.</span><span class="n">AddTpuSummaryTensor</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">)</span>
     <span class="n">tpu_summary</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">over_capacity_ratio</span><span class="p">,</span> <span class="n">while_loop_reduce</span><span class="o">=</span><span class="s1">&#39;mean&#39;</span><span class="p">)</span>
 
