@@ -19,6 +19,7 @@ Using this module any ModelParams can be accessed via GetParams.
 """
 
 import importlib
+import re
 import sys
 
 
@@ -27,13 +28,11 @@ def _Import(name):
   print('model_imports.py: Importing %s' % name, file=sys.stderr)
   try:
     importlib.import_module(name)
-    print('model_imports.py: Imported %s' % name, file=sys.stderr)
     return True
-  except ImportError as e:
-    # It is expected that some imports may be missing.
-    print(
-        'model_imports.py: Could not import %s: %s' % (name, e),
-        file=sys.stderr)
+  except ModuleNotFoundError as e:
+    missing_module = re.match("No module named '(.*?)'", e.msg).group(1)
+    if not name.startswith(missing_module):
+      raise
   return False
 
 
@@ -92,15 +91,14 @@ def ImportParams(model_name,
     success = _Import(module_with_params) or success
 
   # Try built-in tasks imports.
-  model_module = f'{task_root}.{model_module}'
-  success = _Import(model_module) or success
+  task_model_module = f'{task_root}.{model_module}'
+  success = _Import(task_model_module) or success
   # Try all locations of inserting params.
-  for module_with_params in _InsertParams(model_module):
+  for module_with_params in _InsertParams(task_model_module):
     success = _Import(module_with_params) or success
 
   if require_success and not success:
     raise LookupError(
-        'Could not find any valid import paths for module %s. Check the logs '
-        'above to see if there were errors importing the module, and make sure '
-        'the relevant params files are linked into the binary.' % model_module)
+        f'Could not find any valid import paths for module {model_module}. '
+        f'Make sure the relevant params files are linked into the binary.')
   return success
