@@ -593,23 +593,21 @@
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="c1"># Always reset step seed at the start of a new global_step.</span>
       <span class="n">py_utils</span><span class="o">.</span><span class="n">ResetStepSeed</span><span class="p">()</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropTpu</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSplitInputBatch</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropSplitInputBatch</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_FPropResult</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span></div>
 
 <div class="viewcode-block" id="BaseTask._FPropTpu"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._FPropTpu">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropTpu</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;fprop&#39;</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_0_0&#39;</span><span class="p">):</span>
-        <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
-        <span class="n">metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">([</span><span class="n">metrics</span><span class="p">])</span>
+    <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s1">&#39;tower_0_0&#39;</span><span class="p">):</span>
+      <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+      <span class="n">metrics</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">([</span><span class="n">metrics</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span></div>
 
 <div class="viewcode-block" id="BaseTask._FPropSplitInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._FPropSplitInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">_FPropSplitInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Splits the input batch on the input device.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_FPropTpu</span><span class="p">(</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span>
+
     <span class="n">cluster</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span>
     <span class="n">num_splits</span> <span class="o">=</span> <span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span>
 
@@ -645,7 +643,6 @@
                 <span class="n">metrics</span><span class="p">,</span> <span class="n">per_example</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">FPropTower</span><span class="p">(</span><span class="n">theta_local</span><span class="p">,</span> <span class="n">batch</span><span class="p">)</span>
           <span class="n">all_metrics</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">metrics</span><span class="p">)</span>
           <span class="n">all_per_example_tensors</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">per_example</span><span class="p">)</span>
-
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightedAvgOfMetrics</span><span class="p">(</span>
         <span class="n">all_metrics</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ConcatPerExampleTensors</span><span class="p">(</span><span class="n">all_per_example_tensors</span><span class="p">)</span></div>
 
@@ -667,14 +664,18 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span> <span class="o">=</span> <span class="n">metrics</span>
     <span class="n">summary_utils</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span><span class="s1">&#39;num_predictions&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_num_predictions</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="BaseTask.GetInputBatch"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.GetInputBatch">[docs]</a>  <span class="k">def</span> <span class="nf">GetInputBatch</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Gets an input batch.&quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">SplitInputBatch</span><span class="p">(</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="BaseTask.FPropDefaultTheta"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.FPropDefaultTheta">[docs]</a>  <span class="k">def</span> <span class="nf">FPropDefaultTheta</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_batch</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Calls `FProp` with this layer&#39;s parameters.&quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">input_batch</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="k">if</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">use_tpu</span><span class="p">():</span>
-        <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">TpuDequeueBatch</span><span class="p">()</span>
-      <span class="k">else</span><span class="p">:</span>
-        <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">SplitInputBatch</span><span class="p">(</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">cluster</span><span class="o">.</span><span class="n">num_splits_per_client</span><span class="p">)</span>
+      <span class="n">input_batch</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetInputBatch</span><span class="p">()</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="p">,</span> <span class="n">input_batch</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="BaseTask.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vars_gradients</span><span class="p">):</span>
@@ -691,8 +692,10 @@
 <div class="viewcode-block" id="BaseTask.BProp"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask.BProp">[docs]</a>  <span class="k">def</span> <span class="nf">BProp</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="BaseTask._BPropForVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropForVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Constructs the backward graph.&quot;&quot;&quot;</span>
+<div class="viewcode-block" id="BaseTask._BPropGenTrainOps"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropGenTrainOps">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropGenTrainOps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">add_summary</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Populates the train_ops dictionary in a backwards pass.&quot;&quot;&quot;</span>
+    <span class="n">metrics</span> <span class="o">=</span> <span class="n">metrics</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span>
+
     <span class="n">bprop_variable_filters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">input_generator</span><span class="o">.</span><span class="n">GetBpropVariableFilters</span><span class="p">()</span>
     <span class="c1"># Only compute the mask if the variable filters are not empty.</span>
     <span class="k">if</span> <span class="n">bprop_variable_filters</span> <span class="o">!=</span> <span class="p">[</span><span class="s1">&#39;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">bprop_variable_filters</span><span class="p">):</span>
@@ -710,10 +713,10 @@
     <span class="k">for</span> <span class="n">optimization</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">learners</span><span class="p">:</span>
       <span class="n">learner_name</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">name</span>
       <span class="n">loss_name</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">loss_name</span> <span class="ow">or</span> <span class="n">learner_name</span>
-      <span class="n">metric</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="n">metric</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Loss </span><span class="si">%s</span><span class="s1"> not found in metrics </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
-                         <span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+                         <span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
       <span class="n">loss</span> <span class="o">=</span> <span class="n">metric</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">all_losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss</span><span class="p">)</span>
       <span class="n">train_ops</span><span class="p">[</span><span class="s1">&#39;train/</span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">learner_name</span><span class="p">],</span> <span class="n">eval_metrics</span> <span class="o">=</span> <span class="n">optimization</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span>
@@ -721,8 +724,9 @@
           <span class="n">vmap</span><span class="p">,</span>
           <span class="n">gradient_mask</span><span class="o">=</span><span class="n">gradient_mask</span><span class="p">,</span>
           <span class="n">gradient_adjuster</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">)</span>
-      <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">learner_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">add_summary</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span> <span class="ow">in</span> <span class="n">eval_metrics</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">AddEvalMetric</span><span class="p">(</span><span class="n">key</span> <span class="o">+</span> <span class="s1">&#39;/&#39;</span> <span class="o">+</span> <span class="n">learner_name</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">weight</span><span class="p">)</span>
 
     <span class="n">relevant_bn_updates</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">FindRelevantBatchNormUpdates</span><span class="p">(</span>
         <span class="n">all_losses</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">BATCH_NORM_UPDATES</span><span class="p">))</span>
@@ -763,6 +767,11 @@
 
     <span class="k">for</span> <span class="n">op_name</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">train_ops</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
       <span class="k">assert</span> <span class="n">op</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">,</span> <span class="n">op_name</span>
+    <span class="k">return</span> <span class="n">train_ops</span></div>
+
+<div class="viewcode-block" id="BaseTask._BPropForVariables"><a class="viewcode-back" href="../../../lingvo.core.base_model.html#lingvo.core.base_model.BaseTask._BPropForVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_BPropForVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs the backward graph.&quot;&quot;&quot;</span>
+    <span class="n">train_ops</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_BPropGenTrainOps</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
 
     <span class="c1"># TODO(rpang): try to structure _train_op as:</span>
     <span class="c1">#   tf.cond(skip_step, &lt;only update skip stats&gt;, &lt;all updates&gt;)</span>
