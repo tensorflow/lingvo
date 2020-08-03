@@ -342,6 +342,7 @@ py_test(
         ":base_layer",
         ":base_model",
         ":base_model_params",
+        ":distillation_task",
         ":hyperparams",
         ":layers",
         ":learner",
@@ -1317,7 +1318,6 @@ py_test(
         # Implicit absl.testing.parameterized dependency.
         "//lingvo:compat",
         # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
     ],
 )
 
@@ -2081,7 +2081,19 @@ py_test(
     srcs_version = "PY3",
     deps = [
         ":egdd",
-        # Implicit numpy dependency.
-        # Implicit tensorflow dependency.
+        ":test_utils",
+        "//lingvo:compat",
+    ],
+)
+
+py_library(
+    name = "distillation_task",
+    srcs = ["distillation_task.py"],
+    srcs_version = "PY3",
+    deps = [
+        ":base_model",
+        ":py_utils",
+        ":schedule",
+        "//lingvo:compat",
     ],
 )

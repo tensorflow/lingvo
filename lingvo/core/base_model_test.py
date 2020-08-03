@@ -22,6 +22,7 @@ from lingvo.core import base_input_generator
 from lingvo.core import base_layer
 from lingvo.core import base_model
 from lingvo.core import base_model_params
+from lingvo.core import distillation_task
 from lingvo.core import hyperparams
 from lingvo.core import layers
 from lingvo.core import learner
@@ -214,7 +215,7 @@ class TestInputGenerator(base_input_generator.BaseSequenceInputGenerator):
     return 0
 
 
-class DistillationTestTask(base_model.DistillationTask):
+class DistillationTestTask(distillation_task.DistillationTask):
 
   @classmethod
   def Params(cls):

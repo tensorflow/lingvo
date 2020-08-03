@@ -14,12 +14,12 @@
 # limitations under the License.
 # ==============================================================================
 """Tests for EG-DD optimizer."""
+from lingvo import compat as tf
 from lingvo.core import egdd
-import tensorflow.compat.v1 as tf
-tf.disable_v2_behavior()
+from lingvo.core import test_utils
 
 
-class EGDD(tf.test.TestCase):
+class EGDD(test_utils.TestCase):
 
   def testDenseLayer(self):
     """EG-DD update."""
