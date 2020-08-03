@@ -458,5 +458,70 @@ class MultiTaskModelTest(test_utils.TestCase):
     self._testSampleTaskHelper(p)
 
 
+class PostTrainingTask(base_model.BaseTask):
+
+  def __init__(self, params):
+    super().__init__(params)
+    p = layers.FeedForwardNet.Params().Set(
+        name='ffn',
+        input_dim=10,
+        hidden_layer_dims=[20, 30],
+        batch_norm=True,
+        activation='TANH',
+        params_init=py_utils.WeightInit.Uniform(1.0))
+    self.CreateChild('ffn', p)
+
+  def _CreateLayerVariables(self):
+    super()._CreateLayerVariables()
+    self.CreateVariable(
+        'counter1',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+    self.CreateVariable(
+        'counter2',
+        py_utils.WeightParams(shape=[], init=py_utils.WeightInit.Constant(0)))
+
+  def PostTrainingStepUpdate(self, global_step):
+    # We expect the training step to be done, so capture
+    # the value of counter1 into counter2.
+    return tf.assign(self.vars.counter2, self.vars.counter1)
+
+  def ComputePredictions(self, theta, input_batch):
+    input_data = tf.random.normal([1, 10], dtype=tf.float32) + tf.cast(
+        input_batch, tf.float32)
+    add = tf.assign_add(self.vars.counter1, 1.)
+    input_data += add
+    result = self.ffn.FProp(theta.ffn, input_data)
+    return {'result': result}
+
+  def ComputeLoss(self, theta, predictions, input_batch):
+    loss = tf.reduce_sum(predictions['result'])
+    return {'loss': (loss, 1)}, {}
+
+
+class PostTrainingTest(test_utils.TestCase):
+
+  @classmethod
+  def TestParams(cls):
+    p = PostTrainingTask.Params()
+    p.name = 'base_mdl'
+    p.input = TestInputGenerator.Params()
+    return p
+
+  def testPost(self):
+    p = self.TestParams()
+    task = p.Instantiate()
+    task.FPropDefaultTheta()
+    task.BProp()
+    train_op = task.train_op
+    with self.session():
+      self.evaluate(tf.global_variables_initializer())
+      for _ in range(20):
+        self.evaluate(train_op)
+        c1, c2 = self.evaluate([task.vars.counter1, task.vars.counter2])
+        # Both vars should have the same value if the PostTrainingStep
+        # happens after the training step.
+        self.assertEqual(c1, c2)
+
+
 if __name__ == '__main__':
   tf.test.main()

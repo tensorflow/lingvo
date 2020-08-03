@@ -580,10 +580,15 @@ class BaseTask(base_layer.BaseLayer):
         all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
     train_ops['bn_updates'] = relevant_bn_updates
 
+    var_update_ops = [
+        tf.group(*tf.nest.flatten(train_ops), name='var_update_ops')
+    ]
     # Post training step update.
-    train_ops['post_step'] = self.PostTrainingStepUpdate(self.global_step)
+    with tf.control_dependencies(var_update_ops):
+      post_step_op = self.PostTrainingStepUpdate(self.global_step)
 
-    with tf.control_dependencies(tf.nest.flatten(train_ops)):
+    train_ops = {}
+    with tf.control_dependencies([post_step_op]):
       # Get the op to update the weight masks and thresholds
       mask_update_op = self._GetMaskUpdateOp()
       train_ops['mask_updates'] = mask_update_op
