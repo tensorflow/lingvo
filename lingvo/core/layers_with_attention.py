@@ -461,6 +461,10 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     p.Define('hidden_dim', 0, 'Dimension of the hidden layer.')
     p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
     p.Define('activation', 'RELU', 'Non-linearity.')
+    p.Define(
+        'residual_weight', 1., 'Weight applied on residual connection.'
+        'Final output is residual_weight * residual_fn(x) + x.'
+        'Only effective when add_skip_connection is True.')
     p.Define('fflayer_tpl',
              layers.FeedForwardNet.Params().Set(activation=['RELU', 'NONE']),
              'Feed forward layer default params')
@@ -555,7 +559,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         self.fflayer.FProp(theta.fflayer, inputs_normalized,
                            tf.expand_dims(paddings, -1)))
     if self.params.add_skip_connection:
-      h += inputs
+      h = inputs + h * self.params.residual_weight
     return h
 
 
