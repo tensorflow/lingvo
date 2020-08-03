@@ -609,6 +609,10 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;hidden_dim&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimension of the hidden layer.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;ln_tpl&#39;</span><span class="p">,</span> <span class="n">layers</span><span class="o">.</span><span class="n">LayerNorm</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Layer norm default params&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;activation&#39;</span><span class="p">,</span> <span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;Non-linearity.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;residual_weight&#39;</span><span class="p">,</span> <span class="mf">1.</span><span class="p">,</span> <span class="s1">&#39;Weight applied on residual connection.&#39;</span>
+        <span class="s1">&#39;Final output is residual_weight * residual_fn(x) + x.&#39;</span>
+        <span class="s1">&#39;Only effective when add_skip_connection is True.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fflayer_tpl&#39;</span><span class="p">,</span>
              <span class="n">layers</span><span class="o">.</span><span class="n">FeedForwardNet</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;RELU&#39;</span><span class="p">,</span> <span class="s1">&#39;NONE&#39;</span><span class="p">]),</span>
              <span class="s1">&#39;Feed forward layer default params&#39;</span><span class="p">)</span>
@@ -703,7 +707,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">inputs_normalized</span><span class="p">,</span>
                            <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
-      <span class="n">h</span> <span class="o">+=</span> <span class="n">inputs</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">residual_weight</span>
     <span class="k">return</span> <span class="n">h</span></div></div>
 
 
