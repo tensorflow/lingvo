@@ -445,23 +445,21 @@ class BaseTask(base_layer.BaseLayer):
     with tf.name_scope('fprop'), tf.name_scope(p.name):
       # Always reset step seed at the start of a new global_step.
       py_utils.ResetStepSeed()
-      if py_utils.use_tpu():
-        metrics, per_example = self._FPropTpu(theta, input_batch)
-      else:
-        metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
+      metrics, per_example = self._FPropSplitInputBatch(theta, input_batch)
       self._FPropResult(metrics, per_example)
     return metrics, per_example
 
   def _FPropTpu(self, theta, input_batch):
-    p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(p.name):
-      with tf.name_scope('tower_0_0'):
-        metrics, per_example = self.FPropTower(theta, input_batch)
-        metrics = py_utils.WeightedAvgOfMetrics([metrics])
+    with tf.name_scope('tower_0_0'):
+      metrics, per_example = self.FPropTower(theta, input_batch)
+      metrics = py_utils.WeightedAvgOfMetrics([metrics])
     return metrics, per_example
 
   def _FPropSplitInputBatch(self, theta, input_batch):
     """Splits the input batch on the input device."""
+    if py_utils.use_tpu():
+      return self._FPropTpu(theta, input_batch)
+
     cluster = self.cluster
     num_splits = cluster.num_splits_per_client
 
@@ -497,7 +495,6 @@ class BaseTask(base_layer.BaseLayer):
                 metrics, per_example = self.FPropTower(theta_local, batch)
           all_metrics.append(metrics)
           all_per_example_tensors.append(per_example)
-
     return py_utils.WeightedAvgOfMetrics(
         all_metrics), py_utils.ConcatPerExampleTensors(all_per_example_tensors)
 
@@ -519,14 +516,18 @@ class BaseTask(base_layer.BaseLayer):
     self._metrics = metrics
     summary_utils.scalar('num_predictions', self._num_predictions)
 
+  def GetInputBatch(self):
+    """Gets an input batch."""
+    if py_utils.use_tpu():
+      return self.input_generator.TpuDequeueBatch()
+    else:
+      return self.input_generator.SplitInputBatch(
+          self.cluster.num_splits_per_client)
+
   def FPropDefaultTheta(self, input_batch=None):
     """Calls `FProp` with this layer's parameters."""
     if input_batch is None:
-      if py_utils.use_tpu():
-        input_batch = self.input_generator.TpuDequeueBatch()
-      else:
-        input_batch = self.input_generator.SplitInputBatch(
-            self.cluster.num_splits_per_client)
+      input_batch = self.GetInputBatch()
     return self.FProp(self.theta, input_batch)
 
   def AdjustGradients(self, vars_gradients):
@@ -543,8 +544,10 @@ class BaseTask(base_layer.BaseLayer):
   def BProp(self):
     self._BPropForVariables(self.vars)
 
-  def _BPropForVariables(self, vmap):
-    """Constructs the backward graph."""
+  def _BPropGenTrainOps(self, vmap, metrics=None, add_summary=True):
+    """Populates the train_ops dictionary in a backwards pass."""
+    metrics = metrics or self._metrics
+
     bprop_variable_filters = self.input_generator.GetBpropVariableFilters()
     # Only compute the mask if the variable filters are not empty.
     if bprop_variable_filters != [''] * len(bprop_variable_filters):
@@ -562,10 +565,10 @@ class BaseTask(base_layer.BaseLayer):
     for optimization in self.learners:
       learner_name = optimization.params.name
       loss_name = optimization.params.loss_name or learner_name
-      metric = self._metrics.get(loss_name, None)
+      metric = metrics.get(loss_name, None)
       if metric is None:
         raise ValueError('Loss %s not found in metrics %s' %
-                         (loss_name, list(self._metrics.keys())))
+                         (loss_name, list(metrics.keys())))
       loss = metric[0]
       all_losses.append(loss)
       train_ops['train/%s' % learner_name], eval_metrics = optimization.Apply(
@@ -573,8 +576,9 @@ class BaseTask(base_layer.BaseLayer):
           vmap,
           gradient_mask=gradient_mask,
           gradient_adjuster=self.AdjustGradients)
-      for key, (value, weight) in eval_metrics.items():
-        self.AddEvalMetric(key + '/' + learner_name, value, weight)
+      if add_summary:
+        for key, (value, weight) in eval_metrics.items():
+          self.AddEvalMetric(key + '/' + learner_name, value, weight)
 
     relevant_bn_updates, _ = py_utils.FindRelevantBatchNormUpdates(
         all_losses, tf.get_collection(py_utils.BATCH_NORM_UPDATES))
@@ -615,6 +619,11 @@ class BaseTask(base_layer.BaseLayer):
 
     for op_name, op in train_ops.items():
       assert op is not None, op_name
+    return train_ops
+
+  def _BPropForVariables(self, vmap):
+    """Constructs the backward graph."""
+    train_ops = self._BPropGenTrainOps(vmap)
 
     # TODO(rpang): try to structure _train_op as:
     #   tf.cond(skip_step, <only update skip stats>, <all updates>)
