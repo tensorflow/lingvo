@@ -686,8 +686,9 @@ Z.&nbsp;Lu, L.&nbsp;Cao, Y.&nbsp;Zhang, C.-C. Chiu, and J.&nbsp;Fan, &ldquo;Spee
 </td>
 <td class="bibtexitem">
 D.&nbsp;Park, Y.&nbsp;Zhang, C.-C. Chiu, Y.&nbsp;Chen, B.&nbsp;Li, W.&nbsp;Chan, Q.&nbsp;Le, and Y.&nbsp;Wu,
-  &ldquo;Specaugment on large scale datas,&rdquo; in <em>Proc. IEEE International
+  &ldquo;Specaugment on large scale datasets,&rdquo; in <em>Proc. IEEE International
   Conference on Acoustics, Speech, and Signal Processing (ICASSP)</em>, 2020.
+[&nbsp;<a href="https://arxiv.org/abs/1912.05533">pdf</a>&nbsp;]
 
 </td>
 </tr>
