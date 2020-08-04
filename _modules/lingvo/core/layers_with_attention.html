@@ -262,6 +262,10 @@
         <span class="s1">&#39;use layers.HighwaySkipLayer.Params() or layers.GatingLayer.Params() &#39;</span>
         <span class="s1">&#39;for gated residual add, where output is instead &#39;</span>
         <span class="s1">&#39;residual_function.FProp(x, f(x)).&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;When True, layer norm is used before attention&#39;</span>
+        <span class="s1">&#39;module, otherwise used after attention module which is consistent with&#39;</span>
+        <span class="s1">&#39;Vaswani et al</span><span class="se">\&#39;</span><span class="s1">s paper&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -345,7 +349,8 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
-    <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">source_vecs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>  <span class="c1"># For self-attention: keys = queries.</span>
       <span class="n">source_vecs</span> <span class="o">=</span> <span class="n">query_vec</span>
@@ -417,6 +422,8 @@
     <span class="k">else</span><span class="p">:</span>
       <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_function</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_function</span><span class="p">,</span> <span class="n">input_to_add</span><span class="p">,</span>
                                        <span class="n">input_after_sublayer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
     <span class="n">atten_prob</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
         <span class="n">atten_prob</span><span class="p">,</span>
         <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_bs</span><span class="p">,</span>
@@ -498,6 +505,9 @@
       <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_function</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">residual_function</span><span class="p">,</span> <span class="n">input_to_add</span><span class="p">,</span>
                                        <span class="n">input_after_sublayer</span><span class="p">)</span>
 
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
+
     <span class="n">new_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">key</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_vecs</span><span class="p">,</span>
         <span class="n">value</span><span class="o">=</span><span class="n">extended_packed_src</span><span class="o">.</span><span class="n">source_contexts</span><span class="p">)</span>
@@ -525,7 +535,8 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">is_masked</span>  <span class="c1"># Must be causal attention.</span>
     <span class="n">unnormalized_query_vec</span> <span class="o">=</span> <span class="n">query_vec</span>
-    <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">query_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">query_vec</span><span class="p">)</span>
 
     <span class="n">cached_packed_src</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">source_vecs</span><span class="o">=</span><span class="n">prefix_state</span><span class="o">.</span><span class="n">key</span><span class="p">,</span>
@@ -635,6 +646,7 @@
         <span class="s1">&#39;of feed-forward network.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;add_skip_connection&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span>
              <span class="s1">&#39;If True, add skip_connection from input to output.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;pre_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Pre or post layer norm&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -699,7 +711,10 @@
 <span class="sd">    Returns:</span>
 <span class="sd">      tensor of the same shape with inputs</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">inputs_normalized</span> <span class="o">=</span> <span class="n">inputs</span>
     <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;res_proj_layer&#39;</span><span class="p">):</span>
       <span class="n">inputs</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">res_proj_layer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">res_proj_layer</span><span class="p">,</span> <span class="n">inputs</span><span class="p">)</span>
     <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">residual_dropout</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
@@ -708,6 +723,8 @@
                            <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">)))</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">add_skip_connection</span><span class="p">:</span>
       <span class="n">h</span> <span class="o">=</span> <span class="n">inputs</span> <span class="o">+</span> <span class="n">h</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">residual_weight</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">pre_layer_norm</span><span class="p">:</span>
+      <span class="n">h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layer_norm</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">layer_norm</span><span class="p">,</span> <span class="n">h</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">h</span></div></div>
 
 
