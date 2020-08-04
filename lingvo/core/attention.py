@@ -836,6 +836,10 @@ class DotProductAttention(BaseAttentionLayer):
     p.Define('source_dim', 0, 'Number of source nodes.')
     p.Define('query_dim', 0, 'Number of query nodes.')
     p.Define('hidden_dim', 0, 'Number of hidden nodes.')
+    p.Define(
+        'use_dim_scale', True, 'Whether or not to use per_dim_scale to scale '
+        'the individual dims when calculating attention probabilities. It can '
+        'increase training stability when set to False.')
     return p
 
   def __init__(self, params):
@@ -1011,13 +1015,14 @@ class DotProductAttention(BaseAttentionLayer):
     super()._CreateLayerVariables()
     p = self.params
 
-    pc = py_utils.WeightParams(
-        shape=[p.hidden_dim],
-        init=py_utils.WeightInit.Constant(0.0),
-        dtype=p.dtype,
-        collections=['DotProductAttention_vars'])
+    if p.use_dim_scale:
+      pc = py_utils.WeightParams(
+          shape=[p.hidden_dim],
+          init=py_utils.WeightInit.Constant(0.0),
+          dtype=p.dtype,
+          collections=['DotProductAttention_vars'])
 
-    self.CreateVariable('per_dim_scale', pc)
+      self.CreateVariable('per_dim_scale', pc)
 
   def PackSource(self,
                  theta,
@@ -1120,8 +1125,13 @@ class DotProductAttention(BaseAttentionLayer):
     def ScaleFn(x):
       return tf.nn.softplus(x) / tf.nn.softplus(tf.constant(0.0, dtype=x.dtype))
 
+    if self.params.use_dim_scale:
+      per_dim_scale_var = theta.per_dim_scale
+    else:
+      per_dim_scale_var = tf.constant(0.0, dtype=query_vec.dtype)
+
     ctx_vec, prob = self._ctx_vec(
-        ScaleFn(theta.per_dim_scale), source_padding, source_segment_id,
+        ScaleFn(per_dim_scale_var), source_padding, source_segment_id,
         concated_source_vecs, concated_source_contexts, query_vec,
         query_segment_id, per_step_source_padding, theta.global_step)
     return ctx_vec, prob, attention_state

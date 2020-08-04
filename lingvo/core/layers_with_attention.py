@@ -114,6 +114,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
         'use layers.HighwaySkipLayer.Params() or layers.GatingLayer.Params() '
         'for gated residual add, where output is instead '
         'residual_function.FProp(x, f(x)).')
+    p.Define(
+        'pre_layer_norm', True, 'When True, layer norm is used before attention'
+        'module, otherwise used after attention module which is consistent with'
+        'Vaswani et al\'s paper')
     return p
 
   def __init__(self, params):
@@ -197,7 +201,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     """
     p = self.params
     unnormalized_query_vec = query_vec
-    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+    if p.pre_layer_norm:
+      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     if source_vecs is None:  # For self-attention: keys = queries.
       source_vecs = query_vec
@@ -269,6 +274,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     else:
       h = self.residual_function.FProp(theta.residual_function, input_to_add,
                                        input_after_sublayer)
+    if not p.pre_layer_norm:
+      h = self.layer_norm.FProp(theta.layer_norm, h)
     atten_prob = tf.reshape(
         atten_prob,
         [target_time, target_bs,
@@ -350,6 +357,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       h = self.residual_function.FProp(theta.residual_function, input_to_add,
                                        input_after_sublayer)
 
+    if not p.pre_layer_norm:
+      h = self.layer_norm.FProp(theta.layer_norm, h)
+
     new_states = py_utils.NestedMap(
         key=extended_packed_src.source_vecs,
         value=extended_packed_src.source_contexts)
@@ -377,7 +387,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p = self.params
     assert p.is_masked  # Must be causal attention.
     unnormalized_query_vec = query_vec
-    query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
+    if p.pre_layer_norm:
+      query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     cached_packed_src = py_utils.NestedMap(
         source_vecs=prefix_state.key,
@@ -487,6 +498,7 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
         'of feed-forward network.')
     p.Define('add_skip_connection', True,
              'If True, add skip_connection from input to output.')
+    p.Define('pre_layer_norm', True, 'Pre or post layer norm')
     return p
 
   def __init__(self, params):
@@ -551,7 +563,10 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
     Returns:
       tensor of the same shape with inputs
     """
-    inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    if self.params.pre_layer_norm:
+      inputs_normalized = self.layer_norm.FProp(theta.layer_norm, inputs)
+    else:
+      inputs_normalized = inputs
     if hasattr(self, 'res_proj_layer'):
       inputs = self.res_proj_layer.FProp(theta.res_proj_layer, inputs)
     h = self.residual_dropout.FProp(
@@ -560,6 +575,8 @@ class TransformerFeedForwardLayer(base_layer.BaseLayer):
                            tf.expand_dims(paddings, -1)))
     if self.params.add_skip_connection:
       h = inputs + h * self.params.residual_weight
+    if not self.params.pre_layer_norm:
+      h = self.layer_norm.FProp(theta.layer_norm, h)
     return h
 
 

@@ -978,6 +978,10 @@ class TransformerDecoder(MTBaseDecoder):
         'add_multiheaded_attention_scalar_summary', False,
         'If set, will include scalar summaries for multi-headed attention'
         ' to visualize the sparsity statistics of attention weights.')
+    p.Define('ln_tpl', layers.LayerNorm.Params(), 'Layer norm default params')
+    p.Define(
+        'ln_output', False, 'If True, layer normalization is applied to the '
+        'final output of the decoder.')
 
     # TODO(miachen): Extend this to more general logic of adding multiple
     # embedding fields.
@@ -1077,6 +1081,13 @@ class TransformerDecoder(MTBaseDecoder):
       params.packed_input = p.packed_input
       params.has_aux_atten = True
       params.mask_self_atten = True
+
+    # Initialize decoder output layer norm
+    if p.ln_output:
+      params = p.ln_tpl.Copy()
+      params.name = 'dec_out_ln'
+      params.input_dim = p.model_dim
+      self.CreateChild('layer_norm_out', params)
 
     self.CreateChildren('trans', params_trans_layers)
 
@@ -1273,6 +1284,9 @@ class TransformerDecoder(MTBaseDecoder):
           norma_atten_probs_3d = self._RemoveEOSProbs(p, pl_probs, src_enc_len)
           per_layer_attn_probs.append(norma_atten_probs_3d)
 
+      if p.ln_output:
+        layer_out = self.layer_norm_out.FProp(theta.layer_norm_out, layer_out)
+
       # per_layer_attn_probs shape: [batch, trg time, src time]
       self._AddAttenProbsSummary(source_paddings, targets, per_layer_attn_probs)
 
@@ -1412,6 +1426,9 @@ class TransformerDecoder(MTBaseDecoder):
         probs = tf.squeeze(probs_3d, axis=1)
 
         atten_probs.append(probs)
+
+      if p.ln_output:
+        layer_out = self.layer_norm_out.FProp(theta.layer_norm_out, layer_out)
 
       # Aggregate per-layer attention probs.
       aggregated_atten_probs = tf.math.add_n(atten_probs) / len(atten_probs)
