@@ -29,7 +29,6 @@ Bboxes and coordinates are always in the last dimension of a tensor.
 import lingvo.compat as tf
 from lingvo.core import py_utils
 import numpy as np
-from tensorflow.python.ops import functional_ops
 
 
 def _BroadcastMatmul(x, y):
@@ -262,17 +261,17 @@ def ReorderIndicesByPhi(anchor, bboxes):
     sorted order. (e.g., tf.gather(bboxes, indices)).
   """
 
-  @tf.Defun(anchor.dtype, bboxes.dtype)
-  def _True(anchor, bboxes):
-    """True branch when num of bboxes is non-zero."""
-    n = tf.shape(bboxes)[0]
-    centroid = BBoxesCentroid(bboxes)
+  def _True(inputs):
+    """True branch when num of inputs.bboxes is non-zero."""
+    n = tf.shape(inputs.bboxes)[0]
+    centroid = BBoxesCentroid(inputs.bboxes)
 
     # Computed dot products between centroid and the anchor point.
-    dot = tf.squeeze(tf.matmul(centroid, tf.expand_dims(anchor, 1)), axis=1)
+    dot = tf.squeeze(
+        tf.matmul(centroid, tf.expand_dims(inputs.anchor, 1)), axis=1)
 
     # Normalize dot to get the cosine of the angles.
-    norm = tf.norm(anchor) * tf.norm(centroid, axis=1)
+    norm = tf.norm(inputs.anchor) * tf.norm(centroid, axis=1)
     cosine = tf.where(
         tf.greater(norm, 0), dot / norm, tf.zeros([n], norm.dtype))
 
@@ -281,7 +280,8 @@ def ReorderIndicesByPhi(anchor, bboxes):
     # 3-vector (x, y, z), so we set z to 0.  tf.linalg.cross does not support
     # broadcasting, so we tile anchor to shape [n, 3].
     cross = tf.linalg.cross(
-        tf.tile(tf.pad(tf.expand_dims(anchor, 0), [[0, 0], [0, 1]]), [n, 1]),
+        tf.tile(
+            tf.pad(tf.expand_dims(inputs.anchor, 0), [[0, 0], [0, 1]]), [n, 1]),
         tf.pad(centroid, [[0, 0], [0, 1]]))
 
     # If the sign is positive, the points lie on the clockwise side of
@@ -297,13 +297,13 @@ def ReorderIndicesByPhi(anchor, bboxes):
     _, indices = tf.nn.top_k(score, n, sorted=True)
     return indices
 
-  @tf.Defun(anchor.dtype, bboxes.dtype)
-  def _False(anchor, bboxes):
-    del anchor, bboxes
+  def _False(_):
     return tf.zeros([0], dtype=tf.int32)
 
   n = tf.shape(bboxes)[0]
-  return functional_ops.If(tf.greater(n, 0), [anchor, bboxes], _True, _False)[0]
+  return py_utils.If(
+      tf.greater(n, 0), py_utils.NestedMap(anchor=anchor, bboxes=bboxes), _True,
+      _False)
 
 
 def _SmoothL1Norm(a):

@@ -424,7 +424,6 @@ class FRNN(base_layer.BaseLayer):
     rcell = self.cell
     assert isinstance(rcell, (rnn_cell.RNNCell))
 
-    @tf.Defun()
     def FlipUpDown(x):
       # Reverse the first dimension (time)
       return tf.reverse(x, [0])
