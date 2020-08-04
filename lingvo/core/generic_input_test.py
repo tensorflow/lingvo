@@ -267,6 +267,25 @@ class GenericInputOpTest(test_utils.TestCase, parameterized.TestCase):
           bucket_upper_bound=[1],
           bucket_batch_limit=[1])
 
+  def testTfData(self):
+    """Checks that GenericInput can be invoked from a tf.data.Dataset.
+
+    TODO(b/162015923): Fix generic_input op to work with tf.data.
+    """
+
+    def _input_batch():
+      return self._RunBasicGraph(use_nested_map=True)
+
+    # Trick to create dataset from tensor coming from custom op.
+    dummy_dataset = tf.data.Dataset.from_tensors(0).repeat()
+    dataset = dummy_dataset.map(lambda _: _input_batch())
+
+    with self.session(use_gpu=False) as sess:
+      it = tf.compat.v1.data.make_initializable_iterator(dataset)
+      with self.assertRaises(tf.errors.NotFoundError):
+        # Gives an error that the user-provided function is undefined.
+        sess.run(it.initializer)
+
 
 if __name__ == '__main__':
   tf.test.main()
