@@ -365,7 +365,7 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
 
   We use the following capital letters to denote shape parameters:
     B = batch size
-    L = length of the input squence (referred to as S or T elsewhere)
+    L = length of the input sequence (referred to as S or T elsewhere)
     N = number of attention heads
     H = dimensions of each attention head
     K = number of clusters
@@ -382,6 +382,9 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     p.Define('dim_per_head', 0, 'Dimensions of each attention head.')
     p.Define('decay', 0.999, 'The decay with which to update centroids.')
     p.Define('epsilon', 1e-6, 'Tiny value to guard against divide by 0.')
+    p.Define(
+        'apply_layer_norm', True, 'Whether to apply LayerNorm() on the '
+        'inputs first. If unset, caller must normalize first.')
     return p
 
   def __init__(self, params):
@@ -443,14 +446,23 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     p = self.params
     if paddings is None:
       paddings = tf.zeros_like(x[:, :, 0, 0])
-    # Shape [B, N, 1, 1]
+    # Shape [B, L, 1, 1]
     paddings_4d = paddings[:, :, None, None]
-    x = KMeansClusteringForAtten.LayerNorm(x, p.epsilon)
+
+    if p.apply_layer_norm:
+      x = KMeansClusteringForAtten.LayerNorm(x, p.epsilon)
 
     # 'x' is normalized (but theta.means is not), we use negative dot product to
     # approximate the Euclidean distance here.
     dists = -tf.einsum('BLNH, NKH -> BLNK', x, theta.means)
-    # Shape [B, N, L, K], the same as 'dists' above.
+
+    # For padded positions we update the distances to very large numbers.
+    very_large_dists = tf.ones_like(dists) * tf.constant(
+        0.1, dtype=dists.dtype) * dists.dtype.max
+    paddings_tiled = tf.tile(paddings_4d, [1, 1, p.num_heads, p.num_clusters])
+    dists = tf.where(paddings_tiled > 0.0, very_large_dists, dists)
+
+    # Shape [B, L, N, K], the same as 'dists' above.
     nearest_one_hot = tf.one_hot(tf.math.argmin(dists, axis=-1), p.num_clusters)
     # Same shape as the input 'x'.
     nearest_centroid = tf.einsum('BLNK, NKH -> BLNH', nearest_one_hot,
@@ -514,3 +526,112 @@ class KMeansClusteringForAtten(base_layer.BaseLayer):
     return py_utils.with_dependencies(
         [tf.assign_add(self.vars.means, update_means_diff)],
         dists), k_means_loss
+
+
+def ComputeSparseAttention(q, k, v, sparsity_indices, paddings=None):
+  """Computes attention according to a sparsity pattern.
+
+  We use the following capital letters to denote shape parameters:
+    B = batch size
+    S = length of the source sequence
+    T = length of the target sequence
+    N = number of attention heads
+    H = dimensions of each attention head
+    K = number of clusters
+    W = attention window (K <= S)
+
+  The 'sparsity_indices' is a tensor of integral type where the last dimension
+  contains W indices (W is the attention window) for each corresponding position
+  along S in 'k' that the query is allowed to attend to.
+
+  For example, if sparsity_indices[batch_idx, target time step, head_idx] =
+  [1, 7, 8], it means that token in the query attends to values with indices
+  1, 7, and 8, and the attention window here is 3.
+
+  The valid values in 'sparsity_indices' are [-1, S-1]. Note that the value -1
+  is reserved to mean paddings, distinct from the value (S-1).
+
+  For example, if W=S and 'sparsity_indices' contains range(S) on the last
+  dimension, this degenerates to the original full attention.
+
+  We require that 'sparsity_indices' does not contain duplicates (except for -1
+  to indicate paddings), but we do not require 'sparsity_indices' to be sorted.
+
+  Args:
+    q: (projected) queries, [B, T, N, H];
+    k: (projected) keys, [B, S, N, H];
+    v: (projected) values, [B, S, N, H];
+    sparsity_indices: [B, T, N, W], where W is the attention window;
+    paddings: paddings for keys, [B, S] if not None.
+
+  Returns:
+    output: the encoded output, [B, T, N, H], a linear combination of the
+      values.
+    atten_probs: the attention weights, [B, T, N, W], where W is the attention
+      window.
+  """
+  q = tf.convert_to_tensor(q)
+  k = tf.convert_to_tensor(k)
+  v = tf.convert_to_tensor(v)
+  sparsity_indices = tf.convert_to_tensor(sparsity_indices)
+
+  k = py_utils.HasRank(k, 4)
+  _, source_length, _, dim_per_head = py_utils.GetShape(k, 4)
+  sparsity_indices = py_utils.HasRank(sparsity_indices, 4)
+  batch_size, target_length, num_heads, attention_window = py_utils.GetShape(
+      sparsity_indices, 4)
+  py_utils.assert_less_equal(
+      attention_window, source_length,
+      'The provided sparsity_indices has attention window '
+      ' > source length. This is likely an error.')
+
+  # To prepare for gathering the relevant vectors from 'k', we prepare
+  # gather_idx of shape [B, T, N, W, 3] where the last dimension corresponds to
+  # slices in 'k' indexed by (batch index, source time step, head index),
+  # where the source length index comes from the original W dimension in
+  # 'sparsity_indices'.
+  seq_idx = tf.expand_dims(sparsity_indices, axis=-1)
+  # Overwrite the paddings -1 with valid gather indices (zeros). We will
+  # fix the logits with -inf in these positions later.
+  seq_idx = tf.where(seq_idx < 0, tf.zeros_like(seq_idx), seq_idx)
+  batch_idx = tf.reshape(
+      tf.range(0, batch_size, dtype=sparsity_indices.dtype),
+      [batch_size, 1, 1, 1, 1])
+  batch_idx = tf.tile(batch_idx,
+                      [1, target_length, num_heads, attention_window, 1])
+  head_idx = tf.reshape(
+      tf.range(0, num_heads, dtype=sparsity_indices.dtype),
+      [1, 1, num_heads, 1, 1])
+  head_idx = tf.tile(head_idx,
+                     [batch_size, target_length, 1, attention_window, 1])
+  # [B, T, N, W, 3], where last dimension is (batch index, source length index,
+  # head index).
+  gather_idx = tf.concat([batch_idx, seq_idx, head_idx], axis=-1)
+
+  # Both the gathered k and v have shape [B, T, N, W, H]
+  k = tf.gather_nd(k, gather_idx)
+  v = tf.gather_nd(v, gather_idx)
+
+  if paddings is None:
+    paddings = tf.zeros([batch_size, source_length])
+  paddings = tf.convert_to_tensor(paddings)
+  paddings = tf.expand_dims(paddings, axis=-1)
+  # [B, S, N]
+  paddings = tf.tile(paddings, [1, 1, num_heads])
+  # [B, T, N, W]
+  paddings = tf.gather_nd(paddings, gather_idx)
+
+  logits = tf.einsum('BTNH, BTNWH -> BTNW', q, k)
+  logits *= tf.math.rsqrt(tf.cast(dim_per_head, q.dtype))
+
+  very_negative_logits = (
+      tf.ones_like(logits) * logits.dtype.max *
+      tf.constant(-0.7, dtype=logits.dtype))
+  padded_logits = tf.where(
+      tf.math.logical_or(sparsity_indices < 0, paddings > 0.0),
+      very_negative_logits, logits)
+
+  # [B, T, N, W]
+  atten_probs = tf.nn.softmax(padded_logits, name='attention_weights')
+  output = tf.einsum('BTNW, BTNWH -> BTNH', atten_probs, v)
+  return output, atten_probs

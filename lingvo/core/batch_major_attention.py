@@ -344,10 +344,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       query:    [B, T, N, H].
       key:      [B, S, N, H].
       paddings: [B, S].
-      segment_mask: [B, 1, T, S]: A mask that is applied to prevent
-        attention between different segments. This is already been
-        converted into large negative logits. Only applied if
-        packed_input = True.
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
       per_step_padding: A mask used by decoder self-attention to prevent
         information flow from future (causal padding). It has shape [B, T, S] if
         not None.
@@ -428,11 +427,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       key:      [B, S, N, H].
       value:    [B, S, N, H].
       paddings: [B, S].
-      segment_mask: [B, 1, T, S]: A mask that is applied to prevent
-        attention between different segments. This is already been
-        converted into large negative logits. Only applied if
-        packed_input = True.
-
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
       per_step_padding: A mask used by decoder self-attention to prevent
         information flow from future (causal padding). It has shape [B, T, S] if
         not None.
@@ -483,10 +480,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       key:      [S, B, N, H] or [S, B, N*H/128, 128].
       value:    [S, B, N, H] or [S, B, N*H/128, 128].
       paddings: [B, S].
-      segment_mask: [B, 1, T, S]: A mask that is applied to prevent
-        attention between different segments. This is already been
-        converted into large negative logits. Only applied if
-        packed_input = True.
+      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention
+        between different segments. This is already been converted into large
+        negative logits. Only applied if packed_input = True.
       per_step_padding: A mask used by decoder self-attention to prevent
         information flow from future (causal padding). It has shape [B, 1, S] if
         not None.
@@ -1453,6 +1449,132 @@ class LocalSelfAttentionXL(LocalSelfAttention):
       term_d = tf.slice(term_d, [0, 0, 0], [-1, w, -1])
       term_bd = tf.reshape(term_d, [1, n, 1, w, c])
     return term_ac + term_bd
+
+
+class RoutingAttention(MultiHeadedAttention):
+  """"Implements a sparse attention based on k-means clustering.
+
+  This is used in the routing transformer https://arxiv.org/pdf/2003.05997.
+
+  This verison of multi-headed attention differs from the full attention
+  in that it uses k-means clusterting to cluster the queries and keys first,
+  and each query only attend to a subset of keys that are close to the centroid
+  closest to that query. As Euclidean distance is used to determine closeness,
+  we layer normalize queries and keys first so that closeness lead to a larger
+  dot product.
+
+  TODO(zhouwk) This class is WIP, what remains to be done:
+    * self-attention (causal masked or not)
+    * single step during decoding
+    * propagate clustering loss;
+    * supporting packed inputs;
+
+  We use the following capital letters to denote shape parameters:
+    B = batch size
+    S = length of the source sequence
+    T = length of the target sequence
+    N = number of attention heads
+    H = dimensions of each attention head
+
+    K = number of clusters
+    W = attention window
+  """
+
+  @classmethod
+  def Params(cls):
+    """Params."""
+    p = super().Params()
+    p.Define(
+        'num_clusters', 0, 'Number of clusters, typically around the square'
+        ' root of the sequence length.')
+    p.Define('attention_window', 0, 'The number of keys each query attends to.')
+    p.Define('clustering', attention_util.KMeansClusteringForAtten.Params(),
+             'The params for a clustering layer.')
+    return p
+
+  def __init__(self, params):
+    """Constructs an instance of RoutingAttention."""
+    super().__init__(params)
+    p = self.params
+    assert p.num_clusters
+    assert p.attention_window
+    assert not p.packed_input
+
+    clustering_p = p.clustering
+    clustering_p.num_clusters = p.num_clusters
+    clustering_p.num_heads = p.num_heads
+    clustering_p.dim_per_head = p.hidden_dim // p.num_heads
+    # We normalize manually prior so that we can reuse the same normalized
+    # query/key to compute attention probs later.
+    clustering_p.apply_layer_norm = False
+    self.CreateChild('clustering', clustering_p)
+
+  def _DotAtten(self, theta, query, key, value, query_paddings, key_paddings):
+    """Computes the attention.
+
+    Each query selects 'p.attention_window' number of keys to attend to. First
+    we find the closest centroid to that query, and we only allow that query to
+    attend to the 'p.attention_window' closest keys to that centroid.
+
+    In order to use K-means, this implementation applies layer normalization
+    to both the queries and the keys, and uses the normalized results to compute
+    attention weights.
+
+    When 'p.attention_window' is the source length, this should evalue to the
+    full attention (using layer normalized queries and keys).
+
+    The caller should pass in the paddings for both 'key' and 'query' because
+    during training, when we update the clustering we need to know the paddings
+    for both. (For the inference path only 'key_paddings' is useful.)
+
+    Args:
+      theta: A `.NestedMap` of the values of this layer's weights.
+      query: [B, T, N, H].
+      key:   [B, S, N, H].
+      value: [B, S, N, H].
+      query_paddings: [B, T].
+      key_paddings:   [B, S].
+
+    Returns:
+      encoded: [B, T, N, H].
+      atten_probs: [B, T, N, W]. Note that the caller doesn't know which
+      position the last dimension corresponds to along the S dimension.
+    """
+    p = self.params
+    # Whether to update the centroids. Only do this during training.
+    update = not self.do_eval
+
+    query = attention_util.KMeansClusteringForAtten.LayerNorm(query)
+    key = attention_util.KMeansClusteringForAtten.LayerNorm(key)
+    # [B, T, N, K]
+    q_dists, _ = self.clustering.FProp(
+        theta.clustering, query, query_paddings, update=update)
+    # [B, S, N, K]
+    k_dists, _ = self.clustering.FProp(
+        theta.clustering, key, key_paddings, update=update)
+    # [B, N, K, S]
+    # If key is padded in a position, 'k_dists' is inf which ensures
+    # that we consider all non-padded keys even if some padded keys
+    # might appear closer.
+    k_dists = tf.transpose(k_dists, [0, 2, 3, 1])
+
+    # [B, N, K, W], for each centroid, the indices of closest key vecs.
+    # It's okay if W is so larger such that a padded index is included,
+    # because below in attention_util.ComputeSparseAttention() correctly
+    # handles 'paddings'.
+    _, closest_indices = tf.math.top_k(-k_dists, p.attention_window)
+    # [B, T, N, K], one hot encoded closest centroid for each query vec.
+    nearest_one_hot = tf.one_hot(
+        tf.math.argmin(q_dists, axis=-1),
+        p.num_clusters,
+        dtype=closest_indices.dtype)
+
+    # For each query vec, we allow it to attend to those keys that are the
+    # W closest to its centroid, where W is the attention window.
+    sparsity_indices = tf.einsum('BTNK, BNKW -> BTNW', nearest_one_hot,
+                                 closest_indices)
+    return attention_util.ComputeSparseAttention(query, key, value,
+                                                 sparsity_indices, key_paddings)
 
 
 class MultiSourceAttention(base_layer.BaseLayer):

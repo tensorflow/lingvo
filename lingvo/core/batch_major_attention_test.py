@@ -18,6 +18,7 @@
 from absl.testing import parameterized
 from lingvo import compat as tf
 from lingvo.core import attention as tm_attention
+from lingvo.core import attention_util
 from lingvo.core import base_layer
 from lingvo.core import batch_major_attention as attention
 from lingvo.core import hyperparams
@@ -1115,6 +1116,97 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       tf.logging.info(np.array_repr(np.sum(new_source_vecs, axis=1)))
       self.assertAllClose([0.0, 0.0, 0.0, 4.116683, 0.0, 0.0],
                           np.sum(new_source_vecs, axis=1))
+
+
+class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
+  """Tests for RoutingAttention."""
+
+  def testDotAtten(self):
+    batch_size = 7
+    source_length = 6
+    target_length = 4
+    num_heads = 2
+    dim_per_head = 5
+    num_clusters = 3
+    attention_window = 4
+    q = np.random.rand(batch_size, target_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    k = np.random.rand(batch_size, source_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    v = np.random.rand(batch_size, source_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    query_paddings = np.zeros([batch_size, target_length], dtype=np.float32)
+    key_paddings = np.zeros([batch_size, source_length], dtype=np.float32)
+    p = attention.RoutingAttention.Params().Set(
+        name='routing_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_clusters=num_clusters,
+        attention_window=attention_window)
+    atten = p.Instantiate()
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      encoded, probs = sess.run(
+          atten._DotAtten(atten.theta, q, k, v, query_paddings, key_paddings))
+      self.assertEqual(encoded.shape,
+                       (batch_size, target_length, num_heads, dim_per_head))
+      self.assertEqual(probs.shape,
+                       (batch_size, target_length, num_heads, attention_window))
+      # attention weights sum to 1.
+      self.assertAllClose(
+          np.sum(probs, axis=-1),
+          np.ones([batch_size, target_length, num_heads]))
+
+  @parameterized.parameters(0, 1, 2)
+  def testDotAttenFull(self, num_padded):
+    batch_size = 2
+    source_length = 5
+    target_length = 6
+    num_heads = 2
+    dim_per_head = 5
+    num_clusters = 3
+    attention_window = source_length
+    q = np.random.rand(batch_size, target_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    k = np.random.rand(batch_size, source_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    v = np.random.rand(batch_size, source_length, num_heads,
+                       dim_per_head).astype(np.float32)
+    q_paddings = np.zeros([batch_size, target_length], dtype=np.float32)
+    k_paddings = np.zeros([batch_size, source_length], dtype=np.float32)
+    if num_padded:
+      # randomly pad elements.
+      for i in range(batch_size):
+        zero_index = np.random.choice(source_length, num_padded, False)
+        for j in zero_index:
+          k_paddings[i, j] = 1.
+    p = attention.RoutingAttention.Params().Set(
+        name='routing_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads,
+        num_clusters=num_clusters,
+        attention_window=attention_window)
+    atten = p.Instantiate()
+    p = attention.MultiHeadedAttention.Params().Set(
+        name='full_atten',
+        input_dim=1,
+        hidden_dim=num_heads * dim_per_head,
+        num_heads=num_heads)
+    full_atten = p.Instantiate()
+    with self.session() as sess:
+      tf.global_variables_initializer().run()
+      encoded, _ = sess.run(
+          atten._DotAtten(atten.theta, q, k, v, q_paddings, k_paddings))
+      # In order to match the full attention, we apply layer norm first.
+      q = attention_util.KMeansClusteringForAtten.LayerNorm(q)
+      k = attention_util.KMeansClusteringForAtten.LayerNorm(k)
+      full_encoded, _ = full_atten._DotAtten(full_atten.theta, q, k, v,
+                                             k_paddings, None)
+      # Note that the probs do not match because routing attention
+      # returns a permutation.
+      self.assertAllClose(encoded, full_encoded.eval())
 
 
 class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
