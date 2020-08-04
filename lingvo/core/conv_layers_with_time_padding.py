@@ -311,8 +311,9 @@ class BaseConv2DLayerWithPadding(base_layer.BaseLayer):
         padded_inputs, slice_len = _PadForLengthCompatibleStridesV2(
             inputs, p.filter_stride[0], 'SAME', 0.)
         out = self._ApplyConv(theta, padded_inputs)
-        if slice_len > 0:
-          out = out[:, :-slice_len, :, :]
+        if p.filter_stride[0] > 1:
+          slice_end = py_utils.GetShape(out)[1] - slice_len
+          out = out[:, :slice_end, :, :]
       else:
         out = self._ApplyConv(theta, inputs)
 
