@@ -243,6 +243,24 @@ def assert_even_divide(denorm, num):  # pylint: disable=invalid-name
   return assert_equal(quo * num, denorm)
 
 
+def AssertIdShape(expected_ids_shape_pattern, ids_shape, *args):
+  """Asserts shape expected_ids_shape_pattern matches all other input shapes."""
+
+  def AssertFn(inputs):
+    dependencies = [
+        assert_shape_match(inputs.ids_shape, inputs.expected_ids_shape_pattern)
+    ] + [
+        assert_shape_match(inputs.ids_shape, x_shape) for x_shape in inputs.args
+    ]
+    return with_dependencies(dependencies, inputs.ids_shape)
+
+  inputs = NestedMap(
+      expected_ids_shape_pattern=expected_ids_shape_pattern,
+      ids_shape=ids_shape,
+      args=args)
+  return CallDefun(AssertFn, Transform(tf.convert_to_tensor, inputs))
+
+
 def _CheckNumerics(x, message=None, *args, **kwargs):
   if x.dtype.is_floating:
     if 'name' not in kwargs:

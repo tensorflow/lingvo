@@ -34,14 +34,6 @@ from lingvo.core import summary_utils
 from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
 
 
-@tf.Defun()
-def AssertIdShape(expected_ids_shape_pattern, ids_shape, *args):
-  dependencies = [
-      py_utils.assert_shape_match(ids_shape, expected_ids_shape_pattern)
-  ] + [py_utils.assert_shape_match(ids_shape, x_shape) for x_shape in args]
-  return py_utils.with_dependencies(dependencies, ids_shape)
-
-
 class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
   """Base class for Lingvo MT decoders."""
 
@@ -309,7 +301,7 @@ class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
             tf.reduce_all(target_paddings[:, max_seq_length:] > 0.5))
     ], target_paddings)
     target_ids = py_utils.with_dependencies([
-        AssertIdShape(
+        py_utils.AssertIdShape(
             py_utils.GetShape(target_ids), py_utils.GetShape(target_labels),
             py_utils.GetShape(target_paddings),
             py_utils.GetShape(target_weights))
