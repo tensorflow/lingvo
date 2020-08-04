@@ -391,6 +391,24 @@
   <span class="k">return</span> <span class="n">assert_equal</span><span class="p">(</span><span class="n">quo</span> <span class="o">*</span> <span class="n">num</span><span class="p">,</span> <span class="n">denorm</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="AssertIdShape"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.AssertIdShape">[docs]</a><span class="k">def</span> <span class="nf">AssertIdShape</span><span class="p">(</span><span class="n">expected_ids_shape_pattern</span><span class="p">,</span> <span class="n">ids_shape</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Asserts shape expected_ids_shape_pattern matches all other input shapes.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">AssertFn</span><span class="p">(</span><span class="n">inputs</span><span class="p">):</span>
+    <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span>
+        <span class="n">assert_shape_match</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">ids_shape</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">expected_ids_shape_pattern</span><span class="p">)</span>
+    <span class="p">]</span> <span class="o">+</span> <span class="p">[</span>
+        <span class="n">assert_shape_match</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">ids_shape</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">x_shape</span> <span class="ow">in</span> <span class="n">inputs</span><span class="o">.</span><span class="n">args</span>
+    <span class="p">]</span>
+    <span class="k">return</span> <span class="n">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">inputs</span><span class="o">.</span><span class="n">ids_shape</span><span class="p">)</span>
+
+  <span class="n">inputs</span> <span class="o">=</span> <span class="n">NestedMap</span><span class="p">(</span>
+      <span class="n">expected_ids_shape_pattern</span><span class="o">=</span><span class="n">expected_ids_shape_pattern</span><span class="p">,</span>
+      <span class="n">ids_shape</span><span class="o">=</span><span class="n">ids_shape</span><span class="p">,</span>
+      <span class="n">args</span><span class="o">=</span><span class="n">args</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">CallDefun</span><span class="p">(</span><span class="n">AssertFn</span><span class="p">,</span> <span class="n">Transform</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">,</span> <span class="n">inputs</span><span class="p">))</span></div>
+
+
 <div class="viewcode-block" id="_CheckNumerics"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils._CheckNumerics">[docs]</a><span class="k">def</span> <span class="nf">_CheckNumerics</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">message</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
   <span class="k">if</span> <span class="n">x</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">is_floating</span><span class="p">:</span>
     <span class="k">if</span> <span class="s1">&#39;name&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="p">:</span>

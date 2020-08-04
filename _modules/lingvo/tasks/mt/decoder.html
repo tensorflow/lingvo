@@ -182,14 +182,6 @@
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
 
 
-<span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
-<span class="k">def</span> <span class="nf">AssertIdShape</span><span class="p">(</span><span class="n">expected_ids_shape_pattern</span><span class="p">,</span> <span class="n">ids_shape</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
-  <span class="n">dependencies</span> <span class="o">=</span> <span class="p">[</span>
-      <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">ids_shape</span><span class="p">,</span> <span class="n">expected_ids_shape_pattern</span><span class="p">)</span>
-  <span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">ids_shape</span><span class="p">,</span> <span class="n">x_shape</span><span class="p">)</span> <span class="k">for</span> <span class="n">x_shape</span> <span class="ow">in</span> <span class="n">args</span><span class="p">]</span>
-  <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span><span class="n">dependencies</span><span class="p">,</span> <span class="n">ids_shape</span><span class="p">)</span>
-
-
 <div class="viewcode-block" id="MTBaseDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder">[docs]</a><span class="k">class</span> <span class="nc">MTBaseDecoder</span><span class="p">(</span><span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseBeamSearchDecoder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for Lingvo MT decoders.&quot;&quot;&quot;</span>
 
@@ -457,7 +449,7 @@
             <span class="n">tf</span><span class="o">.</span><span class="n">reduce_all</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">[:,</span> <span class="n">max_seq_length</span><span class="p">:]</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">))</span>
     <span class="p">],</span> <span class="n">target_paddings</span><span class="p">)</span>
     <span class="n">target_ids</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
-        <span class="n">AssertIdShape</span><span class="p">(</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">AssertIdShape</span><span class="p">(</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_ids</span><span class="p">),</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_labels</span><span class="p">),</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_paddings</span><span class="p">),</span>
             <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">target_weights</span><span class="p">))</span>

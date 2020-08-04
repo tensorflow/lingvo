@@ -285,7 +285,6 @@
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">(</span><span class="n">shape_func</span><span class="o">=</span><span class="k">lambda</span> <span class="n">op</span><span class="p">:</span> <span class="p">[</span><span class="n">op</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">shape</span><span class="p">])</span>
     <span class="k">def</span> <span class="nf">Polynomial</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Polynomial function of x.&quot;&quot;&quot;</span>
       <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
@@ -312,7 +311,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_polynomial</span> <span class="o">=</span> <span class="n">Polynomial</span>
 
 <div class="viewcode-block" id="PolynomialSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.PolynomialSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_polynomial</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_polynomial</span><span class="p">,</span>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="LinearSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.LinearSchedule">[docs]</a><span class="k">class</span> <span class="nc">LinearSchedule</span><span class="p">(</span><span class="n">PolynomialSchedule</span><span class="p">):</span>
@@ -357,14 +357,14 @@
         <span class="n">LinearSchedule</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span>
             <span class="n">start</span><span class="o">=</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y0</span><span class="p">)),</span> <span class="n">limit</span><span class="o">=</span><span class="p">(</span><span class="n">x1</span><span class="p">,</span> <span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="n">y1</span><span class="p">))))</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Exp</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">linear</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
 
     <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span> <span class="o">=</span> <span class="n">Exp</span>
 
 <div class="viewcode-block" id="ExponentialSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.ExponentialSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_exp</span><span class="p">,</span>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">current_step</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="StepwiseExponentialSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.StepwiseExponentialSchedule">[docs]</a><span class="k">class</span> <span class="nc">StepwiseExponentialSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
@@ -399,7 +399,6 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChildren</span><span class="p">(</span><span class="s1">&#39;schedules&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">schedules</span><span class="p">)</span>
 
-    <span class="nd">@tf</span><span class="o">.</span><span class="n">Defun</span><span class="p">()</span>
     <span class="k">def</span> <span class="nf">Combined</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
       <span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="n">s</span><span class="o">.</span><span class="n">Value</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">schedules</span><span class="p">]</span>
       <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">reduce_min</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">stack</span><span class="p">(</span><span class="n">ys</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
@@ -407,7 +406,8 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_combined</span> <span class="o">=</span> <span class="n">Combined</span>
 
 <div class="viewcode-block" id="CombinedMinimumSchedule.FProp"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.CombinedMinimumSchedule.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">current_step</span><span class="p">):</span>
-    <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_combined</span><span class="p">(</span><span class="n">current_step</span><span class="p">)</span></div></div>
+    <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_combined</span><span class="p">,</span>
+                              <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">current_step</span><span class="p">))</span></div></div>
 
 
 <div class="viewcode-block" id="TransformerSchedule"><a class="viewcode-back" href="../../../lingvo.core.schedule.html#lingvo.core.schedule.TransformerSchedule">[docs]</a><span class="k">class</span> <span class="nc">TransformerSchedule</span><span class="p">(</span><span class="n">BaseSchedule</span><span class="p">):</span>
