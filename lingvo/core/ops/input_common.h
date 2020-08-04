@@ -92,7 +92,7 @@ class InputOp : public OpKernel {
   void Compute(OpKernelContext* ctx) override {
     int64 bucket_id;
     TensorVec batch;
-    OP_REQUIRES_OK(ctx, batcher_->GetNext(&bucket_id, &batch));
+    OP_REQUIRES_OK(ctx, batcher_->GetNext(ctx, &bucket_id, &batch));
     VLOG(1) << "Produce a batch from bucket : " << bucket_id;
     OP_REQUIRES(ctx, static_cast<int>(batch.size()) == ctx->num_outputs(),
                 errors::Internal("Unexpected batch: ", batch.size()));

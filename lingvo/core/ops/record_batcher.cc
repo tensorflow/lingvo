@@ -67,6 +67,7 @@ limitations under the License.
 #include "tensorflow/core/lib/strings/str_util.h"
 #include "tensorflow/core/lib/strings/strcat.h"
 #include "tensorflow/core/platform/env.h"
+#include "tensorflow/core/platform/errors.h"
 
 namespace tensorflow {
 namespace lingvo {
@@ -96,14 +97,6 @@ RecordBatcher::RecordBatcher(const Options& opts, RecordYielder* yielder,
     last_log_update_time_ = start_time_;
   }
 
-  for (int i = 0; i < opts_.num_threads; i++) {
-    processor_thread_->Schedule([this]() {
-      ProcessorLoop();
-      absl::MutexLock l(&mu_);
-      processor_loop_done_count_++;
-    });
-  }
-
   merger_thread_->Schedule([this]() {
     MergerLoop();
     absl::MutexLock l(&mu_);
@@ -122,8 +115,27 @@ RecordBatcher::~RecordBatcher() {
   delete processor_;
 }
 
-Status RecordBatcher::GetNext(int64* bucket, TensorVec* batch) {
+Status RecordBatcher::EnsureInitialized(OpKernelContext* ctx) {
+  if (is_initialized_) {
+    return Status::OK();
+  }
+  TF_RETURN_IF_ERROR(processor_->Initialize(ctx));
+  for (int i = 0; i < opts_.num_threads; i++) {
+    processor_thread_->Schedule([this]() {
+      ProcessorLoop();
+      absl::MutexLock l(&mu_);
+      processor_loop_done_count_++;
+    });
+  }
+  is_initialized_ = true;
+  LOG(INFO) << "batcher initialized";
+  return Status::OK();
+}
+
+Status RecordBatcher::GetNext(OpKernelContext* ctx, int64* bucket,
+                              TensorVec* batch) {
   absl::MutexLock l(&mu_);
+  TF_RETURN_IF_ERROR(EnsureInitialized(ctx));
   // Wait for either curr to be non-empty, or for the merger thread to be
   // complete.
   WaitForCurrNonEmpty();

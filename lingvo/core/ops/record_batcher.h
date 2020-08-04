@@ -21,6 +21,7 @@ limitations under the License.
 
 #include "absl/synchronization/mutex.h"
 #include "lingvo/core/ops/record_yielder.h"
+#include "tensorflow/core/framework/op_kernel.h"
 #include "tensorflow/core/framework/tensor.h"
 #include "tensorflow/core/lib/core/errors.h"
 #include "tensorflow/core/lib/core/status.h"
@@ -56,6 +57,11 @@ class RecordProcessor {
   // a bucket with size `bucket_size`, merges them into a single 'batch'.
   virtual Status Merge(int64 bucket_size, const std::vector<TensorVec>& samples,
                        TensorVec* batch) = 0;
+
+  // Initializes the RecordProcessor. This should be invoked only once before
+  // calling 'Process', since some processors expect some initialization with an
+  // OpKernelContext before running.
+  virtual Status Initialize(OpKernelContext* ctx) { return Status::OK(); }
 };
 
 // RecordBatcher takes a RecordYielder, batches the record yielded and
@@ -91,13 +97,20 @@ class RecordBatcher {
   RecordBatcher(const Options& opts, RecordYielder* yielder,
                 RecordProcessor* processor);
 
-  ~RecordBatcher();
+  virtual ~RecordBatcher();
 
   // Returns the a training batch in 'batch' and the batch comes out
   // from 'bucket_id'-th bucket.
-  Status GetNext(int64* bucket_id, TensorVec* batch);
+  // Processor threads will be launched on the first call to this function.
+  Status GetNext(OpKernelContext* ctx, int64* bucket_id, TensorVec* batch);
 
  private:
+  // Initializes the batcher and launches the processor threads, if not done.
+  // This should be invoked on the first call of 'GetNext', since some
+  // processors expect some initialization with an OpKernelContext before
+  // running.
+  Status EnsureInitialized(OpKernelContext* ctx);
+
   typedef RecordBatcher ME;
   struct Processed {
     int64 bucket_key;
@@ -127,6 +140,7 @@ class RecordBatcher {
   // True when the merger thread is finished.
   bool merger_loop_done_ ABSL_GUARDED_BY(mu_) = false;
 
+  bool is_initialized_ = false;
   absl::Condition curr_empty_;
   absl::Condition curr_non_empty_;
   int64 records_yielded_ ABSL_GUARDED_BY(mu_) = 0;

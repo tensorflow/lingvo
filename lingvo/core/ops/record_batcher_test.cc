@@ -96,7 +96,7 @@ TEST(RecordBatcher, Basic) {
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     ASSERT_LT(bucket_id, bopts.bucket_upper_bound.size());
     const Tensor& t = batch[0];
@@ -138,7 +138,7 @@ TEST(RecordBatcher, BasicMultiThread) {
   int64 bucket_id;
   TensorVec batch;
   for (int i = 0; i < 1000; ++i) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     ASSERT_LT(bucket_id, bopts.bucket_upper_bound.size());
     const Tensor& t = batch[0];
@@ -179,7 +179,7 @@ TEST(RecordBatcher, LearnBuckets) {
   // For the first 500 batches we just make sure the batches are the right
   // size.
   for (int i = 0; i < 500; ++i) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     ASSERT_LE(0, bucket_id);
     const Tensor& t = batch[0];
     ASSERT_EQ(8, t.dim_size(0));
@@ -191,7 +191,7 @@ TEST(RecordBatcher, LearnBuckets) {
   maxlens.resize(4, 0);
   batches.resize(4, 0);
   for (int i = 0; i < 1000; ++i) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     const Tensor& t = batch[0];
     int maxlen = 0;
     for (int j = 0; j < t.dim_size(0); ++j) {
@@ -238,7 +238,7 @@ TEST(RecordBatcher, FullEpoch) {
   TensorVec batch;
   std::vector<string> records;
   while (records.size() < N) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     const Tensor& t = batch[0];
     for (int j = 0; j < t.dim_size(0); ++j) {
       records.push_back(t.vec<tstring>()(j));
@@ -274,7 +274,7 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   // Note that when there are multiple streams, we need repeat it
   // (batch.size() - 1) times.
   while (records.size() < num_epochs * N * (batch.size() - 1)) {
-    TF_CHECK_OK(batcher.GetNext(&bucket_id, &batch));
+    TF_CHECK_OK(batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch));
     for (int i = 0; i < batch.size(); ++i) {
       const Tensor& t = batch[i];
       if (t.dtype() == DT_STRING) {
@@ -288,7 +288,7 @@ TEST(RecordBatcher, CaptureYielderStatus) {
   // With a sequential record yielder, the next call will exhaust the
   // repeat count of the iterator, and so we should expect that no more
   // data can be yielded.
-  Status s = batcher.GetNext(&bucket_id, &batch);
+  Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
   ASSERT_TRUE(errors::IsOutOfRange(s));
 }
 
@@ -308,7 +308,7 @@ TEST(RecordBatcher, SequentialEoFImmediately) {
                         new TestRP());
   int64 bucket_id;
   TensorVec batch;
-  Status s = batcher.GetNext(&bucket_id, &batch);
+  Status s = batcher.GetNext(/*ctx=*/nullptr, &bucket_id, &batch);
   ASSERT_TRUE(errors::IsOutOfRange(s));
 }
 
