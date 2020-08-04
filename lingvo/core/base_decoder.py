@@ -383,3 +383,7 @@ class BaseBeamSearchDecoder(BaseDecoder):
                                              InitBeamSearchStateCallback,
                                              PreBeamSearchStepCallback,
                                              self._PostBeamSearchStepCallback)
+
+  def InferenceAdditionalEncoder(self, feeds):
+    """Generate an inference graph for the additional encoder."""
+    return py_utils.NestedMap(), py_utils.NestedMap()
