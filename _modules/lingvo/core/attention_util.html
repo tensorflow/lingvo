@@ -513,7 +513,7 @@
 
 <span class="sd">  We use the following capital letters to denote shape parameters:</span>
 <span class="sd">    B = batch size</span>
-<span class="sd">    L = length of the input squence (referred to as S or T elsewhere)</span>
+<span class="sd">    L = length of the input sequence (referred to as S or T elsewhere)</span>
 <span class="sd">    N = number of attention heads</span>
 <span class="sd">    H = dimensions of each attention head</span>
 <span class="sd">    K = number of clusters</span>
@@ -530,6 +530,9 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;dim_per_head&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Dimensions of each attention head.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;decay&#39;</span><span class="p">,</span> <span class="mf">0.999</span><span class="p">,</span> <span class="s1">&#39;The decay with which to update centroids.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">1e-6</span><span class="p">,</span> <span class="s1">&#39;Tiny value to guard against divide by 0.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;apply_layer_norm&#39;</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="s1">&#39;Whether to apply LayerNorm() on the &#39;</span>
+        <span class="s1">&#39;inputs first. If unset, caller must normalize first.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -591,14 +594,23 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span>
-    <span class="c1"># Shape [B, N, 1, 1]</span>
+    <span class="c1"># Shape [B, L, 1, 1]</span>
     <span class="n">paddings_4d</span> <span class="o">=</span> <span class="n">paddings</span><span class="p">[:,</span> <span class="p">:,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span>
-    <span class="n">x</span> <span class="o">=</span> <span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_layer_norm</span><span class="p">:</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">epsilon</span><span class="p">)</span>
 
     <span class="c1"># &#39;x&#39; is normalized (but theta.means is not), we use negative dot product to</span>
     <span class="c1"># approximate the Euclidean distance here.</span>
     <span class="n">dists</span> <span class="o">=</span> <span class="o">-</span><span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNH, NKH -&gt; BLNK&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">theta</span><span class="o">.</span><span class="n">means</span><span class="p">)</span>
-    <span class="c1"># Shape [B, N, L, K], the same as &#39;dists&#39; above.</span>
+
+    <span class="c1"># For padded positions we update the distances to very large numbers.</span>
+    <span class="n">very_large_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">dists</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span>
+        <span class="mf">0.1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dists</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span> <span class="o">*</span> <span class="n">dists</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span>
+    <span class="n">paddings_tiled</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">paddings_4d</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">])</span>
+    <span class="n">dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">paddings_tiled</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">very_large_dists</span><span class="p">,</span> <span class="n">dists</span><span class="p">)</span>
+
+    <span class="c1"># Shape [B, L, N, K], the same as &#39;dists&#39; above.</span>
     <span class="n">nearest_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">)</span>
     <span class="c1"># Same shape as the input &#39;x&#39;.</span>
     <span class="n">nearest_centroid</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BLNK, NKH -&gt; BLNH&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span>
@@ -662,6 +674,115 @@
     <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
         <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">vars</span><span class="o">.</span><span class="n">means</span><span class="p">,</span> <span class="n">update_means_diff</span><span class="p">)],</span>
         <span class="n">dists</span><span class="p">),</span> <span class="n">k_means_loss</span></div></div>
+
+
+<div class="viewcode-block" id="ComputeSparseAttention"><a class="viewcode-back" href="../../../lingvo.core.attention_util.html#lingvo.core.attention_util.ComputeSparseAttention">[docs]</a><span class="k">def</span> <span class="nf">ComputeSparseAttention</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sparsity_indices</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Computes attention according to a sparsity pattern.</span>
+
+<span class="sd">  We use the following capital letters to denote shape parameters:</span>
+<span class="sd">    B = batch size</span>
+<span class="sd">    S = length of the source sequence</span>
+<span class="sd">    T = length of the target sequence</span>
+<span class="sd">    N = number of attention heads</span>
+<span class="sd">    H = dimensions of each attention head</span>
+<span class="sd">    K = number of clusters</span>
+<span class="sd">    W = attention window (K &lt;= S)</span>
+
+<span class="sd">  The &#39;sparsity_indices&#39; is a tensor of integral type where the last dimension</span>
+<span class="sd">  contains W indices (W is the attention window) for each corresponding position</span>
+<span class="sd">  along S in &#39;k&#39; that the query is allowed to attend to.</span>
+
+<span class="sd">  For example, if sparsity_indices[batch_idx, target time step, head_idx] =</span>
+<span class="sd">  [1, 7, 8], it means that token in the query attends to values with indices</span>
+<span class="sd">  1, 7, and 8, and the attention window here is 3.</span>
+
+<span class="sd">  The valid values in &#39;sparsity_indices&#39; are [-1, S-1]. Note that the value -1</span>
+<span class="sd">  is reserved to mean paddings, distinct from the value (S-1).</span>
+
+<span class="sd">  For example, if W=S and &#39;sparsity_indices&#39; contains range(S) on the last</span>
+<span class="sd">  dimension, this degenerates to the original full attention.</span>
+
+<span class="sd">  We require that &#39;sparsity_indices&#39; does not contain duplicates (except for -1</span>
+<span class="sd">  to indicate paddings), but we do not require &#39;sparsity_indices&#39; to be sorted.</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    q: (projected) queries, [B, T, N, H];</span>
+<span class="sd">    k: (projected) keys, [B, S, N, H];</span>
+<span class="sd">    v: (projected) values, [B, S, N, H];</span>
+<span class="sd">    sparsity_indices: [B, T, N, W], where W is the attention window;</span>
+<span class="sd">    paddings: paddings for keys, [B, S] if not None.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    output: the encoded output, [B, T, N, H], a linear combination of the</span>
+<span class="sd">      values.</span>
+<span class="sd">    atten_probs: the attention weights, [B, T, N, W], where W is the attention</span>
+<span class="sd">      window.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="n">q</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
+  <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+  <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+  <span class="n">sparsity_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">)</span>
+
+  <span class="n">k</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="n">_</span><span class="p">,</span> <span class="n">source_length</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="n">sparsity_indices</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">HasRank</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="n">batch_size</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">attention_window</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span>
+      <span class="n">sparsity_indices</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
+  <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span>
+      <span class="n">attention_window</span><span class="p">,</span> <span class="n">source_length</span><span class="p">,</span>
+      <span class="s1">&#39;The provided sparsity_indices has attention window &#39;</span>
+      <span class="s1">&#39; &gt; source length. This is likely an error.&#39;</span><span class="p">)</span>
+
+  <span class="c1"># To prepare for gathering the relevant vectors from &#39;k&#39;, we prepare</span>
+  <span class="c1"># gather_idx of shape [B, T, N, W, 3] where the last dimension corresponds to</span>
+  <span class="c1"># slices in &#39;k&#39; indexed by (batch index, source time step, head index),</span>
+  <span class="c1"># where the source length index comes from the original W dimension in</span>
+  <span class="c1"># &#39;sparsity_indices&#39;.</span>
+  <span class="n">seq_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">sparsity_indices</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1"># Overwrite the paddings -1 with valid gather indices (zeros). We will</span>
+  <span class="c1"># fix the logits with -inf in these positions later.</span>
+  <span class="n">seq_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">seq_idx</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">seq_idx</span><span class="p">),</span> <span class="n">seq_idx</span><span class="p">)</span>
+  <span class="n">batch_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">batch_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sparsity_indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+      <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">batch_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">batch_idx</span><span class="p">,</span>
+                      <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">head_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">sparsity_indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">),</span>
+      <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="n">head_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">head_idx</span><span class="p">,</span>
+                     <span class="p">[</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">target_length</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">attention_window</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+  <span class="c1"># [B, T, N, W, 3], where last dimension is (batch index, source length index,</span>
+  <span class="c1"># head index).</span>
+  <span class="n">gather_idx</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">batch_idx</span><span class="p">,</span> <span class="n">seq_idx</span><span class="p">,</span> <span class="n">head_idx</span><span class="p">],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+  <span class="c1"># Both the gathered k and v have shape [B, T, N, W, H]</span>
+  <span class="n">k</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">gather_idx</span><span class="p">)</span>
+  <span class="n">v</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">gather_idx</span><span class="p">)</span>
+
+  <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">batch_size</span><span class="p">,</span> <span class="n">source_length</span><span class="p">])</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+  <span class="c1"># [B, S, N]</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">])</span>
+  <span class="c1"># [B, T, N, W]</span>
+  <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">gather_nd</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="n">gather_idx</span><span class="p">)</span>
+
+  <span class="n">logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNH, BTNWH -&gt; BTNW&#39;</span><span class="p">,</span> <span class="n">q</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span>
+  <span class="n">logits</span> <span class="o">*=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="n">dim_per_head</span><span class="p">,</span> <span class="n">q</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+
+  <span class="n">very_negative_logits</span> <span class="o">=</span> <span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">ones_like</span><span class="p">(</span><span class="n">logits</span><span class="p">)</span> <span class="o">*</span> <span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="o">.</span><span class="n">max</span> <span class="o">*</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="o">-</span><span class="mf">0.7</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">logits</span><span class="o">.</span><span class="n">dtype</span><span class="p">))</span>
+  <span class="n">padded_logits</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">logical_or</span><span class="p">(</span><span class="n">sparsity_indices</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">paddings</span> <span class="o">&gt;</span> <span class="mf">0.0</span><span class="p">),</span>
+      <span class="n">very_negative_logits</span><span class="p">,</span> <span class="n">logits</span><span class="p">)</span>
+
+  <span class="c1"># [B, T, N, W]</span>
+  <span class="n">atten_probs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">softmax</span><span class="p">(</span><span class="n">padded_logits</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;attention_weights&#39;</span><span class="p">)</span>
+  <span class="n">output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNW, BTNWH -&gt; BTNH&#39;</span><span class="p">,</span> <span class="n">atten_probs</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">output</span><span class="p">,</span> <span class="n">atten_probs</span></div>
 </pre></div>
 
            </div>

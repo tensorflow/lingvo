@@ -492,10 +492,9 @@
 <span class="sd">      query:    [B, T, N, H].</span>
 <span class="sd">      key:      [B, S, N, H].</span>
 <span class="sd">      paddings: [B, S].</span>
-<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent</span>
-<span class="sd">        attention between different segments. This is already been</span>
-<span class="sd">        converted into large negative logits. Only applied if</span>
-<span class="sd">        packed_input = True.</span>
+<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
+<span class="sd">        between different segments. This is already been converted into large</span>
+<span class="sd">        negative logits. Only applied if packed_input = True.</span>
 <span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
 <span class="sd">        information flow from future (causal padding). It has shape [B, T, S] if</span>
 <span class="sd">        not None.</span>
@@ -576,11 +575,9 @@
 <span class="sd">      key:      [B, S, N, H].</span>
 <span class="sd">      value:    [B, S, N, H].</span>
 <span class="sd">      paddings: [B, S].</span>
-<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent</span>
-<span class="sd">        attention between different segments. This is already been</span>
-<span class="sd">        converted into large negative logits. Only applied if</span>
-<span class="sd">        packed_input = True.</span>
-
+<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
+<span class="sd">        between different segments. This is already been converted into large</span>
+<span class="sd">        negative logits. Only applied if packed_input = True.</span>
 <span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
 <span class="sd">        information flow from future (causal padding). It has shape [B, T, S] if</span>
 <span class="sd">        not None.</span>
@@ -631,10 +628,9 @@
 <span class="sd">      key:      [S, B, N, H] or [S, B, N*H/128, 128].</span>
 <span class="sd">      value:    [S, B, N, H] or [S, B, N*H/128, 128].</span>
 <span class="sd">      paddings: [B, S].</span>
-<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent</span>
-<span class="sd">        attention between different segments. This is already been</span>
-<span class="sd">        converted into large negative logits. Only applied if</span>
-<span class="sd">        packed_input = True.</span>
+<span class="sd">      segment_mask: [B, 1, T, S]: A mask that is applied to prevent attention</span>
+<span class="sd">        between different segments. This is already been converted into large</span>
+<span class="sd">        negative logits. Only applied if packed_input = True.</span>
 <span class="sd">      per_step_padding: A mask used by decoder self-attention to prevent</span>
 <span class="sd">        information flow from future (causal padding). It has shape [B, 1, S] if</span>
 <span class="sd">        not None.</span>
@@ -1601,6 +1597,132 @@
       <span class="n">term_d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
       <span class="n">term_bd</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">term_d</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">term_ac</span> <span class="o">+</span> <span class="n">term_bd</span></div></div>
+
+
+<div class="viewcode-block" id="RoutingAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention">[docs]</a><span class="k">class</span> <span class="nc">RoutingAttention</span><span class="p">(</span><span class="n">MultiHeadedAttention</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;&quot;Implements a sparse attention based on k-means clustering.</span>
+
+<span class="sd">  This is used in the routing transformer https://arxiv.org/pdf/2003.05997.</span>
+
+<span class="sd">  This verison of multi-headed attention differs from the full attention</span>
+<span class="sd">  in that it uses k-means clusterting to cluster the queries and keys first,</span>
+<span class="sd">  and each query only attend to a subset of keys that are close to the centroid</span>
+<span class="sd">  closest to that query. As Euclidean distance is used to determine closeness,</span>
+<span class="sd">  we layer normalize queries and keys first so that closeness lead to a larger</span>
+<span class="sd">  dot product.</span>
+
+<span class="sd">  TODO(zhouwk) This class is WIP, what remains to be done:</span>
+<span class="sd">    * self-attention (causal masked or not)</span>
+<span class="sd">    * single step during decoding</span>
+<span class="sd">    * propagate clustering loss;</span>
+<span class="sd">    * supporting packed inputs;</span>
+
+<span class="sd">  We use the following capital letters to denote shape parameters:</span>
+<span class="sd">    B = batch size</span>
+<span class="sd">    S = length of the source sequence</span>
+<span class="sd">    T = length of the target sequence</span>
+<span class="sd">    N = number of attention heads</span>
+<span class="sd">    H = dimensions of each attention head</span>
+
+<span class="sd">    K = number of clusters</span>
+<span class="sd">    W = attention window</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RoutingAttention.Params"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention.Params">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Params.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;num_clusters&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;Number of clusters, typically around the square&#39;</span>
+        <span class="s1">&#39; root of the sequence length.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;attention_window&#39;</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;The number of keys each query attends to.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;clustering&#39;</span><span class="p">,</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
+             <span class="s1">&#39;The params for a clustering layer.&#39;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span></div>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Constructs an instance of RoutingAttention.&quot;&quot;&quot;</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">params</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span>
+    <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">packed_input</span>
+
+    <span class="n">clustering_p</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">clustering</span>
+    <span class="n">clustering_p</span><span class="o">.</span><span class="n">num_clusters</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span>
+    <span class="n">clustering_p</span><span class="o">.</span><span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="n">clustering_p</span><span class="o">.</span><span class="n">dim_per_head</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">hidden_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_heads</span>
+    <span class="c1"># We normalize manually prior so that we can reuse the same normalized</span>
+    <span class="c1"># query/key to compute attention probs later.</span>
+    <span class="n">clustering_p</span><span class="o">.</span><span class="n">apply_layer_norm</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;clustering&#39;</span><span class="p">,</span> <span class="n">clustering_p</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RoutingAttention._DotAtten"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.RoutingAttention._DotAtten">[docs]</a>  <span class="k">def</span> <span class="nf">_DotAtten</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Computes the attention.</span>
+
+<span class="sd">    Each query selects &#39;p.attention_window&#39; number of keys to attend to. First</span>
+<span class="sd">    we find the closest centroid to that query, and we only allow that query to</span>
+<span class="sd">    attend to the &#39;p.attention_window&#39; closest keys to that centroid.</span>
+
+<span class="sd">    In order to use K-means, this implementation applies layer normalization</span>
+<span class="sd">    to both the queries and the keys, and uses the normalized results to compute</span>
+<span class="sd">    attention weights.</span>
+
+<span class="sd">    When &#39;p.attention_window&#39; is the source length, this should evalue to the</span>
+<span class="sd">    full attention (using layer normalized queries and keys).</span>
+
+<span class="sd">    The caller should pass in the paddings for both &#39;key&#39; and &#39;query&#39; because</span>
+<span class="sd">    during training, when we update the clustering we need to know the paddings</span>
+<span class="sd">    for both. (For the inference path only &#39;key_paddings&#39; is useful.)</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">      theta: A `.NestedMap` of the values of this layer&#39;s weights.</span>
+<span class="sd">      query: [B, T, N, H].</span>
+<span class="sd">      key:   [B, S, N, H].</span>
+<span class="sd">      value: [B, S, N, H].</span>
+<span class="sd">      query_paddings: [B, T].</span>
+<span class="sd">      key_paddings:   [B, S].</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">      encoded: [B, T, N, H].</span>
+<span class="sd">      atten_probs: [B, T, N, W]. Note that the caller doesn&#39;t know which</span>
+<span class="sd">      position the last dimension corresponds to along the S dimension.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Whether to update the centroids. Only do this during training.</span>
+    <span class="n">update</span> <span class="o">=</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">do_eval</span>
+
+    <span class="n">query</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">query</span><span class="p">)</span>
+    <span class="n">key</span> <span class="o">=</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">KMeansClusteringForAtten</span><span class="o">.</span><span class="n">LayerNorm</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+    <span class="c1"># [B, T, N, K]</span>
+    <span class="n">q_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">query</span><span class="p">,</span> <span class="n">query_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
+    <span class="c1"># [B, S, N, K]</span>
+    <span class="n">k_dists</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
+        <span class="n">theta</span><span class="o">.</span><span class="n">clustering</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">,</span> <span class="n">update</span><span class="o">=</span><span class="n">update</span><span class="p">)</span>
+    <span class="c1"># [B, N, K, S]</span>
+    <span class="c1"># If key is padded in a position, &#39;k_dists&#39; is inf which ensures</span>
+    <span class="c1"># that we consider all non-padded keys even if some padded keys</span>
+    <span class="c1"># might appear closer.</span>
+    <span class="n">k_dists</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">k_dists</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+
+    <span class="c1"># [B, N, K, W], for each centroid, the indices of closest key vecs.</span>
+    <span class="c1"># It&#39;s okay if W is so larger such that a padded index is included,</span>
+    <span class="c1"># because below in attention_util.ComputeSparseAttention() correctly</span>
+    <span class="c1"># handles &#39;paddings&#39;.</span>
+    <span class="n">_</span><span class="p">,</span> <span class="n">closest_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">top_k</span><span class="p">(</span><span class="o">-</span><span class="n">k_dists</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">attention_window</span><span class="p">)</span>
+    <span class="c1"># [B, T, N, K], one hot encoded closest centroid for each query vec.</span>
+    <span class="n">nearest_one_hot</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">one_hot</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">q_dists</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">),</span>
+        <span class="n">p</span><span class="o">.</span><span class="n">num_clusters</span><span class="p">,</span>
+        <span class="n">dtype</span><span class="o">=</span><span class="n">closest_indices</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+
+    <span class="c1"># For each query vec, we allow it to attend to those keys that are the</span>
+    <span class="c1"># W closest to its centroid, where W is the attention window.</span>
+    <span class="n">sparsity_indices</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;BTNK, BNKW -&gt; BTNW&#39;</span><span class="p">,</span> <span class="n">nearest_one_hot</span><span class="p">,</span>
+                                 <span class="n">closest_indices</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">attention_util</span><span class="o">.</span><span class="n">ComputeSparseAttention</span><span class="p">(</span><span class="n">query</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
+                                                 <span class="n">sparsity_indices</span><span class="p">,</span> <span class="n">key_paddings</span><span class="p">)</span></div></div>
 
 
 <div class="viewcode-block" id="MultiSourceAttention"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.MultiSourceAttention">[docs]</a><span class="k">class</span> <span class="nc">MultiSourceAttention</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
