@@ -23,14 +23,26 @@ from lingvo.core import cluster_factory
 from lingvo.core import py_utils
 import numpy as np
 
+FLAGS = tf.flags.FLAGS
+
+# Enable tf.function when eager execution is on-by-default, which is the case
+# when:
+# - the test target doesn't depend on the disable_tf2 target, and
+# - --define=tf_api_version=1 is not specified during the build.
+#
+# TODO(laigd): remove TF version check when 312743821 and 313682500 are in the
+# release.
+if tf.executing_eagerly() and tf.compat.v1.__version__ >= '2.3.0':
+  FLAGS.if_use_tf_function = True
+  FLAGS.while_loop_use_tf_function = True
+  FLAGS.call_defun_use_tf_function = True
+
 # Disable eager execution for all tests.
 tf.disable_eager_execution()
 
 tf.flags.DEFINE_boolean(
     'update_goldens', False,
     'Update the goldens, rather than diffing against them.')
-
-FLAGS = tf.flags.FLAGS
 
 
 class TestCase(tf.test.TestCase):
