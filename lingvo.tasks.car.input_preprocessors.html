@@ -1921,9 +1921,12 @@ features.</p>
 <p>Rotations are performed around the <em>z-axis</em>. This assumes that the car is
 always level. In general, we’d like to instead rotate the car on the spot,
 this would then make sense for cases where the car is on a slope.</p>
+<p>When there are leading dimensions, this will rotate the boxes with the same
+transformation across all the frames. This is useful when the input is a
+sequence of frames from the same run segment.</p>
 <p>This preprocessor expects features to contain the following keys:
-- lasers.points_xyz of shape [P, 3]
-- labels.bboxes_3d of shape [L, 7]</p>
+- lasers.points_xyz of shape […, 3]
+- labels.bboxes_3d of shape […, 7]</p>
 <dl class="simple">
 <dt>Modifies the following features:</dt><dd><p>lasers.points_xyz, labels.bboxes_3d with the same rotation applied to both.</p>
 </dd>
@@ -2315,9 +2318,12 @@ features.</p>
 <em class="property">class </em><code class="sig-prename descclassname">lingvo.tasks.car.input_preprocessors.</code><code class="sig-name descname">RandomFlipY</code><span class="sig-paren">(</span><em class="sig-param"><span class="o">*</span><span class="n">args</span></em>, <em class="sig-param"><span class="o">**</span><span class="n">kwargs</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/tasks/car/input_preprocessors.html#RandomFlipY"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.tasks.car.input_preprocessors.RandomFlipY" title="Permalink to this definition">¶</a></dt>
 <dd><p>Bases: <a class="reference internal" href="#lingvo.tasks.car.input_preprocessors.Preprocessor" title="lingvo.tasks.car.input_preprocessors.Preprocessor"><code class="xref py py-class docutils literal notranslate"><span class="pre">lingvo.tasks.car.input_preprocessors.Preprocessor</span></code></a></p>
 <p>Flip the world along axis Y as a form of data augmentation.</p>
+<p>When there are leading dimensions, this will flip the boxes with the same
+transformation across all the frames. This is useful when the input is a
+sequence of frames from the same run segment.</p>
 <p>This preprocessor expects features to contain the following keys:
-- lasers.points_xyz of shape [P, 3]
-- labels.bboxes_3d of shape [L, 7]</p>
+- lasers.points_xyz of shape […, 3]
+- labels.bboxes_3d of shape […, 7]</p>
 <dl class="simple">
 <dt>Modifies the following features:</dt><dd><p>lasers.points_xyz, labels.bboxes_3d with the same flipping applied to both.</p>
 </dd>

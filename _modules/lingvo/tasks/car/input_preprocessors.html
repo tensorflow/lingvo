@@ -1912,9 +1912,13 @@
 <span class="sd">  always level. In general, we&#39;d like to instead rotate the car on the spot,</span>
 <span class="sd">  this would then make sense for cases where the car is on a slope.</span>
 
+<span class="sd">  When there are leading dimensions, this will rotate the boxes with the same</span>
+<span class="sd">  transformation across all the frames. This is useful when the input is a</span>
+<span class="sd">  sequence of frames from the same run segment.</span>
+
 <span class="sd">  This preprocessor expects features to contain the following keys:</span>
-<span class="sd">  - lasers.points_xyz of shape [P, 3]</span>
-<span class="sd">  - labels.bboxes_3d of shape [L, 7]</span>
+<span class="sd">  - lasers.points_xyz of shape [..., 3]</span>
+<span class="sd">  - labels.bboxes_3d of shape [..., 7]</span>
 
 <span class="sd">  Modifies the following features:</span>
 <span class="sd">    lasers.points_xyz, labels.bboxes_3d with the same rotation applied to both.</span>
@@ -2332,9 +2336,13 @@
 <div class="viewcode-block" id="RandomFlipY"><a class="viewcode-back" href="../../../../lingvo.tasks.car.input_preprocessors.html#lingvo.tasks.car.input_preprocessors.RandomFlipY">[docs]</a><span class="k">class</span> <span class="nc">RandomFlipY</span><span class="p">(</span><span class="n">Preprocessor</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Flip the world along axis Y as a form of data augmentation.</span>
 
+<span class="sd">  When there are leading dimensions, this will flip the boxes with the same</span>
+<span class="sd">  transformation across all the frames. This is useful when the input is a</span>
+<span class="sd">  sequence of frames from the same run segment.</span>
+
 <span class="sd">  This preprocessor expects features to contain the following keys:</span>
-<span class="sd">  - lasers.points_xyz of shape [P, 3]</span>
-<span class="sd">  - labels.bboxes_3d of shape [L, 7]</span>
+<span class="sd">  - lasers.points_xyz of shape [..., 3]</span>
+<span class="sd">  - labels.bboxes_3d of shape [..., 7]</span>
 
 <span class="sd">  Modifies the following features:</span>
 <span class="sd">    lasers.points_xyz, labels.bboxes_3d with the same flipping applied to both.</span>
@@ -2354,15 +2362,15 @@
 
     <span class="c1"># Flip points</span>
     <span class="n">points_xyz</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span>
-    <span class="n">points_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="o">-</span><span class="n">points_xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">points_xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">points_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="o">-</span><span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
     <span class="n">features</span><span class="o">.</span><span class="n">lasers</span><span class="o">.</span><span class="n">points_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
-        <span class="p">[</span><span class="n">points_xyz</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">points_y</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">[</span><span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">points_y</span><span class="p">,</span> <span class="n">points_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
 
     <span class="c1"># Flip boxes</span>
     <span class="n">bboxes_xyz</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="p">:</span><span class="mi">3</span><span class="p">]</span>
-    <span class="n">bboxes_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="o">-</span><span class="n">bboxes_xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">bboxes_xyz</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
-    <span class="n">bboxes_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">([</span><span class="n">bboxes_xyz</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">bboxes_y</span><span class="p">,</span> <span class="n">bboxes_xyz</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]],</span>
-                           <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">bboxes_y</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">choice</span><span class="p">,</span> <span class="o">-</span><span class="n">bboxes_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">],</span> <span class="n">bboxes_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">1</span><span class="p">:</span><span class="mi">2</span><span class="p">])</span>
+    <span class="n">bboxes_xyz</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">bboxes_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">0</span><span class="p">:</span><span class="mi">1</span><span class="p">],</span> <span class="n">bboxes_y</span><span class="p">,</span> <span class="n">bboxes_xyz</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">2</span><span class="p">:</span><span class="mi">3</span><span class="p">]],</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="c1"># Compensate rotation.</span>
     <span class="n">bboxes_dims</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">3</span><span class="p">:</span><span class="mi">6</span><span class="p">]</span>
     <span class="n">bboxes_rot</span> <span class="o">=</span> <span class="n">features</span><span class="o">.</span><span class="n">labels</span><span class="o">.</span><span class="n">bboxes_3d</span><span class="p">[</span><span class="o">...</span><span class="p">,</span> <span class="mi">6</span><span class="p">:]</span>
