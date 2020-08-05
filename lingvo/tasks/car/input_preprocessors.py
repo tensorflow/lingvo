@@ -1764,9 +1764,13 @@ class RandomWorldRotationAboutZAxis(Preprocessor):
   always level. In general, we'd like to instead rotate the car on the spot,
   this would then make sense for cases where the car is on a slope.
 
+  When there are leading dimensions, this will rotate the boxes with the same
+  transformation across all the frames. This is useful when the input is a
+  sequence of frames from the same run segment.
+
   This preprocessor expects features to contain the following keys:
-  - lasers.points_xyz of shape [P, 3]
-  - labels.bboxes_3d of shape [L, 7]
+  - lasers.points_xyz of shape [..., 3]
+  - labels.bboxes_3d of shape [..., 7]
 
   Modifies the following features:
     lasers.points_xyz, labels.bboxes_3d with the same rotation applied to both.
@@ -2184,9 +2188,13 @@ class RandomDropLaserPoints(Preprocessor):
 class RandomFlipY(Preprocessor):
   """Flip the world along axis Y as a form of data augmentation.
 
+  When there are leading dimensions, this will flip the boxes with the same
+  transformation across all the frames. This is useful when the input is a
+  sequence of frames from the same run segment.
+
   This preprocessor expects features to contain the following keys:
-  - lasers.points_xyz of shape [P, 3]
-  - labels.bboxes_3d of shape [L, 7]
+  - lasers.points_xyz of shape [..., 3]
+  - labels.bboxes_3d of shape [..., 7]
 
   Modifies the following features:
     lasers.points_xyz, labels.bboxes_3d with the same flipping applied to both.
@@ -2206,15 +2214,15 @@ class RandomFlipY(Preprocessor):
 
     # Flip points
     points_xyz = features.lasers.points_xyz
-    points_y = tf.where(choice, -points_xyz[:, 1:2], points_xyz[:, 1:2])
+    points_y = tf.where(choice, -points_xyz[..., 1:2], points_xyz[..., 1:2])
     features.lasers.points_xyz = tf.concat(
-        [points_xyz[:, 0:1], points_y, points_xyz[:, 2:3]], axis=1)
+        [points_xyz[..., 0:1], points_y, points_xyz[..., 2:3]], axis=-1)
 
     # Flip boxes
     bboxes_xyz = features.labels.bboxes_3d[..., :3]
-    bboxes_y = tf.where(choice, -bboxes_xyz[:, 1:2], bboxes_xyz[:, 1:2])
-    bboxes_xyz = tf.concat([bboxes_xyz[:, 0:1], bboxes_y, bboxes_xyz[:, 2:3]],
-                           axis=1)
+    bboxes_y = tf.where(choice, -bboxes_xyz[..., 1:2], bboxes_xyz[..., 1:2])
+    bboxes_xyz = tf.concat(
+        [bboxes_xyz[..., 0:1], bboxes_y, bboxes_xyz[..., 2:3]], axis=-1)
     # Compensate rotation.
     bboxes_dims = features.labels.bboxes_3d[..., 3:6]
     bboxes_rot = features.labels.bboxes_3d[..., 6:]
