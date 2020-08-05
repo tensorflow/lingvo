@@ -202,7 +202,7 @@ LAYER_WT = 'layer_weight_variable'
 
 
 class BaseLayer(tf.Module, metaclass=BaseLayerMeta):
-  """Base class for all the layer object.
+  r"""Base class for all the layer object.
 
   As this BaseLayer is a proper sub-class of tf.Module, it supports proper
   tracking and reflection of key constituents such as variables and submodules.
