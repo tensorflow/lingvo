@@ -359,7 +359,7 @@ Output y:[B, T, D] = einsum(‘BTNH,DNH&gt;BTD’, context, Wout)</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogits">
-<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -368,7 +368,6 @@ Output y:[B, T, D] = einsum(‘BTNH,DNH&gt;BTD’, context, Wout)</p>
 its children layers.</p></li>
 <li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
-<li><p><strong>per_step_padding</strong> – A Tensor of shape [B, N, T, S] or None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -629,7 +628,7 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionXL._AttenLogits">
-<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -638,7 +637,6 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 its children layers.</p></li>
 <li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
-<li><p><strong>per_step_padding</strong> – A Tensor of shape [B, N, T, S] or None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -754,7 +752,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenLogits">
-<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenLogits" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">_AttenLogits</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query</span></em>, <em class="sig-param"><span class="n">key</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE._AttenLogits"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE._AttenLogits" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes attention logits.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -763,7 +761,6 @@ its children layers.</p></li>
 its children layers.</p></li>
 <li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
-<li><p><strong>per_step_padding</strong> – A Tensor of shape [B, N, T, S] or None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -933,7 +930,6 @@ class can only be used for encoder.</p>
 its children layers.</p></li>
 <li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
-<li><p><strong>per_step_padding</strong> – A Tensor of shape [B, N, T, S] or None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1105,7 +1101,6 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 its children layers.</p></li>
 <li><p><strong>query</strong> – A Tensor of shape [B, T, N, H]</p></li>
 <li><p><strong>key</strong> – A Tensor of shape [B, T, N, H]</p></li>
-<li><p><strong>per_step_padding</strong> – A Tensor of shape [B, N, T, S] or None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1288,6 +1283,16 @@ H = dimensions of each attention head.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.CommonParams">
+<em class="property">classmethod </em><code class="sig-name descname">CommonParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">num_heads</span></em>, <em class="sig-param"><span class="n">is_masked</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">use_relative_atten</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">relative_pos_emb_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">local_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">left_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">right_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dropout_prob</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer.CommonParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hyperparam for the most representative cases.</p>
+<p>CommonParams is not expected to be extended to an omnipotent/generic builder
+method. Specific use cases should take the return value of it and apply
+further customization. It should be kept lean and only extended cautiously
+for very common cases.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer._InitAttentionParams">
 <code class="sig-name descname">_InitAttentionParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">atten_tpl</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer._InitAttentionParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer._InitAttentionParams" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns an initialized transformer attention parameters.</p>
@@ -1394,6 +1399,16 @@ to encoder outputs and other sources.</p></li>
 <dt id="lingvo.core.batch_major_attention.TransformerLayer.Params">
 <em class="property">classmethod </em><code class="sig-name descname">Params</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.Params"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.Params" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns the layer params.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerLayer.CommonParams">
+<em class="property">classmethod </em><code class="sig-name descname">CommonParams</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">input_dim</span></em>, <em class="sig-param"><span class="n">atten_num_heads</span></em>, <em class="sig-param"><span class="n">atten_is_relative</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">atten_local_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">atten_left_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">atten_right_context</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">has_aux_atten</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">mask_self_atten</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">fflayer_hidden_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">fflayer_output_dim</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">dropout_prob</span><span class="o">=</span><span class="default_value">0.0</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerLayer.CommonParams"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerLayer.CommonParams" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a hyperparam for the most representative cases.</p>
+<p>CommonParams is not expected to be extended to an omnipotent/generic builder
+method. Specific use cases should take the return value of it and apply
+further customization. It should be kept lean and only extended cautiously
+for very common cases.</p>
 </dd></dl>
 
 <dl class="py method">

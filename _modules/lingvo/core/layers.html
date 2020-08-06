@@ -558,6 +558,12 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">()</span></div>
 
+<div class="viewcode-block" id="BaseConv2DLayer.OutputShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer.OutputShape">[docs]</a>  <span class="nd">@classmethod</span>
+  <span class="k">def</span> <span class="nf">OutputShape</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">params</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">_ComputeConvOutputShape</span><span class="p">(</span><span class="n">in_shape</span><span class="p">,</span> <span class="n">params</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                                   <span class="n">params</span><span class="o">.</span><span class="n">filter_stride</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                                   <span class="n">params</span><span class="o">.</span><span class="n">filter_shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span></div>
+
 <div class="viewcode-block" id="BaseConv2DLayer.OutShape"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.BaseConv2DLayer.OutShape">[docs]</a>  <span class="k">def</span> <span class="nf">OutShape</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">in_shape</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Compute the output shape given the input shape.&quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
