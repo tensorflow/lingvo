@@ -410,6 +410,12 @@ class BaseConv2DLayer(quant_utils.QuantizableLayer):
     """
     raise NotImplementedError()
 
+  @classmethod
+  def OutputShape(cls, params, in_shape):
+    return _ComputeConvOutputShape(in_shape, params.filter_stride[0],
+                                   params.filter_stride[1],
+                                   params.filter_shape[-1])
+
   def OutShape(self, in_shape):
     """Compute the output shape given the input shape."""
     p = self.params

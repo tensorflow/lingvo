@@ -258,10 +258,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     p = self.params
     assert p.input_dim, 'input_dim is {}'.format(p.input_dim)
     assert p.hidden_dim, 'hidden_dim is {}'.format(p.hidden_dim)
-    assert symbolic.IsExpr(
-        p.hidden_dim
-    ) or p.hidden_dim % p.num_heads == 0, 'hidden_dim: %s, num_heads: %s' % (
-        p.hidden_dim, p.num_heads)
+    assert (symbolic.IsExpr(p.hidden_dim) or p.hidden_dim % p.num_heads == 0), (
+        f'hidden_dim: {p.hidden_dim} is not a multiple of num_heads: '
+        f'{p.num_heads}.')
     dim_per_head = p.hidden_dim // p.num_heads
 
     def ProjectInput():
@@ -293,7 +292,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
             use_bias=p.use_bias,
             xla_num_partitions=p.xla_num_partitions))
 
-  def _AttenLogits(self, theta, query, key, per_step_padding):
+  def _AttenLogits(self, theta, query, key):
     """Computes attention logits.
 
     Args:
@@ -301,7 +300,6 @@ class MultiHeadedAttention(base_layer.BaseLayer):
         its children layers.
       query: A Tensor of shape [B, T, N, H]
       key: A Tensor of shape [B, T, N, H]
-      per_step_padding: A Tensor of shape [B, N, T, S] or None.
 
     Returns:
       A Tensor of shape [B, N, T, S]
@@ -365,8 +363,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     with tf.name_scope('logits'):
       # Keep softmax computation in float32 otherwise the low precision can
       # can lead to worse quality.
-      logits = tf.cast(
-          self._AttenLogits(theta, query, key, per_step_padding), tf.float32)
+      logits = tf.cast(self._AttenLogits(theta, query, key), tf.float32)
 
     # Apply segment mask.
     if self.params.packed_input and segment_mask is not None:
@@ -795,7 +792,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
     self.CreateVariable('u', u_pc)
     self.CreateVariable('v', v_pc)
 
-  def _AttenLogits(self, theta, query, key, per_step_padding):
+  def _AttenLogits(self, theta, query, key):
     b, _, n, h = py_utils.GetShape(key, 4)
     t = py_utils.GetShape(query)[1]
 
@@ -975,7 +972,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
           pos_emb,
           [tgt_time, src_time, num_heads, params.hidden_dim // num_heads])
 
-  def _AttenLogits(self, theta, query, key, per_step_padding):
+  def _AttenLogits(self, theta, query, key):
     # TODO(jamesqin): optimize it.
     b, _, n, h = py_utils.GetShape(key, 4)
     t = py_utils.GetShape(query)[1]
@@ -1704,16 +1701,11 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
     p.Define('input_dim', 0, 'Dimension of the transformer block input.')
     p.Define('hidden_dim', 0, 'Dimension of the attention hidden dim.')
     p.Define('num_heads', 8, 'Number of attention heads.')
-    p.Define('is_masked', False, 'If set, uses masked MultiHededAttention.')
-    p.Define('ln_tpl', layers.LayerNorm.Params(),
-             'Layer norm default params. No layernorm if set to None.')
-    p.Define('atten_tpl',
-             MultiHeadedAttention.Params().Set(),
-             'Multi-Headed Dot-Product Attention default params')
     p.Define(
-        'dropout_tpl', layers.DropoutLayer.Params(),
-        'Residual dropout params template. keep_prop will be reset to '
-        '(1.0 - residual_dropout_prob).')
+        'is_masked', False,
+        'If set, uses causal non local multiheaded attention.'
+        'This option is not valid when atten_tpl is LocalSelfAttention '
+        'or its subclass(es).')
     p.Define(
         'atten_dropout_prob', 0.0,
         'Probability at which we apply dropout to the attention probs. '
@@ -1726,6 +1718,69 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
              'If set, uses unnormalized input in the residual add.')
     p.Define('add_skip_connection', True,
              'If True, add input (or normalized input) to the output.')
+    p.Define('ln_tpl', layers.LayerNorm.Params(),
+             'Layer norm default params. No layernorm if set to None.')
+    p.Define('atten_tpl',
+             MultiHeadedAttention.Params().Set(),
+             'Multi-Headed Dot-Product Attention default params')
+    p.Define(
+        'dropout_tpl', layers.DropoutLayer.Params(),
+        'Residual dropout params template. keep_prop will be reset to '
+        '(1.0 - residual_dropout_prob).')
+    return p
+
+  @classmethod
+  def CommonParams(cls,
+                   input_dim,
+                   num_heads,
+                   is_masked=False,
+                   use_relative_atten=False,
+                   relative_pos_emb_dim=None,
+                   local_context=None,
+                   left_context=None,
+                   right_context=None,
+                   dropout_prob=0.):
+    # pylint: disable=g-doc-args
+    """Returns a hyperparam for the most representative cases.
+
+    CommonParams is not expected to be extended to an omnipotent/generic builder
+    method. Specific use cases should take the return value of it and apply
+    further customization. It should be kept lean and only extended cautiously
+    for very common cases.
+    """
+    # pylint: enable=g-doc-args
+    if not use_relative_atten:
+      assert not relative_pos_emb_dim
+    else:
+      relative_pos_emb_dim = relative_pos_emb_dim or input_dim
+
+    if local_context:
+      assert not left_context and not right_context, (
+          'local_context and (left_context, right_context) can not be set '
+          'at the same time.')
+      left_context = local_context + 1  # include 'self' position.
+      right_context = local_context
+
+    p = cls.Params().Set(
+        input_dim=input_dim,
+        num_heads=num_heads,
+        is_masked=is_masked,
+        atten_dropout_prob=dropout_prob,
+        residual_dropout_prob=dropout_prob)
+
+    is_local = left_context or right_context
+    if is_local:
+      atten_cls = (
+          LocalSelfAttentionXL if use_relative_atten else LocalSelfAttention)
+    else:
+      atten_cls = (
+          MultiHeadedAttentionXL
+          if use_relative_atten else MultiHeadedAttention)
+    p.atten_tpl = atten_cls.Params()
+    if use_relative_atten:
+      p.atten_tpl.rel_pos_emb_dim = relative_pos_emb_dim
+    if is_local:
+      p.atten_tpl.Set(left_context=left_context, right_context=right_context)
     return p
 
   def _InitAttentionParams(self, atten_tpl):
@@ -1748,6 +1803,9 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
 
     # Initialize attention.
     params = self._InitAttentionParams(p.atten_tpl)
+    if p.is_masked and issubclass(params.cls, LocalSelfAttention):
+      tf.logging.warn('\'is_masked\' is not effective when used with '
+                      'LocalSelfAttention and its subclass(es).')
     self.CreateChild('atten', params)
 
     # Initialize attention layer normalization.
@@ -1951,11 +2009,12 @@ class TransformerLayer(base_layer.BaseLayer):
   @classmethod
   def Params(cls):
     p = super().Params()
+    p.Define('input_dim', 0, 'Dimension of the transformer block input.')
+    p.Define('output_dim', 0, 'Dimension of the transformer block output.')
+    p.Define('num_heads', None, 'Num of heads in self attention.')
     p.Define('has_aux_atten', False,
              'If set, introduces a second attention layer')
     p.Define('mask_self_atten', False, 'If True, use masked self-attention.')
-    p.Define('input_dim', 0, 'Dimension of the transformer block input.')
-    p.Define('output_dim', 0, 'Dimension of the transformer block output.')
     p.Define('tr_atten_tpl',
              TransformerAttentionLayer.Params().Set(),
              'Transformer Attention Layer params.')
@@ -1968,6 +2027,52 @@ class TransformerLayer(base_layer.BaseLayer):
             hidden_dim=2048), 'Transformer Feed-Forward Layer params.')
     p.Define('packed_input', False,
              'If True, each training example may pack multiple sequences.')
+    return p
+
+  @classmethod
+  def CommonParams(cls,
+                   input_dim,
+                   atten_num_heads,
+                   atten_is_relative=False,
+                   atten_local_context=None,
+                   atten_left_context=None,
+                   atten_right_context=None,
+                   has_aux_atten=False,
+                   mask_self_atten=False,
+                   fflayer_hidden_dim=None,
+                   fflayer_output_dim=None,
+                   dropout_prob=0.):
+    # pylint: disable=g-doc-args
+    """Returns a hyperparam for the most representative cases.
+
+    CommonParams is not expected to be extended to an omnipotent/generic builder
+    method. Specific use cases should take the return value of it and apply
+    further customization. It should be kept lean and only extended cautiously
+    for very common cases.
+    """
+    # pylint: enable=g-doc-args
+    output_dim = fflayer_output_dim or input_dim
+    fflayer_hidden_dim = fflayer_hidden_dim or 4 * input_dim
+    # TODO(jamesqin): check how mask_self_atten work with local atten.
+    p = cls.Params().Set(
+        name='transformer_layer',
+        input_dim=input_dim,
+        output_dim=output_dim,
+        num_heads=atten_num_heads,
+        has_aux_atten=has_aux_atten,
+        mask_self_atten=mask_self_atten)
+    p.tr_self_atten_tpl = TransformerAttentionLayer.CommonParams(
+        input_dim,
+        atten_num_heads,
+        is_masked=mask_self_atten,
+        local_context=atten_local_context,
+        left_context=atten_left_context,
+        right_context=atten_right_context,
+        dropout_prob=dropout_prob)
+    p.tr_fflayer_tpl.Set(
+        hidden_dim=fflayer_hidden_dim,
+        residual_dropout_prob=dropout_prob,
+        relu_dropout_prob=dropout_prob)
     return p
 
   @classmethod
@@ -1991,6 +2096,8 @@ class TransformerLayer(base_layer.BaseLayer):
     params.name = 'multihead_self_atten'
     params.input_dim = p.input_dim
     params.is_masked = p.mask_self_atten
+    if p.num_heads:
+      params.num_heads = p.num_heads
     params.atten_tpl.packed_input = p.packed_input
     self.CreateChild('self_atten', params)
 
@@ -1999,6 +2106,8 @@ class TransformerLayer(base_layer.BaseLayer):
       params = p.tr_atten_tpl.Copy()
       params.name = 'multihead_cross_atten'
       params.input_dim = p.input_dim
+      if p.num_heads:
+        params.num_heads = p.num_heads
       params.atten_tpl.packed_input = p.packed_input
       self.CreateChild('cross_atten', params)
 

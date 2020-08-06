@@ -157,6 +157,35 @@ py_library(
 )
 
 py_library(
+    name = "conformer_layer",
+    srcs = ["conformer_layer.py"],
+    srcs_version = "PY3",
+    deps = [
+        "//lingvo:compat",
+        "//lingvo/core:base_layer",
+        "//lingvo/core:batch_major_attention",
+        "//lingvo/core:bn_layers",
+        "//lingvo/core:conv_layers_with_time_padding",
+        "//lingvo/core:layers",
+        "//lingvo/core:layers_with_attention",
+    ],
+)
+
+py_test(
+    name = "conformer_layer_test",
+    srcs = ["conformer_layer_test.py"],
+    python_version = "PY3",
+    shard_count = 2,
+    srcs_version = "PY3",
+    deps = [
+        ":conformer_layer",
+        # Implicit absl.testing.flagsaver dependency.
+        # Implicit absl.testing.parameterized dependency.
+        "//lingvo/core:test_utils",
+    ],
+)
+
+py_library(
     name = "target_sequence_sampler",
     srcs = [
         "target_sequence_sampler.py",

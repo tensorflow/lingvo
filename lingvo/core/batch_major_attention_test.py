@@ -823,7 +823,7 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
     atten_dim = 4
     radius = 3
     input_dim = num_heads * atten_dim
-    (input_vecs, _, _, per_step_padding, _, _, _, _) = _AttentionInputs(
+    (input_vecs, _, _, _, _, _, _, _) = _AttentionInputs(
         input_dim=input_dim, is_causal=True)
     p = attention.MultiHeadedAttentionRPE.Params().Set(
         name='self_atten',
@@ -838,7 +838,11 @@ class MultiHeadedAttentionRPETest(test_utils.TestCase, parameterized.TestCase):
 
     # Causal self attention.
     # [B, N, T, S]
-    logits = l._AttenLogits(l.theta, query, query, per_step_padding)
+    logits = l._AttenLogits(
+        l.theta,
+        query,
+        query,
+    )
 
     one_step_logits = []
     # [S=T, B, N, H]
@@ -1411,6 +1415,32 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       p = attention.UseRelativeAttentionInTransformerLayer(p, 4)
     p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
     return attention.TransformerDecoderLayer(p)
+
+  def testTransformerLayerCommonParams(self):
+    with self.session(use_gpu=True) as sess:
+      input_dim, fflayer_hidden_dim, num_heads = 4, 7, 2
+      (query_vec, _, aux_vec,
+       aux_paddings) = self._TransformerAttentionLayerInputs(
+           input_dim=input_dim)
+      query_vec = tf.tile(query_vec, [1, 1, 1])
+      paddings = tf.zeros([2, 5])
+      p = attention.TransformerLayer.CommonParams(
+          input_dim=input_dim,
+          atten_num_heads=num_heads,
+          fflayer_hidden_dim=fflayer_hidden_dim)
+      p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
+      l = p.Instantiate()
+      ctx_vec, _ = l.FProp(l.theta, query_vec, paddings, aux_vec, aux_paddings)
+
+      tf.global_variables_initializer().run()
+      actual_ctx = sess.run(ctx_vec)
+      actual_ctx = np.reshape(actual_ctx, (10, 4))
+      tf.logging.info(np.array_repr(actual_ctx))
+      expected_ctx = [
+          4.7839108, 4.5303655, 5.5551023, 5.0657663, 5.0493064, 3.2142467,
+          2.820018, 5.659971, 4.3814187, 2.60475
+      ]
+      self.assertAllClose(expected_ctx, np.sum(actual_ctx, axis=1))
 
   @parameterized.named_parameters(('SingleBatch', 1), ('DoubleBatch', 2))
   def testTransformerLayerFPropWithCrossAttention(self, multiplier):
