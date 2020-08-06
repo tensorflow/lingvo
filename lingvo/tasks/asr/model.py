@@ -205,10 +205,12 @@ class AsrModel(base_model.BaseTask):
   def DecodeWithTheta(self, theta, input_batch):
     """Constructs the inference graph."""
     p = self.params
-    with tf.name_scope('fprop'), tf.name_scope(p.name):
-      encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch.src)
-      decoder_outs = self.decoder.BeamSearchDecodeWithTheta(
-          theta.decoder, encoder_outputs)
+    with tf.name_scope('decode'), tf.name_scope(p.name):
+      with tf.name_scope('encoder'):
+        encoder_outputs = self._FrontendAndEncoderFProp(theta, input_batch.src)
+      with tf.name_scope('beam_search'):
+        decoder_outs = self.decoder.BeamSearchDecodeWithTheta(
+            theta.decoder, encoder_outputs)
 
       if py_utils.use_tpu():
         # Decoder metric computation contains arbitrary execution
