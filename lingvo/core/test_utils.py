@@ -33,9 +33,12 @@ FLAGS = tf.flags.FLAGS
 # TODO(laigd): remove TF version check when 312743821 and 313682500 are in the
 # release.
 if tf.executing_eagerly() and tf.compat.v1.__version__ >= '2.3.0':
-  FLAGS.if_use_tf_function = True
-  FLAGS.while_loop_use_tf_function = True
-  FLAGS.call_defun_use_tf_function = True
+  try:
+    FLAGS.if_use_tf_function = True
+    FLAGS.while_loop_use_tf_function = True
+    FLAGS.call_defun_use_tf_function = True
+  except tf.flags.UnrecognizedFlagError:
+    pass
 
 # Disable eager execution for all tests.
 tf.disable_eager_execution()
