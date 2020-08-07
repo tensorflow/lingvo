@@ -648,10 +648,10 @@ class Params:
   def FromText(self, text, type_overrides=None):
     """Merges params specified in 'text' into 'params'.
 
-    'text' follows the simple text format as produced by
-    ParamsToSimpleText.  For a param specified in both 'params' and
-    'text', overwrites the value in 'params' according to 'text'.
-    Params specified in 'text' but not in 'params' are ignored.
+    'text' follows the simple text format as produced by ToText.
+    For a param specified in both 'params' and 'text', overwrites the value in
+    'params' according to 'text'. Params specified in 'text' but not in 'params'
+    are ignored.
 
     Args:
       text: A text representation of params.

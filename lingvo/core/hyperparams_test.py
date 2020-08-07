@@ -29,12 +29,12 @@ FLAGS = tf.flags.FLAGS
 
 
 class TestClass1:
-  """This class is used in ParamsToSimpleTextTest as a value of a variable."""
+  """This class is used in ParamsTest.testToText as a value of a variable."""
   pass
 
 
 class TestClass2:
-  """This class is used in ParamsToSimpleTextTest as a value of a variable."""
+  """This class is used in ParamsTest.testToText as a value of a variable."""
   pass
 
 
