@@ -2632,6 +2632,7 @@ class TransformerFeedForwardLayerWithTaskId(
     return h
 
 
+# TODO(ankurbpn,huangyp): Remove redundant segment mask calculations.
 class GPipeTransformerLayer(TransformerLayer):
   """GPipe compatible transformer layer."""
 
@@ -2647,8 +2648,8 @@ class GPipeTransformerLayer(TransformerLayer):
             source_paddings,
             target_vecs,
             target_paddings,
-            source_segment_mask,
-            target_segment_mask,
+            source_segment_id,
+            target_segment_id,
             transparent_acc,
             transparent_acc_helper,
             source_task_id=None,
@@ -2656,37 +2657,40 @@ class GPipeTransformerLayer(TransformerLayer):
     p = self.params
     with tf.name_scope(p.name):
       if p.has_aux_atten:  # Decoder FProp
+        seg_mask = SegmentMask(target_segment_id, target_segment_id)
+        aux_seg_mask = SegmentMask(target_segment_id, source_segment_id)
         atten_vec, _ = self.self_atten.FProp(
             theta.self_atten,
             target_vecs,
             None,
             target_paddings,
-            segment_mask=target_segment_mask)
+            segment_mask=seg_mask)
         atten_vec, _ = self.cross_atten.FProp(
             theta.cross_atten,
             atten_vec,
             source_vecs,
             source_paddings,
-            segment_mask=source_segment_mask)
+            segment_mask=aux_seg_mask)
         atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec,
                                        target_paddings, target_task_id)
         atten_vec.set_shape(target_vecs.shape)
         return (source_vecs, source_paddings, atten_vec, target_paddings,
-                source_segment_mask, target_segment_mask, transparent_acc,
+                source_segment_id, target_segment_id, transparent_acc,
                 transparent_acc_helper, source_task_id, target_task_id)
       # Encoder FProp
+      seg_mask = SegmentMask(source_segment_id, source_segment_id)
       atten_vec, _ = self.self_atten.FProp(
           theta.self_atten,
           source_vecs,
           None,
           source_paddings,
-          segment_mask=source_segment_mask)
+          segment_mask=seg_mask)
       atten_vec = self.fflayer.FProp(theta.fflayer, atten_vec, source_paddings,
                                      source_task_id)
       atten_vec.set_shape(source_vecs.shape)
 
       return (atten_vec, source_paddings, target_vecs, target_paddings,
-              source_segment_mask, target_segment_mask, transparent_acc,
+              source_segment_id, target_segment_id, transparent_acc,
               transparent_acc_helper, source_task_id, target_task_id)
 
   @classmethod
