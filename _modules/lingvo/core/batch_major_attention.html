@@ -2780,6 +2780,7 @@
     <span class="k">return</span> <span class="n">h</span></div></div>
 
 
+<span class="c1"># TODO(ankurbpn,huangyp): Remove redundant segment mask calculations.</span>
 <div class="viewcode-block" id="GPipeTransformerLayer"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeTransformerLayer">[docs]</a><span class="k">class</span> <span class="nc">GPipeTransformerLayer</span><span class="p">(</span><span class="n">TransformerLayer</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;GPipe compatible transformer layer.&quot;&quot;&quot;</span>
 
@@ -2795,8 +2796,8 @@
             <span class="n">source_paddings</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span>
-            <span class="n">source_segment_mask</span><span class="p">,</span>
-            <span class="n">target_segment_mask</span><span class="p">,</span>
+            <span class="n">source_segment_id</span><span class="p">,</span>
+            <span class="n">target_segment_id</span><span class="p">,</span>
             <span class="n">transparent_acc</span><span class="p">,</span>
             <span class="n">transparent_acc_helper</span><span class="p">,</span>
             <span class="n">source_task_id</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -2804,37 +2805,40 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_aux_atten</span><span class="p">:</span>  <span class="c1"># Decoder FProp</span>
+        <span class="n">seg_mask</span> <span class="o">=</span> <span class="n">SegmentMask</span><span class="p">(</span><span class="n">target_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">)</span>
+        <span class="n">aux_seg_mask</span> <span class="o">=</span> <span class="n">SegmentMask</span><span class="p">(</span><span class="n">target_segment_id</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
             <span class="n">target_vecs</span><span class="p">,</span>
             <span class="kc">None</span><span class="p">,</span>
             <span class="n">target_paddings</span><span class="p">,</span>
-            <span class="n">segment_mask</span><span class="o">=</span><span class="n">target_segment_mask</span><span class="p">)</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">seg_mask</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
             <span class="n">theta</span><span class="o">.</span><span class="n">cross_atten</span><span class="p">,</span>
             <span class="n">atten_vec</span><span class="p">,</span>
             <span class="n">source_vecs</span><span class="p">,</span>
             <span class="n">source_paddings</span><span class="p">,</span>
-            <span class="n">segment_mask</span><span class="o">=</span><span class="n">source_segment_mask</span><span class="p">)</span>
+            <span class="n">segment_mask</span><span class="o">=</span><span class="n">aux_seg_mask</span><span class="p">)</span>
         <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span>
                                        <span class="n">target_paddings</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
         <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">target_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">(</span><span class="n">source_vecs</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-                <span class="n">source_segment_mask</span><span class="p">,</span> <span class="n">target_segment_mask</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+                <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
                 <span class="n">transparent_acc_helper</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span>
       <span class="c1"># Encoder FProp</span>
+      <span class="n">seg_mask</span> <span class="o">=</span> <span class="n">SegmentMask</span><span class="p">(</span><span class="n">source_segment_id</span><span class="p">,</span> <span class="n">source_segment_id</span><span class="p">)</span>
       <span class="n">atten_vec</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">self_atten</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span>
           <span class="n">theta</span><span class="o">.</span><span class="n">self_atten</span><span class="p">,</span>
           <span class="n">source_vecs</span><span class="p">,</span>
           <span class="kc">None</span><span class="p">,</span>
           <span class="n">source_paddings</span><span class="p">,</span>
-          <span class="n">segment_mask</span><span class="o">=</span><span class="n">source_segment_mask</span><span class="p">)</span>
+          <span class="n">segment_mask</span><span class="o">=</span><span class="n">seg_mask</span><span class="p">)</span>
       <span class="n">atten_vec</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">fflayer</span><span class="o">.</span><span class="n">FProp</span><span class="p">(</span><span class="n">theta</span><span class="o">.</span><span class="n">fflayer</span><span class="p">,</span> <span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span>
                                      <span class="n">source_task_id</span><span class="p">)</span>
       <span class="n">atten_vec</span><span class="o">.</span><span class="n">set_shape</span><span class="p">(</span><span class="n">source_vecs</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 
       <span class="k">return</span> <span class="p">(</span><span class="n">atten_vec</span><span class="p">,</span> <span class="n">source_paddings</span><span class="p">,</span> <span class="n">target_vecs</span><span class="p">,</span> <span class="n">target_paddings</span><span class="p">,</span>
-              <span class="n">source_segment_mask</span><span class="p">,</span> <span class="n">target_segment_mask</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
+              <span class="n">source_segment_id</span><span class="p">,</span> <span class="n">target_segment_id</span><span class="p">,</span> <span class="n">transparent_acc</span><span class="p">,</span>
               <span class="n">transparent_acc_helper</span><span class="p">,</span> <span class="n">source_task_id</span><span class="p">,</span> <span class="n">target_task_id</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="GPipeTransformerLayer.FPropMeta"><a class="viewcode-back" href="../../../lingvo.core.batch_major_attention.html#lingvo.core.batch_major_attention.GPipeTransformerLayer.FPropMeta">[docs]</a>  <span class="nd">@classmethod</span>
