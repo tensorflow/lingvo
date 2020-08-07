@@ -2760,9 +2760,11 @@ class GroundTruthAugmentor(Preprocessor):
       # Prepare dataset for ground truth bounding boxes. Randomly shuffle the
       # file patterns.
       file_count = len(tf.io.gfile.glob(file_patterns))
-      dataset = tf.data.Dataset.list_files(file_patterns).cache()
-      dataset = dataset.shuffle(
-          buffer_size=file_count, reshuffle_each_iteration=True)
+      dataset = tf.stateless_list_files(file_patterns)
+      dataset = dataset.apply(tf.stateless_cache_dataset())
+      dataset = dataset.apply(
+          tf.stateless_shuffle_dataset(
+              buffer_size=file_count, reshuffle_each_iteration=True))
       dataset = dataset.interleave(
           tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
       dataset = dataset.repeat()
@@ -2772,10 +2774,11 @@ class GroundTruthAugmentor(Preprocessor):
       # We need more bboxes than max_augmented_bboxes in a batch, because some
       # of the boxes are filtered out.
       dataset = dataset.batch(p.max_augmented_bboxes * 10)
-      dataset = dataset.cache().prefetch(p.max_augmented_bboxes * 30)
+      dataset = dataset.apply(tf.stateless_cache_dataset()).prefetch(
+          p.max_augmented_bboxes * 30)
     else:
       # Prepare dataset for ground truth bounding boxes.
-      dataset = tf.data.Dataset.list_files(file_patterns)
+      dataset = tf.stateless_list_files(file_patterns)
       dataset = dataset.interleave(
           tf.data.TFRecordDataset, cycle_length=10, num_parallel_calls=10)
       # Read the entire dataset into memory.
@@ -2783,7 +2786,8 @@ class GroundTruthAugmentor(Preprocessor):
       dataset = dataset.map(Process, num_parallel_calls=10)
       # We batch the output of the dataset into a very large Tensor, then cache
       # it in memory.
-      dataset = dataset.batch(p.num_db_objects).cache().repeat()
+      dataset = dataset.batch(p.num_db_objects)
+      dataset = dataset.apply(tf.stateless_cache_dataset()).repeat()
 
     iterator = dataset.make_one_shot_iterator()
     input_batch = iterator.get_next()

@@ -27,12 +27,15 @@ from absl import logging
 
 from tensorflow.core.protobuf import config_pb2
 from tensorflow.python.data.ops import dataset_ops
+from tensorflow.python.data.util import random_seed
 from tensorflow.python.framework import function as _function_lib
 from tensorflow.python.framework import ops
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import check_ops
 from tensorflow.python.ops import embedding_ops
 from tensorflow.python.ops import functional_ops
+from tensorflow.python.ops import gen_dataset_ops
+from tensorflow.python.ops import gen_io_ops
 from tensorflow.python.ops import inplace_ops
 from tensorflow.python.ops import math_ops
 from tensorflow.python.platform import app
@@ -89,6 +92,174 @@ strings = _clone_module(strings)
 summary = _clone_module(summary)
 test = _clone_module(test)
 train = _clone_module(train)
+
+# By default, with TF2 enabled and (eager execution or tf.function),
+# `tf.data` API will choose the stateful implementation for methods
+# `tf.data.Dataset.shuffle()`, `tf.data.Dataset.cache()` and
+# `tf.data.Dataset.list_files()`. which is not compatible with
+# `tf.data.make_one_shot_iterator` in TF2 (see b/162270607).
+# Here is a stateless implementation of `shuffle`, `cache` and
+# `list_files` to resolve the TF2 imcompatibility issue.
+
+# Note that, these methods are meant for internal use only. Please don't use
+# it unless you know exactly what you do.
+
+
+class _CacheDataset(dataset_ops.UnaryUnchangedStructureDataset):
+  """A `Dataset` that caches elements of its input."""
+
+  def __init__(self, input_dataset, filename):
+    """Caches the elements in the dataset."""
+    self._input_dataset = input_dataset
+    self._filename = ops.convert_to_tensor(
+        filename, dtype=string, name="filename")
+    variant_tensor = gen_dataset_ops.cache_dataset(
+        input_dataset._variant_tensor,  # pylint: disable=protected-access
+        filename=self._filename,
+        **self._flat_structure)
+    super(_CacheDataset, self).__init__(input_dataset, variant_tensor)
+
+
+class _ShuffleDataset(dataset_ops.UnaryUnchangedStructureDataset):
+  """A `Dataset` that randomly shuffles the elements of its input."""
+
+  def __init__(self,
+               input_dataset,
+               buffer_size,
+               seed=None,
+               reshuffle_each_iteration=None):
+    """Randomly shuffles the elements of this dataset."""
+    self._input_dataset = input_dataset
+    self._buffer_size = ops.convert_to_tensor(
+        buffer_size, dtype=int64, name="buffer_size")
+    self._seed, self._seed2 = random_seed.get_seed(seed)
+    if reshuffle_each_iteration is None:
+      reshuffle_each_iteration = True
+    self._reshuffle_each_iteration = reshuffle_each_iteration
+
+    variant_tensor = gen_dataset_ops.shuffle_dataset(
+        input_dataset._variant_tensor,  # pylint: disable=protected-access
+        buffer_size=self._buffer_size,
+        seed=self._seed,
+        seed2=self._seed2,
+        reshuffle_each_iteration=self._reshuffle_each_iteration,
+        **self._flat_structure)
+    super(_ShuffleDataset, self).__init__(input_dataset, variant_tensor)
+
+
+def stateless_shuffle_dataset(buffer_size,
+                              seed=None,
+                              reshuffle_each_iteration=None):
+  """Randomly shuffles the elements of the dataset based on a stateless shuffle implementation.
+
+  This method returns a stateless ShuffleDataset unconditionally. It can be
+  used with `dataset.apply()` to obtain a stateless shuffled dataset, which
+  supports the TF1 compatibility API `tf.data.make_one_shot_iterator()` in TF2.
+  Example:
+    >>> dataset = tf.data.Dataset.range(3)
+    >>> dataset = dataset.apply(
+    ...     stateless_shuffle_dataset((3, reshuffle_each_iteration=True))
+
+  Args:
+    buffer_size: A `tf.int64` scalar `tf.Tensor`, representing the number of
+      elements from this dataset from which the new dataset will sample.
+    seed: (Optional.) A `tf.int64` scalar `tf.Tensor`, representing the random
+      seed that will be used to create the distribution. See
+      `tf.random.set_seed` for behavior.
+    reshuffle_each_iteration: (Optional.) A boolean, which if true indicates
+      that the dataset should be pseudorandomly reshuffled each time it is
+      iterated over. (Defaults to `True`.)
+
+  Returns:
+    Dataset: A `Dataset`.
+  """
+
+  def _apply_fn(dataset):
+    out_dataset = dataset_ops.DatasetV1Adapter(
+        _ShuffleDataset(dataset, buffer_size, seed, reshuffle_each_iteration))
+    return out_dataset
+
+  return _apply_fn
+
+
+def stateless_cache_dataset(filename=""):
+  """Caches the elements in the dataset based on a stateless cache implementation.
+
+  This method returns a stateless CacheDataset unconditionally. It can be
+  used with `dataset.apply()` to obtain a stateless cached dataset, which
+  supports the TF1 compatibility API `tf.data.make_one_shot_iterator()` in TF2.
+
+  Example:
+    >>> dataset = tf.data.Dataset.range(3)
+    >>> dataset = dataset.apply(stateless_cache_dataset())
+
+
+  Args:
+    filename: A `tf.string` scalar `tf.Tensor`, representing the name of a
+      directory on the filesystem to use for caching elements in this Dataset.
+      If a filename is not provided, the dataset will be cached in memory.
+
+  Returns:
+    Dataset: A `Dataset`.
+  """
+
+  def _apply_fn(dataset):
+    out_dataset = dataset_ops.DatasetV1Adapter(_CacheDataset(dataset, filename))
+    return out_dataset
+
+  return _apply_fn
+
+
+def stateless_list_files(file_pattern, shuffle=None, seed=None):
+  """A dataset of all files matching one or more glob patterns.
+
+  Note that, if `shuffle` is not None, it will use a stateless shuffle
+  implementation. Then the returned dataset supports the TF1 compatibility API
+  `tf.data.make_one_shot_iterator()` in TF2.
+
+  Example:
+    >>> dataset = tf.stateless_list_files("some_file_pattern")
+
+  Args:
+    file_pattern: A string, a list of strings, or a `tf.Tensor` of string type
+      (scalar or vector), representing the filename glob (i.e. shell wildcard)
+      pattern(s) that will be matched.
+    shuffle: (Optional.) If `True`, the file names will be shuffled randomly
+      based on a stateless implementation. Defaults to `True`.
+    seed: (Optional.) A `tf.int64` scalar `tf.Tensor`, representing the random
+      seed that will be used to create the distribution. See
+      `tf.random.set_seed` for behavior.
+
+  Returns:
+   Dataset: A `Dataset` of strings corresponding to file names.
+  """
+  with ops.name_scope("list_files"):
+    if shuffle is None:
+      shuffle = True
+    file_pattern = ops.convert_to_tensor(
+        file_pattern, dtype=string, name="file_pattern")
+    matching_files = gen_io_ops.matching_files(file_pattern)
+
+    # Raise an exception if `file_pattern` does not match any files.
+    condition = math_ops.greater(
+        array_ops.shape(matching_files)[0], 0, name="match_not_empty")
+    message = math_ops.add(
+        "No files matched pattern: ",
+        strings.reduce_join(file_pattern, separator=", "),
+        name="message")
+
+    assert_not_empty = debugging.Assert(
+        condition, [message], summarize=1, name="assert_not_empty")
+    with control_dependencies([assert_not_empty]):
+      matching_files = identity(matching_files)
+
+    dataset = data.Dataset.from_tensor_slices(matching_files)
+    if shuffle:
+      buffer_size = math_ops.maximum(
+          shape(matching_files, out_type=dtypes.int64)[0], 1)
+      # Use stateless shuffled dataset
+      dataset = dataset.apply(stateless_shuffle_dataset(buffer_size, seed=seed))
+    return dataset
 # pylint: enable=undefined-variable, used-before-assignment
 
 # TF 1.x symbols used in the codebase.
