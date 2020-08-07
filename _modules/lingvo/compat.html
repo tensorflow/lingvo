@@ -175,12 +175,15 @@
 
 <span class="kn">from</span> <span class="nn">tensorflow.core.protobuf</span> <span class="kn">import</span> <span class="n">config_pb2</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.data.ops</span> <span class="kn">import</span> <span class="n">dataset_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.data.util</span> <span class="kn">import</span> <span class="n">random_seed</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">function</span> <span class="k">as</span> <span class="n">_function_lib</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.framework</span> <span class="kn">import</span> <span class="n">ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">array_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">check_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">embedding_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">functional_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_dataset_ops</span>
+<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">gen_io_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">math_ops</span>
 <span class="kn">from</span> <span class="nn">tensorflow.python.platform</span> <span class="kn">import</span> <span class="n">app</span>
@@ -237,6 +240,174 @@
 <span class="n">summary</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">summary</span><span class="p">)</span>
 <span class="n">test</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">test</span><span class="p">)</span>
 <span class="n">train</span> <span class="o">=</span> <span class="n">_clone_module</span><span class="p">(</span><span class="n">train</span><span class="p">)</span>
+
+<span class="c1"># By default, with TF2 enabled and (eager execution or tf.function),</span>
+<span class="c1"># `tf.data` API will choose the stateful implementation for methods</span>
+<span class="c1"># `tf.data.Dataset.shuffle()`, `tf.data.Dataset.cache()` and</span>
+<span class="c1"># `tf.data.Dataset.list_files()`. which is not compatible with</span>
+<span class="c1"># `tf.data.make_one_shot_iterator` in TF2 (see b/162270607).</span>
+<span class="c1"># Here is a stateless implementation of `shuffle`, `cache` and</span>
+<span class="c1"># `list_files` to resolve the TF2 imcompatibility issue.</span>
+
+<span class="c1"># Note that, these methods are meant for internal use only. Please don&#39;t use</span>
+<span class="c1"># it unless you know exactly what you do.</span>
+
+
+<div class="viewcode-block" id="_CacheDataset"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat._CacheDataset">[docs]</a><span class="k">class</span> <span class="nc">_CacheDataset</span><span class="p">(</span><span class="n">dataset_ops</span><span class="o">.</span><span class="n">UnaryUnchangedStructureDataset</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A `Dataset` that caches elements of its input.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">input_dataset</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Caches the elements in the dataset.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_dataset</span> <span class="o">=</span> <span class="n">input_dataset</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_filename</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="n">filename</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">string</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;filename&quot;</span><span class="p">)</span>
+    <span class="n">variant_tensor</span> <span class="o">=</span> <span class="n">gen_dataset_ops</span><span class="o">.</span><span class="n">cache_dataset</span><span class="p">(</span>
+        <span class="n">input_dataset</span><span class="o">.</span><span class="n">_variant_tensor</span><span class="p">,</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">filename</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_filename</span><span class="p">,</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_flat_structure</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">_CacheDataset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">input_dataset</span><span class="p">,</span> <span class="n">variant_tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="_ShuffleDataset"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat._ShuffleDataset">[docs]</a><span class="k">class</span> <span class="nc">_ShuffleDataset</span><span class="p">(</span><span class="n">dataset_ops</span><span class="o">.</span><span class="n">UnaryUnchangedStructureDataset</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A `Dataset` that randomly shuffles the elements of its input.&quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
+               <span class="n">input_dataset</span><span class="p">,</span>
+               <span class="n">buffer_size</span><span class="p">,</span>
+               <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+               <span class="n">reshuffle_each_iteration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Randomly shuffles the elements of this dataset.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_input_dataset</span> <span class="o">=</span> <span class="n">input_dataset</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_buffer_size</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="n">buffer_size</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">int64</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;buffer_size&quot;</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_seed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_seed2</span> <span class="o">=</span> <span class="n">random_seed</span><span class="o">.</span><span class="n">get_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">reshuffle_each_iteration</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">reshuffle_each_iteration</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">_reshuffle_each_iteration</span> <span class="o">=</span> <span class="n">reshuffle_each_iteration</span>
+
+    <span class="n">variant_tensor</span> <span class="o">=</span> <span class="n">gen_dataset_ops</span><span class="o">.</span><span class="n">shuffle_dataset</span><span class="p">(</span>
+        <span class="n">input_dataset</span><span class="o">.</span><span class="n">_variant_tensor</span><span class="p">,</span>  <span class="c1"># pylint: disable=protected-access</span>
+        <span class="n">buffer_size</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_buffer_size</span><span class="p">,</span>
+        <span class="n">seed</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_seed</span><span class="p">,</span>
+        <span class="n">seed2</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_seed2</span><span class="p">,</span>
+        <span class="n">reshuffle_each_iteration</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_reshuffle_each_iteration</span><span class="p">,</span>
+        <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">_flat_structure</span><span class="p">)</span>
+    <span class="nb">super</span><span class="p">(</span><span class="n">_ShuffleDataset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">input_dataset</span><span class="p">,</span> <span class="n">variant_tensor</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="stateless_shuffle_dataset"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat.stateless_shuffle_dataset">[docs]</a><span class="k">def</span> <span class="nf">stateless_shuffle_dataset</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">,</span>
+                              <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                              <span class="n">reshuffle_each_iteration</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Randomly shuffles the elements of the dataset based on a stateless shuffle implementation.</span>
+
+<span class="sd">  This method returns a stateless ShuffleDataset unconditionally. It can be</span>
+<span class="sd">  used with `dataset.apply()` to obtain a stateless shuffled dataset, which</span>
+<span class="sd">  supports the TF1 compatibility API `tf.data.make_one_shot_iterator()` in TF2.</span>
+<span class="sd">  Example:</span>
+<span class="sd">    &gt;&gt;&gt; dataset = tf.data.Dataset.range(3)</span>
+<span class="sd">    &gt;&gt;&gt; dataset = dataset.apply(</span>
+<span class="sd">    ...     stateless_shuffle_dataset((3, reshuffle_each_iteration=True))</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    buffer_size: A `tf.int64` scalar `tf.Tensor`, representing the number of</span>
+<span class="sd">      elements from this dataset from which the new dataset will sample.</span>
+<span class="sd">    seed: (Optional.) A `tf.int64` scalar `tf.Tensor`, representing the random</span>
+<span class="sd">      seed that will be used to create the distribution. See</span>
+<span class="sd">      `tf.random.set_seed` for behavior.</span>
+<span class="sd">    reshuffle_each_iteration: (Optional.) A boolean, which if true indicates</span>
+<span class="sd">      that the dataset should be pseudorandomly reshuffled each time it is</span>
+<span class="sd">      iterated over. (Defaults to `True`.)</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Dataset: A `Dataset`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_apply_fn</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+    <span class="n">out_dataset</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">DatasetV1Adapter</span><span class="p">(</span>
+        <span class="n">_ShuffleDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">buffer_size</span><span class="p">,</span> <span class="n">seed</span><span class="p">,</span> <span class="n">reshuffle_each_iteration</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out_dataset</span>
+
+  <span class="k">return</span> <span class="n">_apply_fn</span></div>
+
+
+<div class="viewcode-block" id="stateless_cache_dataset"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat.stateless_cache_dataset">[docs]</a><span class="k">def</span> <span class="nf">stateless_cache_dataset</span><span class="p">(</span><span class="n">filename</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Caches the elements in the dataset based on a stateless cache implementation.</span>
+
+<span class="sd">  This method returns a stateless CacheDataset unconditionally. It can be</span>
+<span class="sd">  used with `dataset.apply()` to obtain a stateless cached dataset, which</span>
+<span class="sd">  supports the TF1 compatibility API `tf.data.make_one_shot_iterator()` in TF2.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">    &gt;&gt;&gt; dataset = tf.data.Dataset.range(3)</span>
+<span class="sd">    &gt;&gt;&gt; dataset = dataset.apply(stateless_cache_dataset())</span>
+
+
+<span class="sd">  Args:</span>
+<span class="sd">    filename: A `tf.string` scalar `tf.Tensor`, representing the name of a</span>
+<span class="sd">      directory on the filesystem to use for caching elements in this Dataset.</span>
+<span class="sd">      If a filename is not provided, the dataset will be cached in memory.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">    Dataset: A `Dataset`.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+
+  <span class="k">def</span> <span class="nf">_apply_fn</span><span class="p">(</span><span class="n">dataset</span><span class="p">):</span>
+    <span class="n">out_dataset</span> <span class="o">=</span> <span class="n">dataset_ops</span><span class="o">.</span><span class="n">DatasetV1Adapter</span><span class="p">(</span><span class="n">_CacheDataset</span><span class="p">(</span><span class="n">dataset</span><span class="p">,</span> <span class="n">filename</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">out_dataset</span>
+
+  <span class="k">return</span> <span class="n">_apply_fn</span></div>
+
+
+<div class="viewcode-block" id="stateless_list_files"><a class="viewcode-back" href="../../lingvo.compat.html#lingvo.compat.stateless_list_files">[docs]</a><span class="k">def</span> <span class="nf">stateless_list_files</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;A dataset of all files matching one or more glob patterns.</span>
+
+<span class="sd">  Note that, if `shuffle` is not None, it will use a stateless shuffle</span>
+<span class="sd">  implementation. Then the returned dataset supports the TF1 compatibility API</span>
+<span class="sd">  `tf.data.make_one_shot_iterator()` in TF2.</span>
+
+<span class="sd">  Example:</span>
+<span class="sd">    &gt;&gt;&gt; dataset = tf.stateless_list_files(&quot;some_file_pattern&quot;)</span>
+
+<span class="sd">  Args:</span>
+<span class="sd">    file_pattern: A string, a list of strings, or a `tf.Tensor` of string type</span>
+<span class="sd">      (scalar or vector), representing the filename glob (i.e. shell wildcard)</span>
+<span class="sd">      pattern(s) that will be matched.</span>
+<span class="sd">    shuffle: (Optional.) If `True`, the file names will be shuffled randomly</span>
+<span class="sd">      based on a stateless implementation. Defaults to `True`.</span>
+<span class="sd">    seed: (Optional.) A `tf.int64` scalar `tf.Tensor`, representing the random</span>
+<span class="sd">      seed that will be used to create the distribution. See</span>
+<span class="sd">      `tf.random.set_seed` for behavior.</span>
+
+<span class="sd">  Returns:</span>
+<span class="sd">   Dataset: A `Dataset` of strings corresponding to file names.</span>
+<span class="sd">  &quot;&quot;&quot;</span>
+  <span class="k">with</span> <span class="n">ops</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="s2">&quot;list_files&quot;</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">shuffle</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">shuffle</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">file_pattern</span> <span class="o">=</span> <span class="n">ops</span><span class="o">.</span><span class="n">convert_to_tensor</span><span class="p">(</span>
+        <span class="n">file_pattern</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">string</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;file_pattern&quot;</span><span class="p">)</span>
+    <span class="n">matching_files</span> <span class="o">=</span> <span class="n">gen_io_ops</span><span class="o">.</span><span class="n">matching_files</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">)</span>
+
+    <span class="c1"># Raise an exception if `file_pattern` does not match any files.</span>
+    <span class="n">condition</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">greater</span><span class="p">(</span>
+        <span class="n">array_ops</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;match_not_empty&quot;</span><span class="p">)</span>
+    <span class="n">message</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+        <span class="s2">&quot;No files matched pattern: &quot;</span><span class="p">,</span>
+        <span class="n">strings</span><span class="o">.</span><span class="n">reduce_join</span><span class="p">(</span><span class="n">file_pattern</span><span class="p">,</span> <span class="n">separator</span><span class="o">=</span><span class="s2">&quot;, &quot;</span><span class="p">),</span>
+        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;message&quot;</span><span class="p">)</span>
+
+    <span class="n">assert_not_empty</span> <span class="o">=</span> <span class="n">debugging</span><span class="o">.</span><span class="n">Assert</span><span class="p">(</span>
+        <span class="n">condition</span><span class="p">,</span> <span class="p">[</span><span class="n">message</span><span class="p">],</span> <span class="n">summarize</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;assert_not_empty&quot;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">control_dependencies</span><span class="p">([</span><span class="n">assert_not_empty</span><span class="p">]):</span>
+      <span class="n">matching_files</span> <span class="o">=</span> <span class="n">identity</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)</span>
+
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">Dataset</span><span class="o">.</span><span class="n">from_tensor_slices</span><span class="p">(</span><span class="n">matching_files</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">shuffle</span><span class="p">:</span>
+      <span class="n">buffer_size</span> <span class="o">=</span> <span class="n">math_ops</span><span class="o">.</span><span class="n">maximum</span><span class="p">(</span>
+          <span class="n">shape</span><span class="p">(</span><span class="n">matching_files</span><span class="p">,</span> <span class="n">out_type</span><span class="o">=</span><span class="n">dtypes</span><span class="o">.</span><span class="n">int64</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="mi">1</span><span class="p">)</span>
+      <span class="c1"># Use stateless shuffled dataset</span>
+      <span class="n">dataset</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">stateless_shuffle_dataset</span><span class="p">(</span><span class="n">buffer_size</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">dataset</span></div>
 <span class="c1"># pylint: enable=undefined-variable, used-before-assignment</span>
 
 <span class="c1"># TF 1.x symbols used in the codebase.</span>
