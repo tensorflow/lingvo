@@ -2243,6 +2243,14 @@ class VarGrad:
     return 'VarGrad(%r, %r)' % (self._var_grad.var, self._var_grad.grad)
 
 
+def SkipNoneGradients(var_grads):
+  """Removes pairs whose grad is None."""
+  for key, (_, g) in var_grads.FlattenItems():
+    if g is None:
+      tf.logging.info('ComputeGradients drops %s', key)
+  return var_grads.Filter(lambda var_grad: var_grad.grad is not None)
+
+
 def ComputeGradients(
     loss,
     vmap,
@@ -2251,7 +2259,8 @@ def ComputeGradients(
     gate_gradients=False,
     compute_gradients_fn=None,
     skip_zero_gradients=None,
-    use_bf16_gradients_ar=False):
+    use_bf16_gradients_ar=False,
+    skip_none_gradients=True):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -2280,6 +2289,7 @@ def ComputeGradients(
           abs(grad) < 1e-8.
     use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
       all-reduce. This applies to TPU only.
+    skip_none_gradients: Whether to skip gradients that are None.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -2354,11 +2364,10 @@ def ComputeGradients(
 
     var_grads = var_grads.Filter(CheckGrad)
 
-  # Removes pairs whose grad is None.
-  for key, (_, g) in var_grads.FlattenItems():
-    if g is None:
-      tf.logging.info('ComputeGradients drops %s', key)
-  return var_grads.Filter(lambda var_grad: var_grad.grad is not None)
+  if skip_none_gradients:
+    var_grads = SkipNoneGradients(var_grads)
+
+  return var_grads
 
 
 def MaskGradients(var_grad, grad_mask):

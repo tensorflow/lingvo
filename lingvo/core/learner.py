@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-"""An learner optimizes a subset of variables according to a loss.
+"""A learner optimizes a subset of variables according to a loss.
 
 It consists of a learning rate schedule, an optimizer, and gradient clipping
 mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
@@ -43,8 +43,15 @@ class Learner(base_layer.BaseLayer):
         'If not None, L2 regularization to apply to the weights. '
         'Otherwise, disable L2 regularization.')
     p.Define(
-        'loss_name', None, 'Name of the loss this leaner to optimize. '
-        'If not set, use leaner name directly.')
+        'loss_name', None, 'Name(s) of the loss(es) this learner to optimize. '
+        'If not set, use learner name directly. '
+        'If given as a list, the gradients will be combined via a '
+        'GradientCombiner created from p.gradient_combiner, which must be '
+        'specified as well.')
+    p.Define(
+        'gradient_combiner', None,
+        'Params of a gradient_combiner.GradientCombiner used to combine '
+        'gradients from multiple losses.')
     p.Define(
         'l1_regularizer_weight', None,
         'If not None, L1 regularization to apply to the weights. '
@@ -109,6 +116,11 @@ class Learner(base_layer.BaseLayer):
       self.CreateChild('grad_norm_tracker', p.grad_norm_tracker)
     self.CreateChild('lr_schedule', p.lr_schedule)
     self.CreateChild('optimizer', p.optimizer)
+    if isinstance(p.loss_name, (list, tuple)):
+      assert p.gradient_combiner
+      self.CreateChild('gradient_combiner', p.gradient_combiner)
+    else:
+      assert p.gradient_combiner is None
 
   def _CreateChildrenVariables(self):
     # Backwards compatibility: manually call child.InstantiateVariables()
@@ -132,12 +144,12 @@ class Learner(base_layer.BaseLayer):
     def VariableFilter(v):
       """Returns True if variable v should be optimized by this learner."""
       if pos and not pos.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_filter: %s',
-                             p.name, v.name)
+        tf.logging.info('%s: disabled by bprop_variable_filter: %s', p.name,
+                        v.name)
         return False
       if neg and neg.search(v.name):
-        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s',
-                             p.name, v.name)
+        tf.logging.info('%s: disabled by bprop_variable_exclusion: %s', p.name,
+                        v.name)
         return False
       return True
 
@@ -161,38 +173,28 @@ class Learner(base_layer.BaseLayer):
     self._AddEvalMetric('lr_schedule', lrs, tf.constant(1.0))
     return p.learning_rate * lrs
 
-  def Apply(self, loss, vmap, gradient_mask=None, gradient_adjuster=None):
+  def Apply(self, metrics, vmap, gradient_mask=None, gradient_adjuster=None):
     """Computes updates on 'vmap' to optimize 'loss'.
 
     TODO(rpang): explore merging gradient_mask and gradient_adjuster.
 
     Args:
-      loss: A scalar Tensor.
+      metrics: A Dict[str, (value, weight)], from which loss can be extracted
+        according to p.loss_name.
       vmap: A `.NestedMap` object containing variables to optimize.
       gradient_mask: if not None, a dict mapping variable names to a 0/1 scalar.
       gradient_adjuster: if not None, a function that mutates a given var_grads.
 
     Returns:
-      (op, eval_metrics), where op is a tf.Operation to update variables.
+      (losses, op, eval_metrics), where
+        - losses is a list of scalar tensors;
+        - op is a tf.Operation to update variables;
+        - eval_metrics is a Dict[str, (value, weight)], where each value/weight
+          is a scalar tensor.
     """
     # We apply gradients outside the name_scope to maintain backwards
     # compatibility on variables created by self.optimizer.Apply().
-    p = self.params
-
-    vmap = self.GetTrainableVariables(vmap)
-
-    for v in vmap.Flatten():
-      tf.logging.info('%s: bprop variable: %s', p.name, v.name)
-
-    # Compute gradients.
-    var_grads = self.optimizer.ComputeGradients(
-        loss,
-        vmap,
-        p.grad_aggregation_method,
-        p.colocate_gradients_with_ops,
-        p.gate_gradients,
-        compute_gradients_fn=None,
-        skip_zero_gradients=p.skip_zero_gradients)
+    losses, var_grads = self._ComputeLossesAndGradients(metrics, vmap)
 
     var_grads, stats = self.AdjustGradients(
         var_grads,
@@ -204,7 +206,55 @@ class Learner(base_layer.BaseLayer):
     lr = self.LearningRate(self.theta.global_step)
 
     var_update_op = self.optimizer.Apply(lr, var_grads)
-    return var_update_op, stats
+    return losses, var_update_op, stats
+
+  def _CustomComputeGradientsFn(self):
+    """Returns the compute_gradients_fn to use for py_utils.ComputeGradients."""
+    return None  # use the default function
+
+  def _ComputeLossesAndGradients(self, metrics, vmap):
+    p = self.params
+    vmap = self.GetTrainableVariables(vmap)
+
+    for v in vmap.Flatten():
+      tf.logging.info('%s: bprop variable: %s', p.name, v.name)
+
+    def LossAndGradients(metric_name):
+      """Returns (loss, var_grads) computed from metrics[metric_name]."""
+      metric = metrics.get(metric_name, None)
+      if metric is None:
+        raise ValueError('Loss %s not found in metrics %s' %
+                         (metric_name, list(metrics.keys())))
+      # TODO(b/154785713): pass (loss, loss_weight) to ComputeGradients().
+      loss = metric[0]
+      return metric, self.optimizer.ComputeGradients(
+          loss,
+          vmap,
+          p.grad_aggregation_method,
+          p.colocate_gradients_with_ops,
+          p.gate_gradients,
+          compute_gradients_fn=self._CustomComputeGradientsFn(),
+          skip_zero_gradients=p.skip_zero_gradients,
+          skip_none_gradients=False)
+
+    loss_name = p.loss_name or p.name
+    losses = []
+    if isinstance(loss_name, (list, tuple)):
+      losses_and_grads = {}
+      for metric_name in loss_name:
+        loss_metric, var_grads = LossAndGradients(metric_name)
+        losses_and_grads[metric_name] = py_utils.NestedMap(
+            loss_metric=loss_metric,
+            grads=tf.nest.map_structure(lambda vg: vg.grad, var_grads))
+        losses.append(loss_metric[0])
+      grads = self.gradient_combiner.Combine(vmap, losses_and_grads)
+      var_grads = tf.nest.map_structure(
+          lambda v, g: py_utils.VarGrad(var=v, grad=g), vmap, grads)
+    else:
+      loss_metric, var_grads = LossAndGradients(loss_name)
+      losses.append(loss_metric[0])
+
+    return losses, py_utils.SkipNoneGradients(var_grads)
 
   def AdjustGradients(self,
                       var_grads,

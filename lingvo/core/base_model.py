@@ -564,18 +564,13 @@ class BaseTask(base_layer.BaseLayer):
     all_losses = []
     for optimization in self.learners:
       learner_name = optimization.params.name
-      loss_name = optimization.params.loss_name or learner_name
-      metric = metrics.get(loss_name, None)
-      if metric is None:
-        raise ValueError('Loss %s not found in metrics %s' %
-                         (loss_name, list(metrics.keys())))
-      loss = metric[0]
-      all_losses.append(loss)
-      train_ops['train/%s' % learner_name], eval_metrics = optimization.Apply(
-          loss,
-          vmap,
-          gradient_mask=gradient_mask,
-          gradient_adjuster=self.AdjustGradients)
+      (losses, train_ops['train/%s' % learner_name],
+       eval_metrics) = optimization.Apply(
+           metrics,
+           vmap,
+           gradient_mask=gradient_mask,
+           gradient_adjuster=self.AdjustGradients)
+      all_losses.extend(losses)
       if add_summary:
         for key, (value, weight) in eval_metrics.items():
           self.AddEvalMetric(key + '/' + learner_name, value, weight)

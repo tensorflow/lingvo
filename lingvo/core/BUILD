@@ -776,6 +776,7 @@ py_library(
     srcs_version = "PY3",
     deps = [
         ":base_layer",
+        ":gradient_combiner",
         ":optimizer",
         ":py_utils",
         ":schedule",
@@ -2126,4 +2127,11 @@ py_library(
         ":schedule",
         "//lingvo:compat",
     ],
+)
+
+py_library(
+    name = "gradient_combiner",
+    srcs = ["gradient_combiner.py"],
+    srcs_version = "PY3",
+    deps = [":base_layer"],
 )

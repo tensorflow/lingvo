@@ -17,6 +17,7 @@
 
 import lingvo.compat as tf
 from lingvo.core import base_layer
+from lingvo.core import gradient_combiner
 from lingvo.core import learner
 from lingvo.core import optimizer
 from lingvo.core import py_utils
@@ -34,9 +35,32 @@ class TestLayer(base_layer.BaseLayer):
         collections=self._VariableCollections())
     self.CreateVariable('hello', pc)
     self.CreateVariable('world', pc)
+    self.CreateVariable('moon', pc)
 
   def Loss(self, theta):
-    return theta.hello + -2 * theta.world
+    return self.MainLoss(theta) + self.AuxLoss(theta)
+
+  def MainLoss(self, theta):
+    return theta.hello
+
+  def AuxLoss(self, theta):
+    return -2 * theta.world
+
+
+class GradientSum(gradient_combiner.GradientCombiner):
+
+  def Combine(self, vmap, losses_and_grads):
+    """Computes the sum of gradients on the variables."""
+
+    def GradSum(v, *gs):
+      tf.logging.info('GradSum: %s: %s', v, gs)
+      if all(g is None for g in gs):
+        return None
+      return tf.add_n([g for g in gs if g is not None])
+
+    grads = [l_and_g.grads for l_and_g in losses_and_grads.values()]
+    tf.logging.info('grads: %s', grads)
+    return tf.nest.map_structure(GradSum, vmap, *grads)
 
 
 class LearnerTest(test_utils.TestCase):
@@ -45,8 +69,18 @@ class LearnerTest(test_utils.TestCase):
     learner_p = learner.Learner.Params().Set(
         name='learner', learning_rate=.1, optimizer=optimizer.SGD.Params())
     var_grads, updated_vars, _ = self._testLearner(learner_p)
+    tf.logging.info('var_grads=%s, updated_vars=%s', var_grads, updated_vars)
     self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
-    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2})
+    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2, 'moon': 0.})
+
+  def testMultiLoss(self):
+    learner_p = learner.Learner.Params().Set(
+        name='learner', learning_rate=.1, optimizer=optimizer.SGD.Params())
+    learner_p.loss_name = ('main_loss', 'aux_loss')
+    learner_p.gradient_combiner = GradientSum.Params()
+    var_grads, updated_vars, _ = self._testLearner(learner_p)
+    self.assertAllClose(var_grads, {'hello': (0., 1.), 'world': (0., -2.)})
+    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.2, 'moon': 0.})
 
   def testBPropVariableFilter(self):
     learner_p = learner.Learner.Params().Set(
@@ -57,7 +91,7 @@ class LearnerTest(test_utils.TestCase):
     var_grads, updated_vars, eval_metrics = self._testLearner(learner_p)
     # Only 'hello' is updated.
     self.assertAllClose(var_grads, {'hello': (0., 1.)})
-    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0.})
+    self.assertAllClose(updated_vars, {'hello': -0.1, 'world': 0., 'moon': 0.})
     self.assertIn('grad_scale_all', eval_metrics)
 
   def testBPropVariableExclusion(self):
@@ -70,14 +104,23 @@ class LearnerTest(test_utils.TestCase):
     var_grads, updated_vars, _ = self._testLearner(learner_p)
     # Only 'world' is updated.
     self.assertAllClose(var_grads, {'world': (0., -2.)})
-    self.assertAllClose(updated_vars, {'hello': 0., 'world': 0.2})
+    self.assertAllClose(updated_vars, {'hello': 0., 'world': 0.2, 'moon': 0.})
 
   def _testLearner(self, learner_p):
     tf.train.get_or_create_global_step()  # needed for lr_schedule
     lrnr = learner_p.Instantiate()
     layer = TestLayer.Params().Set(name='test').Instantiate()
-    loss = layer.Loss(layer.theta)
-    update_op, eval_metrics = lrnr.Apply(loss, layer.vars)
+    if isinstance(learner_p.loss_name, (list, tuple)):
+      main_loss = layer.MainLoss(layer.theta)
+      aux_loss = layer.AuxLoss(layer.theta)
+      metrics = {'main_loss': (main_loss, 1.), 'aux_loss': (aux_loss, 1.)}
+      expected_losses = [main_loss, aux_loss]
+    else:
+      loss = layer.Loss(layer.theta)
+      metrics = {learner_p.name: (loss, 1.)}
+      expected_losses = [loss]
+    losses, update_op, eval_metrics = lrnr.Apply(metrics, layer.vars)
+    self.assertAllEqual(losses, expected_losses)
     with self.session():
       self.evaluate(tf.global_variables_initializer())
       var_grads = self.evaluate(lrnr.GetVarGrads().Transform(tuple))
