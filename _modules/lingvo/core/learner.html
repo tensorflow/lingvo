@@ -161,7 +161,7 @@
 <span class="c1"># See the License for the specific language governing permissions and</span>
 <span class="c1"># limitations under the License.</span>
 <span class="c1"># ==============================================================================</span>
-<span class="sd">&quot;&quot;&quot;An learner optimizes a subset of variables according to a loss.</span>
+<span class="sd">&quot;&quot;&quot;A learner optimizes a subset of variables according to a loss.</span>
 
 <span class="sd">It consists of a learning rate schedule, an optimizer, and gradient clipping</span>
 <span class="sd">mechanisms. A BaseTask can have multiple learners, each optimizing a (usually</span>
@@ -191,8 +191,15 @@
         <span class="s1">&#39;If not None, L2 regularization to apply to the weights. &#39;</span>
         <span class="s1">&#39;Otherwise, disable L2 regularization.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
-        <span class="s1">&#39;loss_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name of the loss this leaner to optimize. &#39;</span>
-        <span class="s1">&#39;If not set, use leaner name directly.&#39;</span><span class="p">)</span>
+        <span class="s1">&#39;loss_name&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Name(s) of the loss(es) this learner to optimize. &#39;</span>
+        <span class="s1">&#39;If not set, use learner name directly. &#39;</span>
+        <span class="s1">&#39;If given as a list, the gradients will be combined via a &#39;</span>
+        <span class="s1">&#39;GradientCombiner created from p.gradient_combiner, which must be &#39;</span>
+        <span class="s1">&#39;specified as well.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;gradient_combiner&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s1">&#39;Params of a gradient_combiner.GradientCombiner used to combine &#39;</span>
+        <span class="s1">&#39;gradients from multiple losses.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
         <span class="s1">&#39;l1_regularizer_weight&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span>
         <span class="s1">&#39;If not None, L1 regularization to apply to the weights. &#39;</span>
@@ -257,6 +264,11 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;grad_norm_tracker&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">grad_norm_tracker</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">lr_schedule</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;optimizer&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">optimizer</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">loss_name</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span>
+      <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;gradient_combiner&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">gradient_combiner</span> <span class="ow">is</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="Learner._CreateChildrenVariables"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CreateChildrenVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateChildrenVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="c1"># Backwards compatibility: manually call child.InstantiateVariables()</span>
@@ -280,12 +292,12 @@
     <span class="k">def</span> <span class="nf">VariableFilter</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
       <span class="sd">&quot;&quot;&quot;Returns True if variable v should be optimized by this learner.&quot;&quot;&quot;</span>
       <span class="k">if</span> <span class="n">pos</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">pos</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_filter: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">False</span>
       <span class="k">if</span> <span class="n">neg</span> <span class="ow">and</span> <span class="n">neg</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
-                             <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: disabled by bprop_variable_exclusion: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                        <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         <span class="k">return</span> <span class="kc">False</span>
       <span class="k">return</span> <span class="kc">True</span>
 
@@ -309,38 +321,28 @@
     <span class="bp">self</span><span class="o">.</span><span class="n">_AddEvalMetric</span><span class="p">(</span><span class="s1">&#39;lr_schedule&#39;</span><span class="p">,</span> <span class="n">lrs</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">constant</span><span class="p">(</span><span class="mf">1.0</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">p</span><span class="o">.</span><span class="n">learning_rate</span> <span class="o">*</span> <span class="n">lrs</span></div>
 
-<div class="viewcode-block" id="Learner.Apply"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">loss</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<div class="viewcode-block" id="Learner.Apply"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.Apply">[docs]</a>  <span class="k">def</span> <span class="nf">Apply</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">gradient_mask</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">gradient_adjuster</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Computes updates on &#39;vmap&#39; to optimize &#39;loss&#39;.</span>
 
 <span class="sd">    TODO(rpang): explore merging gradient_mask and gradient_adjuster.</span>
 
 <span class="sd">    Args:</span>
-<span class="sd">      loss: A scalar Tensor.</span>
+<span class="sd">      metrics: A Dict[str, (value, weight)], from which loss can be extracted</span>
+<span class="sd">        according to p.loss_name.</span>
 <span class="sd">      vmap: A `.NestedMap` object containing variables to optimize.</span>
 <span class="sd">      gradient_mask: if not None, a dict mapping variable names to a 0/1 scalar.</span>
 <span class="sd">      gradient_adjuster: if not None, a function that mutates a given var_grads.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">      (op, eval_metrics), where op is a tf.Operation to update variables.</span>
+<span class="sd">      (losses, op, eval_metrics), where</span>
+<span class="sd">        - losses is a list of scalar tensors;</span>
+<span class="sd">        - op is a tf.Operation to update variables;</span>
+<span class="sd">        - eval_metrics is a Dict[str, (value, weight)], where each value/weight</span>
+<span class="sd">          is a scalar tensor.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># We apply gradients outside the name_scope to maintain backwards</span>
     <span class="c1"># compatibility on variables created by self.optimizer.Apply().</span>
-    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-
-    <span class="n">vmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTrainableVariables</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
-
-    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
-
-    <span class="c1"># Compute gradients.</span>
-    <span class="n">var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span>
-        <span class="n">loss</span><span class="p">,</span>
-        <span class="n">vmap</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
-        <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">,</span>
-        <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-        <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">skip_zero_gradients</span><span class="p">)</span>
+    <span class="n">losses</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ComputeLossesAndGradients</span><span class="p">(</span><span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">)</span>
 
     <span class="n">var_grads</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">AdjustGradients</span><span class="p">(</span>
         <span class="n">var_grads</span><span class="p">,</span>
@@ -352,7 +354,55 @@
     <span class="n">lr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">LearningRate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">theta</span><span class="o">.</span><span class="n">global_step</span><span class="p">)</span>
 
     <span class="n">var_update_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">Apply</span><span class="p">(</span><span class="n">lr</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">stats</span></div>
+    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">var_update_op</span><span class="p">,</span> <span class="n">stats</span></div>
+
+<div class="viewcode-block" id="Learner._CustomComputeGradientsFn"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._CustomComputeGradientsFn">[docs]</a>  <span class="k">def</span> <span class="nf">_CustomComputeGradientsFn</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns the compute_gradients_fn to use for py_utils.ComputeGradients.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="kc">None</span>  <span class="c1"># use the default function</span></div>
+
+<div class="viewcode-block" id="Learner._ComputeLossesAndGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner._ComputeLossesAndGradients">[docs]</a>  <span class="k">def</span> <span class="nf">_ComputeLossesAndGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">metrics</span><span class="p">,</span> <span class="n">vmap</span><span class="p">):</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="n">vmap</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GetTrainableVariables</span><span class="p">(</span><span class="n">vmap</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">vmap</span><span class="o">.</span><span class="n">Flatten</span><span class="p">():</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">%s</span><span class="s1">: bprop variable: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">LossAndGradients</span><span class="p">(</span><span class="n">metric_name</span><span class="p">):</span>
+      <span class="sd">&quot;&quot;&quot;Returns (loss, var_grads) computed from metrics[metric_name].&quot;&quot;&quot;</span>
+      <span class="n">metric</span> <span class="o">=</span> <span class="n">metrics</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">metric</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Loss </span><span class="si">%s</span><span class="s1"> not found in metrics </span><span class="si">%s</span><span class="s1">&#39;</span> <span class="o">%</span>
+                         <span class="p">(</span><span class="n">metric_name</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">metrics</span><span class="o">.</span><span class="n">keys</span><span class="p">())))</span>
+      <span class="c1"># TODO(b/154785713): pass (loss, loss_weight) to ComputeGradients().</span>
+      <span class="n">loss</span> <span class="o">=</span> <span class="n">metric</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="k">return</span> <span class="n">metric</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">optimizer</span><span class="o">.</span><span class="n">ComputeGradients</span><span class="p">(</span>
+          <span class="n">loss</span><span class="p">,</span>
+          <span class="n">vmap</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">grad_aggregation_method</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">colocate_gradients_with_ops</span><span class="p">,</span>
+          <span class="n">p</span><span class="o">.</span><span class="n">gate_gradients</span><span class="p">,</span>
+          <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_CustomComputeGradientsFn</span><span class="p">(),</span>
+          <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">skip_zero_gradients</span><span class="p">,</span>
+          <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="n">loss_name</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">loss_name</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">losses</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">loss_name</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+      <span class="n">losses_and_grads</span> <span class="o">=</span> <span class="p">{}</span>
+      <span class="k">for</span> <span class="n">metric_name</span> <span class="ow">in</span> <span class="n">loss_name</span><span class="p">:</span>
+        <span class="n">loss_metric</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="n">LossAndGradients</span><span class="p">(</span><span class="n">metric_name</span><span class="p">)</span>
+        <span class="n">losses_and_grads</span><span class="p">[</span><span class="n">metric_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
+            <span class="n">loss_metric</span><span class="o">=</span><span class="n">loss_metric</span><span class="p">,</span>
+            <span class="n">grads</span><span class="o">=</span><span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span><span class="k">lambda</span> <span class="n">vg</span><span class="p">:</span> <span class="n">vg</span><span class="o">.</span><span class="n">grad</span><span class="p">,</span> <span class="n">var_grads</span><span class="p">))</span>
+        <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_metric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+      <span class="n">grads</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gradient_combiner</span><span class="o">.</span><span class="n">Combine</span><span class="p">(</span><span class="n">vmap</span><span class="p">,</span> <span class="n">losses_and_grads</span><span class="p">)</span>
+      <span class="n">var_grads</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nest</span><span class="o">.</span><span class="n">map_structure</span><span class="p">(</span>
+          <span class="k">lambda</span> <span class="n">v</span><span class="p">,</span> <span class="n">g</span><span class="p">:</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">VarGrad</span><span class="p">(</span><span class="n">var</span><span class="o">=</span><span class="n">v</span><span class="p">,</span> <span class="n">grad</span><span class="o">=</span><span class="n">g</span><span class="p">),</span> <span class="n">vmap</span><span class="p">,</span> <span class="n">grads</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">loss_metric</span><span class="p">,</span> <span class="n">var_grads</span> <span class="o">=</span> <span class="n">LossAndGradients</span><span class="p">(</span><span class="n">loss_name</span><span class="p">)</span>
+      <span class="n">losses</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">loss_metric</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">losses</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="Learner.AdjustGradients"><a class="viewcode-back" href="../../../lingvo.core.learner.html#lingvo.core.learner.Learner.AdjustGradients">[docs]</a>  <span class="k">def</span> <span class="nf">AdjustGradients</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                       <span class="n">var_grads</span><span class="p">,</span>

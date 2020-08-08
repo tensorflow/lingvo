@@ -168,7 +168,7 @@
             
   <div class="section" id="module-lingvo.core.learner">
 <span id="lingvo-core-learner-module"></span><h1>lingvo.core.learner module<a class="headerlink" href="#module-lingvo.core.learner" title="Permalink to this headline">¶</a></h1>
-<p>An learner optimizes a subset of variables according to a loss.</p>
+<p>A learner optimizes a subset of variables according to a loss.</p>
 <p>It consists of a learning rate schedule, an optimizer, and gradient clipping
 mechanisms. A BaseTask can have multiple learners, each optimizing a (usually
 disjoint) subset of variables.</p>
@@ -230,23 +230,44 @@ breaking old checkpoints, you can go ahead and delete those functions.</p>
 
 <dl class="py method">
 <dt id="lingvo.core.learner.Learner.Apply">
-<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">gradient_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gradient_adjuster</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">Apply</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">gradient_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">gradient_adjuster</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner.Apply"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner.Apply" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes updates on ‘vmap’ to optimize ‘loss’.</p>
 <p>TODO(rpang): explore merging gradient_mask and gradient_adjuster.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>loss</strong> – A scalar Tensor.</p></li>
+<li><p><strong>metrics</strong> – A Dict[str, (value, weight)], from which loss can be extracted
+according to p.loss_name.</p></li>
 <li><p><strong>vmap</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing variables to optimize.</p></li>
 <li><p><strong>gradient_mask</strong> – if not None, a dict mapping variable names to a 0/1 scalar.</p></li>
 <li><p><strong>gradient_adjuster</strong> – if not None, a function that mutates a given var_grads.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
-<dd class="field-even"><p>(op, eval_metrics), where op is a tf.Operation to update variables.</p>
+<dd class="field-even"><p><dl class="simple">
+<dt>(losses, op, eval_metrics), where</dt><dd><ul class="simple">
+<li><p>losses is a list of scalar tensors;</p></li>
+<li><p>op is a tf.Operation to update variables;</p></li>
+<li><p>eval_metrics is a Dict[str, (value, weight)], where each value/weight
+is a scalar tensor.</p></li>
+</ul>
+</dd>
+</dl>
+</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.learner.Learner._CustomComputeGradientsFn">
+<code class="sig-name descname">_CustomComputeGradientsFn</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._CustomComputeGradientsFn"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner._CustomComputeGradientsFn" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the compute_gradients_fn to use for py_utils.ComputeGradients.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.learner.Learner._ComputeLossesAndGradients">
+<code class="sig-name descname">_ComputeLossesAndGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">metrics</span></em>, <em class="sig-param"><span class="n">vmap</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/learner.html#Learner._ComputeLossesAndGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.learner.Learner._ComputeLossesAndGradients" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.learner.Learner.AdjustGradients">

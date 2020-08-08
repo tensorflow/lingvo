@@ -1411,8 +1411,14 @@ all-reduce.</p></li>
 </dd></dl>
 
 <dl class="py function">
+<dt id="lingvo.core.py_utils.SkipNoneGradients">
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">SkipNoneGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">var_grads</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#SkipNoneGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.SkipNoneGradients" title="Permalink to this definition">¶</a></dt>
+<dd><p>Removes pairs whose grad is None.</p>
+</dd></dl>
+
+<dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">skip_none_gradients</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1446,6 +1452,7 @@ abs(grad) &lt; 1e-8.</p></li>
 </p></li>
 <li><p><strong>use_bf16_gradients_ar</strong> – Whether to use bfloat16 dtype for gradients
 all-reduce. This applies to TPU only.</p></li>
+<li><p><strong>skip_none_gradients</strong> – Whether to skip gradients that are None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

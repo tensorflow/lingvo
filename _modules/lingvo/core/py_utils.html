@@ -2391,6 +2391,14 @@
     <span class="k">return</span> <span class="s1">&#39;VarGrad(</span><span class="si">%r</span><span class="s1">, </span><span class="si">%r</span><span class="s1">)&#39;</span> <span class="o">%</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_var_grad</span><span class="o">.</span><span class="n">grad</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="SkipNoneGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.SkipNoneGradients">[docs]</a><span class="k">def</span> <span class="nf">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Removes pairs whose grad is None.&quot;&quot;&quot;</span>
+  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
+    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ComputeGradients drops </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
+  <span class="k">return</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">var_grad</span><span class="p">:</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
+
+
 <div class="viewcode-block" id="ComputeGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.ComputeGradients">[docs]</a><span class="k">def</span> <span class="nf">ComputeGradients</span><span class="p">(</span>
     <span class="n">loss</span><span class="p">,</span>
     <span class="n">vmap</span><span class="p">,</span>
@@ -2399,7 +2407,8 @@
     <span class="n">gate_gradients</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
     <span class="n">compute_gradients_fn</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
     <span class="n">skip_zero_gradients</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
-    <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">skip_none_gradients</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Computes gradients of variables in vmap w.r.t loss.</span>
 
 <span class="sd">  Args:</span>
@@ -2428,6 +2437,7 @@
 <span class="sd">          abs(grad) &lt; 1e-8.</span>
 <span class="sd">    use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients</span>
 <span class="sd">      all-reduce. This applies to TPU only.</span>
+<span class="sd">    skip_none_gradients: Whether to skip gradients that are None.</span>
 
 <span class="sd">  Returns:</span>
 <span class="sd">    var_grad - a `.NestedMap` of VarGrad. You can view</span>
@@ -2502,11 +2512,10 @@
 
     <span class="n">var_grads</span> <span class="o">=</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="n">CheckGrad</span><span class="p">)</span>
 
-  <span class="c1"># Removes pairs whose grad is None.</span>
-  <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="p">(</span><span class="n">_</span><span class="p">,</span> <span class="n">g</span><span class="p">)</span> <span class="ow">in</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">FlattenItems</span><span class="p">():</span>
-    <span class="k">if</span> <span class="n">g</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-      <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;ComputeGradients drops </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">key</span><span class="p">)</span>
-  <span class="k">return</span> <span class="n">var_grads</span><span class="o">.</span><span class="n">Filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">var_grad</span><span class="p">:</span> <span class="n">var_grad</span><span class="o">.</span><span class="n">grad</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">)</span></div>
+  <span class="k">if</span> <span class="n">skip_none_gradients</span><span class="p">:</span>
+    <span class="n">var_grads</span> <span class="o">=</span> <span class="n">SkipNoneGradients</span><span class="p">(</span><span class="n">var_grads</span><span class="p">)</span>
+
+  <span class="k">return</span> <span class="n">var_grads</span></div>
 
 
 <div class="viewcode-block" id="MaskGradients"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.MaskGradients">[docs]</a><span class="k">def</span> <span class="nf">MaskGradients</span><span class="p">(</span><span class="n">var_grad</span><span class="p">,</span> <span class="n">grad_mask</span><span class="p">):</span>
