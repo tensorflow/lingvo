@@ -25,7 +25,7 @@ from lingvo.core import layers
 from lingvo.core import layers_with_attention
 
 
-class LConv2DLayer(base_layer.BaseLayer):
+class LConvLayer(base_layer.BaseLayer):
   r"""Lightweight conv layer.
 
   architecture::
@@ -200,7 +200,7 @@ class ConformerLayer(base_layer.BaseLayer):
     p.Define('trans_atten_tpl',
              attention_lib.TransformerAttentionLayer.Params(),
              'Self attention layer params.')
-    p.Define('lconv_tpl', LConv2DLayer.Params(), 'Convolution module params.')
+    p.Define('lconv_tpl', LConvLayer.Params(), 'Convolution module params.')
     p.Define('fflayer_end_tpl',
              layers_with_attention.TransformerFeedForwardLayer.Params(),
              'Layer params for Feed forward layer at the end.')

@@ -22,14 +22,14 @@ from lingvo.core import conformer_layer
 from lingvo.core import test_utils
 
 
-class LConv2DLayerTest(test_utils.TestCase, parameterized.TestCase):
+class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testBasic(self):
     batch, seqlen, dim = 2, 16, 4
     inputs = tf.zeros([batch, seqlen, dim])
     paddings = tf.zeros([batch, seqlen])
 
-    p = conformer_layer.LConv2DLayer.CommonParams(input_dim=dim, kernel_size=3)
+    p = conformer_layer.LConvLayer.CommonParams(input_dim=dim, kernel_size=3)
     p.name = 'lconv_layer'
     l = p.Instantiate()
     outputs = l.FPropDefaultTheta(inputs, paddings)
