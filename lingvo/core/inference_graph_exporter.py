@@ -425,6 +425,22 @@ class InferenceGraphExporter:
             if not subgraph_filter or name in subgraph_filter:
               inference_graph_proto.subgraphs[name].CopyFrom(subgraph)
 
+          # Yes, graph collections are bad, however this seems to be the
+          # easiest way to get this assets registered from
+          # TextFileInitializer.
+          assets_collection = tf.compat.v1.get_collection(
+              tf.compat.v1.GraphKeys.ASSET_FILEPATHS)
+          for asset in assets_collection:
+            if asset.op.type == 'Const' and asset.op.get_attr(
+                'dtype') == tf.dtypes.string:
+              constant_value = asset.op.get_attr('value')
+              if constant_value.string_val:
+                tf.logging.info('Found asset file_path: %s',
+                                constant_value.string_val[0])
+                asset_file_def = inference_graph_proto.asset_file_def.add()
+                asset_file_def.tensor_info.name = asset.name
+                asset_file_def.filename = constant_value.string_val[0]
+
           # Add a table init op and global variable init op to the graph.
           # Tables can be declared anywhere in the graph, so this op has to be
           # added last.

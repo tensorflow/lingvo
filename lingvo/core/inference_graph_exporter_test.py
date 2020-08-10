@@ -185,6 +185,12 @@ class LinearModel(base_model.BaseTask):
 
   def Inference(self):
     """Computes y = w^T x + b. Returns y and x, as outputs and inputs."""
+    # Add a dummy file def to the collection
+    filename = tf.convert_to_tensor(
+        'dummy.txt', tf.dtypes.string, name='asset_filepath')
+    tf.compat.v1.add_to_collection(tf.compat.v1.GraphKeys.ASSET_FILEPATHS,
+                                   filename)
+
     with tf.name_scope('inference'):
       x = tf.placeholder(dtype=tf.float32, name='input')
       r = tf.random.stateless_uniform([3],
@@ -266,6 +272,7 @@ class InferenceGraphExporterLinearModelTest(test_utils.TestCase):
     inference_graph = inference_graph_exporter.InferenceGraphExporter.Export(
         params, subgraph_filter=['default'])
     self.assertIn('default', inference_graph.subgraphs)
+    self.assertEqual(1, len(inference_graph.asset_file_def))
 
   def testExportFreezeDefault(self):
     """Test exporting frozen graph."""

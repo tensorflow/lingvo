@@ -21,6 +21,7 @@ limitations under the License.
 #include "google/protobuf/descriptor.h"
 #include "tensorflow/core/framework/graph.pb.h"
 #include "tensorflow/core/framework/types.pb.h"
+#include "tensorflow/core/protobuf/meta_graph.pb.h"
 #include "tensorflow/core/protobuf/saver.pb.h"
 
 namespace {
@@ -57,6 +58,8 @@ void GenerateProtoDefs(const char* output_dirpath) {
                    &printed_files);
   GenerateProtoDef(tensorflow::SaverDef::descriptor()->file(), output_dirpath,
                    &printed_files);
+  GenerateProtoDef(tensorflow::MetaGraphDef::descriptor()->file(),
+                   output_dirpath, &printed_files);
 }
 }  // namespace
 

@@ -20,6 +20,7 @@ package tensorflow.lingvo;
 import "google/protobuf/any.proto";
 import "tensorflow/core/framework/graph.proto";
 import "tensorflow/core/framework/types.proto";
+import "tensorflow/core/protobuf/meta_graph.proto";
 import "tensorflow/core/protobuf/saver.proto";
 
 // Represents a frozen graph constructed at training time which can be used with
@@ -119,4 +120,6 @@ message InferenceGraph {
   }
 
   reserved 3, 4, 6;  // deprecated fields.
+
+  repeated tensorflow.AssetFileDef asset_file_def = 10;
 }
