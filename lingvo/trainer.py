@@ -541,7 +541,7 @@ class TrainerTpu(base_runner.BaseRunner):
         self._task.input.InstantiateVariables()
         self._task.input.CreateTpuEnqueueOps()
         self._eval_metrics = metrics.TpuEvalMetrics()
-        # Needed due to the AddExtraTheta() reference to global_Step when
+        # Needed due to the AddExtraTheta() reference to global_step when
         # instantiating the InputGenerator.
         _ = py_utils.GetOrCreateGlobalStepVar()
 
