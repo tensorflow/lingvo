@@ -107,8 +107,6 @@ class PunctuatorInput(base_input_generator.BaseSequenceInputGenerator):
      self._tgt_labels,
      self._tgt_weights), self._bucket_keys = self._BuildDataSource()
 
-    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
-
   def InfeedBatchSize(self):
     """Override BaseSequenceInputGenerator."""
     return tf.shape(self._src_ids)[0]

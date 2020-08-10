@@ -115,9 +115,6 @@ class NmtInput(base_input_generator.BaseSequenceInputGenerator):
                                                       p.target_max_length, 0,
                                                       target_shape)
 
-    # TODO(zhifengc): come up more meaningful training sample ids here.
-    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
-
   def InfeedBatchSize(self):
     """Override BaseSequenceInputGenerator."""
     return tf.shape(self._src_ids)[0]
@@ -231,8 +228,6 @@ class MlPerfInput(base_input_generator.BaseSequenceInputGenerator):
       self._tgt_seg_pos = py_utils.PadSequenceDimension(self._tgt_seg_pos,
                                                         p.target_max_length, 0,
                                                         target_shape)
-
-    self._sample_ids = tf.range(0, self.InfeedBatchSize(), 1)
 
   def InfeedBatchSize(self):
     """Override BaseSequenceInputGenerator."""
