@@ -234,7 +234,7 @@ class StateLayer(base_layer.BaseLayer):
         state_slice_size = int(state.shape[2])
         update_slice_size = int(x.shape[1])
         if update_slice_size == state_slice_size:
-          state = tf.InplaceUpdate(state, t, x)
+          state = tf.InplaceUpdate(state, t, tf.cast(x, state.dtype))
         else:
           # With prefix decoding the first call to decoder can have
           # sequence length (N * beam_size) with N > 1.
@@ -244,10 +244,10 @@ class StateLayer(base_layer.BaseLayer):
           assert update_slice_size == state_slice_size * div, (
               update_slice_size, state_slice_size)
           for i, x_i in enumerate(tf.split(x, div, 1)):
-            state = tf.InplaceUpdate(state, t + i, x_i)
+            state = tf.InplaceUpdate(state, t + i, tf.cast(x_i, state.dtype))
         tf.logging.info('state*=%r', state)
         # [T,B,L,...]
-        y = state
+        y = tf.cast(state, x.dtype)
         # [T, B, L, ...] -> [B, T, L, ...]
         perm = list(range(len(y.shape)))
         perm[:2] = [1, 0]
