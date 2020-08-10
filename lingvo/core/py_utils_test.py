@@ -501,12 +501,7 @@ class PyUtilsTest(test_utils.TestCase):
     self.assertIsInstance(py_utils.GetShape(e)[1], tf.Tensor)
     self.assertIsInstance(py_utils.GetShape(e)[2], tf.Tensor)
 
-    @tf.Defun(tf.float32)
-    def Identity(x):
-      return x
-
-    f = Identity(e)
-    # Function return value does not have shape info.
+    f = tf.placeholder(tf.float32)
     self.assertIsNone(f.shape.ndims)
     # GetShape() will return a Tensor.
     self.assertIsInstance(py_utils.GetShape(f), tf.Tensor)
@@ -521,15 +516,12 @@ class PyUtilsTest(test_utils.TestCase):
     d = tf.placeholder(tf.float32, shape=(1, None))
     self.assertIsInstance(py_utils.GetSize(d), tf.Tensor)
 
-    @tf.Defun(tf.float32)
-    def Identity(x):
-      return x
-
-    f = py_utils.GetSize(Identity(d))
+    shape = tf.placeholder(tf.int32)
+    f = py_utils.GetSize(tf.reshape(d, shape))
     self.assertIsInstance(f, tf.Tensor)
 
     with self.session() as sess:
-      f_v = sess.run(f, feed_dict={d: np.array([[1, 2]])})
+      f_v = sess.run(f, feed_dict={d: np.array([[1, 2]]), shape: [2]})
       self.assertEqual(2, f_v)
 
   def testUpdateFpropDtype(self):
@@ -568,12 +560,7 @@ class PyUtilsTest(test_utils.TestCase):
     e = tf.zeros([d.shape[0], tf.shape(d)[0], tf.shape(d)[1]])
     self.assertEqual(py_utils.GetRank(e), 3)
 
-    @tf.Defun(tf.float32)
-    def Identity(x):
-      return x
-
-    f = Identity(e)
-    # Function return value does not have shape info.
+    f = tf.placeholder(tf.float32)
     self.assertIsNone(f.shape.ndims)
     # GetRank() will return a Tensor.
     self.assertIsInstance(py_utils.GetRank(f), tf.Tensor)
