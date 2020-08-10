@@ -173,7 +173,7 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">layers_with_attention</span>
 
 
-<div class="viewcode-block" id="LConv2DLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer">[docs]</a><span class="k">class</span> <span class="nc">LConv2DLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
+<div class="viewcode-block" id="LConvLayer"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer">[docs]</a><span class="k">class</span> <span class="nc">LConvLayer</span><span class="p">(</span><span class="n">base_layer</span><span class="o">.</span><span class="n">BaseLayer</span><span class="p">):</span>
   <span class="sa">r</span><span class="sd">&quot;&quot;&quot;Lightweight conv layer.</span>
 
 <span class="sd">  architecture::</span>
@@ -196,7 +196,7 @@
 <span class="sd">    output</span>
 <span class="sd">  &quot;&quot;&quot;</span>
 
-<div class="viewcode-block" id="LConv2DLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LConvLayer.Params"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.Params">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">Params</span><span class="p">(</span><span class="bp">cls</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">Params</span><span class="p">()</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_dim&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="s1">&#39;Input and (in fact,) output dimension.&#39;</span><span class="p">)</span>
@@ -223,7 +223,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">linear_end_tpl</span><span class="o">.</span><span class="n">Set</span><span class="p">(</span><span class="n">activation</span><span class="o">=</span><span class="s1">&#39;NONE&#39;</span><span class="p">,</span> <span class="n">has_bias</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
-<div class="viewcode-block" id="LConv2DLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
+<div class="viewcode-block" id="LConvLayer.CommonParams"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.CommonParams">[docs]</a>  <span class="nd">@classmethod</span>
   <span class="k">def</span> <span class="nf">CommonParams</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span>
                    <span class="n">input_dim</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                    <span class="n">kernel_size</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -265,18 +265,18 @@
         <span class="n">name</span><span class="o">=</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">keep_prob</span><span class="o">=</span><span class="mf">1.</span> <span class="o">-</span> <span class="n">p</span><span class="o">.</span><span class="n">dropout_prob</span><span class="p">)</span>
     <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;dropout&#39;</span><span class="p">,</span> <span class="n">dropout_p</span><span class="p">)</span>
 
-<div class="viewcode-block" id="LConv2DLayer._GLU"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer._GLU">[docs]</a>  <span class="k">def</span> <span class="nf">_GLU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
+<div class="viewcode-block" id="LConvLayer._GLU"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer._GLU">[docs]</a>  <span class="k">def</span> <span class="nf">_GLU</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">gated_inputs</span><span class="p">,</span> <span class="n">act_inputs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
     <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ApplyActivation</span><span class="p">(</span><span class="n">act_inputs</span><span class="p">,</span>
                                  <span class="n">p</span><span class="o">.</span><span class="n">glu_activation</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">sigmoid</span><span class="p">(</span><span class="n">gated_inputs</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="LConv2DLayer._ApplyActivation"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer._ApplyActivation">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyActivation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">act_name</span><span class="p">):</span>
+<div class="viewcode-block" id="LConvLayer._ApplyActivation"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer._ApplyActivation">[docs]</a>  <span class="k">def</span> <span class="nf">_ApplyActivation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">act_name</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">act_name</span> <span class="o">==</span> <span class="s1">&#39;NONE&#39;</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">inputs</span>
     <span class="k">return</span> <span class="n">layers</span><span class="o">.</span><span class="n">_ACTIVATIONS</span><span class="p">[</span><span class="n">act_name</span><span class="p">](</span><span class="n">inputs</span><span class="p">)</span>  <span class="c1"># pylint:disable=protected-access</span></div>
 
-<div class="viewcode-block" id="LConv2DLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConv2DLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+<div class="viewcode-block" id="LConvLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.conformer_layer.html#lingvo.core.conformer_layer.LConvLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">unnormalized_inputs</span> <span class="o">=</span> <span class="n">inputs</span>
@@ -348,7 +348,7 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;trans_atten_tpl&#39;</span><span class="p">,</span>
              <span class="n">attention_lib</span><span class="o">.</span><span class="n">TransformerAttentionLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Self attention layer params.&#39;</span><span class="p">)</span>
-    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lconv_tpl&#39;</span><span class="p">,</span> <span class="n">LConv2DLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Convolution module params.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;lconv_tpl&#39;</span><span class="p">,</span> <span class="n">LConvLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span> <span class="s1">&#39;Convolution module params.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;fflayer_end_tpl&#39;</span><span class="p">,</span>
              <span class="n">layers_with_attention</span><span class="o">.</span><span class="n">TransformerFeedForwardLayer</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Layer params for Feed forward layer at the end.&#39;</span><span class="p">)</span>
