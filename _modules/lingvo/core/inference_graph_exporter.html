@@ -573,6 +573,22 @@
             <span class="k">if</span> <span class="ow">not</span> <span class="n">subgraph_filter</span> <span class="ow">or</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">subgraph_filter</span><span class="p">:</span>
               <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">subgraphs</span><span class="p">[</span><span class="n">name</span><span class="p">]</span><span class="o">.</span><span class="n">CopyFrom</span><span class="p">(</span><span class="n">subgraph</span><span class="p">)</span>
 
+          <span class="c1"># Yes, graph collections are bad, however this seems to be the</span>
+          <span class="c1"># easiest way to get this assets registered from</span>
+          <span class="c1"># TextFileInitializer.</span>
+          <span class="n">assets_collection</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">get_collection</span><span class="p">(</span>
+              <span class="n">tf</span><span class="o">.</span><span class="n">compat</span><span class="o">.</span><span class="n">v1</span><span class="o">.</span><span class="n">GraphKeys</span><span class="o">.</span><span class="n">ASSET_FILEPATHS</span><span class="p">)</span>
+          <span class="k">for</span> <span class="n">asset</span> <span class="ow">in</span> <span class="n">assets_collection</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">asset</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="s1">&#39;Const&#39;</span> <span class="ow">and</span> <span class="n">asset</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span>
+                <span class="s1">&#39;dtype&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">tf</span><span class="o">.</span><span class="n">dtypes</span><span class="o">.</span><span class="n">string</span><span class="p">:</span>
+              <span class="n">constant_value</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">op</span><span class="o">.</span><span class="n">get_attr</span><span class="p">(</span><span class="s1">&#39;value&#39;</span><span class="p">)</span>
+              <span class="k">if</span> <span class="n">constant_value</span><span class="o">.</span><span class="n">string_val</span><span class="p">:</span>
+                <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Found asset file_path: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
+                                <span class="n">constant_value</span><span class="o">.</span><span class="n">string_val</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">asset_file_def</span> <span class="o">=</span> <span class="n">inference_graph_proto</span><span class="o">.</span><span class="n">asset_file_def</span><span class="o">.</span><span class="n">add</span><span class="p">()</span>
+                <span class="n">asset_file_def</span><span class="o">.</span><span class="n">tensor_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">asset</span><span class="o">.</span><span class="n">name</span>
+                <span class="n">asset_file_def</span><span class="o">.</span><span class="n">filename</span> <span class="o">=</span> <span class="n">constant_value</span><span class="o">.</span><span class="n">string_val</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
           <span class="c1"># Add a table init op and global variable init op to the graph.</span>
           <span class="c1"># Tables can be declared anywhere in the graph, so this op has to be</span>
           <span class="c1"># added last.</span>
