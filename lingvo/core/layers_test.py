@@ -1809,7 +1809,8 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
                            layer_callback=None,
                            bn_decay=0.999,
                            bn_use_moving_avg_in_training=False,
-                           use_einsum=True):
+                           use_einsum=True,
+                           block_dim=0):
     self._ClearCachedSession()
     tf.reset_default_graph()
     with self.session(use_gpu=True):
@@ -1831,6 +1832,9 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
       params.bn_params.decay = bn_decay
       params.bn_params.use_moving_avg_in_training = bn_use_moving_avg_in_training
       params.use_einsum = use_einsum
+      params.block_dim = block_dim
+      params.use_blocked_matmul = True if block_dim > 0 else False
+
       if quantized:
         cc_schedule = quant_utils.FakeQuantizationSchedule.Params().Set(
             clip_end_step=1, quant_start_step=1)
@@ -1840,10 +1844,10 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
 
       in_padding = tf.zeros([2, 4, 1], dtype=tf.float32)
       inputs = tf.constant(
-          np.random.normal(0.1, 0.5, [2, 4, 3]), dtype=tf.float32)
+          np.random.normal(0.1, 0.5, [2, 4, input_dim]), dtype=tf.float32)
       if reshape_to_2d:
         in_padding = tf.reshape(in_padding, [-1, 1])
-        inputs = tf.reshape(inputs, [-1, 3])
+        inputs = tf.reshape(inputs, [-1, input_dim])
 
       proj_layer = layers.ProjectionLayer(params)
       if layer_callback:
@@ -2252,6 +2256,51 @@ class ProjectionLayerTest(test_utils.TestCase, parameterized.TestCase):
     output_with_einsum = self._evalProjectionLayer(use_einsum=True)
     output_without_einsum = self._evalProjectionLayer(use_einsum=False)
     self.assertAllClose(output_with_einsum, output_without_einsum)
+
+  def testProjectionLayerFPropBlockMatmul(self):
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output = [[[0.,         0.,         0.,         0.],
+                        [0.,         0.03153732, 0.01891183, 0.02154643],
+                        [0.01373154, 0.09479743, 0.,         0.03639744],
+                        [0.05870617, 0.19162716, 0.05567084, 0.15362406]],
+
+                       [[0.06591958, 0.2321615,  0.,         0.14735883],
+                        [0.1003774,  0.33637568, 0.,         0.22276597],
+                        [0.02362791, 0.10728893, 0.01922233, 0.07299631],
+                        [0.,         0.,         0.,         0.        ]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    output_with_block_matmul = self._evalProjectionLayer(
+        input_dim=4,
+        output_dim=4,
+        batch_norm=False,
+        use_einsum=False,
+        block_dim=2)
+    tf.logging.info(output_with_block_matmul)
+    self.assertAllClose(output_with_block_matmul, expected_output)
+    # pylint: disable=bad-whitespace
+    # pyformat: disable
+    expected_output =  [[[0.,    0.,      0.,         0.,         0.],
+                         [0.,    0.,      0.06118044, 0.,         0.02968791],
+                         [0.,    0.,      0.09687695, 0.,         0.],
+                         [0.10228965, 0., 0.01826946, 0.0219113,  0.16076824]],
+
+                        [[0.03506518, 0.27432495, 0.25932777, 0.,         0.],
+                         [0.,         0.00882578, 0.06655132, 0.,         0.],
+                         [0.,         0.,         0.,         0.10196716, 0.],
+                         [0.,         0.,         0.08253407, 0.,         0.]]]
+    # pyformat: enable
+    # pylint: enable=bad-whitespace
+    # Test case for odd input and output dimensions.
+    output_with_block_matmul = self._evalProjectionLayer(
+        input_dim=5,
+        output_dim=5,
+        batch_norm=False,
+        use_einsum=False,
+        block_dim=2)
+    tf.logging.info(output_with_block_matmul)
+    self.assertAllClose(output_with_block_matmul, expected_output)
 
   @parameterized.named_parameters(
       {

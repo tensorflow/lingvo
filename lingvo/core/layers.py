@@ -917,6 +917,11 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
         'TPU memory usage (b/158336491).  When this is set to True, it might '
         ' cause problems with model quantization for on device inference '
         '(b/146421936)')
+    p.Define(
+        'use_blocked_matmul', False, 'Whether to use blocked matrix '
+        'multiplications. This allows for weight updates to be paralellized'
+        ' across the cores for Shampoo optimizer.')
+    p.Define('block_dim', 1024, 'Dimension of the block')
     return p
 
   def __init__(self, params):
@@ -935,8 +940,14 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
           'This is generally redundant/wasteful and may introduce '
           'accuracy problems in some inference scenarios.')
     if self._is_bn_folded:
+      assert not p.use_blocked_matmul, (
+          'bn_fold_weights requires use_blocked_matmul = False')
       assert not p.affine_last, (
           'Folded batchnorm is not compatible with affine_last')
+
+    if p.use_einsum:
+      assert not p.use_blocked_matmul, (
+          'use_einsum requires use_blocked_matmul = False')
 
     if p.batch_norm:
       bn_params = p.bn_params.Copy()
@@ -946,14 +957,55 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
       self.CreateChild('bn', bn_params)
     # TODO(yonghui): implement the variational noise logic.
 
+  def _GetBlockedMatMulInputOutputMultipliers(self):
+    """Get number of input and output blocks."""
+    p = self.params
+    # Number of input and output blocks.
+    w_im = p.input_dim // p.block_dim
+    w_om = p.output_dim // p.block_dim
+    # Add padding if input_dim / output_dim is not divisible by block_dim.
+    if p.input_dim % p.block_dim != 0:
+      w_im += 1
+    if p.output_dim % p.block_dim != 0:
+      w_om += 1
+    return w_im, w_om
+
+  def _GetBlockedWeightMatrix(self, w):
+    """Returns a 3D weight matrix for blocked matmul."""
+    p = self.params
+    # w is 3D Tensor of shape [i * o, block_dim, block_dim] such that
+    # i * block_dim = num_inputs (modulo padding).
+    # j * block_dim = num_outputs
+    #
+    # To efficiently apply forward prop, we transpose and reshape w into
+    # shape [i * block_dim, o, block_dim]
+    w_im, w_om = self._GetBlockedMatMulInputOutputMultipliers()
+    block_dim = p.block_dim
+    w_4d = tf.reshape(w, [w_im, w_om, block_dim, block_dim])
+    # Transpose to [i, block_dim, o, block_dim].
+    w_4d_t = tf.transpose(w_4d, [0, 2, 1, 3])
+    w = tf.reshape(w_4d_t, [w_im * block_dim, w_om, block_dim])
+    # Slice out padding from the weight matrix.
+    if p.input_dim % p.block_dim != 0:
+      w = tf.slice(w, [0, 0, 0], [p.input_dim, w_om, block_dim])
+    return w
+
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
-    w_pc = py_utils.WeightParams(
-        shape=[p.input_dim, p.output_dim],
-        init=p.params_init,
-        dtype=p.dtype,
-        collections=[self.__class__.__name__ + '_vars'])
+    if p.use_blocked_matmul:
+      w_im, w_om = self._GetBlockedMatMulInputOutputMultipliers()
+      w_pc = py_utils.WeightParams(
+          shape=[w_im * w_om, p.block_dim, p.block_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
+    else:
+      w_pc = py_utils.WeightParams(
+          shape=[p.input_dim, p.output_dim],
+          init=p.params_init,
+          dtype=p.dtype,
+          collections=[self.__class__.__name__ + '_vars'])
 
     if p.apply_pruning:
       mask_w_pc = py_utils.WeightParams(w_pc.shape,
@@ -1117,9 +1169,15 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     p = self.params
     w = theta.w
     b = theta.b if p.has_bias else None
-    if p.weight_norm:
-      w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
-                     py_utils.ToStaticShape([p.input_dim, p.output_dim]))
+    if p.use_blocked_matmul:
+      w = self._GetBlockedWeightMatrix(w)
+      if p.weight_norm:
+        w = tf.nn.l2_normalize(w, 0)
+    else:
+      if p.weight_norm:
+        w = tf.reshape((theta.g + 1.0) * tf.nn.l2_normalize(w, [0]),
+                       py_utils.ToStaticShape([p.input_dim, p.output_dim]))
+
     if not self._is_bn_folded:
       return w, b
 
@@ -1171,11 +1229,21 @@ class ProjectionLayer(quant_utils.QuantizableLayer):
     """
     p = self.params
 
-    if p.use_einsum:
-      out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+    if not p.use_blocked_matmul:
+      if p.use_einsum:
+        out = py_utils.ProjectLastDim(inputs, w, p.input_dim, p.output_dim)
+      else:
+        out = py_utils.Matmul(
+            tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
     else:
-      out = py_utils.Matmul(
-          tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim])), w)
+      x = tf.reshape(inputs, py_utils.ToStaticShape([-1, p.input_dim]))
+      out = tf.einsum('bn,nmk->bmk', x, w)
+      # Create an output layer [b, num_outputs].
+      bsz = py_utils.GetShape(out)[0]
+      out = tf.reshape(out, [bsz, -1])
+      if p.output_dim % p.block_dim != 0:
+        out_shape = [bsz, p.output_dim]
+        out = tf.slice(out, [0, 0], out_shape)
 
     if b is not None:
       out += b  # NOTE: Bias on matmul is never quantized.
