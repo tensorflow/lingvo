@@ -100,7 +100,6 @@ class Predictor:
       tf.logging.info(
           "Loading inference graph for prediction subgraph_name={}.".format(
               subgraph_name))
-      self._saver = tf.train.Saver(saver_def=inference_graph.saver_def)
       with tf.device("/%s:0" % "cpu" if device_type == "tpu" else device_type):
         tf.import_graph_def(inference_graph.graph_def, name="")
       if device_type == "tpu":
@@ -166,7 +165,10 @@ class Predictor:
     if self._device_type == "tpu":
       sess.run(self._graph.get_operation_by_name("tpu_init_op"))
     if self._checkpoint:
-      self._saver.restore(sess, self._checkpoint)
+      sess.run(self._inference_graph.saver_def.restore_op_name, {
+          self._inference_graph.saver_def.filename_tensor_name: self._checkpoint
+      })
+
     else:
       try:
         init_op = self._graph.get_operation_by_name("init_all_variables")
@@ -204,13 +206,23 @@ class Predictor:
       raise
 
   def Load(self, checkpoint):
-    """Loads parameters from a checkpoint.
+    """Loads parameters from a checkpoint if self._sess is a valid session.
 
     Args:
       checkpoint: The checkpoint path to restore.
     """
     if checkpoint != self._checkpoint:
-      self._RunWithValidSession(self._saver.restore, checkpoint)
+      sess_id = self._cur_sess_id
+      try:
+        self._sess.run(
+            self._inference_graph.saver_def.restore_op_name,
+            {self._inference_graph.saver_def.filename_tensor_name: checkpoint})
+      except py_utils.transient_tf_errors:
+        # self._sess is invalid, most likely due to the worker being preempted.
+        # Make sure a new session is created before re-raising the exception and
+        # triggering the py_utils.Retry loop.
+        self._MaybeCreateNewSession(sess_id)
+        raise
       self._checkpoint = checkpoint
 
   def Run(self,
