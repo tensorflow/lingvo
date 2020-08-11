@@ -48,6 +48,7 @@ from tensorflow.core.protobuf import rewriter_config_pb2
 from tensorflow.python.framework import func_graph
 from tensorflow.python.framework import function
 from tensorflow.python.ops import init_ops
+from tensorflow.python.tpu import topology as tf_topology
 from tensorflow.python.tpu import tpu_function
 from tensorflow.python.util import deprecation
 # pylint: enable=g-direct-tensorflow-import
@@ -2138,7 +2139,8 @@ def _ComputeGradientsTpu(loss,
                          colocate_gradients_with_ops,
                          gate_gradients,
                          skip_zero_gradients=None,
-                         use_bf16_gradients_ar=False):
+                         use_bf16_gradients_ar=False,
+                         defer_crs_to_apply_grad=False):
   """Computes gradients for local loss across whole TPU cluster.
 
   This implementation specializes for the case where weight params maybe used
@@ -2159,6 +2161,11 @@ def _ComputeGradientsTpu(loss,
     skip_zero_gradients: whether to skip zero gradients during aggregation.
     use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
       all-reduce.
+    defer_crs_to_apply_grad: Whether to defer gradient cross replica sum to
+      apply_gradient. This helps reducing the number of gradient all-reduces
+      when doing gradient accumulation, which does gradient cross replica sum
+      only every k steps in a tf.cond. Currently this works only when
+      skip_zero_gradients is None.
 
   Returns:
     Gradients to be passed back.
@@ -2197,7 +2204,10 @@ def _ComputeGradientsTpu(loss,
     with tf.ops.colocate_with(g):
       if skip_zero_gradients is None:
         # loss is already scaled by 1/shards.
-        normalized_g = tf.tpu.cross_replica_sum(g)
+        if defer_crs_to_apply_grad:
+          normalized_g = tf.convert_to_tensor(g)
+        else:
+          normalized_g = tf.tpu.cross_replica_sum(g)
       else:
         # Compute the cross-replica mean of 'g', skipping zero gradients.
 
@@ -2260,7 +2270,8 @@ def ComputeGradients(
     compute_gradients_fn=None,
     skip_zero_gradients=None,
     use_bf16_gradients_ar=False,
-    skip_none_gradients=True):
+    skip_none_gradients=True,
+    defer_crs_to_apply_grad=False):
   """Computes gradients of variables in vmap w.r.t loss.
 
   Args:
@@ -2290,6 +2301,8 @@ def ComputeGradients(
     use_bf16_gradients_ar: Whether to use bfloat16 dtype for gradients
       all-reduce. This applies to TPU only.
     skip_none_gradients: Whether to skip gradients that are None.
+    defer_crs_to_apply_grad: Whether to defer gradient cross replica sum to
+      apply_gradient. This applies to TPU only.
 
   Returns:
     var_grad - a `.NestedMap` of VarGrad. You can view
@@ -2333,7 +2346,8 @@ def ComputeGradients(
       take_grad = functools.partial(
           _ComputeGradientsTpu,
           skip_zero_gradients=skip_zero_gradients,
-          use_bf16_gradients_ar=use_bf16_gradients_ar)
+          use_bf16_gradients_ar=use_bf16_gradients_ar,
+          defer_crs_to_apply_grad=defer_crs_to_apply_grad)
     else:
       take_grad = ComputeGradientsSimple
 
@@ -4807,8 +4821,10 @@ def GetTpuSummaryTensors():
   }
 
 
-def ComputationShape(split_size):
+def ComputationShape(split_size, topology=None):
   """Decides the computation shape based on the split_size."""
+  if topology:
+    topology_info = tf_topology.Topology(serialized=topology)
   computation_shape = None
   if split_size == 1:
     computation_shape = [1, 1, 1, 1]
@@ -4823,7 +4839,13 @@ def ComputationShape(split_size):
   elif split_size == 32:
     computation_shape = [4, 4, 1, 2]
   elif split_size == 64:
-    computation_shape = [4, 8, 1, 2]
+    if topology and topology_info.mesh_shape[1] == 32:
+      # Fwd within-replica all-reduces is performed along column;
+      # Bwd gradient cross-replica all-reduces is performed along row.
+      # This currently has better performance than the strided patten.
+      computation_shape = [1, 32, 1, 2]
+    else:
+      computation_shape = [4, 8, 1, 2]
   elif split_size == 128:
     computation_shape = [8, 8, 1, 2]
   elif split_size == 256:

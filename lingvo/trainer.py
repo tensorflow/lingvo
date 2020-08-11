@@ -520,7 +520,8 @@ class TrainerTpu(base_runner.BaseRunner):
 
         device_assignment = device_assignment_lib.device_assignment(
             topology,
-            computation_shape=py_utils.ComputationShape(num_devices_per_split),
+            computation_shape=py_utils.ComputationShape(num_devices_per_split,
+                                                        topology),
             num_replicas=data_parallelism)
         py_utils.SetTpuDeviceAssignment(device_assignment)
         tf.logging.info('device_assignment.core_assignment: %s',

@@ -66,6 +66,11 @@ class BaseTask(base_layer.BaseLayer):
         'Whether or not to use task-specific global steps, which causes each '
         'task to use its own global_step instead of the true global_step. '
         'NOTE: this may be severely broken. Verify carefully!')
+    p.Define(
+        'defer_global_step_update', False,
+        'Whether or not to defer the global step update. This is used when '
+        'doing gradient accumulation, which update the global step only when '
+        'weights are updated. Currently this supports only true global step.')
     p.Define('train', hyperparams.Params(),
              'Params to control how this task should be trained.')
 
@@ -594,7 +599,10 @@ class BaseTask(base_layer.BaseLayer):
       with tf.control_dependencies([mask_update_op]):
         true_global_step = py_utils.GetOrCreateGlobalStepVar()
         with tf.ops.colocate_with(true_global_step):
-          increment_global_steps = tf.assign_add(true_global_step, 1)
+          if self.params.defer_global_step_update:
+            increment_global_steps = true_global_step
+          else:
+            increment_global_steps = tf.assign_add(true_global_step, 1)
         if self._global_step_var != true_global_step:
           with tf.ops.colocate_with(self._global_step_var):
             increment_global_steps = tf.group(
