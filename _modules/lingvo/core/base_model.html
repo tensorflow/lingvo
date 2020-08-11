@@ -214,6 +214,11 @@
         <span class="s1">&#39;Whether or not to use task-specific global steps, which causes each &#39;</span>
         <span class="s1">&#39;task to use its own global_step instead of the true global_step. &#39;</span>
         <span class="s1">&#39;NOTE: this may be severely broken. Verify carefully!&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;defer_global_step_update&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s1">&#39;Whether or not to defer the global step update. This is used when &#39;</span>
+        <span class="s1">&#39;doing gradient accumulation, which update the global step only when &#39;</span>
+        <span class="s1">&#39;weights are updated. Currently this supports only true global step.&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="n">hyperparams</span><span class="o">.</span><span class="n">Params</span><span class="p">(),</span>
              <span class="s1">&#39;Params to control how this task should be trained.&#39;</span><span class="p">)</span>
 
@@ -742,7 +747,10 @@
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span><span class="n">mask_update_op</span><span class="p">]):</span>
         <span class="n">true_global_step</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetOrCreateGlobalStepVar</span><span class="p">()</span>
         <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">):</span>
-          <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+          <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="o">.</span><span class="n">defer_global_step_update</span><span class="p">:</span>
+            <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">true_global_step</span>
+          <span class="k">else</span><span class="p">:</span>
+            <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">assign_add</span><span class="p">(</span><span class="n">true_global_step</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span> <span class="o">!=</span> <span class="n">true_global_step</span><span class="p">:</span>
           <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">colocate_with</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_global_step_var</span><span class="p">):</span>
             <span class="n">increment_global_steps</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">group</span><span class="p">(</span>

@@ -1366,7 +1366,7 @@ the loading rules.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils._ComputeGradientsTpu">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">_ComputeGradientsTpu</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">all_vars</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span></em>, <em class="sig-param"><span class="n">gate_gradients</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#_ComputeGradientsTpu"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils._ComputeGradientsTpu" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients for local loss across whole TPU cluster.</p>
 <p>This implementation specializes for the case where weight params maybe used
 for different number of times in the forward computation, so that gradients
@@ -1386,6 +1386,11 @@ with the original op.</p></li>
 <li><p><strong>skip_zero_gradients</strong> – whether to skip zero gradients during aggregation.</p></li>
 <li><p><strong>use_bf16_gradients_ar</strong> – Whether to use bfloat16 dtype for gradients
 all-reduce.</p></li>
+<li><p><strong>defer_crs_to_apply_grad</strong> – Whether to defer gradient cross replica sum to
+apply_gradient. This helps reducing the number of gradient all-reduces
+when doing gradient accumulation, which does gradient cross replica sum
+only every k steps in a tf.cond. Currently this works only when
+skip_zero_gradients is None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -1418,7 +1423,7 @@ all-reduce.</p></li>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputeGradients">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">skip_none_gradients</span><span class="o">=</span><span class="default_value">True</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputeGradients</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">loss</span></em>, <em class="sig-param"><span class="n">vmap</span></em>, <em class="sig-param"><span class="n">grad_aggregation_method</span><span class="o">=</span><span class="default_value">1</span></em>, <em class="sig-param"><span class="n">colocate_gradients_with_ops</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">gate_gradients</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">compute_gradients_fn</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">skip_zero_gradients</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_bf16_gradients_ar</span><span class="o">=</span><span class="default_value">False</span></em>, <em class="sig-param"><span class="n">skip_none_gradients</span><span class="o">=</span><span class="default_value">True</span></em>, <em class="sig-param"><span class="n">defer_crs_to_apply_grad</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputeGradients"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputeGradients" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes gradients of variables in vmap w.r.t loss.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters</dt>
@@ -1453,6 +1458,8 @@ abs(grad) &lt; 1e-8.</p></li>
 <li><p><strong>use_bf16_gradients_ar</strong> – Whether to use bfloat16 dtype for gradients
 all-reduce. This applies to TPU only.</p></li>
 <li><p><strong>skip_none_gradients</strong> – Whether to skip gradients that are None.</p></li>
+<li><p><strong>defer_crs_to_apply_grad</strong> – Whether to defer gradient cross replica sum to
+apply_gradient. This applies to TPU only.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
@@ -2694,7 +2701,7 @@ the exact definition of weight for eval metrics.</p>
 
 <dl class="py function">
 <dt id="lingvo.core.py_utils.ComputationShape">
-<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputationShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">split_size</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputationShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputationShape" title="Permalink to this definition">¶</a></dt>
+<code class="sig-prename descclassname">lingvo.core.py_utils.</code><code class="sig-name descname">ComputationShape</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">split_size</span></em>, <em class="sig-param"><span class="n">topology</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/py_utils.html#ComputationShape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.py_utils.ComputationShape" title="Permalink to this definition">¶</a></dt>
 <dd><p>Decides the computation shape based on the split_size.</p>
 </dd></dl>
 

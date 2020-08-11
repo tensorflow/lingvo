@@ -668,7 +668,8 @@
 
         <span class="n">device_assignment</span> <span class="o">=</span> <span class="n">device_assignment_lib</span><span class="o">.</span><span class="n">device_assignment</span><span class="p">(</span>
             <span class="n">topology</span><span class="p">,</span>
-            <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">),</span>
+            <span class="n">computation_shape</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">ComputationShape</span><span class="p">(</span><span class="n">num_devices_per_split</span><span class="p">,</span>
+                                                        <span class="n">topology</span><span class="p">),</span>
             <span class="n">num_replicas</span><span class="o">=</span><span class="n">data_parallelism</span><span class="p">)</span>
         <span class="n">py_utils</span><span class="o">.</span><span class="n">SetTpuDeviceAssignment</span><span class="p">(</span><span class="n">device_assignment</span><span class="p">)</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;device_assignment.core_assignment: </span><span class="si">%s</span><span class="s1">&#39;</span><span class="p">,</span>
