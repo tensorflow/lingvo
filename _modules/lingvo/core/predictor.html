@@ -248,7 +248,6 @@
       <span class="n">tf</span><span class="o">.</span><span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
           <span class="s2">&quot;Loading inference graph for prediction subgraph_name=</span><span class="si">{}</span><span class="s2">.&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
               <span class="n">subgraph_name</span><span class="p">))</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">train</span><span class="o">.</span><span class="n">Saver</span><span class="p">(</span><span class="n">saver_def</span><span class="o">=</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="p">)</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="s2">&quot;/</span><span class="si">%s</span><span class="s2">:0&quot;</span> <span class="o">%</span> <span class="s2">&quot;cpu&quot;</span> <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span> <span class="k">else</span> <span class="n">device_type</span><span class="p">):</span>
         <span class="n">tf</span><span class="o">.</span><span class="n">import_graph_def</span><span class="p">(</span><span class="n">inference_graph</span><span class="o">.</span><span class="n">graph_def</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
@@ -314,7 +313,10 @@
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_device_type</span> <span class="o">==</span> <span class="s2">&quot;tpu&quot;</span><span class="p">:</span>
       <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;tpu_init_op&quot;</span><span class="p">))</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">(</span><span class="n">sess</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">)</span>
+      <span class="n">sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">restore_op_name</span><span class="p">,</span> <span class="p">{</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">filename_tensor_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span>
+      <span class="p">})</span>
+
     <span class="k">else</span><span class="p">:</span>
       <span class="k">try</span><span class="p">:</span>
         <span class="n">init_op</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph</span><span class="o">.</span><span class="n">get_operation_by_name</span><span class="p">(</span><span class="s2">&quot;init_all_variables&quot;</span><span class="p">)</span>
@@ -352,13 +354,23 @@
       <span class="k">raise</span></div>
 
 <div class="viewcode-block" id="Predictor.Load"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Load">[docs]</a>  <span class="k">def</span> <span class="nf">Load</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;Loads parameters from a checkpoint.</span>
+    <span class="sd">&quot;&quot;&quot;Loads parameters from a checkpoint if self._sess is a valid session.</span>
 
 <span class="sd">    Args:</span>
 <span class="sd">      checkpoint: The checkpoint path to restore.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">if</span> <span class="n">checkpoint</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span><span class="p">:</span>
-      <span class="bp">self</span><span class="o">.</span><span class="n">_RunWithValidSession</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_saver</span><span class="o">.</span><span class="n">restore</span><span class="p">,</span> <span class="n">checkpoint</span><span class="p">)</span>
+      <span class="n">sess_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cur_sess_id</span>
+      <span class="k">try</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_sess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">restore_op_name</span><span class="p">,</span>
+            <span class="p">{</span><span class="bp">self</span><span class="o">.</span><span class="n">_inference_graph</span><span class="o">.</span><span class="n">saver_def</span><span class="o">.</span><span class="n">filename_tensor_name</span><span class="p">:</span> <span class="n">checkpoint</span><span class="p">})</span>
+      <span class="k">except</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">transient_tf_errors</span><span class="p">:</span>
+        <span class="c1"># self._sess is invalid, most likely due to the worker being preempted.</span>
+        <span class="c1"># Make sure a new session is created before re-raising the exception and</span>
+        <span class="c1"># triggering the py_utils.Retry loop.</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeCreateNewSession</span><span class="p">(</span><span class="n">sess_id</span><span class="p">)</span>
+        <span class="k">raise</span>
       <span class="bp">self</span><span class="o">.</span><span class="n">_checkpoint</span> <span class="o">=</span> <span class="n">checkpoint</span></div>
 
 <div class="viewcode-block" id="Predictor.Run"><a class="viewcode-back" href="../../../lingvo.core.predictor.html#lingvo.core.predictor.Predictor.Run">[docs]</a>  <span class="k">def</span> <span class="nf">Run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
