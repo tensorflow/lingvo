@@ -1065,6 +1065,11 @@
         <span class="s1">&#39;TPU memory usage (b/158336491).  When this is set to True, it might &#39;</span>
         <span class="s1">&#39; cause problems with model quantization for on device inference &#39;</span>
         <span class="s1">&#39;(b/146421936)&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span>
+        <span class="s1">&#39;use_blocked_matmul&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;Whether to use blocked matrix &#39;</span>
+        <span class="s1">&#39;multiplications. This allows for weight updates to be paralellized&#39;</span>
+        <span class="s1">&#39; across the cores for Shampoo optimizer.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;block_dim&#39;</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="s1">&#39;Dimension of the block&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -1083,8 +1088,14 @@
           <span class="s1">&#39;This is generally redundant/wasteful and may introduce &#39;</span>
           <span class="s1">&#39;accuracy problems in some inference scenarios.&#39;</span><span class="p">)</span>
     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_bn_folded</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;bn_fold_weights requires use_blocked_matmul = False&#39;</span><span class="p">)</span>
       <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">affine_last</span><span class="p">,</span> <span class="p">(</span>
           <span class="s1">&#39;Folded batchnorm is not compatible with affine_last&#39;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
+      <span class="k">assert</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">,</span> <span class="p">(</span>
+          <span class="s1">&#39;use_einsum requires use_blocked_matmul = False&#39;</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">batch_norm</span><span class="p">:</span>
       <span class="n">bn_params</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">bn_params</span><span class="o">.</span><span class="n">Copy</span><span class="p">()</span>
@@ -1094,14 +1105,55 @@
       <span class="bp">self</span><span class="o">.</span><span class="n">CreateChild</span><span class="p">(</span><span class="s1">&#39;bn&#39;</span><span class="p">,</span> <span class="n">bn_params</span><span class="p">)</span>
     <span class="c1"># TODO(yonghui): implement the variational noise logic.</span>
 
+<div class="viewcode-block" id="ProjectionLayer._GetBlockedMatMulInputOutputMultipliers"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._GetBlockedMatMulInputOutputMultipliers">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBlockedMatMulInputOutputMultipliers</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Get number of input and output blocks.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># Number of input and output blocks.</span>
+    <span class="n">w_im</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span>
+    <span class="n">w_om</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span>
+    <span class="c1"># Add padding if input_dim / output_dim is not divisible by block_dim.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">w_im</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">w_om</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">w_im</span><span class="p">,</span> <span class="n">w_om</span></div>
+
+<div class="viewcode-block" id="ProjectionLayer._GetBlockedWeightMatrix"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._GetBlockedWeightMatrix">[docs]</a>  <span class="k">def</span> <span class="nf">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns a 3D weight matrix for blocked matmul.&quot;&quot;&quot;</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="c1"># w is 3D Tensor of shape [i * o, block_dim, block_dim] such that</span>
+    <span class="c1"># i * block_dim = num_inputs (modulo padding).</span>
+    <span class="c1"># j * block_dim = num_outputs</span>
+    <span class="c1">#</span>
+    <span class="c1"># To efficiently apply forward prop, we transpose and reshape w into</span>
+    <span class="c1"># shape [i * block_dim, o, block_dim]</span>
+    <span class="n">w_im</span><span class="p">,</span> <span class="n">w_om</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedMatMulInputOutputMultipliers</span><span class="p">()</span>
+    <span class="n">block_dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span>
+    <span class="n">w_4d</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="n">w_im</span><span class="p">,</span> <span class="n">w_om</span><span class="p">,</span> <span class="n">block_dim</span><span class="p">,</span> <span class="n">block_dim</span><span class="p">])</span>
+    <span class="c1"># Transpose to [i, block_dim, o, block_dim].</span>
+    <span class="n">w_4d_t</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">w_4d</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">w_4d_t</span><span class="p">,</span> <span class="p">[</span><span class="n">w_im</span> <span class="o">*</span> <span class="n">block_dim</span><span class="p">,</span> <span class="n">w_om</span><span class="p">,</span> <span class="n">block_dim</span><span class="p">])</span>
+    <span class="c1"># Slice out padding from the weight matrix.</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">w_om</span><span class="p">,</span> <span class="n">block_dim</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">w</span></div>
+
 <div class="viewcode-block" id="ProjectionLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.layers.html#lingvo.core.layers.ProjectionLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
-        <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
-        <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
-        <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
+      <span class="n">w_im</span><span class="p">,</span> <span class="n">w_om</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedMatMulInputOutputMultipliers</span><span class="p">()</span>
+      <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">w_im</span> <span class="o">*</span> <span class="n">w_om</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="n">w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
+          <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">],</span>
+          <span class="n">init</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">params_init</span><span class="p">,</span>
+          <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
+          <span class="n">collections</span><span class="o">=</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">])</span>
 
     <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">apply_pruning</span><span class="p">:</span>
       <span class="n">mask_w_pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span><span class="n">w_pc</span><span class="o">.</span><span class="n">shape</span><span class="p">,</span>
@@ -1265,9 +1317,15 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="n">w</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">w</span>
     <span class="n">b</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">b</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">has_bias</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
-      <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">theta</span><span class="o">.</span><span class="n">g</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
-                     <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
+      <span class="n">w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetBlockedWeightMatrix</span><span class="p">(</span><span class="n">w</span><span class="p">)</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">weight_norm</span><span class="p">:</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">((</span><span class="n">theta</span><span class="o">.</span><span class="n">g</span> <span class="o">+</span> <span class="mf">1.0</span><span class="p">)</span> <span class="o">*</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">l2_normalize</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">]),</span>
+                       <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]))</span>
+
     <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_bn_folded</span><span class="p">:</span>
       <span class="k">return</span> <span class="n">w</span><span class="p">,</span> <span class="n">b</span>
 
@@ -1319,11 +1377,21 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
 
-    <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">p</span><span class="o">.</span><span class="n">use_blocked_matmul</span><span class="p">:</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">use_einsum</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ProjectLastDim</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">)</span>
+      <span class="k">else</span><span class="p">:</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
+            <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-      <span class="n">out</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">Matmul</span><span class="p">(</span>
-          <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">])),</span> <span class="n">w</span><span class="p">)</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">ToStaticShape</span><span class="p">([</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">input_dim</span><span class="p">]))</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s1">&#39;bn,nmk-&gt;bmk&#39;</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">w</span><span class="p">)</span>
+      <span class="c1"># Create an output layer [b, num_outputs].</span>
+      <span class="n">bsz</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">out</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="n">bsz</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+      <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">block_dim</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">out_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">bsz</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">output_dim</span><span class="p">]</span>
+        <span class="n">out</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">slice</span><span class="p">(</span><span class="n">out</span><span class="p">,</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">out_shape</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="n">b</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">out</span> <span class="o">+=</span> <span class="n">b</span>  <span class="c1"># NOTE: Bias on matmul is never quantized.</span>
