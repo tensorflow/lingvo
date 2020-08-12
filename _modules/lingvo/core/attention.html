@@ -1027,7 +1027,7 @@
 <span class="sd">        inputs: a NestedMap containing:</span>
 <span class="sd">          - per_dim_scale:         [source_dim], a vec to scale individual dims.</span>
 <span class="sd">          - source_padding:          [time, source_batch].</span>
-<span class="sd">          - concated_source_vecs:    [time, source_batch, source_dim].</span>
+<span class="sd">          - concated_source_vecs:    [source_batch, time, source_dim].</span>
 <span class="sd">          - query_vec:               [target_batch, source_dim].</span>
 <span class="sd">          - per_step_source_padding: [target_batch, source_length]</span>
 <span class="sd">          - source_segment_id:       [time, source_batch].</span>
@@ -1037,10 +1037,7 @@
 <span class="sd">        logits [target_batch, source_time].</span>
 <span class="sd">      &quot;&quot;&quot;</span>
       <span class="n">source_padding</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">source_padding</span><span class="p">)</span>
-      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">inputs</span><span class="o">.</span><span class="n">concated_source_vecs</span><span class="p">,</span>
-                                          <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
-      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
-          <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concated_source_vecs&#39;</span><span class="p">)</span>
+      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">inputs</span><span class="o">.</span><span class="n">concated_source_vecs</span>
 
       <span class="n">logit_scale</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">stop_gradient</span><span class="p">(</span>
           <span class="n">tf</span><span class="o">.</span><span class="n">math</span><span class="o">.</span><span class="n">rsqrt</span><span class="p">(</span>
@@ -1123,6 +1120,9 @@
       <span class="n">source_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
       <span class="n">target_batch</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">query_vec</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
       <span class="n">n</span> <span class="o">=</span> <span class="n">target_batch</span> <span class="o">//</span> <span class="n">source_batch</span>
+      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">concated_source_vecs</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+      <span class="n">concated_source_vecs</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">identity</span><span class="p">(</span>
+          <span class="n">concated_source_vecs</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;concated_source_vecs&#39;</span><span class="p">)</span>
       <span class="n">returned_probs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CallDefun</span><span class="p">(</span>
           <span class="n">AttenProbs</span><span class="p">,</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>

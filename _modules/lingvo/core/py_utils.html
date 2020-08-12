@@ -225,6 +225,11 @@
     <span class="s1">&#39;or consumed by TPU&#39;</span><span class="p">)</span>
 
 <span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
+    <span class="s1">&#39;tflite_compatible&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s1">&#39;Uses tflite converter-friendly ops at applicable places. This so far &#39;</span>
+    <span class="s1">&#39;(08/2020) is a only best-effort option.&#39;</span><span class="p">)</span>
+
+<span class="n">tf</span><span class="o">.</span><span class="n">flags</span><span class="o">.</span><span class="n">DEFINE_bool</span><span class="p">(</span>
     <span class="s1">&#39;pin_vars_to_cpu&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span>
     <span class="s1">&#39;Pin variables to cpu:0.  This is useful for weight-sharing / multi-core &#39;</span>
     <span class="s1">&#39;inference on TPUs in which TPU core variables are managed via &#39;</span>
@@ -763,6 +768,21 @@
       <span class="nb">any</span><span class="p">([</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">Tensor</span><span class="p">)</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">shape</span><span class="p">])):</span>
     <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">size</span><span class="p">(</span><span class="n">tensor</span><span class="p">)</span>
   <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CausalSelfAttenPadding"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.CausalSelfAttenPadding">[docs]</a><span class="k">def</span> <span class="nf">CausalSelfAttenPadding</span><span class="p">(</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">dtype</span><span class="p">):</span>
+  <span class="sd">&quot;&quot;&quot;Wraps tf.linalg.band_part() for tflite compatibility.&quot;&quot;&quot;</span>
+  <span class="k">if</span> <span class="n">FLAGS</span><span class="o">.</span><span class="n">tflite_compatible</span><span class="p">:</span>
+    <span class="c1"># [N, 1]</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">seqlen</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="c1"># [1, N]</span>
+    <span class="n">cols</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">expand_dims</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">range</span><span class="p">(</span><span class="n">seqlen</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="n">row_cols</span> <span class="o">=</span> <span class="n">rows</span> <span class="o">-</span> <span class="n">cols</span>
+    <span class="k">return</span> <span class="n">tf</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">row_cols</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">seqlen</span><span class="p">],</span> <span class="n">dtype</span><span class="p">),</span>
+                    <span class="n">tf</span><span class="o">.</span><span class="n">zeros</span><span class="p">([</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">seqlen</span><span class="p">],</span> <span class="n">tf</span><span class="o">.</span><span class="n">float32</span><span class="p">))</span>
+  <span class="k">else</span><span class="p">:</span>
+    <span class="k">return</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">band_part</span><span class="p">(</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">ones</span><span class="p">([</span><span class="n">seqlen</span><span class="p">,</span> <span class="n">seqlen</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="use_xla"><a class="viewcode-back" href="../../../lingvo.core.py_utils.html#lingvo.core.py_utils.use_xla">[docs]</a><span class="k">def</span> <span class="nf">use_xla</span><span class="p">():</span>  <span class="c1"># pylint: disable=invalid-name</span>
