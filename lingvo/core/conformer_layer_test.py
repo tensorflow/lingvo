@@ -42,7 +42,11 @@ class LConvLayerTest(test_utils.TestCase, parameterized.TestCase):
 
 class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
 
-  def testBasic(self):
+  @parameterized.named_parameters(
+      ('Base',),
+      ('Reordered', 'conv_before_mhsa'),
+  )
+  def testBasic(self, layer_order='mhsa_before_conv'):
     batch, seqlen, dim, heads = 2, 32, 4, 2
     context = 2
 
@@ -57,6 +61,7 @@ class ConformerLayerTest(test_utils.TestCase, parameterized.TestCase):
         kernel_size=3,
         fflayer_hidden_dim=4 * dim)
     p.name = 'conformer_layer'
+    p.layer_order = layer_order
     l = p.Instantiate()
     outputs = l.FPropDefaultTheta(inputs, paddings)
 

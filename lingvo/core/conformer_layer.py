@@ -129,6 +129,18 @@ class LConvLayer(base_layer.BaseLayer):
     return layers._ACTIVATIONS[act_name](inputs)  # pylint:disable=protected-access
 
   def FProp(self, theta, inputs, paddings):
+    """Builds FProp graph.
+
+    Args:
+      theta: A NestedMap of Tensors, see base class.
+      inputs: A Tensor of shape [batch, seqlen, dim0].
+      paddings: A Tensor of shape [batch, seqlen].
+
+    Returns:
+      output: A Tensor of shape [batch, seqlen, dim0].
+      out_paddings: A Tensor of shape [batch, seqlen].
+    """
+
     p = self.params
     with tf.name_scope(p.name):
       unnormalized_inputs = inputs
@@ -157,11 +169,14 @@ class LConvLayer(base_layer.BaseLayer):
 class ConformerLayer(base_layer.BaseLayer):
   """Conformer layer as in https://arxiv.org/abs/2005.08100.
 
-    x = x + 1/2 * FFN(x)
-    x = x + MHSA(x)
-    x = x + Lconv(x)
-    x = x + 1/2 * FFN(x)
-    y = ln(x)
+    Canonical version (with default params.)
+      x = x + 1/2 * FFN(x)
+      x = x + MHSA(x)
+      x = x + Lconv(x)
+      x = x + 1/2 * FFN(x)
+      y = ln(x)
+
+    Optionally one can change the order of MHSA and conv.
   """
 
   @classmethod
@@ -182,6 +197,8 @@ class ConformerLayer(base_layer.BaseLayer):
         'relative_pos_emb_dim', None,
         'If use_relative_atten, sets the relative pos embedding dim.'
         'Default is the same as input_dim.')
+    p.Define('layer_order', 'mhsa_before_conv',
+             'Only mhsa_before_conv or conv_before_mhsa are supported.')
 
     # lconv layer
     p.Define('kernel_size', None, 'Kernel size of 1d lightweight conv.')
@@ -218,6 +235,7 @@ class ConformerLayer(base_layer.BaseLayer):
                    kernel_size=None,
                    fflayer_hidden_dim=None,
                    fflayer_activation='SWISH',
+                   layer_order='mhsa_before_conv',
                    dropout_prob=0.):
     assert all([input_dim, atten_num_heads, kernel_size, fflayer_hidden_dim])
 
@@ -237,12 +255,14 @@ class ConformerLayer(base_layer.BaseLayer):
         fflayer_hidden_dim=fflayer_hidden_dim,
         fflayer_activation=fflayer_activation,
         kernel_size=kernel_size,
+        layer_order=layer_order,
         dropout_prob=0.)
     return p
 
   def __init__(self, params):
     super().__init__(params)
     p = self.params
+    assert p.layer_order in ['mhsa_before_conv', 'conv_before_mhsa']
 
     fflayer_start_p = p.fflayer_start_tpl.Copy().Set(
         input_dim=p.input_dim,
@@ -307,17 +327,30 @@ class ConformerLayer(base_layer.BaseLayer):
           right_context=p.atten_right_context)
     # No op for 'global' atten
 
+  def _SelfAtten(self, theta, inputs, paddings):
+    inputs, _ = self.trans_atten.FProp(
+        theta.trans_atten,
+        query_vec=inputs,
+        source_vecs=None,
+        paddings=paddings)
+    return inputs, paddings
+
+  def _LConv(self, theta, inputs, paddings):
+    inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
+    return inputs, paddings
+
   def FProp(self, theta, inputs, paddings):
     p = self.params
 
     with tf.name_scope(p.name):
       inputs = self.fflayer_start.FProp(theta.fflayer_start, inputs, paddings)
-      inputs, _ = self.trans_atten.FProp(
-          theta.trans_atten,
-          query_vec=inputs,
-          source_vecs=None,
-          paddings=paddings)
-      inputs, paddings = self.lconv.FProp(theta.lconv, inputs, paddings)
+      if p.layer_order == 'mhsa_before_conv':
+        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
+        inputs, paddings = self._LConv(theta, inputs, paddings)
+      else:
+        assert p.layer_order == 'conv_before_mhsa'
+        inputs, paddings = self._LConv(theta, inputs, paddings)
+        inputs, paddings = self._SelfAtten(theta, inputs, paddings)
       inputs = self.fflayer_end.FProp(theta.fflayer_end, inputs, paddings)
 
       inputs = self.final_ln.FProp(theta.final_ln, inputs)
