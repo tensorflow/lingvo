@@ -2088,6 +2088,9 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
       in the model which should not be overridden, even if they match those in
       the loading rules.
 
+  Returns:
+    A list of overwritten variables.
+
   Raises:
     ValueError: if colliding vars exist or loading rules is not a list.
   """
@@ -2095,6 +2098,7 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     tf.logging.info('Overriding vars from multiple checkpoints.')
 
   var_refs_overridden = set()
+  var_names_overridden = set()
   for ckpt_path, loading_rules in ckpts_loading_rules.items():
     tf.logging.info('Overriding vars from checkpoint: %s', ckpt_path)
 
@@ -2111,6 +2115,10 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
         var[1].experimental_ref()
         for var in _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1])
     ]
+    var_names_to_override = [
+        var[1].name
+        for var in _GetVarsToLoad(all_vars, loading_rules[0], loading_rules[1])
+    ]
 
     overlap_refs = set.intersection(var_refs_overridden, var_refs_to_override)
     if overlap_refs:
@@ -2119,7 +2127,9 @@ def OverrideVarsFromCheckpoints(session, all_vars, ckpts_loading_rules):
     OverrideVarsFromCheckpoint(session, all_vars, ckpt_path, loading_rules[0],
                                loading_rules[1])
     var_refs_overridden.update(var_refs_to_override)
+    var_names_overridden.update(var_names_to_override)
   tf.logging.info('Model variables overridden: %s', var_refs_overridden)
+  return var_names_overridden
 
 
 def ComputeGradientsSimple(loss, all_vars, grad_aggregation_method,
