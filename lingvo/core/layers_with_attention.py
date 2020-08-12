@@ -222,9 +222,8 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       # Padding is complemented, so time indexes that we want to mask out
       # receive padding weight 1.0.
       if p.mask_type == 'future':
-        padding = 1.0 - tf.linalg.band_part(
-            tf.ones([target_time, target_time], dtype=py_utils.FPropDtype(p)),
-            -1, 0)
+        padding = py_utils.CausalSelfAttenPadding(
+            target_time, dtype=py_utils.FPropDtype(p))
       elif p.mask_type == 'eye':
         padding = tf.eye(target_time, target_time, dtype=py_utils.FPropDtype(p))
       elif p.mask_type == 'ngram':  # Maybe apply N-gram mask.

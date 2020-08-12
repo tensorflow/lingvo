@@ -77,6 +77,11 @@ tf.flags.DEFINE_bool(
     'or consumed by TPU')
 
 tf.flags.DEFINE_bool(
+    'tflite_compatible', False,
+    'Uses tflite converter-friendly ops at applicable places. This so far '
+    '(08/2020) is a only best-effort option.')
+
+tf.flags.DEFINE_bool(
     'pin_vars_to_cpu', False,
     'Pin variables to cpu:0.  This is useful for weight-sharing / multi-core '
     'inference on TPUs in which TPU core variables are managed via '
@@ -615,6 +620,21 @@ def GetSize(tensor):
       any([isinstance(x, tf.Tensor) for x in shape])):
     return tf.size(tensor)
   return np.prod(shape)
+
+
+def CausalSelfAttenPadding(seqlen, dtype):
+  """Wraps tf.linalg.band_part() for tflite compatibility."""
+  if FLAGS.tflite_compatible:
+    # [N, 1]
+    rows = tf.expand_dims(tf.range(seqlen), -1)
+    # [1, N]
+    cols = tf.expand_dims(tf.range(seqlen), 0)
+    row_cols = rows - cols
+    return tf.where(row_cols < 0, tf.ones([seqlen, seqlen], dtype),
+                    tf.zeros([seqlen, seqlen], tf.float32))
+  else:
+    return 1.0 - tf.linalg.band_part(
+        tf.ones([seqlen, seqlen], dtype=dtype), -1, 0)
 
 
 def use_xla():  # pylint: disable=invalid-name

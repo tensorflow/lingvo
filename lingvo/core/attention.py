@@ -879,7 +879,7 @@ class DotProductAttention(BaseAttentionLayer):
         inputs: a NestedMap containing:
           - per_dim_scale:         [source_dim], a vec to scale individual dims.
           - source_padding:          [time, source_batch].
-          - concated_source_vecs:    [time, source_batch, source_dim].
+          - concated_source_vecs:    [source_batch, time, source_dim].
           - query_vec:               [target_batch, source_dim].
           - per_step_source_padding: [target_batch, source_length]
           - source_segment_id:       [time, source_batch].
@@ -889,10 +889,7 @@ class DotProductAttention(BaseAttentionLayer):
         logits [target_batch, source_time].
       """
       source_padding = tf.transpose(inputs.source_padding)
-      concated_source_vecs = tf.transpose(inputs.concated_source_vecs,
-                                          [1, 0, 2])
-      concated_source_vecs = tf.identity(
-          concated_source_vecs, name='concated_source_vecs')
+      concated_source_vecs = inputs.concated_source_vecs
 
       logit_scale = tf.stop_gradient(
           tf.math.rsqrt(
@@ -975,6 +972,9 @@ class DotProductAttention(BaseAttentionLayer):
       source_batch = py_utils.GetShape(concated_source_vecs)[1]
       target_batch = py_utils.GetShape(query_vec)[0]
       n = target_batch // source_batch
+      concated_source_vecs = tf.transpose(concated_source_vecs, [1, 0, 2])
+      concated_source_vecs = tf.identity(
+          concated_source_vecs, name='concated_source_vecs')
       returned_probs = py_utils.CallDefun(
           AttenProbs,
           py_utils.NestedMap(
