@@ -291,10 +291,14 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
     # pyformat: enable
     per_step_padding = tf.stack(
         [tf.constant(x, dtype=dtype) for x in per_step_padding_p])
-    source_vecs = tf.zeros(
-        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
-    source_ctxs = tf.zeros(
-        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
+    source_vecs = tf.constant(
+        np.random.normal(
+            0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
+        dtype=dtype)
+    source_ctxs = tf.constant(
+        np.random.normal(
+            0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
+        dtype=dtype)
     return source_vecs, source_ctxs, query_vec, per_step_padding
 
   def testAttenProbs(self):
@@ -388,8 +392,9 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
           [5.381485, 5.384035, 4.493689, 3.544395, 3.424472, 3.311054],
           np.sum(context_vec_out, axis=1))
       new_source_vecs = np.reshape(new_source_vecs, (6, 24))
-      self.assertAllClose([4.116683, 0.0, 0.0, 0.0, 0.0, 0.0],
-                          np.sum(new_source_vecs, axis=1))
+      self.assertAllClose(
+          [4.116683, 1.340482, 1.065773, 1.035415, 4.928454, 3.161165],
+          np.sum(new_source_vecs, axis=1))
 
 
 class MultiSourceMultiHeadedAttentionTest(MultiHeadedAttentionTest):
@@ -630,8 +635,12 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
           segment_mask=None,
           per_step_padding=per_step_padding)
       dims_per_head = hidden_dim // num_heads
-      cached_source_vecs = tf.zeros([seqlen, batch, num_heads, dims_per_head])
-      cached_source_ctxs = tf.zeros([seqlen, batch, num_heads, dims_per_head])
+      cached_source_vecs = tf.constant(
+          np.random.normal(0.1, 0.5, [seqlen, batch, num_heads, dims_per_head]),
+          dtype=tf.float32)
+      cached_source_ctxs = tf.constant(
+          np.random.normal(0.1, 0.5, [seqlen, batch, num_heads, dims_per_head]),
+          dtype=tf.float32)
 
       encoded_all = []
       for i in range(seqlen):
@@ -1070,10 +1079,14 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     seq_len = 6
     query_vec_p = [np.random.rand(1, input_dim) for _ in range(batch_size)]
     query_vec = tf.stack([tf.constant(x, dtype=dtype) for x in query_vec_p])
-    source_vecs = tf.zeros(
-        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
-    source_ctxs = tf.zeros(
-        [seq_len, batch_size, num_heads, input_dim // num_heads], dtype=dtype)
+    source_vecs = tf.constant(
+        np.random.normal(
+            0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
+        dtype=dtype)
+    source_ctxs = tf.constant(
+        np.random.normal(
+            0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
+        dtype=dtype)
     return source_vecs, source_ctxs, query_vec
 
   def testExtendStepSelfAttention(self):
@@ -1114,12 +1127,13 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
 
       tf.logging.info(np.array_repr(np.sum(context_vec_out, axis=1)))
       self.assertAllClose(
-          [4.2453785, 4.218413, 3.2354772, 2.2528813, 2.2237093, 2.1914895],
+          [3.303124, 3.90266, 2.971359, 2.486641, 3.109267, 1.54773],
           np.sum(context_vec_out, axis=1))
       new_source_vecs = np.reshape(new_source_vecs, (6, 24))
       tf.logging.info(np.array_repr(np.sum(new_source_vecs, axis=1)))
-      self.assertAllClose([0.0, 0.0, 0.0, 4.116683, 0.0, 0.0],
-                          np.sum(new_source_vecs, axis=1))
+      self.assertAllClose(
+          [5.135725, 1.340482, 1.065773, 4.116683, 4.928454, 3.161165],
+          np.sum(new_source_vecs, axis=1))
 
 
 class RoutingAttentionTest(test_utils.TestCase, parameterized.TestCase):
@@ -1350,8 +1364,10 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=True) as sess:
       query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
       paddings = tf.zeros([2, 5])
-      cached_key = tf.zeros([5, 2, 2, 2])
-      cached_value = tf.zeros([5, 2, 2, 2])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
       prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
 
       p = attention.TransformerAttentionLayer.Params().Set(
@@ -1378,8 +1394,10 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
     with self.session(use_gpu=True) as sess:
       query_vec, _, _, _ = self._TransformerAttentionLayerInputs()
       paddings = tf.zeros([2, 5])
-      cached_key = tf.zeros([5, 2, 2, 2])
-      cached_value = tf.zeros([5, 2, 2, 2])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
       prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
 
       p = attention.TransformerAttentionLayer.Params().Set(
@@ -1672,8 +1690,10 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       (query_vec, _, aux_vec,
        aux_paddings) = self._TransformerAttentionLayerInputs()
       paddings = tf.zeros([2, 5])
-      cached_key = tf.zeros([5, 2, 2, 2])
-      cached_value = tf.zeros([5, 2, 2, 2])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
       prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
 
       l = self._ConstructTransformerDecoderLayer()
@@ -1726,8 +1746,10 @@ class TransformerLayerTest(test_utils.TestCase, parameterized.TestCase):
       (query_vec, _, aux_vec,
        aux_paddings) = self._TransformerAttentionLayerInputs()
       paddings = tf.zeros([2, 5])
-      cached_key = tf.zeros([5, 2, 2, 2])
-      cached_value = tf.zeros([5, 2, 2, 2])
+      cached_key = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
+      cached_value = tf.constant(
+          np.random.normal(0.1, 0.5, [5, 2, 2, 2]), dtype=tf.float32)
       prefix_states = py_utils.NestedMap(key=cached_key, value=cached_value)
 
       l = self._ConstructMultiSourceTransformerDecoderLayer()
