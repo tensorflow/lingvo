@@ -67,6 +67,16 @@ BeamSearchDecodeOutput = collections.namedtuple(
 BeamSearchDecodeOutput.__new__.__defaults__ = (None,)
 
 
+# Keys in fusion state that can be two dimensional, with the batch element in
+# the second dimension, requiring special treatment in hypothesis reordering.
+POSSIBLY_TIME_MAJOR_STATE_KEYS = [
+    'misc_states.fusion_states.lm_states.prev_ids',
+    'misc_states.fusion_states.lm_states.prev_paddings',
+    'fusion_states.lm_states.prev_ids',
+    'fusion_states.lm_states.prev_paddings',
+]
+
+
 class BeamSearchHelper(base_layer.BaseLayer):
   """Helper class for performing beam search.
 
@@ -350,7 +360,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
     new_bs_states = (out_best_scores, out_cumulative_scores, out_scores,
                      out_hyps, out_prev_hyps, out_done_hyps, out_atten_probs)
 
-    def ReOrderHyps(x_in):
+    def ReOrderHyps(key, x_in):
       """Reorders x_in based on prev hyp ids."""
       if (isinstance(x_in, tf.Tensor) and x_in.shape.ndims and
           x_in.shape.ndims > 0):
@@ -361,6 +371,8 @@ class BeamSearchHelper(base_layer.BaseLayer):
               old_hyp_ids_in_cache_order
               if p.batch_major_compute else old_hyp_ids)
           x_out = tf.gather(x_in, correct_old_hyp_ids, axis=1)
+        elif key in POSSIBLY_TIME_MAJOR_STATE_KEYS:
+          x_out = tf.gather(x_in, old_hyp_ids, axis=-1)
         else:
           x_out = tf.gather(x_in, old_hyp_ids)
         x_out.set_shape(x_in.get_shape())
@@ -368,7 +380,7 @@ class BeamSearchHelper(base_layer.BaseLayer):
       else:
         return x_in
 
-    new_other_states = other_states.Transform(ReOrderHyps)
+    new_other_states = other_states.TransformWithKey(ReOrderHyps)
 
     final_other_states = post_beam_search_step_callback(theta, encoder_outputs,
                                                         new_step_ids,

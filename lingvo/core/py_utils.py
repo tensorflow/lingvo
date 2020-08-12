@@ -1068,6 +1068,10 @@ class NestedMap(dict):
     """Returns a copy of this `.NestedMap` with fn applied on each value."""
     return self._RecursiveMap(lambda _, v: fn(v))
 
+  def TransformWithKey(self, fn):
+    """Returns a copy of this `.NestedMap` with fn applied on each key/value."""
+    return self._RecursiveMap(fn)
+
   def IsCompatible(self, other):
     """Returns true if self and other are compatible.
 
