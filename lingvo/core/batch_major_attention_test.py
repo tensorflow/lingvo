@@ -299,7 +299,8 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
         np.random.normal(
             0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
         dtype=dtype)
-    return source_vecs, source_ctxs, query_vec, per_step_padding
+    cached_states = py_utils.NestedMap(key=source_vecs, value=source_ctxs)
+    return query_vec, cached_states, per_step_padding
 
   def testAttenProbs(self):
     (query_vec, key_vec, paddings, per_step_padding, query_vec_p, key_vec_p,
@@ -374,19 +375,18 @@ class MultiHeadedAttentionTest(test_utils.TestCase, parameterized.TestCase):
   def testExtendStepSelfAttention(self, use_short_seq_opt):
     # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
     with self.session(use_gpu=True) as sess:
-      source_vecs, source_ctxs, query_vec, per_step_padding = (
-          self._AttentionExtendStepInputs())
+      query_vec, cached_states, per_step_padding = self._AttentionExtendStepInputs(
+      )
       p = attention.MultiHeadedAttention.Params().Set(
           name='atten', num_heads=2, input_dim=4, hidden_dim=4)
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       tf.global_variables_initializer().run()
-      ctx_vec, new_src_vecs, _ = l.ExtendStep(l.theta, query_vec, source_vecs,
-                                              source_ctxs, None, None,
-                                              per_step_padding, 0,
-                                              use_short_seq_opt)
+      ctx_vec, updated_states = l.ExtendStep(l.theta, query_vec, cached_states,
+                                             None, None, per_step_padding, 0,
+                                             use_short_seq_opt)
       context_vec_out = sess.run(ctx_vec)
-      new_source_vecs = sess.run(new_src_vecs)
+      new_source_vecs = sess.run(updated_states.key)
       context_vec_out = np.reshape(context_vec_out, (6, 4))
       self.assertAllClose(
           [5.381485, 5.384035, 4.493689, 3.544395, 3.424472, 3.311054],
@@ -641,15 +641,17 @@ class MultiHeadedAttentionXLTest(test_utils.TestCase, parameterized.TestCase):
       cached_source_ctxs = tf.constant(
           np.random.normal(0.1, 0.5, [seqlen, batch, num_heads, dims_per_head]),
           dtype=tf.float32)
+      cached_states = py_utils.NestedMap(
+          key=cached_source_vecs, value=cached_source_ctxs)
 
       encoded_all = []
       for i in range(seqlen):
         per_step_paddings = 1. - tf.cast(
             tf.sequence_mask([i + 1] * batch, seqlen), tf.float32)
         per_step_paddings = tf.expand_dims(per_step_paddings, 1)
-        encoded, cached_source_vecs, cached_source_ctxs = l.ExtendStep(
-            l.theta, query_vec[:, i:i + 1, :], cached_source_vecs,
-            cached_source_ctxs, paddings, None, per_step_paddings, i)
+        encoded, cached_states = l.ExtendStep(l.theta, query_vec[:, i:i + 1, :],
+                                              cached_states, paddings, None,
+                                              per_step_paddings, i)
         # [batch, 1, dims_per_head]
         encoded_all.append(encoded)
       # [batch, T, dims_per_head]
@@ -1087,7 +1089,8 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
         np.random.normal(
             0.1, 0.5, [seq_len, batch_size, num_heads, input_dim // num_heads]),
         dtype=dtype)
-    return source_vecs, source_ctxs, query_vec
+    cached_states = py_utils.NestedMap(key=source_vecs, value=source_ctxs)
+    return query_vec, cached_states
 
   def testExtendStepSelfAttention(self):
     # input_batch:6, seq_len:6, query_len: 1. Test n = 2 case.
@@ -1095,7 +1098,7 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
     input_dim = 4
     num_heads = 2
     with self.session(use_gpu=True) as sess:
-      source_vecs, source_ctxs, query_vec = (
+      query_vec, cached_states = (
           self._AttentionExtendStepInputs(
               batch_size=batch_size, input_dim=input_dim, num_heads=num_heads))
       p = attention.LocalSelfAttention.Params().Set(
@@ -1111,18 +1114,17 @@ class LocalSelfAttentionTest(test_utils.TestCase, parameterized.TestCase):
       p.params_init = py_utils.WeightInit.Xavier(scale=1.0, seed=0)
       l = p.Instantiate()
       tf.global_variables_initializer().run()
-      ctx_vec, new_src_vecs, _ = l.ExtendStep(
+      ctx_vec, updated_states = l.ExtendStep(
           l.theta,
           query_vec,
-          source_vecs,
-          source_ctxs,
+          cached_states,
           paddings=None,
           segment_mask=None,
           per_step_padding=None,
           time_step=3,
           use_short_seq_opt=False)
       context_vec_out = sess.run(ctx_vec)
-      new_source_vecs = sess.run(new_src_vecs)
+      new_source_vecs = sess.run(updated_states.key)
       context_vec_out = np.reshape(context_vec_out, (6, 4))
 
       tf.logging.info(np.array_repr(np.sum(context_vec_out, axis=1)))

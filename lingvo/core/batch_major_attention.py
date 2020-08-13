@@ -640,11 +640,31 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     encoded = self.post.FProp(theta.post, encoded)
     return encoded, atten_probs
 
+  def InitStates(self, theta, target_batch_size, target_max_length):
+    p = self.params
+    num_heads = p.num_heads
+    atten_dim = p.hidden_dim
+    if not atten_dim:  # Check for Pathways as atten_tpl.hidden_dim is not set.
+      atten_dim = p.input_dim
+    dim_per_head = atten_dim // num_heads
+    # TODO(shafey): Determine if we want to make the cached shape 128 to
+    # avoid padding and more efficient interpolation in beamsearch.
+    return py_utils.NestedMap(
+        key=inplace_ops.empty(
+            shape=(target_max_length, target_batch_size, num_heads,
+                   dim_per_head),
+            dtype=py_utils.FPropDtype(p),
+            init=True),
+        value=inplace_ops.empty(
+            shape=(target_max_length, target_batch_size, num_heads,
+                   dim_per_head),
+            dtype=py_utils.FPropDtype(p),
+            init=True))
+
   def ExtendStep(self,
                  theta,
                  query_vec,
-                 cached_key_vec,
-                 cached_value_vec,
+                 cached_states,
                  paddings,
                  segment_mask,
                  per_step_padding,
@@ -658,8 +678,9 @@ class MultiHeadedAttention(base_layer.BaseLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       query_vec:        [B, 1, D].
-      cached_key_vec:   [T, B, N, H].
-      cached_value_vec: [T, B, N, H].
+      cached_states: A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for fast decoding. key   - [T, B,
+        N, H]. value - [T, B, N, H].
       paddings:         [B, T], or None if there is no padding.
       segment_mask:     [B, 1, T, S] or None.
       per_step_padding: A mask used by decoder self-attention to prevent
@@ -683,7 +704,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     new_key_vec = query_vec
     new_value_vec = query_vec
-    t, b, n, h = py_utils.GetShape(cached_key_vec, 4)
+    t, b, n, h = py_utils.GetShape(cached_states.key, 4)
 
     # Project inputs to key, value and query. Each has shape [B, 1, N, H].
     new_key_proj = self.key.FProp(theta.key, new_key_vec)
@@ -691,12 +712,11 @@ class MultiHeadedAttention(base_layer.BaseLayer):
     query_proj = self.query.FProp(theta.query, query_vec)
 
     # The extended_key and extended_value have shape [T, B, N, H].
-    cached_key_vec = inplace_ops.alias_inplace_update(
-        cached_key_vec, time_step, tf.reshape(new_key_proj, [b, n, h]))
-    cached_value_vec = inplace_ops.alias_inplace_update(
-        cached_value_vec, time_step, tf.reshape(new_value_proj, [b, n, h]))
-    extended_key = cached_key_vec
-    extended_value = cached_value_vec
+    extended_key = inplace_ops.alias_inplace_update(
+        cached_states.key, time_step, tf.reshape(new_key_proj, [b, n, h]))
+    extended_value = inplace_ops.alias_inplace_update(
+        cached_states.value, time_step, tf.reshape(new_value_proj, [b, n, h]))
+    updated_state = py_utils.NestedMap(key=extended_key, value=extended_value)
 
     if paddings is None:
       paddings = tf.zeros([b, t], dtype=new_key_vec.dtype)
@@ -714,7 +734,7 @@ class MultiHeadedAttention(base_layer.BaseLayer):
 
     # Post projection.
     encoded = self.post.FProp(theta.post, encoded)
-    return encoded, cached_key_vec, cached_value_vec
+    return encoded, updated_state
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -854,8 +874,7 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
   def ExtendStep(self,
                  theta,
                  query_vec,
-                 cached_key_vec,
-                 cached_value_vec,
+                 cached_states,
                  paddings,
                  segment_mask,
                  per_step_padding,
@@ -863,9 +882,9 @@ class MultiHeadedAttentionXL(MultiHeadedAttention):
                  use_short_seq_opt=False):
     # TODO(jamesqin): support use_short_seq_opt for TransofrmerXL attention.
     assert not use_short_seq_opt
-    return super().ExtendStep(theta, query_vec, cached_key_vec,
-                              cached_value_vec, paddings, segment_mask,
-                              per_step_padding, time_step, use_short_seq_opt)
+    return super().ExtendStep(theta, query_vec, cached_states, paddings,
+                              segment_mask, per_step_padding, time_step,
+                              use_short_seq_opt)
 
 
 class MultiHeadedAttentionRPE(MultiHeadedAttention):
@@ -1064,8 +1083,7 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
   def ExtendStep(self,
                  theta,
                  query_vec,
-                 cached_key_vec,
-                 cached_value_vec,
+                 cached_states,
                  paddings,
                  segment_mask,
                  per_step_padding,
@@ -1073,9 +1091,9 @@ class MultiHeadedAttentionRPE(MultiHeadedAttention):
                  use_short_seq_opt=False):
     # TODO(jamesqin): support use_short_seq_opt.
     assert not use_short_seq_opt
-    return super().ExtendStep(theta, query_vec, cached_key_vec,
-                              cached_value_vec, paddings, segment_mask,
-                              per_step_padding, time_step, use_short_seq_opt)
+    return super().ExtendStep(theta, query_vec, cached_states, paddings,
+                              segment_mask, per_step_padding, time_step,
+                              use_short_seq_opt)
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -1281,8 +1299,7 @@ class LocalSelfAttention(MultiHeadedAttention):
   def ExtendStep(self,
                  theta,
                  query_vec,
-                 cached_key_vec,
-                 cached_value_vec,
+                 cached_states,
                  paddings,
                  segment_mask=None,
                  per_step_padding=None,
@@ -1300,8 +1317,9 @@ class LocalSelfAttention(MultiHeadedAttention):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       query_vec:        [B, 1, D].
-      cached_key_vec:   [T, B, N, H].
-      cached_value_vec: [T, B, N, H].
+      cached_states:   A `.NestedMap` object containing tensors which are the
+        results of previous attentions, used for fast decoding. key   - [T, B,
+        N, H]. value - [T, B, N, H].
       paddings:         [B, T], or None if there is no padding.
       segment_mask:     [B, 1, T, S] or None. Not used right now.
       per_step_padding: A mask used by decoder self-attention to prevent
@@ -1328,7 +1346,7 @@ class LocalSelfAttention(MultiHeadedAttention):
       raise NotImplementedError('use_short_seq_opt is not supported yet.')
 
     # Make local casual paddings, which have shape [B, T].
-    t, b, _, _ = py_utils.GetShape(cached_key_vec, 4)
+    t, b, _, _ = py_utils.GetShape(cached_states.key, 4)
     if paddings is None:
       paddings = tf.zeros([b, t], dtype=query_vec.dtype)
     position_diff = tf.tile(tf.range(t)[tf.newaxis, :], [b, 1]) - time_step
@@ -1337,9 +1355,9 @@ class LocalSelfAttention(MultiHeadedAttention):
     local_causal_padding = 1.0 - tf.cast(valid_atten, dtype=query_vec.dtype)
     paddings += local_causal_padding
 
-    return super().ExtendStep(theta, query_vec, cached_key_vec,
-                              cached_value_vec, paddings, segment_mask,
-                              per_step_padding, time_step, use_short_seq_opt)
+    return super().ExtendStep(theta, query_vec, cached_states, paddings,
+                              segment_mask, per_step_padding, time_step,
+                              use_short_seq_opt)
 
   @classmethod
   def FPropMeta(cls, p, *args):
@@ -1886,6 +1904,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       ctx_vec += input_to_add
     return ctx_vec, atten_probs
 
+  def InitStates(self, theta, target_batch_size, target_max_length):
+    return self.atten.InitStates(theta.atten, target_batch_size,
+                                 target_max_length)
+
   def ExtendStep(self,
                  theta,
                  query_vec,
@@ -1936,11 +1958,10 @@ class TransformerAttentionLayer(base_layer.BaseLayer):
       query_vec = self.layer_norm.FProp(theta.layer_norm, query_vec)
 
     # Multiheaded masked/causal self-attention.
-    ctx_vec, updated_key_vec, updated_value_vec = self.atten.ExtendStep(
-        theta.atten, query_vec, cached_states.key, cached_states.value, None,
-        None, per_step_padding, time_step, use_short_seq_opt)
-    updated_states = py_utils.NestedMap(
-        key=updated_key_vec, value=updated_value_vec)
+    ctx_vec, updated_states = self.atten.ExtendStep(theta.atten, query_vec,
+                                                    cached_states, None, None,
+                                                    per_step_padding, time_step,
+                                                    use_short_seq_opt)
 
     # Residual connection.
     ctx_vec = self.residual_dropout.FProp(theta.residual_dropout, ctx_vec)
@@ -2201,23 +2222,8 @@ class TransformerLayer(base_layer.BaseLayer):
       return self.fflayer.FProp(theta.fflayer, atten_vec, paddings), atten_probs
 
   def InitStates(self, theta, target_batch_size, target_max_length):
-    p = self.params
-    num_heads = p.tr_atten_tpl.num_heads
-    atten_dim = p.tr_self_atten_tpl.hidden_dim if p.tr_self_atten_tpl else p.tr_atten_tpl.hidden_dim
-    if not atten_dim:  # Check for Pathways as atten_tpl.hidden_dim is not set.
-      atten_dim = p.input_dim
-    dim_per_head = atten_dim // num_heads
-    # TODO(shafey): Determine if we want to make the cached shape 128 to
-    # avoid padding and more efficient interpolation in beamsearch.
-    return py_utils.NestedMap(
-        key=tf.zeros(
-            shape=(target_max_length, target_batch_size, num_heads,
-                   dim_per_head),
-            dtype=tf.float32),
-        value=tf.zeros(
-            shape=(target_max_length, target_batch_size, num_heads,
-                   dim_per_head),
-            dtype=tf.float32))
+    return self.self_atten.InitStates(theta.self_atten, target_batch_size,
+                                      target_max_length)
 
   def ExtendStep(self,
                  theta,

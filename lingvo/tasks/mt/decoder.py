@@ -31,8 +31,6 @@ from lingvo.core import rnn_cell
 from lingvo.core import rnn_layers
 from lingvo.core import summary_utils
 
-from tensorflow.python.ops import inplace_ops  # pylint: disable=g-direct-tensorflow-import
-
 
 class MTBaseDecoder(base_decoder.BaseBeamSearchDecoder):
   """Base class for Lingvo MT decoders."""
@@ -2559,32 +2557,10 @@ class TransformerBatchMajorDecoder(MTBaseDecoder):
     initial_results = py_utils.NestedMap(
         log_probs=log_probs, atten_probs=atten_probs)
 
-    dim = p.trans_decoder_tpl.tr_atten_tpl.hidden_dim
-    if not dim:
-      dim = p.model_dim
-    num_heads = p.trans_decoder_tpl.tr_atten_tpl.num_heads
-    # If per-head dim is less than 128, make the cached shape 128 to avoid
-    # padding and more efficient interpolation in beamsearch.
-    if dim // num_heads < 128 and dim % 128 == 0:
-      num_heads = dim // 128
-
-    def _GenStates():
-      return py_utils.NestedMap({
-          'key':
-              inplace_ops.empty(
-                  [target_time, target_batch, num_heads, dim // num_heads],
-                  dtype=py_utils.FPropDtype(p.trans_decoder_tpl),
-                  init=True),
-          'value':
-              inplace_ops.empty(
-                  [target_time, target_batch, num_heads, dim // num_heads],
-                  dtype=py_utils.FPropDtype(p.trans_decoder_tpl),
-                  init=True),
-      })
-
-    prefix_states = py_utils.NestedMap({
-        'layer_%d' % layer: _GenStates() for layer in range(p.num_trans_layers)
-    })
+    prefix_states = py_utils.NestedMap()
+    for layer in range(p.num_trans_layers):
+      prefix_states['layer_%d' % layer] = self.decoder_trans[layer].InitStates(
+          theta.decoder_trans[layer], target_batch, target_time)
 
     return initial_results, py_utils.NestedMap({
         'prefix_states': prefix_states,
