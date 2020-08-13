@@ -532,8 +532,13 @@ atten_probs: [B, N, T, S].</p>
 </dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.batch_major_attention.MultiHeadedAttention.InitStates">
+<code class="sig-name descname">InitStates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">target_batch_size</span></em>, <em class="sig-param"><span class="n">target_max_length</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention.InitStates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention.InitStates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttention.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This function is used by autoregressive decoding.</p>
 <dl class="field-list simple">
@@ -542,8 +547,9 @@ atten_probs: [B, N, T, S].</p>
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [B, 1, D].</p></li>
-<li><p><strong>cached_key_vec</strong> – [T, B, N, H].</p></li>
-<li><p><strong>cached_value_vec</strong> – [T, B, N, H].</p></li>
+<li><p><strong>cached_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
+results of previous attentions, used for fast decoding. key   - [T, B,
+N, H]. value - [T, B, N, H].</p></li>
 <li><p><strong>paddings</strong> – [B, T], or None if there is no padding.</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S] or None.</p></li>
 <li><p><strong>per_step_padding</strong> – A mask used by decoder self-attention to prevent
@@ -667,7 +673,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionXL.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionXL.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionXL.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This function is used by autoregressive decoding.</p>
 <dl class="field-list simple">
@@ -676,8 +682,9 @@ its children layers.</p></li>
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [B, 1, D].</p></li>
-<li><p><strong>cached_key_vec</strong> – [T, B, N, H].</p></li>
-<li><p><strong>cached_value_vec</strong> – [T, B, N, H].</p></li>
+<li><p><strong>cached_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
+results of previous attentions, used for fast decoding. key   - [T, B,
+N, H]. value - [T, B, N, H].</p></li>
 <li><p><strong>paddings</strong> – [B, T], or None if there is no padding.</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S] or None.</p></li>
 <li><p><strong>per_step_padding</strong> – A mask used by decoder self-attention to prevent
@@ -801,7 +808,7 @@ its children layers.</p></li>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.MultiHeadedAttentionRPE.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span></em>, <em class="sig-param"><span class="n">per_step_padding</span></em>, <em class="sig-param"><span class="n">time_step</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#MultiHeadedAttentionRPE.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.MultiHeadedAttentionRPE.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This function is used by autoregressive decoding.</p>
 <dl class="field-list simple">
@@ -810,8 +817,9 @@ its children layers.</p></li>
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [B, 1, D].</p></li>
-<li><p><strong>cached_key_vec</strong> – [T, B, N, H].</p></li>
-<li><p><strong>cached_value_vec</strong> – [T, B, N, H].</p></li>
+<li><p><strong>cached_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
+results of previous attentions, used for fast decoding. key   - [T, B,
+N, H]. value - [T, B, N, H].</p></li>
 <li><p><strong>paddings</strong> – [B, T], or None if there is no padding.</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S] or None.</p></li>
 <li><p><strong>per_step_padding</strong> – A mask used by decoder self-attention to prevent
@@ -992,7 +1000,7 @@ atten_probs: [B, N, T, S].</p>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep">
-<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_key_vec</span></em>, <em class="sig-param"><span class="n">cached_value_vec</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_step</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
+<code class="sig-name descname">ExtendStep</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">query_vec</span></em>, <em class="sig-param"><span class="n">cached_states</span></em>, <em class="sig-param"><span class="n">paddings</span></em>, <em class="sig-param"><span class="n">segment_mask</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">per_step_padding</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">time_step</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">use_short_seq_opt</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#LocalSelfAttention.ExtendStep"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.LocalSelfAttention.ExtendStep" title="Permalink to this definition">¶</a></dt>
 <dd><p>Computes the value vector given the query of the current step.</p>
 <p>This function is used by autoregressive decoding.</p>
 <p>Note: When the context window size is much smaller than target sequence
@@ -1004,8 +1012,9 @@ Then, time_step should be the relative decode step and not bigger than T.</p>
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>query_vec</strong> – [B, 1, D].</p></li>
-<li><p><strong>cached_key_vec</strong> – [T, B, N, H].</p></li>
-<li><p><strong>cached_value_vec</strong> – [T, B, N, H].</p></li>
+<li><p><strong>cached_states</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing tensors which are the
+results of previous attentions, used for fast decoding. key   - [T, B,
+N, H]. value - [T, B, N, H].</p></li>
 <li><p><strong>paddings</strong> – [B, T], or None if there is no padding.</p></li>
 <li><p><strong>segment_mask</strong> – [B, 1, T, S] or None. Not used right now.</p></li>
 <li><p><strong>per_step_padding</strong> – A mask used by decoder self-attention to prevent
@@ -1324,6 +1333,11 @@ atten_probs: [B, N, T, S].</p>
 </dd>
 </dl>
 </dd></dl>
+
+<dl class="py method">
+<dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.InitStates">
+<code class="sig-name descname">InitStates</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">target_batch_size</span></em>, <em class="sig-param"><span class="n">target_max_length</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/batch_major_attention.html#TransformerAttentionLayer.InitStates"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.batch_major_attention.TransformerAttentionLayer.InitStates" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt id="lingvo.core.batch_major_attention.TransformerAttentionLayer.ExtendStep">

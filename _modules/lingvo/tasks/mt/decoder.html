@@ -179,8 +179,6 @@
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">rnn_layers</span>
 <span class="kn">from</span> <span class="nn">lingvo.core</span> <span class="kn">import</span> <span class="n">summary_utils</span>
 
-<span class="kn">from</span> <span class="nn">tensorflow.python.ops</span> <span class="kn">import</span> <span class="n">inplace_ops</span>  <span class="c1"># pylint: disable=g-direct-tensorflow-import</span>
-
 
 <div class="viewcode-block" id="MTBaseDecoder"><a class="viewcode-back" href="../../../../lingvo.tasks.mt.decoder.html#lingvo.tasks.mt.decoder.MTBaseDecoder">[docs]</a><span class="k">class</span> <span class="nc">MTBaseDecoder</span><span class="p">(</span><span class="n">base_decoder</span><span class="o">.</span><span class="n">BaseBeamSearchDecoder</span><span class="p">):</span>
   <span class="sd">&quot;&quot;&quot;Base class for Lingvo MT decoders.&quot;&quot;&quot;</span>
@@ -2707,32 +2705,10 @@
     <span class="n">initial_results</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">(</span>
         <span class="n">log_probs</span><span class="o">=</span><span class="n">log_probs</span><span class="p">,</span> <span class="n">atten_probs</span><span class="o">=</span><span class="n">atten_probs</span><span class="p">)</span>
 
-    <span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">hidden_dim</span>
-    <span class="k">if</span> <span class="ow">not</span> <span class="n">dim</span><span class="p">:</span>
-      <span class="n">dim</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">model_dim</span>
-    <span class="n">num_heads</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="o">.</span><span class="n">tr_atten_tpl</span><span class="o">.</span><span class="n">num_heads</span>
-    <span class="c1"># If per-head dim is less than 128, make the cached shape 128 to avoid</span>
-    <span class="c1"># padding and more efficient interpolation in beamsearch.</span>
-    <span class="k">if</span> <span class="n">dim</span> <span class="o">//</span> <span class="n">num_heads</span> <span class="o">&lt;</span> <span class="mi">128</span> <span class="ow">and</span> <span class="n">dim</span> <span class="o">%</span> <span class="mi">128</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
-      <span class="n">num_heads</span> <span class="o">=</span> <span class="n">dim</span> <span class="o">//</span> <span class="mi">128</span>
-
-    <span class="k">def</span> <span class="nf">_GenStates</span><span class="p">():</span>
-      <span class="k">return</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
-          <span class="s1">&#39;key&#39;</span><span class="p">:</span>
-              <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                  <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">],</span>
-                  <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">),</span>
-                  <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-          <span class="s1">&#39;value&#39;</span><span class="p">:</span>
-              <span class="n">inplace_ops</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span>
-                  <span class="p">[</span><span class="n">target_time</span><span class="p">,</span> <span class="n">target_batch</span><span class="p">,</span> <span class="n">num_heads</span><span class="p">,</span> <span class="n">dim</span> <span class="o">//</span> <span class="n">num_heads</span><span class="p">],</span>
-                  <span class="n">dtype</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">FPropDtype</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">trans_decoder_tpl</span><span class="p">),</span>
-                  <span class="n">init</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>
-      <span class="p">})</span>
-
-    <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
-        <span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">:</span> <span class="n">_GenStates</span><span class="p">()</span> <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">)</span>
-    <span class="p">})</span>
+    <span class="n">prefix_states</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">layer</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">num_trans_layers</span><span class="p">):</span>
+      <span class="n">prefix_states</span><span class="p">[</span><span class="s1">&#39;layer_</span><span class="si">%d</span><span class="s1">&#39;</span> <span class="o">%</span> <span class="n">layer</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">decoder_trans</span><span class="p">[</span><span class="n">layer</span><span class="p">]</span><span class="o">.</span><span class="n">InitStates</span><span class="p">(</span>
+          <span class="n">theta</span><span class="o">.</span><span class="n">decoder_trans</span><span class="p">[</span><span class="n">layer</span><span class="p">],</span> <span class="n">target_batch</span><span class="p">,</span> <span class="n">target_time</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">initial_results</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">NestedMap</span><span class="p">({</span>
         <span class="s1">&#39;prefix_states&#39;</span><span class="p">:</span> <span class="n">prefix_states</span><span class="p">,</span>
