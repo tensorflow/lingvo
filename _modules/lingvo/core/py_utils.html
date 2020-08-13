@@ -4621,6 +4621,10 @@
   <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">input_signature</span><span class="o">=</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">),</span> <span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
   <span class="k">def</span> <span class="nf">Forward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;The forward function.&quot;&quot;&quot;</span>
+    <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+    <span class="c1"># avoid it being used as an implicit capture. It should take the step seed</span>
+    <span class="c1"># from parent graph instead.</span>
+    <span class="n">ResetStepSeed</span><span class="p">()</span>
     <span class="k">with</span> <span class="n">RemoveAssertContext</span><span class="p">(</span><span class="n">remove</span><span class="o">=</span><span class="n">noinline</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">device</span><span class="p">(</span><span class="n">device</span><span class="p">):</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="k">if</span> <span class="n">implicit_captures</span><span class="p">:</span>
@@ -4637,6 +4641,11 @@
   <span class="k">if</span> <span class="n">bak</span><span class="p">:</span>
 
     <span class="k">def</span> <span class="nf">Backward</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="k">if</span> <span class="n">bak_as_function</span><span class="p">:</span>
+        <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+        <span class="c1"># avoid it being used as an implicit capture. It should take the step</span>
+        <span class="c1"># seed from parent graph instead.</span>
+        <span class="n">ResetStepSeed</span><span class="p">()</span>
       <span class="n">xs_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">))</span>
       <span class="n">ys_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Flatten</span><span class="p">(</span><span class="n">sigs</span><span class="o">.</span><span class="n">rets</span><span class="p">))</span>
       <span class="n">xs</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">fwd_sig_no_captures</span><span class="p">,</span> <span class="n">args</span><span class="p">[:</span><span class="n">xs_len</span><span class="p">])</span>
@@ -4764,6 +4773,10 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">ThenBranch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+      <span class="c1"># avoid it being used as an implicit capture. It should take the step seed</span>
+      <span class="c1"># from parent graph instead.</span>
+      <span class="n">ResetStepSeed</span><span class="p">()</span>
       <span class="n">inp</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">then_branch</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
       <span class="n">ret_dtypes</span><span class="o">.</span><span class="n">then_out</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
@@ -4771,6 +4784,10 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">ElseBranch</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+      <span class="c1"># avoid it being used as an implicit capture. It should take the step seed</span>
+      <span class="c1"># from parent graph instead.</span>
+      <span class="n">ResetStepSeed</span><span class="p">()</span>
       <span class="n">inp</span> <span class="o">=</span> <span class="n">Pack</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
       <span class="n">out</span> <span class="o">=</span> <span class="n">else_branch</span><span class="p">(</span><span class="n">inp</span><span class="p">)</span>
       <span class="n">ret_dtypes</span><span class="o">.</span><span class="n">else_out</span> <span class="o">=</span> <span class="n">Transform</span><span class="p">(</span><span class="n">get_dtype</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
@@ -4838,11 +4855,19 @@
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">LoopCond</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+      <span class="c1"># avoid it being used as an implicit capture. It should take the step seed</span>
+      <span class="c1"># from parent graph instead.</span>
+      <span class="n">ResetStepSeed</span><span class="p">()</span>
       <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">cond</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
 
     <span class="nd">@tf</span><span class="o">.</span><span class="n">function</span><span class="p">(</span><span class="n">autograph</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">LoopBody</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+      <span class="c1"># TODO(b/163904067): mimic Defun&#39; behavior and reset the step seed to</span>
+      <span class="c1"># avoid it being used as an implicit capture. It should take the step seed</span>
+      <span class="c1"># from parent graph instead.</span>
+      <span class="n">ResetStepSeed</span><span class="p">()</span>
       <span class="n">s</span> <span class="o">=</span> <span class="n">state</span><span class="o">.</span><span class="n">Pack</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
       <span class="n">s</span><span class="o">.</span><span class="n">loop_state</span> <span class="o">=</span> <span class="n">body</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">loop_state</span><span class="p">)</span>
       <span class="k">return</span> <span class="n">s</span><span class="o">.</span><span class="n">Flatten</span><span class="p">()</span>
