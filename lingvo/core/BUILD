@@ -181,6 +181,7 @@ py_test(
         ":conformer_layer",
         # Implicit absl.testing.flagsaver dependency.
         # Implicit absl.testing.parameterized dependency.
+        "//lingvo/core:bn_layers",
         "//lingvo/core:test_utils",
     ],
 )

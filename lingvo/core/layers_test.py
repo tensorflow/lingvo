@@ -373,7 +373,7 @@ class CategoricalBNTest(test_utils.TestCase, parameterized.TestCase):
       self.assertAllClose(95.6266, sig2_v)
 
 
-class GroupNormLayerTest(test_utils.TestCase):
+class GroupNormLayerTest(test_utils.TestCase, parameterized.TestCase):
 
   def testGroupNormLayerConstruction(self):
     with self.session(use_gpu=True):
@@ -444,18 +444,47 @@ class GroupNormLayerTest(test_utils.TestCase):
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
       self.assertAllEqual(paddings.eval(), paddings_out.eval())
 
-  def testGroupNormLayerFPropCumulativeMode(self):
+  def testGroupNormLayerFPropWithPaddings3DInput(self):
+    with self.session(use_gpu=True):
+      params = bn_layers.GroupNormLayer.Params()
+      params.name = 'gn'
+      params.dim = 4
+      params.num_groups = 2
+      params.params_init = py_utils.WeightInit.Gaussian(0.1)
+      gn_in = np.reshape(np.arange(16, dtype=np.float32), [2, 2, 1, 4])
+      paddings = np.array([[0, 0], [0, 1]], dtype=np.float32)
+
+      gn_layer = bn_layers.GroupNormLayer(params)
+      gn_out, paddings_out = gn_layer.FPropDefaultTheta(
+          tf.convert_to_tensor(gn_in), tf.convert_to_tensor(paddings))
+
+      params_3d = params.Copy().Set(input_rank=3, name='gn_3d')
+      gn_layer_3d = bn_layers.GroupNormLayer(params_3d)
+      gn_out_3d, paddings_out_3d = gn_layer_3d.FPropDefaultTheta(
+          tf.convert_to_tensor(gn_in.reshape([2, 2, 4])),
+          tf.convert_to_tensor(paddings))
+
+      tf.global_variables_initializer().run()
+      print(gn_out.eval())
+      # Tests against reference.
+      self.assertAllClose(
+          gn_out_3d.eval(), gn_out.eval().reshape([2, 2, 4]), atol=1e-5)
+      self.assertAllEqual(paddings_out_3d.eval(), paddings_out.eval())
+
+  @parameterized.named_parameters(('4D',), ('3D', 3))
+  def testGroupNormLayerFPropCumulativeMode(self, input_rank=4):
     with self.session(use_gpu=True):
       params = bn_layers.GroupNormLayer.Params()
       params.name = 'gn'
       params.dim = 2
       params.num_groups = 2
       params.cumulative = True
+      params.input_rank = input_rank
       # gn_in[0]: [[0, 1], [2, 3], [4, 5], [6, 7]]
       # gn_in[1]: [[8, 9], [10, 11], [12, 13], [14, 15]]
-      gn_in = tf.reshape(np.arange(16, dtype=np.float32), [2, 4, 1, 2])
-      paddings = tf.convert_to_tensor([[0, 0], [0, 0], [0, 0], [0, 0]],
-                                      dtype=tf.float32)
+      input_shape = [2, 4, 1, 2] if input_rank == 4 else [2, 4, 2]
+      gn_in = tf.reshape(np.arange(16, dtype=np.float32), input_shape)
+      paddings = tf.zeros([2, 4], tf.float32)
       gn_layer = bn_layers.GroupNormLayer(params)
       gn_out, _ = gn_layer.FPropDefaultTheta(gn_in, paddings)
 
@@ -464,7 +493,7 @@ class GroupNormLayerTest(test_utils.TestCase):
                              [1.5487288, 1.5487288], [1.6033384, 1.6033384]])
 
       expected_out = np.stack([base_block, base_block],
-                              axis=0).reshape([2, 4, 1, 2])
+                              axis=0).reshape(input_shape)
       self.assertAllClose(expected_out, gn_out.eval(), atol=1e-5)
 
 

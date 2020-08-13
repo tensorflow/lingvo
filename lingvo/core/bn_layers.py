@@ -348,6 +348,21 @@ class BatchNormLayer(base_layer.BaseLayer):
         bn_output *= 1.0 - paddings
     return bn_output
 
+  def _MaybeExpandPaddings(self, inputs, paddings):
+    # rank difference is at most one.
+    rank_diff = tf.rank(inputs) - tf.rank(paddings)
+    paddings = py_utils.with_dependencies([
+        py_utils.assert_less_equal(rank_diff, 1),
+        py_utils.assert_greater_equal(rank_diff, 0)
+    ], paddings)
+
+    # Pads [1] to the end of paddings.
+    paddings = tf.reshape(
+        paddings,
+        tf.concat(
+            [tf.shape(paddings), tf.tile([1], [rank_diff])], axis=0))
+    return paddings
+
   def FProp(self, theta, inputs, paddings=None):
     """Apply batch normalization.
 
@@ -355,8 +370,8 @@ class BatchNormLayer(base_layer.BaseLayer):
       theta: A `.NestedMap` object containing weights' values of this layer and
         its children layers.
       inputs: The inputs tensor.  Shaped [..., dim].
-      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the
-        input tensor.
+      paddings: The paddings tensor.  Shaped [..., 1] or [...], the rank is
+        either the same as inputs or tf.rank(inputs) - 1.
 
     Returns:
       Output after applying batch normalization, with the same shape as
@@ -365,6 +380,10 @@ class BatchNormLayer(base_layer.BaseLayer):
     p = self.params
     if paddings is None:
       paddings = self._GetDefaultPaddings(inputs)
+
+    # shape [..., 1]
+    paddings = self._MaybeExpandPaddings(inputs, paddings)
+
     with tf.name_scope(p.name):
       norm_mean, norm_variance, beta, gamma = self.ComputeAndUpdateMoments(
           theta, inputs, paddings)
@@ -668,6 +687,8 @@ class GroupNormLayer(base_layer.BaseLayer):
     p.Define('min_group_size', 1, 'Minimum group size for GroupNorm')
     p.Define('cumulative', False, 'If true, only normalize by current and '
              'previous time steps.')
+    p.Define('input_rank', 4, 'Rank of input. Only 3(BTD) and 4(NHWC) are '
+             'supported.')
     return p
 
   def __init__(self, params):
@@ -685,13 +706,15 @@ class GroupNormLayer(base_layer.BaseLayer):
   def _CreateLayerVariables(self):
     super()._CreateLayerVariables()
     p = self.params
+    assert p.input_rank == 3 or p.input_rank == 4
 
     collections = [
         self.__class__.__name__ + '_vars', py_utils.SKIP_LP_REGULARIZATION
     ]
 
+    shape = [1, 1, 1, p.dim] if p.input_rank == 4 else [1, 1, p.dim]
     pc = py_utils.WeightParams(
-        shape=[1, 1, 1, p.dim],
+        shape=shape,
         init=py_utils.WeightInit.Constant(0.0),
         dtype=p.dtype,
         collections=collections)
@@ -716,33 +739,44 @@ class GroupNormLayer(base_layer.BaseLayer):
       paddings is not None.
     """
     p = self.params
-    n, h, w, c = tf.unstack(tf.shape(inputs), axis=0, num=4)
-    group_size = p.dim // p.num_groups
-    num_groups = p.num_groups
-    min_group_size = p.min_group_size if p.dim > p.min_group_size else p.dim
-    if group_size <= min_group_size:
-      group_size = min_group_size
-      num_groups = p.dim // group_size
+    inputs = py_utils.with_dependencies(
+        [py_utils.assert_greater_equal(py_utils.GetRank(inputs), p.input_rank)],
+        inputs)
 
+    min_group_size = min(p.min_group_size, p.dim)
+    group_size = max(p.dim // p.num_groups, min_group_size)
+    num_groups = p.dim // group_size
+
+    input_shape = py_utils.GetShape(inputs)
     with tf.name_scope(p.name):
-      x = tf.reshape(inputs, [n, h, w, num_groups, group_size])
+      x = tf.reshape(inputs, input_shape[:-1] + [num_groups, group_size])
+      expanded_rank = p.input_rank + 1
+      all_dims = list(range(expanded_rank))
       if paddings is None:
+        # Skip d0, d[-2]
+        axes = all_dims[1:-2] + all_dims[-1:]
         counts, means_ss, variance_ss, _, = tf.nn.sufficient_statistics(
-            x, axes=[1, 2, 4], keepdims=True)
+            x, axes=axes, keepdims=True)
         norm_mean, norm_variance = tf.nn.normalize_moments(
             counts, means_ss, variance_ss, None)
       else:
-        expanded_paddings = tf.reshape(paddings, [n, h, 1, 1, 1])
+        expanded_paddings = tf.reshape(
+            paddings, input_shape[:2] + [1] * (expanded_rank - 2))
+        # skip the batching and group dim
         if p.cumulative:
+          # Skip d0, d1 and d[-2]
+          reduce_over_dims = all_dims[2:-2] + all_dims[-1:]
           norm_mean, norm_variance = ComputeMomentsWithPadding(
               x,
               expanded_paddings,
-              reduce_over_dims=[2, 4],
+              reduce_over_dims=reduce_over_dims,
               cumulative_axis=1,
               keepdims=True)
         else:
+          # Skip d0, d[-2]
+          reduce_over_dims = all_dims[1:-2] + all_dims[-1:]
           norm_mean, norm_variance = ComputeMomentsWithPadding(
-              x, expanded_paddings, [1, 2, 4], keepdims=True)
+              x, expanded_paddings, reduce_over_dims, keepdims=True)
 
       norm_mean = py_utils.CheckNumerics(
           norm_mean, 'mean of %s failed numeric check' % p.name)
@@ -751,19 +785,20 @@ class GroupNormLayer(base_layer.BaseLayer):
 
       beta = theta.beta
       gamma = theta.gamma
-      t = h if p.cumulative else 1
+      n = input_shape[0]
+      t = input_shape[1] if p.cumulative else 1
+      norm_shape = [n, t, 1, num_groups, 1
+                   ] if p.input_rank == 4 else [n, t, num_groups, 1]
       with tf.control_dependencies([
           py_utils.assert_greater_equal(norm_variance,
                                         tf.cast(0., norm_variance.dtype)),
-          py_utils.assert_shape_match([n, t, 1, num_groups, 1],
-                                      tf.shape(norm_mean)),
-          py_utils.assert_shape_match([n, t, 1, num_groups, 1],
-                                      tf.shape(norm_variance)),
+          py_utils.assert_shape_match(norm_shape, tf.shape(norm_mean)),
+          py_utils.assert_shape_match(norm_shape, tf.shape(norm_variance)),
       ]):
         x = (x - norm_mean) / tf.sqrt(norm_variance + self._epsilon)
-        x = tf.reshape(x, [n, h, w, c])
+        x = tf.reshape(x, input_shape)
         gn_output = x * gamma + beta
-        gn_output = tf.reshape(gn_output, [n, h, w, c])
+        gn_output = tf.reshape(gn_output, input_shape)
         if paddings is None:
           return gn_output
         else:
