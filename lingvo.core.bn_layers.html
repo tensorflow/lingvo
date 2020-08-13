@@ -276,6 +276,11 @@ input tensor.</p></li>
 <dd></dd></dl>
 
 <dl class="py method">
+<dt id="lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings">
+<code class="sig-name descname">_MaybeExpandPaddings</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer._MaybeExpandPaddings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
 <dt id="lingvo.core.bn_layers.BatchNormLayer.FProp">
 <code class="sig-name descname">FProp</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">theta</span></em>, <em class="sig-param"><span class="n">inputs</span></em>, <em class="sig-param"><span class="n">paddings</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/lingvo/core/bn_layers.html#BatchNormLayer.FProp"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#lingvo.core.bn_layers.BatchNormLayer.FProp" title="Permalink to this definition">¶</a></dt>
 <dd><p>Apply batch normalization.</p>
@@ -285,8 +290,8 @@ input tensor.</p></li>
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>inputs</strong> – The inputs tensor.  Shaped […, dim].</p></li>
-<li><p><strong>paddings</strong> – The paddings tensor.  Shaped […, 1], with the same rank as the
-input tensor.</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor.  Shaped […, 1] or […], the rank is
+either the same as inputs or tf.rank(inputs) - 1.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>

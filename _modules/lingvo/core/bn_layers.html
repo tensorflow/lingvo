@@ -496,6 +496,21 @@
         <span class="n">bn_output</span> <span class="o">*=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">paddings</span>
     <span class="k">return</span> <span class="n">bn_output</span></div>
 
+<div class="viewcode-block" id="BatchNormLayer._MaybeExpandPaddings"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer._MaybeExpandPaddings">[docs]</a>  <span class="k">def</span> <span class="nf">_MaybeExpandPaddings</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">):</span>
+    <span class="c1"># rank difference is at most one.</span>
+    <span class="n">rank_diff</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span> <span class="o">-</span> <span class="n">tf</span><span class="o">.</span><span class="n">rank</span><span class="p">(</span><span class="n">paddings</span><span class="p">)</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">([</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_less_equal</span><span class="p">(</span><span class="n">rank_diff</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+        <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">rank_diff</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+    <span class="p">],</span> <span class="n">paddings</span><span class="p">)</span>
+
+    <span class="c1"># Pads [1] to the end of paddings.</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+        <span class="n">paddings</span><span class="p">,</span>
+        <span class="n">tf</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">paddings</span><span class="p">),</span> <span class="n">tf</span><span class="o">.</span><span class="n">tile</span><span class="p">([</span><span class="mi">1</span><span class="p">],</span> <span class="p">[</span><span class="n">rank_diff</span><span class="p">])],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">paddings</span></div>
+
 <div class="viewcode-block" id="BatchNormLayer.FProp"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.BatchNormLayer.FProp">[docs]</a>  <span class="k">def</span> <span class="nf">FProp</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;Apply batch normalization.</span>
 
@@ -503,8 +518,8 @@
 <span class="sd">      theta: A `.NestedMap` object containing weights&#39; values of this layer and</span>
 <span class="sd">        its children layers.</span>
 <span class="sd">      inputs: The inputs tensor.  Shaped [..., dim].</span>
-<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1], with the same rank as the</span>
-<span class="sd">        input tensor.</span>
+<span class="sd">      paddings: The paddings tensor.  Shaped [..., 1] or [...], the rank is</span>
+<span class="sd">        either the same as inputs or tf.rank(inputs) - 1.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">      Output after applying batch normalization, with the same shape as</span>
@@ -513,6 +528,10 @@
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
     <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
       <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_GetDefaultPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
+
+    <span class="c1"># shape [..., 1]</span>
+    <span class="n">paddings</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_MaybeExpandPaddings</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
+
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
       <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ComputeAndUpdateMoments</span><span class="p">(</span>
           <span class="n">theta</span><span class="p">,</span> <span class="n">inputs</span><span class="p">,</span> <span class="n">paddings</span><span class="p">)</span>
@@ -816,6 +835,8 @@
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;min_group_size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="s1">&#39;Minimum group size for GroupNorm&#39;</span><span class="p">)</span>
     <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;cumulative&#39;</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="s1">&#39;If true, only normalize by current and &#39;</span>
              <span class="s1">&#39;previous time steps.&#39;</span><span class="p">)</span>
+    <span class="n">p</span><span class="o">.</span><span class="n">Define</span><span class="p">(</span><span class="s1">&#39;input_rank&#39;</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;Rank of input. Only 3(BTD) and 4(NHWC) are &#39;</span>
+             <span class="s1">&#39;supported.&#39;</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">p</span></div>
 
   <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">params</span><span class="p">):</span>
@@ -833,13 +854,15 @@
 <div class="viewcode-block" id="GroupNormLayer._CreateLayerVariables"><a class="viewcode-back" href="../../../lingvo.core.bn_layers.html#lingvo.core.bn_layers.GroupNormLayer._CreateLayerVariables">[docs]</a>  <span class="k">def</span> <span class="nf">_CreateLayerVariables</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
     <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">_CreateLayerVariables</span><span class="p">()</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
+    <span class="k">assert</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">3</span> <span class="ow">or</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span>
 
     <span class="n">collections</span> <span class="o">=</span> <span class="p">[</span>
         <span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span> <span class="o">+</span> <span class="s1">&#39;_vars&#39;</span><span class="p">,</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">SKIP_LP_REGULARIZATION</span>
     <span class="p">]</span>
 
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span> <span class="k">else</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">]</span>
     <span class="n">pc</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">WeightParams</span><span class="p">(</span>
-        <span class="n">shape</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">],</span>
+        <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">,</span>
         <span class="n">init</span><span class="o">=</span><span class="n">py_utils</span><span class="o">.</span><span class="n">WeightInit</span><span class="o">.</span><span class="n">Constant</span><span class="p">(</span><span class="mf">0.0</span><span class="p">),</span>
         <span class="n">dtype</span><span class="o">=</span><span class="n">p</span><span class="o">.</span><span class="n">dtype</span><span class="p">,</span>
         <span class="n">collections</span><span class="o">=</span><span class="n">collections</span><span class="p">)</span>
@@ -864,33 +887,44 @@
 <span class="sd">      paddings is not None.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">p</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span>
-    <span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">unstack</span><span class="p">(</span><span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
-    <span class="n">group_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-    <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span>
-    <span class="n">min_group_size</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">&gt;</span> <span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span> <span class="k">else</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span>
-    <span class="k">if</span> <span class="n">group_size</span> <span class="o">&lt;=</span> <span class="n">min_group_size</span><span class="p">:</span>
-      <span class="n">group_size</span> <span class="o">=</span> <span class="n">min_group_size</span>
-      <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="n">group_size</span>
+    <span class="n">inputs</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">with_dependencies</span><span class="p">(</span>
+        <span class="p">[</span><span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">py_utils</span><span class="o">.</span><span class="n">GetRank</span><span class="p">(</span><span class="n">inputs</span><span class="p">),</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span><span class="p">)],</span>
+        <span class="n">inputs</span><span class="p">)</span>
 
+    <span class="n">min_group_size</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">min_group_size</span><span class="p">,</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span><span class="p">)</span>
+    <span class="n">group_size</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="n">p</span><span class="o">.</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">min_group_size</span><span class="p">)</span>
+    <span class="n">num_groups</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">dim</span> <span class="o">//</span> <span class="n">group_size</span>
+
+    <span class="n">input_shape</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">GetShape</span><span class="p">(</span><span class="n">inputs</span><span class="p">)</span>
     <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">name_scope</span><span class="p">(</span><span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">):</span>
-      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="n">group_size</span><span class="p">])</span>
+      <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">inputs</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="n">num_groups</span><span class="p">,</span> <span class="n">group_size</span><span class="p">])</span>
+      <span class="n">expanded_rank</span> <span class="o">=</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">+</span> <span class="mi">1</span>
+      <span class="n">all_dims</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">expanded_rank</span><span class="p">))</span>
       <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Skip d0, d[-2]</span>
+        <span class="n">axes</span> <span class="o">=</span> <span class="n">all_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">all_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
         <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">sufficient_statistics</span><span class="p">(</span>
-            <span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+            <span class="n">x</span><span class="p">,</span> <span class="n">axes</span><span class="o">=</span><span class="n">axes</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">nn</span><span class="o">.</span><span class="n">normalize_moments</span><span class="p">(</span>
             <span class="n">counts</span><span class="p">,</span> <span class="n">means_ss</span><span class="p">,</span> <span class="n">variance_ss</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
       <span class="k">else</span><span class="p">:</span>
-        <span class="n">expanded_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">paddings</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+        <span class="n">expanded_paddings</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+            <span class="n">paddings</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="p">(</span><span class="n">expanded_rank</span> <span class="o">-</span> <span class="mi">2</span><span class="p">))</span>
+        <span class="c1"># skip the batching and group dim</span>
         <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cumulative</span><span class="p">:</span>
+          <span class="c1"># Skip d0, d1 and d[-2]</span>
+          <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="n">all_dims</span><span class="p">[</span><span class="mi">2</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">all_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
           <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">ComputeMomentsWithPadding</span><span class="p">(</span>
               <span class="n">x</span><span class="p">,</span>
               <span class="n">expanded_paddings</span><span class="p">,</span>
-              <span class="n">reduce_over_dims</span><span class="o">=</span><span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+              <span class="n">reduce_over_dims</span><span class="o">=</span><span class="n">reduce_over_dims</span><span class="p">,</span>
               <span class="n">cumulative_axis</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
               <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
+          <span class="c1"># Skip d0, d[-2]</span>
+          <span class="n">reduce_over_dims</span> <span class="o">=</span> <span class="n">all_dims</span><span class="p">[</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="n">all_dims</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:]</span>
           <span class="n">norm_mean</span><span class="p">,</span> <span class="n">norm_variance</span> <span class="o">=</span> <span class="n">ComputeMomentsWithPadding</span><span class="p">(</span>
-              <span class="n">x</span><span class="p">,</span> <span class="n">expanded_paddings</span><span class="p">,</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+              <span class="n">x</span><span class="p">,</span> <span class="n">expanded_paddings</span><span class="p">,</span> <span class="n">reduce_over_dims</span><span class="p">,</span> <span class="n">keepdims</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 
       <span class="n">norm_mean</span> <span class="o">=</span> <span class="n">py_utils</span><span class="o">.</span><span class="n">CheckNumerics</span><span class="p">(</span>
           <span class="n">norm_mean</span><span class="p">,</span> <span class="s1">&#39;mean of </span><span class="si">%s</span><span class="s1"> failed numeric check&#39;</span> <span class="o">%</span> <span class="n">p</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
@@ -899,19 +933,20 @@
 
       <span class="n">beta</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">beta</span>
       <span class="n">gamma</span> <span class="o">=</span> <span class="n">theta</span><span class="o">.</span><span class="n">gamma</span>
-      <span class="n">t</span> <span class="o">=</span> <span class="n">h</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cumulative</span> <span class="k">else</span> <span class="mi">1</span>
+      <span class="n">n</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+      <span class="n">t</span> <span class="o">=</span> <span class="n">input_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">cumulative</span> <span class="k">else</span> <span class="mi">1</span>
+      <span class="n">norm_shape</span> <span class="o">=</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span>
+                   <span class="p">]</span> <span class="k">if</span> <span class="n">p</span><span class="o">.</span><span class="n">input_rank</span> <span class="o">==</span> <span class="mi">4</span> <span class="k">else</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
       <span class="k">with</span> <span class="n">tf</span><span class="o">.</span><span class="n">control_dependencies</span><span class="p">([</span>
           <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_greater_equal</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">,</span>
                                         <span class="n">tf</span><span class="o">.</span><span class="n">cast</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="n">norm_variance</span><span class="o">.</span><span class="n">dtype</span><span class="p">)),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-                                      <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_mean</span><span class="p">)),</span>
-          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">([</span><span class="n">n</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">num_groups</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span>
-                                      <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">norm_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_mean</span><span class="p">)),</span>
+          <span class="n">py_utils</span><span class="o">.</span><span class="n">assert_shape_match</span><span class="p">(</span><span class="n">norm_shape</span><span class="p">,</span> <span class="n">tf</span><span class="o">.</span><span class="n">shape</span><span class="p">(</span><span class="n">norm_variance</span><span class="p">)),</span>
       <span class="p">]):</span>
         <span class="n">x</span> <span class="o">=</span> <span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="n">norm_mean</span><span class="p">)</span> <span class="o">/</span> <span class="n">tf</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">norm_variance</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_epsilon</span><span class="p">)</span>
-        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
         <span class="n">gn_output</span> <span class="o">=</span> <span class="n">x</span> <span class="o">*</span> <span class="n">gamma</span> <span class="o">+</span> <span class="n">beta</span>
-        <span class="n">gn_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">gn_output</span><span class="p">,</span> <span class="p">[</span><span class="n">n</span><span class="p">,</span> <span class="n">h</span><span class="p">,</span> <span class="n">w</span><span class="p">,</span> <span class="n">c</span><span class="p">])</span>
+        <span class="n">gn_output</span> <span class="o">=</span> <span class="n">tf</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">gn_output</span><span class="p">,</span> <span class="n">input_shape</span><span class="p">)</span>
         <span class="k">if</span> <span class="n">paddings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
           <span class="k">return</span> <span class="n">gn_output</span>
         <span class="k">else</span><span class="p">:</span>

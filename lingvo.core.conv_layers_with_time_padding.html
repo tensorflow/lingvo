@@ -555,8 +555,8 @@ represents the shape of the <code class="xref py py-obj docutils literal notrans
 <li><p><strong>theta</strong> – A <a class="reference internal" href="lingvo.core.py_utils.html#lingvo.core.py_utils.NestedMap" title="lingvo.core.py_utils.NestedMap"><code class="xref py py-obj docutils literal notranslate"><span class="pre">NestedMap</span></code></a> object containing weights’ values of this layer and
 its children layers.</p></li>
 <li><p><strong>inputs</strong> – The inputs tensor.  Shaped […, dim].</p></li>
-<li><p><strong>paddings</strong> – The paddings tensor.  Shaped […, 1], with the same rank as the
-input tensor.</p></li>
+<li><p><strong>paddings</strong> – The paddings tensor.  Shaped […, 1] or […], the rank is
+either the same as inputs or tf.rank(inputs) - 1.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns</dt>
