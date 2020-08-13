@@ -4473,6 +4473,10 @@ def _DefineFunction(fwd,
   @tf.function(input_signature=Flatten(fwd_sig), autograph=False)
   def Forward(*args):
     """The forward function."""
+    # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+    # avoid it being used as an implicit capture. It should take the step seed
+    # from parent graph instead.
+    ResetStepSeed()
     with RemoveAssertContext(remove=noinline), tf.device(device):
       xs = Pack(fwd_sig, args)
       if implicit_captures:
@@ -4489,6 +4493,11 @@ def _DefineFunction(fwd,
   if bak:
 
     def Backward(*args):
+      if bak_as_function:
+        # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+        # avoid it being used as an implicit capture. It should take the step
+        # seed from parent graph instead.
+        ResetStepSeed()
       xs_len = len(Flatten(fwd_sig_no_captures))
       ys_len = len(Flatten(sigs.rets))
       xs = Pack(fwd_sig_no_captures, args[:xs_len])
@@ -4616,6 +4625,10 @@ def If(cond, inputs, then_branch, else_branch):
 
     @tf.function(autograph=False)
     def ThenBranch(*args):
+      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+      # avoid it being used as an implicit capture. It should take the step seed
+      # from parent graph instead.
+      ResetStepSeed()
       inp = Pack(inputs, args)
       out = then_branch(inp)
       ret_dtypes.then_out = Transform(get_dtype, out)
@@ -4623,6 +4636,10 @@ def If(cond, inputs, then_branch, else_branch):
 
     @tf.function(autograph=False)
     def ElseBranch(*args):
+      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+      # avoid it being used as an implicit capture. It should take the step seed
+      # from parent graph instead.
+      ResetStepSeed()
       inp = Pack(inputs, args)
       out = else_branch(inp)
       ret_dtypes.else_out = Transform(get_dtype, out)
@@ -4690,11 +4707,19 @@ def WhileLoop(cond, body, loop_state):
 
     @tf.function(autograph=False)
     def LoopCond(*args):
+      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+      # avoid it being used as an implicit capture. It should take the step seed
+      # from parent graph instead.
+      ResetStepSeed()
       s = state.Pack(args)
       return cond(s.loop_state)
 
     @tf.function(autograph=False)
     def LoopBody(*args):
+      # TODO(b/163904067): mimic Defun' behavior and reset the step seed to
+      # avoid it being used as an implicit capture. It should take the step seed
+      # from parent graph instead.
+      ResetStepSeed()
       s = state.Pack(args)
       s.loop_state = body(s.loop_state)
       return s.Flatten()
